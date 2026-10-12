@@ -159,6 +159,32 @@ The dashboard features **12 dedicated operational modules**:
   - `Order Delivery Status`: Overall order outcome (`Delivered`, `Paid Return`, `Not Paid Return`, `Exchange`, `Partial`). Identical for all items within an order.
   - `Item Delivery Status`: Specific item outcome (`Delivered`, `Returned`, `Exchange`).
 
+### 4.15 System Settings & Custom Themes Hub
+- **Visual Appearance & Theme Customizer**:
+  - 8 curated enterprise color presets (Deen Signature Orange, Royal Indigo, Emerald Growth, Electric Violet, Crimson Velvet, Ocean Sky, Amber Harvest, Deep Graphite).
+  - Custom hexadecimal color picker with live real-time CSS variable updates (`--primary`, `--primary-hover`, `--primary-subtle`, `--primary-dark`).
+  - Persistent browser storage in `localStorage` ensuring theme selections survive page reloads and browser sessions.
+  - Interactive Theme Preview Widget rendering live buttons, badges, and accents.
+  - Display preferences: Show/Hide mini donut charts and compact density toggles.
+- **Reconciliation & Mathematical Parameters**:
+  - Dynamic parameter binding: Any updates to `insideDeliveryFee`, `outsideDeliveryFee`, `packagingCost`, `cogsPercent`, or `exactTolerance` instantly re-run `runReconciliationEngine` and the Knapsack solver without reloading the page.
+  - Inside Dhaka delivery fee deduction setting (Default: ৳50).
+  - Outside Dhaka delivery fee deduction setting (Default: ৳90).
+  - Packaging sunk cost per returned parcel (Default: ৳25).
+  - Modeled COGS margin rate (Default: 42%).
+  - Knapsack exact match tolerance window (Default: ৳2).
+  - Ingestion toggles: Default Exclude August Dates and Default Exclude Physical POS Registers.
+- **Cloud API Synchronization Center & Credential Vault**:
+  - Live WooCommerce REST API and Pathao Courier Hermes API connection monitors.
+  - Interactive Credential Drawer: Edit and save WooCommerce Store URL, Consumer Key/Secret, and Pathao Client ID/Secret/Username directly from the browser with persistent encrypted local state.
+  - Custom date range selection and order status filters.
+  - One-click live synchronization and health check diagnostics.
+- **Data & Configuration Management**:
+  - One-click baseline data reset (1,026 clean September orders).
+  - Purge locally cached manual overrides.
+  - One-click JSON diagnostic export and JSON configuration file import (instant restore of parameters and theme).
+  - Activity Audit Log: Timestamped ledger tracking all theme updates, formula changes, and sync events.
+
 ---
 
 ## 5. Non-Functional Requirements

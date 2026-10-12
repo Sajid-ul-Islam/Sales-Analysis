@@ -38,7 +38,10 @@ export interface SubsetMatchResult {
 export function matchPartialItemsAdvanced(
   items: OrderItemEntry[],
   collectedCod: number,
-  orderTotalAmount: number
+  orderTotalAmount: number,
+  customInsideFee?: number,
+  customOutsideFee?: number,
+  customTolerance?: number
 ): SubsetMatchResult {
   // Flatten items with quantities into discrete individual garments
   const units: { unitId: number; originalIdx: number; cost: number; weight: number }[] = [];
@@ -65,13 +68,19 @@ export function matchPartialItemsAdvanced(
     }
   };
 
-  // 1. Delivery fee subtracted from collected COD (50 TK, 90 TK, 60 TK, 100 TK, 120 TK, or calculated)
-  addCandidate(collectedCod - 90, 'Outside Dhaka 90 TK Delivery Fee Subtracted');
-  addCandidate(collectedCod - 50, 'Inside Dhaka 50 TK Delivery Fee Subtracted');
+  const insideFee = customInsideFee !== undefined ? customInsideFee : 50;
+  const outsideFee = customOutsideFee !== undefined ? customOutsideFee : 90;
+  const tol = customTolerance !== undefined ? customTolerance : 2.0;
+
+  // 1. Delivery fee subtracted from collected COD (Custom inside/outside, standard 50/90/60/100/120)
+  addCandidate(collectedCod - outsideFee, `Outside Dhaka ${outsideFee} TK Delivery Fee Subtracted`);
+  addCandidate(collectedCod - insideFee, `Inside Dhaka ${insideFee} TK Delivery Fee Subtracted`);
+  if (insideFee !== 50) addCandidate(collectedCod - 50, 'Inside Dhaka 50 TK Delivery Fee Subtracted');
+  if (outsideFee !== 90) addCandidate(collectedCod - 90, 'Outside Dhaka 90 TK Delivery Fee Subtracted');
   addCandidate(collectedCod - 60, 'Sub-Dhaka 60 TK Delivery Fee Subtracted');
   addCandidate(collectedCod - 100, 'Standard 100 TK Delivery Fee Subtracted');
   addCandidate(collectedCod - 120, 'Heavy/Express 120 TK Delivery Fee Subtracted');
-  if (calculatedDeliveryFee > 0 && calculatedDeliveryFee !== 50 && calculatedDeliveryFee !== 90) {
+  if (calculatedDeliveryFee > 0 && calculatedDeliveryFee !== insideFee && calculatedDeliveryFee !== outsideFee) {
     addCandidate(collectedCod - calculatedDeliveryFee, 'Calculated Delivery Fee Subtracted');
   }
 
@@ -79,13 +88,13 @@ export function matchPartialItemsAdvanced(
   addCandidate(collectedCod, 'Direct Merchandise Cost without Delivery Fee');
 
   // 3. 1% Courier commission adjustments (if courier deducted 1% COD fee)
-  addCandidate((collectedCod - 90) / 0.99, '1% Courier COD Commission Adjusted (90 Fee)');
-  addCandidate((collectedCod - 50) / 0.99, '1% Courier COD Commission Adjusted (50 Fee)');
+  addCandidate((collectedCod - outsideFee) / 0.99, `1% Courier COD Commission Adjusted (${outsideFee} Fee)`);
+  addCandidate((collectedCod - insideFee) / 0.99, `1% Courier COD Commission Adjusted (${insideFee} Fee)`);
   addCandidate(collectedCod / 0.99, '1% Courier COD Commission Adjusted (Direct)');
 
   // 4. Reverse target: If collectedCod actually corresponds to the returned items' cost
-  addCandidate(totalProductCost - (collectedCod - 90), 'Reverse Returned Calculation (90 Fee)');
-  addCandidate(totalProductCost - (collectedCod - 50), 'Reverse Returned Calculation (50 Fee)');
+  addCandidate(totalProductCost - (collectedCod - outsideFee), `Reverse Returned Calculation (${outsideFee} Fee)`);
+  addCandidate(totalProductCost - (collectedCod - insideFee), `Reverse Returned Calculation (${insideFee} Fee)`);
   addCandidate(totalProductCost - collectedCod, 'Reverse Returned Calculation (Direct)');
 
   let bestSubset: SubsetFound | null = null;
@@ -93,9 +102,9 @@ export function matchPartialItemsAdvanced(
   let bestTargetUsed = collectedCod;
   let minDiff = Infinity;
 
-  // Pass 1: Exact Match (<= 2 BDT tolerance)
+  // Pass 1: Exact Match (<= tol tolerance)
   for (const { target } of candidateTargets) {
-    const match = findBestSubset(units, target, 2.0);
+    const match = findBestSubset(units, target, tol);
     if (match) {
       const diff = Math.abs(match.sum - target);
       if (diff < minDiff) {

@@ -19,10 +19,14 @@ import {
   UnitEconomicsTab,
   ExchangedOrdersTab,
   OutletDispatchTab,
-  OutletSalesTab
+  OutletSalesTab,
+  SettingsTab
 } from '@/components';
 import { runReconciliationEngine, ReconciliationResult } from '@/lib/reconciliationEngine';
 import { exportReconciledExcel } from '@/lib/excelExport';
+import { loadSavedThemeSettings, applyThemeToDocument } from '@/lib/themeManager';
+import { loadAppSettings } from '@/lib/settingsStore';
+import { DateScope, filterOrdersByDateScope } from '@/lib/dateFilter';
 import { RawOrderRow } from '@/types';
 import { RefreshCw, AlertCircle, CheckCircle2, UploadCloud } from 'lucide-react';
 
@@ -66,6 +70,14 @@ export default function DashboardPage() {
   const [excludeAugust, setExcludeAugust] = useState(true);
   const [excludePOS, setExcludePOS] = useState(true);
 
+  // Active Date Scope Filter ('all' | 'today' | '7d' | 'month')
+  const [dateScope, setDateScope] = useState<DateScope>('all');
+
+  // Dynamically filter raw orders according to selected date scope
+  const dateFilterResult = React.useMemo(() => {
+    return filterOrdersByDateScope(rawOrders, dateScope);
+  }, [rawOrders, dateScope]);
+
   // Distinct Data Source Modes: Uploaded Spreadsheets vs Live Cloud API
   const [dataSourceMode, setDataSourceMode] = useState<DataSourceMode>('UPLOAD');
   const [uploadedDataset, setUploadedDataset] = useState<DatasetSnapshot | null>(null);
@@ -78,6 +90,13 @@ export default function DashboardPage() {
 
   const [result, setResult] = useState<ReconciliationResult | null>(null);
 
+  // Financial & Mathematical Model Parameters (Loaded from AppSettings)
+  const [insideDeliveryFee, setInsideDeliveryFee] = useState<number>(50);
+  const [outsideDeliveryFee, setOutsideDeliveryFee] = useState<number>(90);
+  const [packagingCost, setPackagingCost] = useState<number>(25);
+  const [cogsPercent, setCogsPercent] = useState<number>(42);
+  const [exactTolerance, setExactTolerance] = useState<number>(2);
+
   // Helper to re-run reconciliation engine whenever raw data or filter toggles change
   const computeReconciliation = useCallback((
     orders: RawOrderRow[],
@@ -86,20 +105,46 @@ export default function DashboardPage() {
     augustFilter: boolean,
     posFilter: boolean,
     exchanges: RawOrderRow[] = [],
-    pathaoDelivery: RawOrderRow[] = []
+    pathaoDelivery: RawOrderRow[] = [],
+    customInsideFee?: number,
+    customOutsideFee?: number,
+    customPackagingCost?: number,
+    customCogsPercent?: number,
+    customExactTolerance?: number
   ) => {
-    if (!orders.length) return;
+    if (!orders.length) {
+      if (rawOrders.length > 0) {
+        try {
+          const res = runReconciliationEngine([], returns, partials, {
+            excludeAugust: augustFilter,
+            excludePOS: posFilter,
+            insideDeliveryFee: customInsideFee !== undefined ? customInsideFee : insideDeliveryFee,
+            outsideDeliveryFee: customOutsideFee !== undefined ? customOutsideFee : outsideDeliveryFee,
+            packagingCost: customPackagingCost !== undefined ? customPackagingCost : packagingCost,
+            cogsPercent: customCogsPercent !== undefined ? customCogsPercent : cogsPercent,
+            exactTolerance: customExactTolerance !== undefined ? customExactTolerance : exactTolerance
+          }, exchanges, pathaoDelivery);
+          setResult(res);
+        } catch {}
+      }
+      return;
+    }
     try {
       const res = runReconciliationEngine(orders, returns, partials, {
         excludeAugust: augustFilter,
-        excludePOS: posFilter
+        excludePOS: posFilter,
+        insideDeliveryFee: customInsideFee !== undefined ? customInsideFee : insideDeliveryFee,
+        outsideDeliveryFee: customOutsideFee !== undefined ? customOutsideFee : outsideDeliveryFee,
+        packagingCost: customPackagingCost !== undefined ? customPackagingCost : packagingCost,
+        cogsPercent: customCogsPercent !== undefined ? customCogsPercent : cogsPercent,
+        exactTolerance: customExactTolerance !== undefined ? customExactTolerance : exactTolerance
       }, exchanges, pathaoDelivery);
       setResult(res);
     } catch (err: any) {
       console.error('Reconciliation execution error:', err);
       setStatusMessage(`Engine error: ${err.message}`);
     }
-  }, []);
+  }, [insideDeliveryFee, outsideDeliveryFee, packagingCost, cogsPercent, exactTolerance]);
 
   // Fetch pre-loaded September workspace dataset from local API
   const loadPreloadedSeptemberData = useCallback(async () => {
@@ -150,17 +195,46 @@ export default function DashboardPage() {
     }
   }, [excludeAugust, excludePOS, computeReconciliation]);
 
-  // Initial mount: load preloaded workspace data
+  // Initial mount: load saved theme and preloaded workspace data
   useEffect(() => {
+    const savedTheme = loadSavedThemeSettings();
+    applyThemeToDocument(savedTheme);
+
+    const savedSettings = loadAppSettings();
+    if (savedSettings) {
+      if (savedSettings.insideDeliveryFee !== undefined) setInsideDeliveryFee(savedSettings.insideDeliveryFee);
+      if (savedSettings.outsideDeliveryFee !== undefined) setOutsideDeliveryFee(savedSettings.outsideDeliveryFee);
+      if (savedSettings.packagingCost !== undefined) setPackagingCost(savedSettings.packagingCost);
+      if (savedSettings.cogsPercent !== undefined) setCogsPercent(savedSettings.cogsPercent);
+      if (savedSettings.exactTolerance !== undefined) setExactTolerance(savedSettings.exactTolerance);
+    }
+
     loadPreloadedSeptemberData();
   }, [loadPreloadedSeptemberData]);
 
-  // Re-run computation when filters change
+  // Re-run computation when raw data, date filter scope, or business rule toggles change
   useEffect(() => {
     if (rawOrders.length > 0) {
-      computeReconciliation(rawOrders, rawReturns, rawPartials, excludeAugust, excludePOS, rawExchanges, rawPathaoDelivery);
+      computeReconciliation(
+        dateFilterResult.filteredOrders,
+        rawReturns,
+        rawPartials,
+        excludeAugust,
+        excludePOS,
+        rawExchanges,
+        rawPathaoDelivery
+      );
     }
-  }, [excludeAugust, excludePOS, rawOrders, rawReturns, rawPartials, rawExchanges, rawPathaoDelivery, computeReconciliation]);
+  }, [
+    dateFilterResult.filteredOrders,
+    excludeAugust,
+    excludePOS,
+    rawReturns,
+    rawPartials,
+    rawExchanges,
+    rawPathaoDelivery,
+    computeReconciliation
+  ]);
 
   // Read a File object to XLSX Workbook (works seamlessly for .xlsx, .xls, .csv)
   const readFileWorkbook = (file: File): Promise<XLSX.WorkBook> => {
@@ -441,7 +515,10 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-white font-sans text-slate-900">
+    <div
+      className="flex min-h-screen font-sans text-slate-900 transition-colors duration-200"
+      style={{ backgroundColor: 'var(--bg-surface, #FFFFFF)' }}
+    >
       {/* Branded Sidebar */}
       <Sidebar
         activeTab={activeTab}
@@ -453,7 +530,10 @@ export default function DashboardPage() {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-white">
+      <div
+        className="flex-1 flex flex-col min-w-0 transition-colors duration-200"
+        style={{ backgroundColor: 'var(--bg-surface, #FFFFFF)' }}
+      >
         <Header
           onExport={handleExport}
           hasData={result !== null}
@@ -462,9 +542,17 @@ export default function DashboardPage() {
           activeSourceMode={dataSourceMode}
           onSwitchSourceMode={handleSwitchDataSource}
           hasCloudData={cloudApiDataset !== null && cloudApiDataset.orders.length > 0}
+          onOpenSettings={() => setActiveTab('tabSettings')}
+          activeDateScope={dateScope}
+          onDateScopeChange={setDateScope}
+          dateScopeCounts={dateFilterResult.counts}
+          dateScopeSubLabel={dateFilterResult.subLabel}
         />
 
-        <main className="p-6 space-y-6 max-w-7xl mx-auto w-full bg-white">
+        <main
+          className="p-6 space-y-6 max-w-7xl mx-auto w-full transition-colors duration-200"
+          style={{ backgroundColor: 'var(--bg-surface, #FFFFFF)' }}
+        >
           {/* Status Alert Banner */}
           {statusMessage && (
             <div className="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 flex items-center justify-between shadow-sm">
@@ -481,13 +569,13 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Cloud API Integration (WooCommerce + Pathao) - SHOWN ONLY IN CLOUD API MODE */}
-          {dataSourceMode === 'API' && (
+          {/* Cloud API Integration (WooCommerce + Pathao) - SHOWN ONLY ON EXECUTIVE OVERVIEW OR INITIAL STATE */}
+          {dataSourceMode === 'API' && activeTab !== 'tabSettings' && (!result || activeTab === 'tabExecutive') && (
             <CloudSyncBar onDataSynced={handleLiveSyncData} />
           )}
 
-          {/* Spreadsheet Upload Dropzones - SHOWN ONLY IN SPREADSHEET UPLOAD MODE */}
-          {dataSourceMode === 'UPLOAD' && (
+          {/* Spreadsheet Upload Dropzones - SHOWN ONLY ON EXECUTIVE OVERVIEW OR INITIAL STATE */}
+          {dataSourceMode === 'UPLOAD' && activeTab !== 'tabSettings' && (!result || activeTab === 'tabExecutive') && (
             <FileDropzone
               orderFiles={orderFiles}
               setOrderFiles={setOrderFiles}
@@ -521,28 +609,81 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Dashboard Body when data is loaded */}
-          {result && !initialLoading && (
+          {/* System Settings & Custom Themes Tab */}
+          {activeTab === 'tabSettings' && (
+            <SettingsTab
+              excludeAugust={excludeAugust}
+              setExcludeAugust={setExcludeAugust}
+              excludePOS={excludePOS}
+              setExcludePOS={setExcludePOS}
+              onResetBaseline={loadPreloadedSeptemberData}
+              onDataSynced={handleLiveSyncData}
+              insideDeliveryFee={insideDeliveryFee}
+              setInsideDeliveryFee={setInsideDeliveryFee}
+              outsideDeliveryFee={outsideDeliveryFee}
+              setOutsideDeliveryFee={setOutsideDeliveryFee}
+              packagingCost={packagingCost}
+              setPackagingCost={setPackagingCost}
+              cogsPercent={cogsPercent}
+              setCogsPercent={setCogsPercent}
+              exactTolerance={exactTolerance}
+              setExactTolerance={setExactTolerance}
+              onRefreshReconciliation={() => {
+                computeReconciliation(
+                  rawOrders,
+                  rawReturns,
+                  rawPartials,
+                  excludeAugust,
+                  excludePOS,
+                  rawExchanges,
+                  rawPathaoDelivery,
+                  insideDeliveryFee,
+                  outsideDeliveryFee,
+                  packagingCost,
+                  cogsPercent,
+                  exactTolerance
+                );
+              }}
+            />
+          )}
+
+          {/* Dashboard Body when data is loaded and not in settings */}
+          {result && !initialLoading && activeTab !== 'tabSettings' && (
             <div className="space-y-6">
-              {/* Executive KPI Overview (8 Cards + Hero) */}
-              <KpiOverview
-                summary={result.summary}
-                activeSourceMode={dataSourceMode}
-                dataSourceName={dataSourceName}
-                onSwitchSourceMode={handleSwitchDataSource}
-                hasCloudData={cloudApiDataset !== null && cloudApiDataset.orders.length > 0}
-                onKpiClick={handleKpiCardClick}
-                onQuickRecalc={() => {
-                  computeReconciliation(rawOrders, rawReturns, rawPartials, excludeAugust, excludePOS, rawExchanges);
-                  setStatusMessage('Quick recalculation completed: ledger re-indexed.');
-                }}
-                onExport={handleExport}
-                onSync={() => {
-                  handleSwitchDataSource('API');
-                  const el = document.getElementById('cloudSyncSection');
-                  el?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              />
+              {/* Executive KPI Overview (8 Cards + Hero) - Only shown on Executive Overview */}
+              {activeTab === 'tabExecutive' && (
+                <KpiOverview
+                  summary={result.summary}
+                  activeSourceMode={dataSourceMode}
+                  dataSourceName={dataSourceName}
+                  onSwitchSourceMode={handleSwitchDataSource}
+                  hasCloudData={cloudApiDataset !== null && cloudApiDataset.orders.length > 0}
+                  onKpiClick={handleKpiCardClick}
+                  activeDateScope={dateScope}
+                  onDateRangeSelect={setDateScope}
+                  dateScopeCounts={dateFilterResult.counts}
+                  dateScopeLabel={dateFilterResult.label}
+                  dateScopeSubLabel={dateFilterResult.subLabel}
+                  onQuickRecalc={() => {
+                    computeReconciliation(
+                      dateFilterResult.filteredOrders,
+                      rawReturns,
+                      rawPartials,
+                      excludeAugust,
+                      excludePOS,
+                      rawExchanges,
+                      rawPathaoDelivery
+                    );
+                    setStatusMessage('Quick recalculation completed: ledger re-indexed.');
+                  }}
+                  onExport={handleExport}
+                  onSync={() => {
+                    handleSwitchDataSource('API');
+                    const el = document.getElementById('cloudSyncSection');
+                    el?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                />
+              )}
 
               {/* Tab Navigation Content */}
               <div id="mainTabSection" className="pt-2">
@@ -636,7 +777,7 @@ export default function DashboardPage() {
           )}
 
           {/* Empty State Guide Card when no files or data loaded yet */}
-          {!result && !initialLoading && (
+          {!result && !initialLoading && activeTab !== 'tabSettings' && (
             <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-10 text-center flex flex-col items-center justify-center max-w-2xl mx-auto shadow-sm my-6">
               <div className="w-14 h-14 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-primary mb-4 shadow-sm">
                 <UploadCloud className="w-7 h-7" />

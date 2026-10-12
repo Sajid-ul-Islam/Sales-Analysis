@@ -22,7 +22,7 @@ const criticalCSS = `
     margin: 0;
     padding: 0;
     min-height: 100vh;
-    background-color: #F8FAFC;
+    background-color: var(--bg-surface, #FFFFFF);
     color: #0F172A;
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;

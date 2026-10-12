@@ -10,3 +10,4 @@ export { UnitEconomicsTab } from './UnitEconomicsTab';
 export { ExchangedOrdersTab } from './ExchangedOrdersTab';
 export { OutletDispatchTab } from './OutletDispatchTab';
 export { OutletSalesTab } from './OutletSalesTab';
+export { SettingsTab } from './SettingsTab';

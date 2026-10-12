@@ -46,6 +46,7 @@ export function Sidebar({ activeTab, setActiveTab, returnCount, mismatchCount, e
     { id: 'tabExchanges', label: 'Exchanged Orders', icon: ArrowRightLeft, countBadge: exchangeCount, highlight: true },
     { id: 'tabCustomerRisk', label: 'Customer Risk Intelligence', icon: ShieldAlert, highlight: true },
     { id: 'tabUnitEconomics', label: 'Sales & Calculation', icon: Calculator, highlight: true },
+    { id: 'tabSettings', label: 'System Settings & Themes', icon: Settings, highlight: true },
   ];
 
   return (
@@ -65,7 +66,7 @@ export function Sidebar({ activeTab, setActiveTab, returnCount, mismatchCount, e
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
               <DeenLogoMark className="w-5 h-5 !rounded-md" />
-              <span className="text-xs font-semibold text-slate-900 truncate">Dhaka HQ Cluster</span>
+              <span className="text-xs font-semibold text-slate-900 truncate">Reconciliation Hub</span>
             </div>
             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200/60 text-slate-600 font-mono">
               Live
@@ -128,15 +129,21 @@ export function Sidebar({ activeTab, setActiveTab, returnCount, mismatchCount, e
         </nav>
       </div>
 
-      {/* Bottom Account Pill */}
+      {/* Bottom Account Pill & Settings Shortcut */}
       <div className="p-3 border-t border-slate-200 shrink-0">
-        <div className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+        <div
+          onClick={() => setActiveTab('tabSettings')}
+          className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors group"
+          title="Open System Settings & Custom Themes"
+        >
           <DeenLogoMark className="w-8 h-8 !rounded-lg" />
           <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-xs font-semibold text-slate-900 truncate">Deen Operations</span>
-            <span className="text-[10px] text-slate-400 truncate">ops@deencommerce.com</span>
+            <span className="text-xs font-semibold text-slate-900 truncate group-hover:text-primary transition-colors">
+              DEEN Commerce
+            </span>
+            <span className="text-[10px] text-slate-400 truncate">Settings & Themes</span>
           </div>
-          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <Settings className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors shrink-0" />
         </div>
       </div>
     </aside>

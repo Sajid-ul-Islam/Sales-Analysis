@@ -11,8 +11,10 @@ import {
   ChevronDown,
   CheckCircle2,
   FileSpreadsheet,
-  Cloud
+  Cloud,
+  Settings
 } from 'lucide-react';
+import { DateScope, DateScopeCounts } from '@/lib/dateFilter';
 
 export interface HeaderProps {
   onExport: () => void;
@@ -23,6 +25,11 @@ export interface HeaderProps {
   activeSourceMode?: 'UPLOAD' | 'API';
   onSwitchSourceMode?: (mode: 'UPLOAD' | 'API') => void;
   hasCloudData?: boolean;
+  onOpenSettings?: () => void;
+  activeDateScope?: DateScope;
+  onDateScopeChange?: (scope: DateScope) => void;
+  dateScopeCounts?: DateScopeCounts;
+  dateScopeSubLabel?: string;
 }
 
 export function Header({
@@ -33,7 +40,12 @@ export function Header({
   onSearch,
   activeSourceMode = 'UPLOAD',
   onSwitchSourceMode,
-  hasCloudData = false
+  hasCloudData = false,
+  onOpenSettings,
+  activeDateScope,
+  onDateScopeChange,
+  dateScopeCounts,
+  dateScopeSubLabel
 }: HeaderProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -102,6 +114,44 @@ export function Header({
           </button>
         </div>
 
+        {/* Date Scope Filter in Header (cross-tab quick filtering) */}
+        {activeDateScope && onDateScopeChange && (
+          <div className="hidden lg:flex items-center p-1 bg-slate-100/90 rounded-xl border border-slate-200 shadow-2xs">
+            {[
+              { id: 'all' as DateScope, label: 'All', title: 'All Records' },
+              { id: 'today' as DateScope, label: 'Today', title: 'Today' },
+              { id: '7d' as DateScope, label: '7D', title: 'Last 7 Days' },
+              { id: 'month' as DateScope, label: 'Month', title: 'This Month' },
+            ].map((pill) => {
+              const isActive = activeDateScope === pill.id;
+              const count = dateScopeCounts ? dateScopeCounts[pill.id] : undefined;
+              return (
+                <button
+                  key={pill.id}
+                  onClick={() => onDateScopeChange(pill.id)}
+                  title={`${pill.title}${count !== undefined ? ` (${count.toLocaleString()} orders)` : ''}`}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-white text-navy-deep shadow-2xs border border-slate-200/90'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <span>{pill.label}</span>
+                  {count !== undefined && (
+                    <span className={`px-1 py-0.2 rounded-full text-[9px] font-mono ${
+                      isActive ? 'bg-orange-100 text-primary font-bold' : 'bg-slate-200 text-slate-500'
+                    }`}>
+                      {count.toLocaleString()}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="h-4 w-px bg-slate-200 mx-0.5 hidden lg:block"></div>
+
         <div className="h-4 w-px bg-slate-200 mx-0.5 hidden sm:block"></div>
 
         {/* Reset Baseline Action */}
@@ -126,18 +176,29 @@ export function Header({
           <span>Export .XLSX</span>
         </button>
 
+        {/* Settings & Custom Themes Button */}
+        {onOpenSettings && (
+          <button
+            onClick={onOpenSettings}
+            className="p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-primary border border-slate-200 transition-all shadow-2xs active:scale-95"
+            title="System Settings & Custom Themes"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+        )}
+
         {/* User Account Pill with Actual Deen Logo */}
-        <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-          <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-2xs ring-1 ring-slate-200 aspect-square">
+        <div className="flex items-center pl-2 border-l border-slate-200">
+          <div
+            onClick={onOpenSettings}
+            className="w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-2xs ring-1 ring-slate-200 aspect-square cursor-pointer hover:ring-primary transition-all"
+            title="Settings & Account"
+          >
             <img
               src="/deencommerce_logo.jpg"
-              alt="DEEN Operations"
+              alt="DEEN Commerce"
               className="w-full h-full object-cover"
             />
-          </div>
-          <div className="hidden xl:flex flex-col text-left">
-            <span className="text-xs font-bold text-slate-900 leading-tight">Deen Operations</span>
-            <span className="text-[10px] text-slate-400">Dhaka HQ Cluster</span>
           </div>
         </div>
       </div>

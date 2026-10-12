@@ -17,6 +17,11 @@ import { matchPartialItemsAdvanced, OrderItemEntry, SubsetMatchResult } from './
 export interface IngestionOptions {
   excludeAugust?: boolean;
   excludePOS?: boolean;
+  insideDeliveryFee?: number;
+  outsideDeliveryFee?: number;
+  packagingCost?: number;
+  cogsPercent?: number;
+  exactTolerance?: number;
 }
 
 export interface ReconciliationResult {
@@ -213,6 +218,12 @@ export function runReconciliationEngine(
   exchangeRows: RawOrderRow[] = [],
   pathaoDeliveryRows: RawOrderRow[] = []
 ): ReconciliationResult {
+  const cogsRate = (options.cogsPercent !== undefined ? options.cogsPercent : 42) / 100;
+  const insideFee = options.insideDeliveryFee !== undefined ? options.insideDeliveryFee : 50;
+  const outsideFee = options.outsideDeliveryFee !== undefined ? options.outsideDeliveryFee : 90;
+  const packagingFee = options.packagingCost !== undefined ? options.packagingCost : 25;
+  const exactTol = options.exactTolerance !== undefined ? options.exactTolerance : 2.0;
+
   interface PathaoDeliveryEntry {
     rawMerchantId: string;
     consignment: string;
@@ -678,7 +689,7 @@ export function runReconciliationEngine(
         qty: Math.max(1, parseInt(findCol(r, ['quantity', 'qty']) || '1', 10) || 1)
       }));
 
-      partialMatchResult = matchPartialItemsAdvanced(itemsSummary, effCod, orderTotal);
+      partialMatchResult = matchPartialItemsAdvanced(itemsSummary, effCod, orderTotal, insideFee, outsideFee, exactTol);
     }
 
     // Detect branch from order ID or customer notes, or from matched courier return/exchange records
@@ -742,7 +753,7 @@ export function runReconciliationEngine(
           paymentMethod,
           hasSplitSuffix,
           rawNote: note || undefined,
-          cogsEstimate: (itemCost * rawQty) * 0.42,
+          cogsEstimate: (itemCost * rawQty) * cogsRate,
           fulfillmentLocation: branchInfo.branch,
           branchSuffix: branchInfo.suffix || undefined,
           isPaidReturn: hasAnyPaidParcel,
@@ -776,7 +787,7 @@ export function runReconciliationEngine(
             paymentMethod,
             hasSplitSuffix,
             rawNote: note || undefined,
-            cogsEstimate: (itemCost * keptQty) * 0.42,
+            cogsEstimate: (itemCost * keptQty) * cogsRate,
             fulfillmentLocation: branchInfo.branch,
             branchSuffix: branchInfo.suffix || undefined,
             isPaidReturn: hasAnyPaidParcel,
@@ -807,7 +818,7 @@ export function runReconciliationEngine(
             paymentMethod,
             hasSplitSuffix,
             rawNote: note || undefined,
-            cogsEstimate: (itemCost * returnedQty) * 0.42,
+            cogsEstimate: (itemCost * returnedQty) * cogsRate,
             fulfillmentLocation: branchInfo.branch,
             branchSuffix: branchInfo.suffix || undefined,
             isPaidReturn: hasAnyPaidParcel,
@@ -837,7 +848,7 @@ export function runReconciliationEngine(
           paymentMethod,
           hasSplitSuffix,
           rawNote: note || undefined,
-          cogsEstimate: (itemCost * rawQty) * 0.42,
+          cogsEstimate: (itemCost * rawQty) * cogsRate,
           fulfillmentLocation: branchInfo.branch,
           branchSuffix: branchInfo.suffix || undefined,
           isPaidReturn: hasAnyPaidParcel,
@@ -866,7 +877,7 @@ export function runReconciliationEngine(
           paymentMethod,
           hasSplitSuffix,
           rawNote: note || undefined,
-          cogsEstimate: (itemCost * rawQty) * 0.42,
+          cogsEstimate: (itemCost * rawQty) * cogsRate,
           fulfillmentLocation: branchInfo.branch,
           branchSuffix: branchInfo.suffix || undefined,
           isPaidReturn: hasAnyPaidParcel,
@@ -1106,7 +1117,7 @@ export function runReconciliationEngine(
 
     if (isEligibleDeliveryFee) {
       collectedEligibleOrdersCount++;
-      const fee = isInside ? 50 : 90;
+      const fee = isInside ? insideFee : outsideFee;
       customerDeliveryFeeCollected += fee;
       if (isInside) {
         collectedInsideCount++;
@@ -1116,8 +1127,8 @@ export function runReconciliationEngine(
     }
   });
 
-  const collectedDeliveryFeeInside = collectedInsideCount * 50;
-  const collectedDeliveryFeeOutside = collectedOutsideCount * 90;
+  const collectedDeliveryFeeInside = collectedInsideCount * insideFee;
+  const collectedDeliveryFeeOutside = collectedOutsideCount * outsideFee;
 
   let totalGrossItems = 0;
   let partialDeliveredQty = 0;
@@ -1172,10 +1183,10 @@ export function runReconciliationEngine(
     netCourierCostAfterDeliveryFee: finalCourierNet - customerDeliveryFeeCollected
   };
 
-  // Unit Economics: 42% COGS, Courier, and Packaging Loss
-  const estimatedCogs = netDeliveredRevenue * 0.42;
+  // Unit Economics: Dynamic COGS %, Courier, and Packaging Loss
+  const estimatedCogs = netDeliveredRevenue * cogsRate;
   const grossMargin = netDeliveredRevenue - estimatedCogs;
-  const packagingLoss = (fullReturnedOrders + partialOrders) * 25; // ৳25 unboxing depreciation
+  const packagingLoss = (fullReturnedOrders + partialOrders) * packagingFee; // unboxing depreciation
   const netContributionMargin = grossMargin - courierCost.netCharge - packagingLoss + courierCost.paidReturnCollectedCod;
   const netMarginPercentage = netDeliveredRevenue > 0 ? (netContributionMargin / netDeliveredRevenue) * 100 : 0;
 

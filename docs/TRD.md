@@ -21,6 +21,7 @@ The **DEEN Commerce Reconciliation Engine** is designed as a high-performance, c
 │  │   - Status Matrix            - SKU Performance       - Item Returns   │  │
 │  │   - Courier Mismatch Audit   - Territory Breakdown   - Customer Risk  │  │
 │  │   - Unit Economics           - Exchanged Hub         - Orders Ledger  │  │
+│  │   - System Settings & Themes (SettingsTab.tsx)                        │  │
 │  └───────────────────────────────────▲───────────────────────────────────┘  │
 │                                      │                                      │
 │  ┌───────────────────────────────────┴───────────────────────────────────┐  │
@@ -29,6 +30,7 @@ The **DEEN Commerce Reconciliation Engine** is designed as a high-performance, c
 │  │   - Discrepancy Auditor (discrepancyAuditor.ts)                       │  │
 │  │   - Reconciler & Geo Engine (reconciliationEngine.ts, geo.ts)         │  │
 │  │   - Multi-Sheet Export Engine (excelExport.ts)                        │  │
+│  │   - Theme Manager & Customizer (themeManager.ts)                      │  │
 │  │   - Local Override State Store (overrideStore.ts)                     │  │
 │  └───────────────────▲───────────────────────────────────▲───────────────┘  │
 └──────────────────────┼───────────────────────────────────┼──────────────────┘
@@ -184,3 +186,22 @@ To guarantee that CSS rendering **never breaks**:
 2. **Intrinsic CSS Tokens & Resets**: `globals.css` injects CSS root custom properties (`--primary: #EB5A19`, `--brand-navy: #0F172A`) and universal `box-sizing: border-box`, ensuring structural styling remains intact even if utility stylesheets experience loading delays.
 3. **Responsive Container Contracts**: All tables and matrices utilize `.table-container-responsive` (`overflow-x: auto`) and `.min-w-0` to prevent flexbox blowouts on narrow displays.
 4. **Explicit SVG Sizing**: All inline SVG charts and donut meters must have hardcoded `width="44" height="44"` (or `48x48`) and `shrink-0` classes to prevent SVG viewports from distorting or expanding under flex layouts.
+
+---
+
+## 7. System Settings & Customization Hub Architecture
+
+Version 2.6 introduces the centralized `SettingsTab.tsx` and `settingsStore.ts` engine:
+1. **Dynamic Financial Modeling**:
+   - `insideDeliveryFee` (default ৳50) and `outsideDeliveryFee` (default ৳90) wire into knapsack net-COD deduction and courier burden calculations.
+   - `cogsPercent` (default 42%) dynamically determines COGS deductions across delivered and kept items.
+   - `packagingCost` (default ৳25) accounts for unboxing depreciation on returned parcels.
+   - `exactTolerance` (default ৳2) defines the dynamic programming Knapsack tolerance window.
+2. **Live Theme Customizer (`themeManager.ts`)**:
+   - 8 curated brand presets + real-time 6-digit hex color picker.
+   - Automatic generation of `--primary`, `--primary-hover`, `--primary-subtle`, and RGB channel variables applied live to `:root`.
+   - Dark canvas toggle and compact density mode.
+3. **Configuration & Audit Management**:
+   - One-click JSON diagnostic export and JSON configuration file import.
+   - In-memory & `localStorage` Activity Audit Log tracking timestamped modifications.
+   - Safe credential editing with masked client secrets and live status connectivity testing.

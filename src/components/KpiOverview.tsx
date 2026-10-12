@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { SummaryAnalytics } from '@/types';
+import { DateScope, DateScopeCounts } from '@/lib/dateFilter';
 import {
   ShoppingBag,
   CircleDollarSign,
@@ -27,7 +28,11 @@ export interface KpiOverviewProps {
   onQuickRecalc?: () => void;
   onExport?: () => void;
   onSync?: () => void;
-  onDateRangeSelect?: (range: string) => void;
+  activeDateScope?: DateScope;
+  onDateRangeSelect?: (range: DateScope) => void;
+  dateScopeCounts?: DateScopeCounts;
+  dateScopeLabel?: string;
+  dateScopeSubLabel?: string;
   activeSourceMode?: 'UPLOAD' | 'API';
   dataSourceName?: string;
   onSwitchSourceMode?: (mode: 'UPLOAD' | 'API') => void;
@@ -40,7 +45,11 @@ export function KpiOverview({
   onQuickRecalc,
   onExport,
   onSync,
+  activeDateScope = 'all',
   onDateRangeSelect,
+  dateScopeCounts,
+  dateScopeLabel,
+  dateScopeSubLabel,
   activeSourceMode = 'UPLOAD',
   dataSourceName,
   onSwitchSourceMode,
@@ -48,11 +57,9 @@ export function KpiOverview({
   onKpiClick
 }: KpiOverviewProps) {
   const s = summary;
-  const [selectedRange, setSelectedRange] = useState('all');
   const [isRecalculating, setIsRecalculating] = useState(false);
 
-  const handleRangeClick = (range: string) => {
-    setSelectedRange(range);
+  const handleRangeClick = (range: DateScope) => {
     if (onDateRangeSelect) {
       onDateRangeSelect(range);
     }
@@ -121,25 +128,60 @@ export function KpiOverview({
         </div>
 
         {/* Date Scope Filter */}
-        <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/60 self-start sm:self-auto shrink-0">
-          {[
-            { id: 'all', label: 'All Records' },
-            { id: 'today', label: 'Today' },
-            { id: '7d', label: 'Last 7 Days' },
-            { id: 'month', label: 'This Month' },
-          ].map((pill) => (
-            <button
-              key={pill.id}
-              onClick={() => handleRangeClick(pill.id)}
-              className={`px-3 py-1 rounded-lg text-xs transition-all font-headline ${
-                selectedRange === pill.id
-                  ? 'bg-white text-navy-deep font-bold shadow-2xs'
-                  : 'text-slate-600 hover:text-navy-deep font-medium'
-              }`}
-            >
-              {pill.label}
-            </button>
-          ))}
+        <div className="flex flex-col sm:items-end gap-1.5 self-start sm:self-auto shrink-0">
+          <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/70 shadow-2xs flex-wrap">
+            {[
+              { id: 'all' as DateScope, label: 'All Records' },
+              { id: 'today' as DateScope, label: 'Today' },
+              { id: '7d' as DateScope, label: 'Last 7 Days' },
+              { id: 'month' as DateScope, label: 'This Month' },
+            ].map((pill) => {
+              const isActive = activeDateScope === pill.id;
+              const count = dateScopeCounts ? dateScopeCounts[pill.id] : undefined;
+              return (
+                <button
+                  key={pill.id}
+                  onClick={() => handleRangeClick(pill.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all font-headline cursor-pointer select-none ${
+                    isActive
+                      ? 'bg-white text-navy-deep font-black shadow-xs border border-slate-200 ring-1 ring-slate-900/5'
+                      : 'text-slate-600 hover:text-navy-deep hover:bg-slate-200/60 font-semibold'
+                  }`}
+                >
+                  <span>{pill.label}</span>
+                  {count !== undefined && (
+                    <span
+                      className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                        isActive
+                          ? 'bg-orange-100 text-primary'
+                          : 'bg-slate-200 text-slate-600'
+                      }`}
+                    >
+                      {count.toLocaleString()}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          {dateScopeSubLabel && (
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium px-1">
+              <span className={`w-1.5 h-1.5 rounded-full ${activeDateScope !== 'all' ? 'bg-primary animate-pulse' : 'bg-slate-400'}`}></span>
+              <span>
+                {activeDateScope === 'all' ? 'Full Period: ' : 'Active Window: '}
+                <strong className="text-slate-700">{dateScopeSubLabel}</strong>
+              </span>
+              {activeDateScope !== 'all' && (
+                <button
+                  onClick={() => handleRangeClick('all')}
+                  className="text-primary hover:underline font-bold text-[10px] ml-1 cursor-pointer"
+                  title="Reset date filter to All Records"
+                >
+                  (Clear)
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
