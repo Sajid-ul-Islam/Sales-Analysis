@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>DEEN Commerce | Sales & Return Reconciliation Engine</title>
+  
+  <!-- Typography & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+  <!-- SheetJS CDN for Client-side Ingestion & Excel Generation -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- Tailwind CSS Engine -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#EB5A19",
+            "primary-container": "#CE4700",
+            "brand-orange-hover": "#D4490E",
+            "brand-orange-subtle": "#FFF7ED",
+            "navy-deep": "#0A0F1D",
+            "navy-surface": "#1E293B",
+            "canvas-bg": "#F8FAFC",
+            "surface": "#F8F9FF",
+            "surface-dim": "#CBDBF5",
+            "surface-container-lowest": "#FFFFFF",
+            "surface-container-low": "#EFF4FF",
+            "surface-container": "#E5EEFF",
+            "surface-container-high": "#DCE9FF",
+            "on-surface": "#0B1C30",
+            "on-surface-variant": "#5A4138",
+            "success-emerald": "#059669",
+            "success-subtle": "#ECFDF5",
+            "danger-crimson": "#DC2626",
+            "danger-subtle": "#FEF2F2",
+            "warning-amber": "#F59E0B",
+            "warning-subtle": "#FFFBEB",
+            "border-subtle": "#E2E8F0",
+            "border-strong": "#CBD5E1"
+          },
+          fontFamily: {
+            sans: ["Inter", "sans-serif"],
+            headline: ["Plus Jakarta Sans", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    @layer base {
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #F8FAFC;
+        color: #0B1C30;
+      }
+      h1, h2, h3, h4, .font-headline {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+      }
+    }
+    
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F1F5F9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94A3B8;
+    }
+
+    /* Drag and drop active states */
+    .dropzone-hover {
+      border-color: #EB5A19 !important;
+      background-color: #FFF7ED !important;
+      transform: translateY(-2px);
+    }
+
+    /* Status badge styles */
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-status.delivered {
+      background-color: #ECFDF5;
+      color: #059669;
+      border: 1px solid #A7F3D0;
+    }
+    .badge-status.return {
+      background-color: #FEF2F2;
+      color: #DC2626;
+      border: 1px solid #FECACA;
+    }
+    .badge-status.partial {
+      background-color: #FFFBEB;
+      color: #D97706;
+      border: 1px solid #FDE68A;
+    }
+
+    .badge-loc {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-loc.inside {
+      background-color: #EFF6FF;
+      color: #2563EB;
+      border: 1px solid #BFDBFE;
+    }
+    .badge-loc.outside {
+      background-color: #F5F3FF;
+      color: #7C3AED;
+      border: 1px solid #DDD6FE;
+    }
+
+    .badge-unique {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .badge-unique.primary {
+      background-color: #F0FDF4;
+      color: #15803D;
+      border: 1px solid #BBF7D0;
+    }
+    .badge-unique.additional {
+      background-color: #F8FAFC;
+      color: #64748B;
+      border: 1px solid #E2E8F0;
+    }
+
+    /* Tab active styles */
+    .tab-btn.active {
+      background-color: #FFFFFF;
+      color: #EB5A19;
+      font-weight: 700;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      border-bottom: 2px solid #EB5A19;
+    }
+  </style>
+</head>
+<body class="bg-canvas-bg text-on-surface antialiased min-h-screen">
+
+  <!-- Left Sidebar Navigation (Deep Denim Navy) -->
+  <aside class="fixed left-0 top-0 h-full w-64 bg-navy-deep text-surface z-50 flex flex-col justify-between shadow-lg">
+    <div class="flex flex-col">
+      <!-- Logo Branding Header -->
+      <div class="h-16 px-4 flex items-center gap-3 bg-navy-surface/60 border-b border-navy-surface">
+        <img alt="DEEN Commerce" class="h-8 w-auto object-contain" src="https://deencommerce.com/wp-content/uploads/2026/05/Deen_Traditional_Logo-150x43.png"/>
+        <div class="flex flex-col">
+          <span class="font-headline text-sm text-white font-bold leading-tight">Deen Commerce</span>
+          <span class="text-[10px] text-primary font-semibold tracking-wider">দেশের প্রথম ডেনিম ব্র্যান্ড</span>
+        </div>
+      </div>
+
+      <!-- Module Section Title -->
+      <div class="px-4 pt-5 pb-2">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Operational Modules</span>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="flex flex-col gap-1 px-3">
+        <a href="#dashboard" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary text-white font-semibold text-sm shadow-sm transition-colors">
+          <span class="material-symbols-outlined text-[20px]">space_dashboard</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="#ingestion-section" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:bg-navy-surface hover:text-white transition-colors text-sm">
+          <span class="material-symbols-outlined text-[20px]">cloud_upload</span>
+          <span>File Ingestion & Calc</span>
+        </a>
+        <a href="#resultsSection" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:bg-navy-surface hover:text-white transition-colors text-sm">
+          <span class="material-symbols-outlined text-[20px]">receipt_long</span>
+          <span>Reconciled Orders</span>
+        </a>
+        <a href="#skuSection" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:bg-navy-surface hover:text-white transition-colors text-sm">
+          <span class="material-symbols-outlined text-[20px]">inventory_2</span>
+          <span>SKU Performance</span>
+        </a>
+        <a href="#exportSection" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:bg-navy-surface hover:text-white transition-colors text-sm">
+          <span class="material-symbols-outlined text-[20px]">analytics</span>
+          <span>Reports & Export</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- Engine Status Footer Card -->
+    <div class="p-4 bg-navy-surface/40 border-t border-navy-surface">
+      <div class="p-3 rounded-lg bg-navy-surface flex flex-col gap-1">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-bold text-slate-400 uppercase">ENGINE STATUS</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success-subtle text-success-emerald text-[11px] font-semibold">
+            <span class="w-1.5 h-1.5 rounded-full bg-success-emerald animate-pulse"></span> Live
+          </span>
+        </div>
+        <span class="text-xs text-slate-200 font-medium">v2.6 Sales Velocity Model</span>
+        <span class="text-[10px] font-bold text-primary tracking-wide">DHAKA LOGISTICS HUB</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Canvas (Offset by Sidebar) -->
+  <div class="pl-64 flex flex-col min-h-screen">
+
+    <!-- Top Fixed Bar -->
+    <header class="sticky top-0 h-16 bg-white/95 backdrop-blur-md border-b border-border-subtle z-40 flex items-center justify-between px-6 shadow-sm">
+      <div class="flex items-center gap-4">
+        <div class="flex flex-col">
+          <span class="font-headline text-base font-bold text-on-surface">Sales & Revenue Intelligence</span>
+          <span class="text-xs text-slate-500">Unit Economics & Net Reconciliation Engine</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Currency Pill -->
+        <div class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold">
+          <span class="text-primary font-bold text-sm">৳</span>
+          <span>BDT Active</span>
+        </div>
+
+        <!-- Cycle Pill -->
+        <div class="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold">
+          <span class="material-symbols-outlined text-[16px] text-slate-500">calendar_today</span>
+          <span>September 2026 / Fiscal Q3</span>
+        </div>
+
+        <!-- User Profile Pill -->
+        <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
+          <div class="hidden md:flex flex-col text-right">
+            <span class="text-xs font-bold text-on-surface">Admin - Deen Operations</span>
+            <span class="text-[10px] text-slate-500">HQ Enterprise Unit</span>
+          </div>
+          <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xs shadow-sm">
+            DO
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Page Content Container -->
+    <main class="flex-1 p-6 flex flex-col gap-6 max-w-7xl w-full mx-auto">
+
+      <!-- Top Notification & Batch Status Banner -->
+      <div class="bg-white border border-border-subtle rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-lg bg-brand-orange-subtle flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-primary text-[24px]">verified</span>
+          </div>
+          <div class="flex flex-col min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-headline text-sm font-bold text-on-surface">Batch Reconciliation Engine Active</span>
+              <span class="px-2 py-0.5 rounded-full bg-success-subtle text-success-emerald text-[11px] font-semibold">Steadfast + Pathao Sync OK</span>
+            </div>
+            <p class="text-xs text-slate-500 truncate mt-0.5">
+              Automated Bangladesh geocoding (Inside vs Outside Dhaka) & Partial Order subset-sum matching ready.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <a href="Reconciled_Net_Sales_Report.xlsx" download class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors">
+            <span class="material-symbols-outlined text-[16px]">download</span>
+            <span>Download Last Reconciled XLSX</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Title & Subtitle -->
+      <div class="flex flex-col gap-1" id="dashboard">
+        <div class="flex items-center gap-2">
+          <span class="text-xs uppercase tracking-wider text-primary font-bold">DEEN COMMERCE ERP • দেশের প্রথম ডেনিম ব্র্যান্ড</span>
+          <span class="text-slate-400">•</span>
+          <span class="text-xs text-slate-500">Item-Wise Sales, Returns & Partial Order Pipeline</span>
+        </div>
+        <h1 class="font-headline text-2xl font-extrabold text-on-surface">Sales Computation & Net Reconciliation Engine</h1>
+        <p class="text-xs text-slate-600 max-w-4xl">
+          Upload multi-channel sales reports, courier return logs, and partial delivery files to compute gross revenue, isolate returns, recognize retained partial cash, and determine exact SKU-level margins.
+        </p>
+      </div>
+
+      <!-- File Ingestion Section (3 Dropzones) -->
+      <section class="bg-white rounded-xl border border-border-subtle p-6 shadow-sm flex flex-col gap-5" id="ingestion-section">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+          <div>
+            <span class="text-xs uppercase tracking-wider text-primary font-bold">Step 1 • Ingestion Pipeline</span>
+            <h2 class="font-headline text-lg font-bold text-on-surface">Multi-Source Ingestion & Logistics Cross-Reconciliation</h2>
+            <p class="text-xs text-slate-500">Attach primary order items, courier return manifest, and partial delivery settlement file.</p>
+          </div>
+          <div class="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
+            <span class="material-symbols-outlined text-[16px]">shield</span>
+            <span>Automated BDT ৳ currency format detection enabled</span>
+          </div>
+        </div>
+
+        <!-- 3 Dropzones Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Dropzone 1: Order Files -->
+          <div class="relative rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-orange-50/50 hover:border-primary p-5 flex flex-col items-center justify-center text-center transition-all cursor-pointer group" id="dropzoneOrders">
+            <input type="file" id="inputOrders" multiple accept=".xlsx,.xls,.csv" class="hidden"/>
+            <div class="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+              <span class="material-symbols-outlined text-primary text-[26px]">table_chart</span>
+            </div>
+            <span class="font-headline text-sm font-bold text-on-surface mb-1">1. Item-Wise Orders</span>
+            <p class="text-[11px] text-slate-500 max-w-xs mb-3">
+              Drop <code>27 Aug - 6 Sept.xlsx</code>, <code>7-30 Sept.xlsx</code> or merged order files.
+            </p>
+            <label for="inputOrders" class="px-3 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-sm hover:bg-primary hover:text-white hover:border-primary group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-colors cursor-pointer">
+              Browse Order Files
+            </label>
+            <div id="ordersFileList" class="mt-3 w-full flex flex-col gap-1.5 text-left text-xs"></div>
+            <span id="ordersCountBadge" class="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-wide">0 files selected</span>
+          </div>
+
+          <!-- Dropzone 2: Return File -->
+          <div class="relative rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-orange-50/50 hover:border-primary p-5 flex flex-col items-center justify-center text-center transition-all cursor-pointer group" id="dropzoneReturns">
+            <input type="file" id="inputReturns" accept=".xlsx,.xls,.csv" class="hidden"/>
+            <div class="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+              <span class="material-symbols-outlined text-rose-600 text-[26px]">assignment_return</span>
+            </div>
+            <span class="font-headline text-sm font-bold text-on-surface mb-1">2. Courier Returns Log</span>
+            <p class="text-[11px] text-slate-500 max-w-xs mb-3">
+              Drop <code>returen.xlsx</code> or courier return manifest (Steadfast / Pathao / RedX).
+            </p>
+            <label for="inputReturns" class="px-3 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-sm hover:bg-rose-600 hover:text-white hover:border-rose-600 group-hover:bg-rose-600 group-hover:text-white group-hover:border-rose-600 transition-colors cursor-pointer">
+              Browse Return Log
+            </label>
+            <div id="returnsFileList" class="mt-3 w-full flex flex-col gap-1.5 text-left text-xs"></div>
+            <span id="returnsCountBadge" class="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-wide">0 files selected</span>
+          </div>
+
+          <!-- Dropzone 3: Partial Orders File -->
+          <div class="relative rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-orange-50/50 hover:border-primary p-5 flex flex-col items-center justify-center text-center transition-all cursor-pointer group" id="dropzonePartials">
+            <input type="file" id="inputPartials" accept=".xlsx,.xls,.csv" class="hidden"/>
+            <div class="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+              <span class="material-symbols-outlined text-amber-600 text-[26px]">call_split</span>
+            </div>
+            <span class="font-headline text-sm font-bold text-on-surface mb-1">3. Partial Orders / Splits</span>
+            <p class="text-[11px] text-slate-500 max-w-xs mb-3">
+              Drop <code>Partial Orders.xlsx</code> with courier collected COD & split parcel suffixes.
+            </p>
+            <label for="inputPartials" class="px-3 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-sm hover:bg-amber-600 hover:text-white hover:border-amber-600 group-hover:bg-amber-600 group-hover:text-white group-hover:border-amber-600 transition-colors cursor-pointer">
+              Browse Partial File
+            </label>
+            <div id="partialsFileList" class="mt-3 w-full flex flex-col gap-1.5 text-left text-xs"></div>
+            <span id="partialsCountBadge" class="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-wide">0 files selected</span>
+          </div>
+        </div>
+
+        <!-- Filter Controls & Processing Action -->
+        <div class="bg-slate-50 rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-4 border border-slate-200">
+          <div class="flex items-center gap-5 flex-wrap">
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" id="chkExcludeAugust" checked class="w-4 h-4 accent-primary rounded cursor-pointer"/>
+              <span class="text-xs font-semibold text-slate-700">Exclude August Overflow (Process September Only)</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" id="chkExcludePOS" checked class="w-4 h-4 accent-primary rounded cursor-pointer"/>
+              <span class="text-xs font-semibold text-slate-700">Exclude Outlet / POS Orders (Online Courier Deliveries Only)</span>
+            </label>
+          </div>
+
+          <button id="btnProcess" type="button" class="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-primary hover:bg-brand-orange-hover text-white font-headline text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95">
+            <span class="material-symbols-outlined text-[20px]">refresh</span>
+            <span>Process & Calculate Sales Ledger</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Reconciled Results & KPI Matrix (Rendered Dynamically) -->
+      <section id="resultsSection" class="hidden flex flex-col gap-6">
+
+        <!-- Executive Calculated Sales Summary Metrics (6 KPI Cards) -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <span class="text-xs uppercase tracking-wider text-primary font-bold">Financial Analytics • Fiscal Cycle</span>
+              <h2 class="font-headline text-lg font-bold text-on-surface">Executive Revenue & Unit Economics Matrix</h2>
+            </div>
+            <span class="text-xs text-slate-500">Based on 100% Reconciled Order Manifests</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- KPI 1: Gross Orders & GMV -->
+            <div class="bg-white rounded-xl p-5 border border-border-subtle shadow-sm flex flex-col justify-between">
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-slate-500 uppercase font-bold tracking-wider">Gross Orders Placed</span>
+                <div class="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-primary text-[18px]">point_of_sale</span>
+                </div>
+              </div>
+              <div class="my-3">
+                <div class="text-2xl font-extrabold text-on-surface font-headline" id="valGrossOrders">0</div>
+                <div class="text-xs font-semibold text-slate-500 mt-1" id="valGrossRevenue">Gross Invoiced: ৳ 0</div>
+              </div>
+              <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span>Unique order count</span>
+                <span class="text-emerald-600 font-semibold">100% Ingested</span>
+              </div>
+            </div>
+
+            <!-- KPI 2: Clean Realized Net Sales -->
+            <div class="bg-white rounded-xl p-5 border border-border-subtle shadow-sm flex flex-col justify-between">
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-slate-500 uppercase font-bold tracking-wider">Clean Realized Net Sales</span>
+                <div class="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-success-emerald text-[18px]">payments</span>
+                </div>
+              </div>
+              <div class="my-3">
+                <div class="text-2xl font-extrabold text-success-emerald font-headline" id="valNetRevenue">৳ 0</div>
+                <div class="text-xs font-semibold text-slate-500 mt-1" id="valNetRevenueSub">Excludes full returns & uncollected partials</div>
+              </div>
+              <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span>Net Cash Yield</span>
+                <span class="text-success-emerald font-bold" id="valNetShare">0% of GMV</span>
+              </div>
+            </div>
+
+            <!-- KPI 3: Total Pathao Courier Cost (from Return Charge Column) -->
+            <div class="bg-white rounded-xl p-5 border border-border-subtle shadow-sm flex flex-col justify-between">
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-slate-500 uppercase font-bold tracking-wider">Total Pathao Cost</span>
+                <div class="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-purple-600 text-[18px]">local_shipping</span>
+                </div>
+              </div>
+              <div class="my-3">
+                <div class="text-2xl font-extrabold text-purple-700 font-headline" id="valPathaoCost">৳ 29,705</div>
+                <div class="text-xs font-semibold text-slate-500 mt-1" id="valPathaoCostSub">From Return File (Charge Column)</div>
+              </div>
+              <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span>Net (Post-Discount)</span>
+                <span class="text-purple-600 font-bold" id="valPathaoNetCost">৳ 21,085</span>
+              </div>
+            </div>
+
+            <!-- KPI 3: Full Returned Orders -->
+            <div class="bg-white rounded-xl p-5 border border-border-subtle shadow-sm flex flex-col justify-between">
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-slate-500 uppercase font-bold tracking-wider">Full Return Orders (RTO)</span>
+                <div class="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-danger-crimson text-[18px]">assignment_return</span>
+                </div>
+              </div>
+              <div class="my-3">
+                <div class="text-2xl font-extrabold text-danger-crimson font-headline" id="valFullReturns">0</div>
+                <div class="text-xs font-semibold text-slate-500 mt-1" id="valFullReturnRate">Full Return Rate: 0%</div>
+              </div>
+              <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span>100% Returned Merchandise</span>
+                <span class="text-rose-600 font-semibold">৳ 0 Recognized</span>
+              </div>
+            </div>
+
+            <!-- KPI 4: Partial Orders (Delivered & Partial Return) -->
+            <div class="bg-white rounded-xl p-5 border border-border-subtle shadow-sm flex flex-col justify-between">
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-slate-500 uppercase font-bold tracking-wider">Partial Orders</span>
+                <div class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-warning-amber text-[18px]">call_split</span>
+                </div>
+              </div>
+              <div class="my-3">
+                <div class="text-2xl font-extrabold text-warning-amber font-headline" id="valPartialOrders">0</div>
+                <div class="text-xs font-semibold text-slate-500 mt-1" id="valPartialRate">Partial Rate: 0%</div>
+              </div>
+              <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span>Customer Kept & Paid Part</span>
+                <span class="text-amber-600 font-bold">Subset-Sum Matched</span>
+              </div>
+            </div>
+
+            <!-- KPI 5: Delivered Items Count -->
+            <div class="bg-white rounded-xl p-5 border border-border-subtle shadow-sm flex flex-col justify-between">
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-slate-500 uppercase font-bold tracking-wider">Items Delivered (Volume)</span>
+                <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-blue-600 text-[18px]">package_2</span>
+                </div>
+              </div>
+              <div class="my-3">
+                <div class="text-2xl font-extrabold text-on-surface font-headline" id="valDeliveredItems">0</div>
+                <div class="text-xs font-semibold text-slate-500 mt-1" id="valFullDeliveredOrders">Full Delivered Orders: 0</div>
+              </div>
+              <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span>Units in customer possession</span>
+                <span class="text-blue-600 font-semibold" id="valSuccessRate">0% Rate</span>
+              </div>
+            </div>
+
+            <!-- KPI 6: Outside vs Inside Dhaka Ratio -->
+            <div class="bg-white rounded-xl p-5 border border-border-subtle shadow-sm flex flex-col justify-between">
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-slate-500 uppercase font-bold tracking-wider">Location Delivery Ratio</span>
+                <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-indigo-600 text-[18px]">map</span>
+                </div>
+              </div>
+              <div class="my-3">
+                <div class="text-2xl font-extrabold text-on-surface font-headline" id="valLocationRatio">0.00 : 1</div>
+                <div class="text-xs font-semibold text-slate-500 mt-1" id="valLocationBreakdown">0 Outside : 0 Inside</div>
+              </div>
+              <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span>Territory distribution</span>
+                <span class="text-indigo-600 font-semibold">Bangladesh Geocoded</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Multi-Tab Analytics Matrix -->
+        <div class="bg-white rounded-xl border border-border-subtle shadow-sm overflow-hidden flex flex-col">
+          
+          <!-- Tab Navigation Bar -->
+          <div class="flex items-center bg-slate-100 px-4 pt-2 border-b border-slate-200 gap-1 overflow-x-auto">
+            <button class="tab-btn active px-4 py-2 text-xs font-semibold rounded-t-lg transition-all" data-tab="tabLocation">
+              <i class="fa-solid fa-map-location-dot mr-1.5"></i> Territory Performance (Dhaka vs Outside)
+            </button>
+            <button class="tab-btn px-4 py-2 text-xs font-semibold rounded-t-lg transition-all text-slate-600 hover:text-slate-900" data-tab="tabStatus">
+              <i class="fa-solid fa-chart-pie mr-1.5"></i> Delivery Status Matrix
+            </button>
+            <button class="tab-btn px-4 py-2 text-xs font-semibold rounded-t-lg transition-all text-slate-600 hover:text-slate-900" data-tab="tabOrders">
+              <i class="fa-solid fa-list-check mr-1.5"></i> Reconciled Orders Ledger
+            </button>
+            <button class="tab-btn px-4 py-2 text-xs font-semibold rounded-t-lg transition-all text-slate-600 hover:text-slate-900" data-tab="tabSku">
+              <i class="fa-solid fa-shirt mr-1.5"></i> SKU Performance & Velocity
+            </button>
+            <button class="tab-btn px-4 py-2 text-xs font-semibold rounded-t-lg transition-all text-slate-600 hover:text-rose-600 flex items-center gap-1.5" data-tab="tabItemReturns">
+              <i class="fa-solid fa-boxes-packing mr-1 text-rose-600"></i> Item-Wise Returns (Full + Partial)
+              <span id="tabItemReturnsBadge" class="px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">0</span>
+            </button>
+          </div>
+
+          <!-- Tab Content 1: Location Summary -->
+          <div id="tabLocation" class="tab-pane p-5">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
+                    <th class="py-3 px-4">Territory / Area</th>
+                    <th class="py-3 px-4 text-right">Gross Orders</th>
+                    <th class="py-3 px-4 text-right text-rose-600">Full Return Orders</th>
+                    <th class="py-3 px-4 text-right text-amber-600">Partial Orders</th>
+                    <th class="py-3 px-4 text-right text-emerald-600">Net Delivered Orders</th>
+                    <th class="py-3 px-4 text-center">Return Incidence Rate</th>
+                    <th class="py-3 px-4 text-right text-emerald-600 font-bold">Net Realized Revenue (BDT)</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyLocationSummary" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tab Content 2: Delivery Status Breakdown -->
+          <div id="tabStatus" class="tab-pane p-5 hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
+                    <th class="py-3 px-4">Classification Status</th>
+                    <th class="py-3 px-4 text-right">Unique Orders</th>
+                    <th class="py-3 px-4 text-center">Order Share</th>
+                    <th class="py-3 px-4 text-right">Net Revenue Recognized</th>
+                    <th class="py-3 px-4">Audit & Operational Definition</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyStatusBreakdown" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tab Content 3: Reconciled Orders Ledger (Detailed Line Items) -->
+          <div id="tabOrders" class="tab-pane p-5 hidden flex flex-col gap-4">
+            <!-- Filter Controls Bar -->
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <div class="flex items-center gap-2 flex-1 min-w-[240px]">
+                <span class="material-symbols-outlined text-slate-400 text-[18px]">search</span>
+                <input type="text" id="orderSearchInput" placeholder="Search Order ID, Customer, Phone, SKU, Item..." class="w-full bg-white border border-slate-300 rounded-md px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-primary"/>
+              </div>
+
+              <div class="flex items-center gap-2 flex-wrap">
+                <select id="filterDistrictSelect" class="bg-white border border-slate-300 rounded-md px-2.5 py-1.5 text-xs text-slate-700">
+                  <option value="ALL">All Territories</option>
+                  <option value="Inside Dhaka">Inside Dhaka</option>
+                  <option value="Outside Dhaka">Outside Dhaka</option>
+                </select>
+
+                <select id="filterStatusSelect" class="bg-white border border-slate-300 rounded-md px-2.5 py-1.5 text-xs text-slate-700">
+                  <option value="ALL">All Statuses</option>
+                  <option value="Delivered">Delivered (Full)</option>
+                  <option value="Partial">Partial (Delivered & Return)</option>
+                  <option value="Returned">Returned (Full)</option>
+                </select>
+
+                <select id="filterUniquenessSelect" class="bg-white border border-slate-300 rounded-md px-2.5 py-1.5 text-xs text-slate-700">
+                  <option value="ALL">All Order Items</option>
+                  <option value="Primary Item (Unique Order)">Primary Item Only (Unique Orders)</option>
+                  <option value="Additional Item (Multi-Item Order)">Additional Items Only</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Ledger Table -->
+            <div class="overflow-x-auto border border-slate-200 rounded-lg">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="bg-slate-100 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
+                    <th class="py-2.5 px-3">Order ID</th>
+                    <th class="py-2.5 px-3">Item Line Status</th>
+                    <th class="py-2.5 px-3">Delivery Status</th>
+                    <th class="py-2.5 px-3">Order Date</th>
+                    <th class="py-2.5 px-3">Customer Name</th>
+                    <th class="py-2.5 px-3">Phone</th>
+                    <th class="py-2.5 px-3">City</th>
+                    <th class="py-2.5 px-3">Territory</th>
+                    <th class="py-2.5 px-3">SKU</th>
+                    <th class="py-2.5 px-3">Item Name</th>
+                    <th class="py-2.5 px-3 text-center">Qty</th>
+                    <th class="py-2.5 px-3 text-right">Price</th>
+                    <th class="py-2.5 px-3 text-right text-emerald-600 font-bold">Net Realized</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyOrders" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div class="flex items-center justify-between text-xs text-slate-600 pt-2">
+              <span id="pageCountInfo">Showing 0 of 0 entries</span>
+              <div class="flex items-center gap-2">
+                <button id="btnPrevPage" class="px-3 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50 font-semibold">Previous</button>
+                <span id="pageIndicator" class="font-semibold">Page 1</span>
+                <button id="btnNextPage" class="px-3 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50 font-semibold">Next</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Content 4: SKU Performance & Velocity -->
+          <div id="tabSku" class="tab-pane p-5 hidden flex flex-col gap-4">
+            <div class="flex items-center justify-between">
+              <input type="text" id="skuSearchInput" placeholder="Filter SKU or product name..." class="bg-white border border-slate-300 rounded-md px-3 py-1.5 text-xs text-slate-800 w-72 focus:outline-none focus:border-primary"/>
+              <span class="text-xs text-slate-500">Sorted by Net Realized Revenue (BDT)</span>
+            </div>
+
+            <div class="overflow-x-auto border border-slate-200 rounded-lg">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="bg-slate-100 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
+                    <th class="py-2.5 px-3">SKU</th>
+                    <th class="py-2.5 px-3">Item Name</th>
+                    <th class="py-2.5 px-3 text-right">Gross Qty</th>
+                    <th class="py-2.5 px-3 text-right text-emerald-600">Delivered Qty</th>
+                    <th class="py-2.5 px-3 text-right text-rose-600">Returned Qty</th>
+                    <th class="py-2.5 px-3 text-center">Return Rate</th>
+                    <th class="py-2.5 px-3 text-right text-emerald-600 font-bold">Net Realized Revenue (BDT)</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodySku" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tab Content 5: Item-Wise Returns Ledger (Full Returns + Partial Returned Products) -->
+          <div id="tabItemReturns" class="tab-pane p-5 hidden flex flex-col gap-4">
+            <!-- Summary Metric Highlights -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div class="bg-rose-50 border border-rose-200 rounded-lg p-3.5 flex flex-col">
+                <span class="text-[10px] uppercase font-bold text-rose-600 tracking-wider">Total Returned Volume</span>
+                <span class="text-xl font-extrabold text-rose-700 font-headline mt-1" id="valRetTotalQty">0 pcs</span>
+                <span class="text-[11px] text-rose-600/90 font-medium" id="valRetTotalRows">0 line item records</span>
+              </div>
+              <div class="bg-red-50 border border-red-200 rounded-lg p-3.5 flex flex-col">
+                <span class="text-[10px] uppercase font-bold text-red-600 tracking-wider">Total Return Value</span>
+                <span class="text-xl font-extrabold text-red-700 font-headline mt-1" id="valRetTotalValue">৳ 0</span>
+                <span class="text-[11px] text-red-600/90 font-medium">Gross merchandise loss avoided</span>
+              </div>
+              <div class="bg-amber-50 border border-amber-200 rounded-lg p-3.5 flex flex-col">
+                <span class="text-[10px] uppercase font-bold text-amber-700 tracking-wider">From Partial Orders</span>
+                <span class="text-xl font-extrabold text-amber-800 font-headline mt-1" id="valRetFromPartials">0 pcs</span>
+                <span class="text-[11px] text-amber-700/90 font-medium" id="valRetFromPartialsVal">৳ 0 in partial rejections</span>
+              </div>
+              <div class="bg-slate-50 border border-slate-200 rounded-lg p-3.5 flex flex-col">
+                <span class="text-[10px] uppercase font-bold text-slate-600 tracking-wider">From Full Returns</span>
+                <span class="text-xl font-extrabold text-slate-800 font-headline mt-1" id="valRetFromFull">0 pcs</span>
+                <span class="text-[11px] text-slate-500 font-medium" id="valRetFromFullVal">৳ 0 in full RTO & Paid returns</span>
+              </div>
+            </div>
+
+            <!-- Filter & Search Controls Bar -->
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <div class="flex items-center gap-2 flex-1 min-w-[260px]">
+                <span class="material-symbols-outlined text-slate-400 text-[18px]">search</span>
+                <input type="text" id="retSearchInput" placeholder="Filter returned products by SKU, name, Order ID, phone, customer..." class="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-primary"/>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <select id="filterRetSourceSelect" class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 font-medium focus:outline-none focus:border-primary">
+                  <option value="ALL">All Return Sources (Full + Partial)</option>
+                  <option value="Partial">Partial Order Returns Only</option>
+                  <option value="Full">Full Returns Only (RTO + Paid Return)</option>
+                </select>
+                <select id="filterRetTerritorySelect" class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 font-medium focus:outline-none focus:border-primary">
+                  <option value="ALL">All Territories</option>
+                  <option value="Inside Dhaka">Inside Dhaka Only</option>
+                  <option value="Outside Dhaka">Outside Dhaka Only</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Returned Products Data Table -->
+            <div class="overflow-x-auto border border-slate-200 rounded-lg">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="bg-slate-100 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
+                    <th class="py-2.5 px-3">Order ID</th>
+                    <th class="py-2.5 px-3">Return Source</th>
+                    <th class="py-2.5 px-3">Territory</th>
+                    <th class="py-2.5 px-3">Customer Info</th>
+                    <th class="py-2.5 px-3">SKU</th>
+                    <th class="py-2.5 px-3">Product Description</th>
+                    <th class="py-2.5 px-3 text-right">Ret. Qty</th>
+                    <th class="py-2.5 px-3 text-right">Unit Price</th>
+                    <th class="py-2.5 px-3 text-right text-rose-600 font-bold">Returned Value (BDT)</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyItemReturns" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="flex items-center justify-between text-xs text-slate-500 pt-2">
+              <span id="retPageCountInfo">Showing 0 of 0 returned items</span>
+              <div class="flex items-center gap-2">
+                <button id="btnPrevRetPage" type="button" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50 disabled:opacity-50 transition-colors">Prev</button>
+                <span id="retPageIndicator" class="font-medium text-slate-700">Page 1</span>
+                <button id="btnNextRetPage" type="button" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50 disabled:opacity-50 transition-colors">Next</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Computed Export & Output Actions Panel -->
+        <div class="bg-navy-deep text-surface rounded-xl p-6 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-6" id="exportSection">
+          <div class="flex flex-col max-w-xl">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="px-2 py-0.5 rounded bg-primary text-white text-[10px] font-bold uppercase">Instant Export</span>
+              <span class="text-xs text-slate-400">Multi-Tab Audit-Ready Reconciliation Report</span>
+            </div>
+            <h3 class="font-headline text-lg font-bold text-white">Finalize Batch & Export Reconciled Excel</h3>
+            <p class="text-xs text-slate-300 mt-1">
+              Exports Executive Summary, Territory Ratios, Reconciled Orders Ledger (with Kept/Returned tags), and SKU Performance tabs.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3 shrink-0">
+            <button id="btnExportExcel" type="button" class="px-5 py-2.5 rounded-lg bg-primary hover:bg-brand-orange-hover text-white font-headline text-sm font-bold flex items-center gap-2 shadow-md transition-all active:scale-95">
+              <span class="material-symbols-outlined text-[18px]">file_download</span>
+              <span>Export Reconciled Excel (.xlsx)</span>
+            </button>
+            <button onclick="window.print()" type="button" class="px-4 py-2.5 rounded-lg bg-navy-surface hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors">
+              <span class="material-symbols-outlined text-[18px]">print</span>
+              <span>Print Summary</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Main JavaScript Logic Engine -->
+  <script src="app.js"></script>
+
+  <!-- Tab Switching Handler -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      const tabPanes = document.querySelectorAll('.tab-pane');
+
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          tabBtns.forEach(b => {
+            b.classList.remove('active', 'text-primary');
+            b.classList.add('text-slate-600');
+          });
+          tabPanes.forEach(p => p.classList.add('hidden'));
+
+          btn.classList.add('active', 'text-primary');
+          btn.classList.remove('text-slate-600');
+
+          const targetId = btn.getAttribute('data-tab');
+          const targetPane = document.getElementById(targetId);
+          if (targetPane) targetPane.classList.remove('hidden');
+        });
+      });
+    });
+  </script>
+</body>
+</html>

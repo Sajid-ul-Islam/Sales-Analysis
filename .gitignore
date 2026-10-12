@@ -1,0 +1,105 @@
+# ==============================================================================
+# Dependencies & Package Managers
+# ==============================================================================
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# ==============================================================================
+# Next.js, Web Builds & TypeScript
+# ==============================================================================
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts.bak
+
+# ==============================================================================
+# Python & Virtual Environments
+# ==============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ==============================================================================
+# Secrets, Credentials & Local Environment Files
+# ==============================================================================
+secrets.toml
+*.local.toml
+.env
+.env*.local
+*.pem
+*.key
+credentials.json
+client_secret*.json
+
+# ==============================================================================
+# Sample Documents & Data Files
+# ==============================================================================
+Sample Docs/
+[Ss]ample [Dd]ocs/
+docs/
+*.xlsx
+*.xls
+*.csv
+
+# ==============================================================================
+# Generated Reports, Output Data & Temporary / Backup Files
+# ==============================================================================
+Reconciled_Net_Sales_Report.xlsx
+Reconciled_Net_Sales_Report*.xlsx
+*.xlsx.bak
+*.pre_unique.bak
+*.bak
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+
+# ==============================================================================
+# Logs & Process Runs
+# ==============================================================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ==============================================================================
+# Operating System & IDE / Editor Files
+# ==============================================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace

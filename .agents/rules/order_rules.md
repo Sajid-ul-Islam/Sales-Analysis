@@ -1,0 +1,71 @@
+# DEEN Commerce — Order Tracking & Reconciliation Business Rules
+
+These authoritative business rules govern order ID parsing, fulfillment branch tracking, status reconciliation, return classification, and exchange matching across DEEN Commerce systems (WooCommerce, Pathao Courier, Excel manifests).
+
+---
+
+## 1. General Order Information
+* An order (e.g., base ID `17263`) may contain **multiple line items** (e.g., multiple apparel products, sizes, or quantities).
+* Orders are reconciled at both the order level and the individual SKU/line-item level.
+
+---
+
+## 2. Fulfillment Locations & Courier IDs
+The Pathao Courier Order ID reflects the physical origin/fulfillment location of the parcel:
+
+* **Warehouse / Mirpur (Main Central Hub)**:
+  * When all items in the order are dispatched from the Warehouse/Mirpur, the Pathao Courier Order ID remains unchanged without any suffix (e.g., `17263`).
+* **Branch Locations (Suffix Codes)**:
+  * When items are fulfilled from retail branch locations, specific suffixes are appended to the courier order ID:
+    * `17263 c` (or `17263-c` / `17263c`): Dispatched from **Cumilla Branch**
+    * `17263 w` (or `17263-w` / `17263w`): Dispatched from **Wari Branch**
+    * `17263 s` (or `17263-s` / `17263s`): Dispatched from **Sylhet Branch**
+* **ID Matching Logic**:
+  * To reconcile branch shipments against store orders, extract the numeric base order ID (`17263`) while recording the branch tag (`Cumilla`, `Wari`, `Sylhet`, or `Warehouse/Mirpur`).
+
+---
+
+## 3. Order Delivery Statuses & Reconciliation Logic
+
+### A. Delivered
+* The entire parcel (or all parcels belonging to the order) is successfully delivered to the customer.
+* **Split Multi-Parcel Rule**: If an order has split multi-parcels (e.g., dispatched from multiple branches or multiple consignments), detect the items from the product costs. If **every parcel is delivered**, the entire order is marked as **Delivered**.
+* 100% of order merchandise value is recognized as net delivered revenue.
+
+### B. Returned (Full Return / RTO)
+* All parcels/items in the order are returned without acceptance by the customer.
+* **Paid Return Propagation Rule**:
+  * *If at least one parcel in the order is marked as "Paid Return" (or has return COD collected), all returned parcels in that order count as **Paid Returns**.*
+  * *Otherwise, they are categorized as **Non-Paid Returns**.*
+
+### C. Partial Delivery & Discrete Integer Units
+* Applied when a multi-item order has a mix of statuses (e.g., some items are delivered, some items are returned, or some items are exchanged).
+* **Doorstep Price & Delivery Fee Accounting**:
+  * The delivered/collected price collected by the courier may include a delivery charge (typically **50 TK** inside Dhaka or **90 TK** outside Dhaka).
+  * Deducting the delivery charge gives the net merchandise price of the item(s) that the customer received (kept).
+  * The leftover price is the price of the returned items.
+* **STRICT INTEGER RULE**:
+  * **Returned items quantity CANNOT be a float (e.g. 0.5 is strictly forbidden). It MUST be an integer value (0, 1, 2, ...).**
+  * Uses Knapsack / Subset-Sum dynamic programming to partition discrete whole garments into kept versus returned units.
+
+### D. Exchanged
+* Denoted by prefixes such as `D-17263` or `DD-17263` on the parcel order ID.
+* The prefix indicates an exchange replacement parcel dispatched to the customer for order `17263`.
+* Exchange parcel IDs must strip `D-` / `DD-` to link directly back to the original order ID while tagging the order as an exchange.
+
+---
+
+## 4. Excel Export Status Columns Specification
+The Excel export (`Reconciled Orders` ledger) features two distinct status columns:
+
+1. **Order Delivery Status** (Order-Level):
+   * Values: `Delivered`, `Paid Return`, `Not Paid Return`, `Exchange`, `Partial`.
+   * **Every item in the same order receives this exact same order-level status value.**
+
+2. **Item Delivery Status** (Item-Level):
+   * Reflects the item-wise fulfillment outcome:
+     * If order is **Delivered** $\rightarrow$ item gets `Delivered`.
+     * If order is **Paid Return** or **Not Paid Return** $\rightarrow$ item gets `Returned`.
+     * If order is **Partial** $\rightarrow$ kept items get `Delivered`, while returned items get `Returned`.
+     * If order is **Exchange** $\rightarrow$ item gets `Exchange`.
+
