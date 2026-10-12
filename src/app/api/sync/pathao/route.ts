@@ -10,20 +10,24 @@ export async function POST(req: Request) {
     let consignmentIds: string[] = body.consignmentIds || [];
     const limit = body.limit || 20;
 
-    // If no consignment IDs provided, extract from returen.xlsx
+    // If no consignment IDs provided, extract from returen.xlsx (local development fallback)
     if (consignmentIds.length === 0) {
-      const returnsPath = path.join(process.cwd(), 'returen.xlsx');
-      if (fs.existsSync(returnsPath)) {
-        const buf = fs.readFileSync(returnsPath);
-        const wb = XLSX.read(buf, { type: 'buffer' });
-        const rows: any[] = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
-        for (const r of rows) {
-          const keys = Object.keys(r);
-          const k = keys.find(key => key.toLowerCase().includes('consignment') || key.toLowerCase().includes('tracking'));
-          if (k && r[k]) {
-            consignmentIds.push(String(r[k]).trim());
+      try {
+        const returnsPath = path.join(process.cwd(), 'returen.xlsx');
+        if (typeof fs !== 'undefined' && fs.existsSync && fs.existsSync(returnsPath)) {
+          const buf = fs.readFileSync(returnsPath);
+          const wb = XLSX.read(buf, { type: 'buffer' });
+          const rows: any[] = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+          for (const r of rows) {
+            const keys = Object.keys(r);
+            const k = keys.find(key => key.toLowerCase().includes('consignment') || key.toLowerCase().includes('tracking'));
+            if (k && r[k]) {
+              consignmentIds.push(String(r[k]).trim());
+            }
           }
         }
+      } catch (err) {
+        console.warn('Local fallback file returen.xlsx read skipped:', err);
       }
     }
 
@@ -33,7 +37,7 @@ export async function POST(req: Request) {
     if (consignmentIds.length === 0) {
       return NextResponse.json({
         success: false,
-        message: 'No consignment IDs available to sync with Pathao.',
+        message: 'No consignment IDs available to sync with Pathao. Please provide consignment IDs or upload a Pathao courier sheet.',
         orders: [],
       });
     }
@@ -63,9 +67,10 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error('Pathao sync error:', error);
-    return NextResponse.json(
-      { success: false, error: error?.message || 'Failed to sync with Pathao' },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      success: false,
+      message: error?.message || 'Failed to sync with Pathao',
+      error: error?.message || 'Failed to sync with Pathao'
+    });
   }
 }

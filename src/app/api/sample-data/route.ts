@@ -4,20 +4,28 @@ import * as XLSX from 'xlsx';
 import fs from 'fs';
 
 function findFirstExistingFile(candidatePaths: string[]): string | null {
-  for (const p of candidatePaths) {
-    if (fs.existsSync(p)) return p;
+  try {
+    for (const p of candidatePaths) {
+      if (typeof fs !== 'undefined' && fs.existsSync && fs.existsSync(p)) return p;
+    }
+  } catch {
+    return null;
   }
   return null;
 }
 
 function parseExcelFile(filePath: string): any[] {
   try {
+    if (!filePath || typeof fs === 'undefined' || !fs.existsSync || !fs.existsSync(filePath)) {
+      return [];
+    }
     const buf = fs.readFileSync(filePath);
     const wb = XLSX.read(buf, { type: 'buffer' });
     const sheetName = wb.SheetNames[0];
+    if (!sheetName || !wb.Sheets[sheetName]) return [];
     return XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: '' });
   } catch (err) {
-    console.error(`Error reading ${filePath}:`, err);
+    console.warn(`[API /api/sample-data] Non-fatal notice reading ${filePath}:`, err);
     return [];
   }
 }

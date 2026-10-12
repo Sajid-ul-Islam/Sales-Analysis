@@ -13,15 +13,17 @@ These authoritative business rules govern order ID parsing, fulfillment branch t
 ## 2. Fulfillment Locations & Courier IDs
 The Pathao Courier Order ID reflects the physical origin/fulfillment location of the parcel:
 
-* **Warehouse / Mirpur (Main Central Hub)**:
-  * When all items in the order are dispatched from the Warehouse/Mirpur, the Pathao Courier Order ID remains unchanged without any suffix (e.g., `17263`).
-* **Branch Locations (Suffix Codes)**:
+* **Online Store (Central Warehouse Hub)**:
+  * When items in the online store order are dispatched from the Central Warehouse, the Pathao Courier Order ID remains unchanged without any suffix (e.g., `17263`).
+* **Retail Branch & Outlet POS Locations (Suffix Codes & Registers)**:
+  * **Mirpur Outlet POS**: Physical retail store register / POS outlet (`17263 m` or WooCommerce POS outlet ID `1`). Strictly distinct from the Online Store.
   * When items are fulfilled from retail branch locations, specific suffixes are appended to the courier order ID:
-    * `17263 c` (or `17263-c` / `17263c`): Dispatched from **Cumilla Branch**
-    * `17263 w` (or `17263-w` / `17263w`): Dispatched from **Wari Branch**
-    * `17263 s` (or `17263-s` / `17263s`): Dispatched from **Sylhet Branch**
+    * `17263 c` (or `17263-c` / `17263c`): Dispatched from **Cumilla Branch** (POS outlet ID `2`)
+    * `17263 w` (or `17263-w` / `17263w`): Dispatched from **Wari Branch** (POS outlet ID `9`)
+    * `17263 s` (or `17263-s` / `17263s`): Dispatched from **Sylhet Branch** (POS outlet IDs `7` & `8`)
+    * `17263 m` (or `17263-m` / `17263m`): Dispatched from **Mirpur Outlet POS** (POS outlet ID `1`)
 * **ID Matching Logic**:
-  * To reconcile branch shipments against store orders, extract the numeric base order ID (`17263`) while recording the branch tag (`Cumilla`, `Wari`, `Sylhet`, or `Warehouse/Mirpur`).
+  * To reconcile branch shipments against store orders, extract the numeric base order ID (`17263`) while recording the branch tag (`Online Store`, `Mirpur POS`, `Cumilla`, `Wari`, `Sylhet`).
 
 ---
 

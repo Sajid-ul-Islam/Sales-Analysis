@@ -28,8 +28,8 @@ export interface ReconciledOrderRow {
   hasSplitSuffix: boolean;
   rawNote?: string;
   cogsEstimate: number; // estimated production/fabric cost (typically 45% of retail)
-  fulfillmentLocation?: 'Warehouse (Mirpur)' | 'Cumilla Branch' | 'Wari Branch' | 'Sylhet Branch';
-  branchSuffix?: string; // 'c' | 'w' | 's' | ''
+  fulfillmentLocation?: 'Online Store (Central Warehouse)' | 'Mirpur Outlet POS' | 'Mirpur Outlet' | 'Cumilla Branch' | 'Wari Branch' | 'Sylhet Branch' | 'Warehouse (Mirpur)';
+  branchSuffix?: string; // 'c' | 'w' | 's' | 'm' | ''
   isPaidReturn?: boolean;
   isExchange?: boolean;
 }

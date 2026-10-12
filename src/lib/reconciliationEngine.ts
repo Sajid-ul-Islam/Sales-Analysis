@@ -29,7 +29,7 @@ export interface ReconciliationResult {
   exchangedOrders: ExchangedOrderRow[];
 }
 
-export type FulfillmentBranch = 'Warehouse (Mirpur)' | 'Cumilla Branch' | 'Wari Branch' | 'Sylhet Branch';
+export type FulfillmentBranch = 'Online Store (Central Warehouse)' | 'Mirpur Outlet POS' | 'Mirpur Outlet' | 'Cumilla Branch' | 'Wari Branch' | 'Sylhet Branch' | 'Warehouse (Mirpur)';
 
 export function normalizeOrderId(raw: any): string {
   if (raw === null || raw === undefined) return '';
@@ -53,7 +53,7 @@ export function detectFulfillmentBranch(rawId: any, note?: any, storeName?: any)
   suffix: string;
 } {
   let strId = String(rawId || '').trim().replace(/^["'\s]+|["'\s]+$/g, '');
-  const strNote = String(note || '').trim();
+  const strNote = String(note || '').trim().toLowerCase();
   const strStore = String(storeName || '').trim().toLowerCase();
 
   // Store name hint (from Pathao Master Delivery Report)
@@ -66,8 +66,11 @@ export function detectFulfillmentBranch(rawId: any, note?: any, storeName?: any)
   if (strStore.includes('sylhet')) {
     return { branch: 'Sylhet Branch', suffix: 's' };
   }
+  if (strStore.includes('mirpur')) {
+    return { branch: 'Mirpur Outlet POS', suffix: 'm' };
+  }
 
-  // Courier order ID suffix check: e.g. "17263 c", "17263-c", "17263c", "17263 w", "17263 s"
+  // Courier order ID suffix check: e.g. "17263 c", "17263-c", "17263c", "17263 w", "17263 s", "17263 m"
   if (/\b\d+\s*c\b|[-_\s]c$/i.test(strId) || /\d+c$/i.test(strId)) {
     return { branch: 'Cumilla Branch', suffix: 'c' };
   }
@@ -76,6 +79,9 @@ export function detectFulfillmentBranch(rawId: any, note?: any, storeName?: any)
   }
   if (/\b\d+\s*s\b|[-_\s]s$/i.test(strId) || /\d+s$/i.test(strId)) {
     return { branch: 'Sylhet Branch', suffix: 's' };
+  }
+  if (/\b\d+\s*m\b|[-_\s]m$/i.test(strId) || /\d+m$/i.test(strId)) {
+    return { branch: 'Mirpur Outlet POS', suffix: 'm' };
   }
 
   // Note hints
@@ -88,8 +94,11 @@ export function detectFulfillmentBranch(rawId: any, note?: any, storeName?: any)
   if (/\b\d+\s*s\b|\bsylhet\b/i.test(strNote)) {
     return { branch: 'Sylhet Branch', suffix: 's' };
   }
+  if (/\b\d+\s*m\b|\bmirpur\b/i.test(strNote)) {
+    return { branch: 'Mirpur Outlet POS', suffix: 'm' };
+  }
 
-  return { branch: 'Warehouse (Mirpur)', suffix: '' };
+  return { branch: 'Online Store (Central Warehouse)', suffix: '' };
 }
 
 export function cleanPhoneNumber(raw: any): string {
@@ -674,13 +683,14 @@ export function runReconciliationEngine(
 
     // Detect branch from order ID or customer notes, or from matched courier return/exchange records
     let branchInfo = detectFulfillmentBranch(cleanOid, group.customerNote);
-    if (branchInfo.branch === 'Warehouse (Mirpur)') {
+    const isBaseWh = (b: string) => b === 'Online Store (Central Warehouse)' || b === 'Warehouse (Mirpur)';
+    if (isBaseWh(branchInfo.branch)) {
       if (pEntries.length > 0) {
-        const branchFromP = pEntries.find(p => p.branch && p.branch !== 'Warehouse (Mirpur)');
+        const branchFromP = pEntries.find(p => p.branch && !isBaseWh(p.branch));
         if (branchFromP) branchInfo = { branch: branchFromP.branch, suffix: branchFromP.suffix };
       }
-      if (branchInfo.branch === 'Warehouse (Mirpur)') {
-        const branchFromReturns = retEntries.find(e => e.branch && e.branch !== 'Warehouse (Mirpur)');
+      if (isBaseWh(branchInfo.branch)) {
+        const branchFromReturns = retEntries.find(e => e.branch && !isBaseWh(e.branch));
         if (branchFromReturns) {
           branchInfo = { branch: branchFromReturns.branch, suffix: branchFromReturns.suffix };
         }

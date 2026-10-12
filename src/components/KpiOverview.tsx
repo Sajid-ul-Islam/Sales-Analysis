@@ -281,7 +281,7 @@ export function KpiOverview({
                     <div className="flex items-center gap-2 shrink-0">
                       {/* SVG Donut Chart */}
                       <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Return Split: ${paidCount} Paid (${paidPct}%) • ${unpaidCount} Unpaid (${unpaidPct}%)`}>
-                        <svg className="w-11 h-11 -rotate-90 transform" viewBox="0 0 36 36">
+                        <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
                           {/* Unpaid Track (Rose) */}
                           <path
                             className="text-rose-200"
@@ -399,7 +399,7 @@ export function KpiOverview({
                     <div className="flex items-center gap-2 shrink-0">
                       {/* SVG Donut Chart */}
                       <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Partial Split: ${partialKept} Kept (${keptPct}%) • ${partialRet} Returned (${retPct}%)`}>
-                        <svg className="w-11 h-11 -rotate-90 transform" viewBox="0 0 36 36">
+                        <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
                           {/* Returned Track (Rose) */}
                           <path
                             className="text-rose-200"
@@ -522,7 +522,7 @@ export function KpiOverview({
                     <div className="flex items-center gap-2 shrink-0">
                       {/* SVG Donut Chart */}
                       <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Exchange Split: ৳ ${exchangeCollected.toLocaleString()} Collected (${collectPct}%) • ৳ ${exchangePathaoCharge.toLocaleString()} Pathao Charged (${chargePct}%)`}>
-                        <svg className="w-11 h-11 -rotate-90 transform" viewBox="0 0 36 36">
+                        <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
                           {/* Pathao Charged Track (Rose) */}
                           <path
                             className="text-rose-200"
@@ -792,7 +792,7 @@ export function KpiOverview({
                     <div className="flex items-center gap-2 shrink-0">
                       {/* SVG Donut Chart */}
                       <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Courier Fee Recovery: ৳ ${feeCollected.toLocaleString()} Collected (${recoveryPct}%) of ৳ ${netCharge.toLocaleString()} Courier Cost`}>
-                        <svg className="w-11 h-11 -rotate-90 transform" viewBox="0 0 36 36">
+                        <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
                           {/* Unrecovered Track (Rose) */}
                           <path
                             className="text-rose-200"
@@ -901,7 +901,7 @@ export function KpiOverview({
 
                   {/* SVG Donut Chart */}
                   <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
-                    <svg className="w-12 h-12 -rotate-90 transform" viewBox="0 0 36 36">
+                    <svg className="w-12 h-12 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="48" height="48">
                       {/* Inside Dhaka Track */}
                       <path
                         className="text-slate-100"

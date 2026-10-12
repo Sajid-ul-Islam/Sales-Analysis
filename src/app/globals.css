@@ -6,10 +6,27 @@
   :root {
     --background: 210 40% 98%;
     --foreground: 222 47% 11%;
+    --primary: #EB5A19;
+    --primary-hover: #D4490E;
+    --primary-subtle: #FFF7ED;
+    --brand-navy: #0F172A;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   body {
     @apply bg-[#F8FAFC] text-slate-800 font-sans antialiased min-h-screen selection:bg-primary selection:text-white;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    margin: 0;
+    padding: 0;
   }
 }
 
@@ -32,11 +49,23 @@
   background: #EB5A19;
 }
 
-/* Card Glow Utility */
+/* Card Glow Utilities */
 .card-glow-primary {
   box-shadow: 0 0 25px -5px rgba(235, 90, 25, 0.12);
 }
 
 .card-glow-emerald {
   box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.12);
+}
+
+/* Unbreakable Table & Overflow Wrappers */
+.table-container-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure flex/grid items don't blow out on small viewports */
+.min-w-0 {
+  min-width: 0;
 }

@@ -12,12 +12,15 @@ This application helps Deen Commerce track and reconcile:
 
 ## Features
 
-- **KPI Overview**: Key metrics at a glance
-- **Status Matrix**: Visual grid of order statuses
-- **Sku Performance**: Product-level analysis
-- **Territory Breakdown**: Regional performance (Mirpur, Cumilla, Wari, Sylhet)
-- **Unit Economics**: Profitability analysis per order/transaction
-- **Excel Export**: Export reconciled data with proper status columns
+- **KPI Overview**: Key metrics at a glance with live delivery retention, courier cost recovery, and return loss
+- **Outlet Dispatch (Hub)**: Courier parcel dispatches, delivery retention rates, and returned consignment values across Online Store (Central Warehouse) and retail branch outlets (Mirpur POS `m`, Cumilla `c`, Wari `w`, Sylhet `s`)
+- **Outlet Sales (WooCommerce Live)**: Real-time sales revenue, units sold, and channel breakdown comparing the Online Store (Website) against in-store physical POS registers
+- **Status Matrix**: Visual grid of order statuses across delivery outcomes
+- **SKU Performance**: Distinct categories for Polo, T-shirt, Jacket, and Sweatshirt with Excel export
+- **Territory Breakdown**: Regional performance (Inside Dhaka vs Outside Dhaka)
+- **Unit Economics**: Profitability analysis per order and transaction
+- **Orders Ledger**: Searchable, filterable master order ledger with parcel badges and modal inspector
+- **Excel Export**: Multi-sheet formatted Excel reports with strict business status columns
 
 ## Tech Stack
 
@@ -67,15 +70,15 @@ npm run dev
 
 The dashboard will be available at `http://localhost:3000`.
 
-## Business Rules
+## Documentation Architecture & Business Rules
 
-See [AGENTS.md](./AGENTS.md) and [.agents/rules/order_rules.md](./.agents/rules/order_rules.md) for detailed business rules on:
-
-- **Order IDs**: Multi-item orders with branch suffixes (`17263 c`, `17263 w`, `17263 s`)
-- **Statuses**: Delivered, Returned, Partial, Exchange
-- **Paid Returns**: If any parcel is marked Paid Return, all count as paid
-- **Partial Orders**: Integer-only returned quantities (no 0.5)
-- **Delivery Charges**: 50 TK or 90 TK included in collected amounts
+Detailed architectural and business specifications:
+- **[Product Requirements Document (PRD)](./docs/PRD.md)**: Product features, 12 analysis modules, persona requirements, and operational workflows
+- **[Technical Requirements Document (TRD)](./docs/TRD.md)**: System topology, algorithms (Knapsack DP solver), API integrations, and data contracts
+- **[Design System & CSS Architecture (DESIGN.md)](./docs/DESIGN.md)**: Color tokens, typography, component blueprints, and unbreakable CSS guarantees
+- **[Order Tracking Business Rules](./.agents/rules/order_rules.md)**: Branch suffixes (`c`, `w`, `s`, `m`), paid return propagation, and integer-only return rule
+- **[Unbreakable CSS & Styling Rules](./.agents/rules/css_and_styling_rules.md)**: PostCSS configuration, table overflow safety, and SVG dimension standards
+- **[Workspace Guidelines](./AGENTS.md)**: High-level reconciliation overview and agent rules
 
 ## Project Structure
 
@@ -204,13 +207,15 @@ The `Export` button generates a multi-sheet workbook:
 │   │   ├── Header.tsx         # Export/reset/switch mode controls
 │   │   ├── KpiOverview.tsx    # 8 KPI cards + hero metric
 │   │   ├── Sidebar.tsx        # Tab navigation
-│   │   ├── tabs/              # 10 analysis tabs:
+│   │   ├── tabs/              # 12 analysis tabs:
 │   │   │   ├── CourierMismatchTab.tsx
 │   │   │   ├── CustomerRiskTab.tsx
 │   │   │   ├── ExchangedOrdersTab.tsx
 │   │   │   ├── ExecutiveOverviewTab.tsx
 │   │   │   ├── ItemReturnsTab.tsx
 │   │   │   ├── OrdersLedgerTab.tsx
+│   │   │   ├── OutletDispatchTab.tsx   # Courier parcel dispatches by outlet
+│   │   │   ├── OutletSalesTab.tsx      # WooCommerce sales across web & POS
 │   │   │   ├── SkuPerformanceTab.tsx
 │   │   │   ├── StatusMatrixTab.tsx
 │   │   │   ├── TerritoryTab.tsx
@@ -223,7 +228,7 @@ The `Export` button generates a multi-sheet workbook:
 │   │   ├── pathaoClient.ts          # Pathao Aladdin API client
 │   │   ├── woocommerceClient.ts    # WooCommerce REST client
 │   │   ├── geo.ts                   # Geocoding dictionary (200+ locations)
-│   │   ├── secrets.ts              # TOML config reader
+│   │   ├── secrets.ts              # Config and env reader
 │   │   ├── discrepancyAuditor.ts   # Mismatch detection logic
 │   │   ├── overrideStore.ts        # State override utilities
 │   │   └── ...
@@ -235,6 +240,34 @@ The `Export` button generates a multi-sheet workbook:
 ├── .env.example              # Environment variables template
 └── package.json              # Next.js 14 + dependencies
 ```
+
+## Vercel & Production Deployment
+
+The project is built on Next.js 14 (App Router) and is ready for Vercel deployment.
+
+### 1. Build Verification
+```bash
+npm run build
+```
+Generates optimized static pages and serverless API endpoints with zero build errors.
+
+### 2. Environment Variables on Vercel
+In your **Vercel Project Settings → Environment Variables**, add the variables defined in `.env.example`:
+
+| Variable | Description |
+|---|---|
+| `WOOCOMMERCE_STORE_URL` | Store URL (e.g. `https://deencommerce.com`) |
+| `WOOCOMMERCE_CONSUMER_KEY` | WooCommerce REST API Consumer Key (`ck_...`) |
+| `WOOCOMMERCE_CONSUMER_SECRET` | WooCommerce REST API Consumer Secret (`cs_...`) |
+| `PATHAO_BASE_URL` | Hermes API URL (`https://api-hermes.pathao.com`) |
+| `PATHAO_CLIENT_ID` | Pathao Client ID |
+| `PATHAO_CLIENT_SECRET` | Pathao Client Secret |
+| `PATHAO_USERNAME` | Pathao Merchant Email |
+| `PATHAO_PASSWORD` | Pathao Merchant Password |
+
+### 3. Serverless File Handling
+- The serverless API routes (`/api/sample-data`, `/api/sync/pathao`) are hardened against missing filesystem assets in cloud sandboxes.
+- When deployed without local Excel spreadsheets, the frontend automatically initiates in **Dropzone / Upload Mode**, allowing drag-and-drop ingestion of current courier sheets or direct live synchronization via WooCommerce and Pathao APIs.
 
 ## License
 

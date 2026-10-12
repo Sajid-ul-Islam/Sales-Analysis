@@ -72,7 +72,14 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
 
       // Branch
       if (branchFilter !== 'ALL') {
-        if ((o.fulfillmentLocation || 'Warehouse (Mirpur)') !== branchFilter) return false;
+        const loc = o.fulfillmentLocation || 'Online Store (Central Warehouse)';
+        if (branchFilter === 'Online Store (Central Warehouse)') {
+          if (loc !== 'Online Store (Central Warehouse)' && loc !== 'Warehouse (Mirpur)') return false;
+        } else if (branchFilter === 'Mirpur Outlet POS') {
+          if (loc !== 'Mirpur Outlet POS' && loc !== 'Mirpur Outlet' && o.branchSuffix !== 'm') return false;
+        } else if (loc !== branchFilter) {
+          return false;
+        }
       }
 
       // Territory
@@ -135,8 +142,9 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
               }}
               className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-primary focus:bg-white"
             >
-              <option value="ALL">All Branches</option>
-              <option value="Warehouse (Mirpur)">Warehouse / Mirpur (Direct)</option>
+              <option value="ALL">All Outlets / Branches</option>
+              <option value="Online Store (Central Warehouse)">Online Store (Central Warehouse)</option>
+              <option value="Mirpur Outlet POS">Mirpur Outlet POS (m)</option>
               <option value="Cumilla Branch">Cumilla Branch (c)</option>
               <option value="Wari Branch">Wari Branch (w)</option>
               <option value="Sylhet Branch">Sylhet Branch (s)</option>
@@ -260,9 +268,14 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                               Sylhet (s)
                             </span>
                           )}
-                          {(!o.fulfillmentLocation || o.fulfillmentLocation === 'Warehouse (Mirpur)') && (
-                            <span className="text-[10px] bg-slate-50 text-slate-500 px-1.5 py-0.5 rounded font-mono border border-slate-200" title="Dispatched from Main Warehouse / Mirpur">
-                              Mirpur
+                          {(o.fulfillmentLocation === 'Mirpur Outlet POS' || o.fulfillmentLocation === 'Mirpur Outlet' || o.branchSuffix === 'm') && (
+                            <span className="text-[10px] bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded font-mono border border-purple-200" title="Fulfilled from Mirpur Outlet POS">
+                              Mirpur POS (m)
+                            </span>
+                          )}
+                          {(!o.fulfillmentLocation || o.fulfillmentLocation === 'Online Store (Central Warehouse)' || o.fulfillmentLocation === 'Warehouse (Mirpur)') && !['c', 'w', 's', 'm'].includes(o.branchSuffix || '') && (
+                            <span className="text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-mono border border-indigo-200" title="Dispatched from Central Warehouse (Online Store)">
+                              Online Store
                             </span>
                           )}
                           {o.hasSplitSuffix && (

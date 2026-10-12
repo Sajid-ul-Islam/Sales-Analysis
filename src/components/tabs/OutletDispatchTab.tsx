@@ -38,7 +38,7 @@ interface OutletMetric {
   id: string;
   name: string;
   suffix: string;
-  locationType: 'Warehouse HQ' | 'Retail Branch';
+  locationType: 'Central Warehouse (Online)' | 'Retail Outlet POS' | 'Retail Branch';
   city: string;
   badgeColor: string;
   dispatchedParcels: number;
@@ -63,15 +63,23 @@ export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 20;
 
-  // Canonical Outlets
+  // Canonical Outlets: Online Store (Central Warehouse) and Mirpur Outlet POS are STRICTLY DISTINCT!
   const OUTLET_CONFIG = [
     {
-      id: 'Warehouse (Mirpur)',
-      name: 'Warehouse (Mirpur)',
+      id: 'Online Store (Central Warehouse)',
+      name: 'Online Store (Central Warehouse)',
       suffix: 'Base (None)',
-      locationType: 'Warehouse HQ' as const,
-      city: 'Dhaka',
+      locationType: 'Central Warehouse (Online)' as const,
+      city: 'Dhaka (Online Hub)',
       badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200'
+    },
+    {
+      id: 'Mirpur Outlet POS',
+      name: 'Mirpur Outlet POS',
+      suffix: 'm',
+      locationType: 'Retail Outlet POS' as const,
+      city: 'Dhaka (Mirpur)',
+      badgeColor: 'bg-purple-50 text-purple-700 border-purple-200'
     },
     {
       id: 'Cumilla Branch',
@@ -101,11 +109,16 @@ export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
 
   // Helper to resolve an order line's outlet
   const getOrderOutlet = (o: ReconciledOrderRow): string => {
-    if (o.fulfillmentLocation) return o.fulfillmentLocation;
+    if (o.fulfillmentLocation) {
+      if (o.fulfillmentLocation === 'Mirpur Outlet POS' || o.fulfillmentLocation === 'Mirpur Outlet') return 'Mirpur Outlet POS';
+      if (o.fulfillmentLocation === 'Warehouse (Mirpur)') return 'Online Store (Central Warehouse)';
+      return o.fulfillmentLocation;
+    }
     if (o.branchSuffix === 'c' || /\b\d+\s*c\b|[-_\s]c$/i.test(o.orderId)) return 'Cumilla Branch';
     if (o.branchSuffix === 'w' || /\b\d+\s*w\b|[-_\s]w$/i.test(o.orderId)) return 'Wari Branch';
     if (o.branchSuffix === 's' || /\b\d+\s*s\b|[-_\s]s$/i.test(o.orderId)) return 'Sylhet Branch';
-    return 'Warehouse (Mirpur)';
+    if (o.branchSuffix === 'm' || /\b\d+\s*m\b|[-_\s]m$/i.test(o.orderId)) return 'Mirpur Outlet POS';
+    return 'Online Store (Central Warehouse)';
   };
 
   // Compute parcel-level metrics for each outlet
@@ -244,7 +257,7 @@ export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
       totalPaidReturns += m.paidReturnsCount;
       totalExchanges += m.exchangeCount;
 
-      if (m.locationType === 'Retail Branch') {
+      if (m.locationType === 'Retail Branch' || m.locationType === 'Retail Outlet POS') {
         branchDispatchedParcels += m.dispatchedParcels;
         branchDeliveredParcels += m.deliveredParcels;
         branchReturnedParcels += m.returnedParcels;
@@ -257,9 +270,10 @@ export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
     const overallReturnRate = totalDispatchedParcels > 0 ? (totalReturnedParcels / totalDispatchedParcels) * 100 : 0;
     const branchVolumeShare = totalDispatchedParcels > 0 ? (branchDispatchedParcels / totalDispatchedParcels) * 100 : 0;
 
-    // Best performing branch
-    const sortedByRetention = [...outletMetrics].sort((a, b) => b.retentionRate - a.retentionRate);
-    const topPerformer = sortedByRetention[0];
+    // Best performing physical retail branch (Mirpur POS, Cumilla, Wari, Sylhet)
+    const retailBranches = outletMetrics.filter(m => m.locationType === 'Retail Branch' || m.locationType === 'Retail Outlet POS');
+    const sortedRetail = [...retailBranches].sort((a, b) => b.retentionRate - a.retentionRate);
+    const topPerformer = sortedRetail[0] || outletMetrics[0];
 
     return {
       totalDispatchedParcels,
@@ -394,7 +408,7 @@ export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
 
   // Donut chart calculations based strictly on Parcels
   const totalVolume = aggregateTotals.totalDispatchedParcels || 1;
-  const donutColors = ['#4f46e5', '#10b981', '#0ea5e9', '#f59e0b']; // Indigo, Emerald, Sky, Amber
+  const donutColors = ['#4f46e5', '#a855f7', '#10b981', '#0ea5e9', '#f59e0b'];
   let accumulatedAngle = 0;
   const donutSlices = outletMetrics.map((m, idx) => {
     const pct = m.dispatchedParcels / totalVolume;
@@ -430,7 +444,7 @@ export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Courier parcel dispatches, delivery retention rates, and returned consignment values for Mirpur HQ, Cumilla, Wari, and Sylhet.
+                Courier parcel dispatches, delivery retention rates, and returned consignment values across Online Store (Central Warehouse) and retail branch outlets (Mirpur POS, Cumilla, Wari, Sylhet).
               </p>
             </div>
           </div>
@@ -490,7 +504,7 @@ export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
               <span className="text-xs font-bold text-indigo-600 ml-1">Parcels</span>
             </div>
             <div className="text-xs text-slate-500 mt-0.5">
-              Dispatched from 4 outlet nodes
+              From online hub & retail outlets
             </div>
           </div>
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
@@ -545,10 +559,10 @@ export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
           </div>
         </div>
 
-        {/* KPI 4: Top Performing Outlet */}
+        {/* KPI 4: Top Performing Retail Branch */}
         <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Top Outlet</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Top Retail Branch</span>
             <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
               <TrendingUp className="w-4 h-4" />
             </div>
@@ -567,10 +581,10 @@ export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
           </div>
         </div>
 
-        {/* KPI 5: Branch Network Contribution */}
+        {/* KPI 5: Retail Outlets Contribution */}
         <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Branch Share (c, w, s)</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Retail Outlets Share</span>
             <div className="w-8 h-8 rounded-lg bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
               <Building2 className="w-4 h-4" />
             </div>
@@ -580,7 +594,7 @@ export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
               {aggregateTotals.branchVolumeShare.toFixed(1)}%
             </div>
             <div className="text-xs text-slate-500 mt-0.5">
-              <span className="font-bold text-slate-700">{aggregateTotals.branchDispatchedParcels}</span> parcels dispatched from branches
+              <span className="font-bold text-slate-700">{aggregateTotals.branchDispatchedParcels}</span> parcels dispatched from retail outlets
             </div>
           </div>
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
@@ -810,7 +824,9 @@ export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
                     </td>
                     <td className="py-3.5 px-3">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                        m.locationType === 'Warehouse HQ'
+                        m.locationType === 'Central Warehouse (Online)'
+                          ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                          : m.locationType === 'Retail Outlet POS'
                           ? 'bg-purple-50 text-purple-700 border border-purple-200'
                           : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                       }`}>

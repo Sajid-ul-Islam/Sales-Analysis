@@ -1,5 +1,14 @@
 # Antigravity Workspace Guidelines: Return & Sales Reconciliation
 
+## Documentation Architecture
+* **Product Requirements Document (PRD)**: [docs/PRD.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/docs/PRD.md)
+* **Technical Requirements Document (TRD)**: [docs/TRD.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/docs/TRD.md)
+* **Design System & CSS Architecture**: [docs/DESIGN.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/docs/DESIGN.md)
+* **Order & Fulfillment Rules**: [.agents/rules/order_rules.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/.agents/rules/order_rules.md)
+* **Unbreakable CSS & Styling Rules**: [.agents/rules/css_and_styling_rules.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/.agents/rules/css_and_styling_rules.md)
+
+---
+
 ## Business Rules for Order Tracking & Fulfillment
 
 Refer to detailed rules in [.agents/rules/order_rules.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/.agents/rules/order_rules.md).
@@ -8,11 +17,12 @@ Refer to detailed rules in [.agents/rules/order_rules.md](file:///c:/Users/deenb
 * An order (e.g. ID `17263`) may contain multiple items.
 
 ### 2. Fulfillment Locations & Courier IDs
-* **Warehouse / Mirpur**: Pathao Courier ID remains unchanged (e.g., `17263`).
-* **Branch Locations**: Suffixes indicate branch fulfillment:
-  * `17263 c`: Items sent from **Cumilla**
-  * `17263 w`: Items sent from **Wari**
-  * `17263 s`: Items sent from **Sylhet**
+* **Online Store (Central Warehouse)**: Pathao Courier ID remains unchanged without suffix (e.g., `17263`).
+* **Retail Outlet Branches & POS**:
+  * **Mirpur Outlet POS**: Physical retail store register / POS outlet (`17263 m` or outlet ID `1`). Strictly distinct from the Online Store.
+  * `17263 c`: Items sent from **Cumilla Branch** (POS outlet ID `2`)
+  * `17263 w`: Items sent from **Wari Branch** (POS outlet ID `9`)
+  * `17263 s`: Items sent from **Sylhet Branch** (POS outlet IDs `7` & `8`)
 
 ### 3. Order Statuses
 * **Delivered**: Entire parcel delivered.
@@ -32,3 +42,8 @@ Refer to detailed rules in [.agents/rules/order_rules.md](file:///c:/Users/deenb
   * If order is **Partial** -> `Delivered` (kept item) or `Returned` (returned item)
   * If order is **Exchange** -> `Exchange`
 
+### 5. Unbreakable CSS & Styling Standards
+* Maintain dual PostCSS config (`postcss.config.js` and `postcss.config.mjs`) at all times.
+* All data tables must be wrapped in `overflow-x-auto` with `min-w-0` to guarantee zero layout blowout.
+* Inline SVG charts must specify explicit `width="44" height="44"` (or `48x48`) and `shrink-0` to prevent SVG viewport distortion.
+* Adhere strictly to the semantic color tokens documented in [docs/DESIGN.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/docs/DESIGN.md).

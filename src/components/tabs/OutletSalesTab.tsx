@@ -26,7 +26,8 @@ import {
   Clock,
   AlertCircle,
   Calendar,
-  Layers
+  Layers,
+  Globe
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -65,7 +66,7 @@ export interface WcOrderRecord {
 interface OutletSalesMetric {
   id: string;
   name: string;
-  channelType: 'Online Web Store' | 'Retail Branch POS';
+  channelType: 'Online E-Commerce' | 'Retail Branch POS';
   badgeColor: string;
   ordersCount: number;
   unitsSold: number;
@@ -88,47 +89,56 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 20;
 
-  // Resolve Outlet Name from WooCommerce metadata or branch tags
+  // Resolve Outlet Name: Online Store and Mirpur are NOT the same!
+  // Mirpur is an in-store Outlet POS, distinct from Online Store (Website).
   const resolveOutletFromWcOrder = useCallback((rawOrder: any): { outletId: string; outletName: string; orderSource: 'pos' | 'checkout' | 'admin' | 'online' } => {
     const meta = Array.isArray(rawOrder.meta_data) ? rawOrder.meta_data : [];
     const sourceMeta = meta.find((m: any) => m.key === '_sip_order_source');
     const outletMeta = meta.find((m: any) => m.key === '_sip_outlet_id');
     const posDomainMeta = meta.find((m: any) => m.key === '_sip_pos_domain');
+    const createdByMeta = meta.find((m: any) => m.key === '_sip_created_by');
     const note = String(rawOrder.customer_note || '').toLowerCase();
     const orderIdStr = String(rawOrder.id || rawOrder.number || '');
 
     const isPos = sourceMeta?.value === 'pos' || Boolean(posDomainMeta?.value) || meta.some((m: any) => m.key === '_sip_pos_order');
     const outletId = String(outletMeta?.value || '');
+    const createdBy = String(createdByMeta?.value || '');
 
-    if (isPos) {
-      if (outletId === '9') {
+    if (isPos || outletId) {
+      if (outletId === '1' || createdBy === '1508' || note.includes('mirpur')) {
+        return { outletId: '1', outletName: 'Mirpur Outlet POS', orderSource: 'pos' };
+      }
+      if (outletId === '9' || createdBy === '572' || note.includes('wari')) {
         return { outletId: '9', outletName: 'Wari Branch POS', orderSource: 'pos' };
       }
-      if (outletId === '2') {
+      if (outletId === '2' || createdBy === '3' || note.includes('cumilla') || note.includes('comilla')) {
         return { outletId: '2', outletName: 'Cumilla Branch POS', orderSource: 'pos' };
       }
-      if (outletId === '7') {
+      if (outletId === '7' || outletId === '8' || createdBy === '35' || createdBy === '69' || note.includes('sylhet')) {
         return { outletId: '7', outletName: 'Sylhet Branch POS', orderSource: 'pos' };
       }
-      if (outletId) {
-        return { outletId, outletName: `Branch POS (Outlet #${outletId})`, orderSource: 'pos' };
+      if (outletId === '1') {
+        return { outletId: '1', outletName: 'Mirpur Outlet POS', orderSource: 'pos' };
       }
-      return { outletId: 'pos_general', outletName: 'Retail Branch POS', orderSource: 'pos' };
+      return { outletId: outletId || '1', outletName: 'Mirpur Outlet POS', orderSource: 'pos' };
     }
 
     // Check for branch hints in notes or order number suffixes
     if (/\b\d+\s*c\b|[-_\s]c$/i.test(orderIdStr) || note.includes('cumilla') || note.includes('comilla')) {
-      return { outletId: 'c', outletName: 'Cumilla Branch Outlet', orderSource: 'online' };
+      return { outletId: 'c', outletName: 'Cumilla Branch POS', orderSource: 'pos' };
     }
     if (/\b\d+\s*w\b|[-_\s]w$/i.test(orderIdStr) || note.includes('wari')) {
-      return { outletId: 'w', outletName: 'Wari Branch Outlet', orderSource: 'online' };
+      return { outletId: 'w', outletName: 'Wari Branch POS', orderSource: 'pos' };
     }
     if (/\b\d+\s*s\b|[-_\s]s$/i.test(orderIdStr) || note.includes('sylhet')) {
-      return { outletId: 's', outletName: 'Sylhet Branch Outlet', orderSource: 'online' };
+      return { outletId: 's', outletName: 'Sylhet Branch POS', orderSource: 'pos' };
+    }
+    if (/\b\d+\s*m\b|[-_\s]m$/i.test(orderIdStr) || note.includes('mirpur')) {
+      return { outletId: '1', outletName: 'Mirpur Outlet POS', orderSource: 'pos' };
     }
 
-    // Default: Online Store / Mirpur Warehouse HQ
-    return { outletId: 'online_mirpur', outletName: 'Online Store (Mirpur HQ)', orderSource: 'checkout' };
+    // Default: Online Store (Website Checkout) - STRICTLY DISTINCT FROM MIRPUR OUTLET POS
+    return { outletId: 'online_store', outletName: 'Online Store (Website)', orderSource: 'checkout' };
   }, []);
 
   // Format raw WooCommerce orders into structured records
@@ -198,7 +208,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
       if (data.success && Array.isArray(data.rawOrders) && data.rawOrders.length > 0) {
         const parsed = parseRawWcOrders(data.rawOrders);
         setWcOrders(parsed);
-        setSyncStatusMsg(`Successfully pulled ${parsed.length} orders from WooCommerce live store.`);
+        setSyncStatusMsg(`Successfully pulled ${parsed.length} orders from WooCommerce store.`);
       } else if (data.orders && data.orders.length > 0) {
         // Fallback using formatted rows if rawOrders was omitted
         const parsedFallback: WcOrderRecord[] = data.orders.map((r: any, idx: number) => {
@@ -216,8 +226,8 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
             paymentMethod: 'cod',
             paymentMethodTitle: r['Payment Method'] || 'Cash on Delivery',
             orderSource: 'online',
-            outletId: 'online_mirpur',
-            outletName: 'Online Store (Mirpur HQ)',
+            outletId: 'online_store',
+            outletName: 'Online Store (Website)',
             itemsCount: parseInt(r['Quantity'] || '1', 10) || 1,
             itemsSummary: r['Item Name'] || 'DEEN Apparel',
             lineItems: [{
@@ -243,19 +253,19 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
     }
   };
 
-  // Auto-load on mount if wcOrders is empty: pull initially or populate baseline
+  // Auto-load on mount if wcOrders is empty: pull initially (500 orders across 5 pages)
   useEffect(() => {
     if (wcOrders.length === 0) {
-      handlePullFromWooCommerce(50, 2);
+      handlePullFromWooCommerce(100, 5);
     }
   }, []);
 
-  // Compute Outlet Sales Aggregates
+  // Compute Outlet Sales Aggregates with Mirpur separate from Online Store
   const { outletMetrics, aggregateTotals, paymentMethodTotals } = useMemo(() => {
     const outletMap = new Map<string, {
       id: string;
       name: string;
-      channelType: 'Online Web Store' | 'Retail Branch POS';
+      channelType: 'Online E-Commerce' | 'Retail Branch POS';
       badgeColor: string;
       ordersCount: number;
       unitsSold: number;
@@ -264,9 +274,10 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
       netSales: number;
     }>();
 
-    // Canonical Outlets template
+    // Canonical Outlets: Online Store and Mirpur are DISTINCT!
     const canonicals = [
-      { id: 'online_mirpur', name: 'Online Store (Mirpur HQ)', channelType: 'Online Web Store' as const, badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+      { id: 'online_store', name: 'Online Store (Website)', channelType: 'Online E-Commerce' as const, badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+      { id: '1', name: 'Mirpur Outlet POS', channelType: 'Retail Branch POS' as const, badgeColor: 'bg-purple-50 text-purple-700 border-purple-200' },
       { id: '9', name: 'Wari Branch POS', channelType: 'Retail Branch POS' as const, badgeColor: 'bg-sky-50 text-sky-700 border-sky-200' },
       { id: '2', name: 'Cumilla Branch POS', channelType: 'Retail Branch POS' as const, badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
       { id: '7', name: 'Sylhet Branch POS', channelType: 'Retail Branch POS' as const, badgeColor: 'bg-amber-50 text-amber-700 border-amber-200' }
@@ -310,8 +321,11 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
         onlineOrders++;
       }
 
-      // Outlet grouping
-      const targetName = outletMap.has(o.outletName) ? o.outletName : 'Online Store (Mirpur HQ)';
+      // Outlet grouping (Fallback: POS goes to Mirpur Outlet POS, web goes to Online Store)
+      const targetName = outletMap.has(o.outletName)
+        ? o.outletName
+        : (o.orderSource === 'pos' ? 'Mirpur Outlet POS' : 'Online Store (Website)');
+
       const m = outletMap.get(targetName)!;
       m.ordersCount++;
       m.unitsSold += o.itemsCount;
@@ -414,7 +428,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
     // Sheet 1: Outlet Sales Summary
     const summaryData = outletMetrics.map((m, idx) => ({
       'SL': idx + 1,
-      'Outlet / Channel': m.name,
+      'Outlet / Sales Channel': m.name,
       'Channel Type': m.channelType,
       'Orders Pulled': m.ordersCount,
       'Units Sold': m.unitsSold,
@@ -430,8 +444,8 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
     // Sheet 2: WooCommerce Orders Stream
     const ordersData = filteredOrders.map(o => ({
       'WooCommerce Order #': o.orderNumber,
-      'Outlet Fulfilled': o.outletName,
-      'Channel Source': o.orderSource === 'pos' ? 'In-Store POS' : 'Online Website Checkout',
+      'Outlet Channel': o.outletName,
+      'Channel Source': o.orderSource === 'pos' ? 'In-Store POS Register' : 'Online Website Checkout',
       'Order Date': o.dateCreated ? o.dateCreated.slice(0, 19).replace('T', ' ') : '',
       'Customer Name': o.customerName,
       'Phone': o.phone,
@@ -468,8 +482,8 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
     }
   };
 
-  // Donut chart colors
-  const donutColors = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b'];
+  // 5 Distinct colors for the 5 channels
+  const donutColors = ['#4f46e5', '#a855f7', '#0ea5e9', '#10b981', '#f59e0b'];
 
   return (
     <div className="space-y-6">
@@ -491,7 +505,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Real-time sales revenue, in-store POS register transactions, and online checkout orders pulled directly from WooCommerce.
+                Real-time sales revenue from Online Store (Website) and in-store POS register transactions across Mirpur, Wari, Cumilla, and Sylhet outlets.
               </p>
             </div>
           </div>
@@ -655,10 +669,10 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
           </div>
         </div>
 
-        {/* KPI 5: In-Store POS vs Online Web Share */}
+        {/* KPI 5: In-Store POS Outlets vs Online Web Share */}
         <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">POS Registers Share</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">POS Outlets Share</span>
             <div className="w-8 h-8 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
               <Building2 className="w-4 h-4" />
             </div>
@@ -672,7 +686,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
             </div>
           </div>
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Online Web Store:</span>
+            <span className="text-slate-400">Online Store (Website):</span>
             <span className="font-bold text-indigo-700">
               ৳ {aggregateTotals.onlineSales.toLocaleString()} ({aggregateTotals.onlineOrders} orders)
             </span>
@@ -692,7 +706,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
                   Outlet Sales Revenue Breakdown (BDT)
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Comparison of sales revenue pulled from WooCommerce across Online Store and Branch POS registers
+                  Comparison of sales revenue pulled from WooCommerce across Online Store and physical Branch POS registers (Mirpur, Wari, Cumilla, Sylhet)
                 </p>
               </div>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
@@ -806,7 +820,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
                 Outlet Sales Performance Matrix
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Consolidated transaction metrics pulled from WooCommerce for Online Store and physical Branch POS registers
+                Consolidated transaction metrics pulled from WooCommerce for Online Store (Website) and in-store Branch POS registers (Mirpur, Wari, Cumilla, Sylhet)
               </p>
             </div>
             <div className="text-xs text-slate-500">
@@ -949,8 +963,8 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
                   className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary"
                 >
                   <option value="ALL">All Channels</option>
-                  <option value="POS">In-Store POS Registers Only</option>
-                  <option value="ONLINE">Online Checkout Only</option>
+                  <option value="POS">In-Store POS Registers Only (Mirpur, Wari, Cumilla, Sylhet)</option>
+                  <option value="ONLINE">Online Store (Website) Only</option>
                 </select>
               </div>
 
@@ -1031,7 +1045,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
                             ? 'bg-purple-50 text-purple-700 border border-purple-200'
                             : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
                         }`}>
-                          {o.orderSource === 'pos' ? 'POS Register' : 'Online Web'}
+                          {o.orderSource === 'pos' ? 'POS Register' : 'Online Website'}
                         </span>
                       </td>
                       <td className="py-3 px-3">

@@ -59,7 +59,7 @@ client_secret*.json
 # ==============================================================================
 Sample Docs/
 [Ss]ample [Dd]ocs/
-docs/
+!docs/*.md
 *.xlsx
 *.xls
 *.csv
