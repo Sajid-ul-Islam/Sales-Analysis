@@ -16,7 +16,9 @@ import {
   HelpCircle,
   Settings,
   Truck,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Store,
+  ShoppingBag
 } from 'lucide-react';
 
 import { DeenLogo, DeenLogoMark } from './DeenLogo';
@@ -33,6 +35,8 @@ interface SidebarProps {
 export function Sidebar({ activeTab, setActiveTab, returnCount, mismatchCount, exchangeCount, activeSourceMode = 'UPLOAD' }: SidebarProps) {
   const navItems = [
     { id: 'tabExecutive', label: 'Executive Overview', icon: LayoutDashboard },
+    { id: 'tabOutletDispatch', label: 'Outlet Dispatch', icon: Store, highlight: true },
+    { id: 'tabOutletSales', label: 'Outlet Sales', icon: ShoppingBag, highlight: true },
     { id: 'tabCourierMismatch', label: 'Pathao Courier Audit', icon: Truck, countBadge: mismatchCount, highlight: true },
     { id: 'tabTerritory', label: 'Territory Performance', icon: MapPin },
     { id: 'tabStatus', label: 'Reconciliation Matrix', icon: GitCompare },

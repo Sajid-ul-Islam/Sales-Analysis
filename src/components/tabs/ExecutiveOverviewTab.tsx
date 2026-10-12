@@ -9,11 +9,11 @@ import {
   Filter,
   Layers,
   Shirt,
-  Maximize2,
-  Minimize2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Download
 } from 'lucide-react';
+import { exportPerformanceReport } from '@/lib/excelExport';
 
 interface ExecutiveOverviewTabProps {
   summary: SummaryAnalytics;
@@ -47,8 +47,6 @@ export function ExecutiveOverviewTab({ summary, orders = [], skuList = [] }: Exe
 
   // View Filter Toggle: 'CATEGORY' vs 'ITEM'
   const [viewMode, setViewMode] = useState<'CATEGORY' | 'ITEM'>('CATEGORY');
-  // User Expand Option (Full width vs Side-by-Side)
-  const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   const [itemSearchQuery, setItemSearchQuery] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL');
@@ -61,9 +59,11 @@ export function ExecutiveOverviewTab({ summary, orders = [], skuList = [] }: Exe
       const groups: Record<string, { dispatched: number; returns: number; net: number; revenue: number; icon: string; sub: string }> = {
         'Jeans (Denim Core)': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👖', sub: 'Signature Selvedge, Slim & Regular Fit Jeans' },
         'Casual & Formal Shirts': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👔', sub: 'Full Sleeve, Half Sleeve, Cuban Collar & Formal Shirts' },
-        'T-Shirts & Polos': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👕', sub: 'Solid, Printed & Heavyweight GSM Polos' },
+        'Polo Shirts': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👕', sub: 'Classic Pique, Solid & Knitted Polos' },
+        'T-Shirts': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👕', sub: 'Solid, Printed & Heavyweight GSM Tees' },
         'Twill Pants & Chinos': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👖', sub: 'Urban Slim Comfort Chinos, Trousers & Cargo' },
-        'Jackets & Sweatshirts': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '🧥', sub: 'Denim Jackets, Hoodies & French-Terry Sweatshirts' },
+        'Jackets': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '🧥', sub: 'Denim Jackets & Outerwear' },
+        'Sweatshirts & Hoodies': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '🧥', sub: 'Hoodies & French-Terry Sweatshirts' },
         'Apparel & Accessories': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '📦', sub: 'Boxers, Masks & Core Essentials' }
       };
 
@@ -202,90 +202,70 @@ export function ExecutiveOverviewTab({ summary, orders = [], skuList = [] }: Exe
   return (
     <div className="space-y-6">
       {/* Dynamic Grid: If isExpanded is true, table takes full 12 cols; otherwise 8 cols */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        {/* Main Table Section (12 Cols when expanded, 8 Cols when compressed) */}
-        <div className={`${isExpanded ? 'xl:col-span-12' : 'xl:col-span-8'} flex flex-col gap-6 transition-all duration-300`}>
-          <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 overflow-hidden flex flex-col">
-            {/* Header Toolbar: Category Wise / Item Wise Switcher & User Expand Option */}
-            <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center text-primary font-bold shrink-0">
-                  {viewMode === 'CATEGORY' ? '👖' : '👔'}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="font-headline text-base font-bold text-navy-deep">
-                      {viewMode === 'CATEGORY' ? 'Category Wise Performance' : 'Item Wise Performance (Master SKU)'}
-                    </h2>
-                    {isExpanded && (
-                      <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
-                        Full Width View
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    {viewMode === 'CATEGORY'
-                      ? 'Smart category sales realization, retention rates, and net delivered volume'
-                      : `Master product style realization across ${masterSkuItems.length} unique styles (sizes consolidated)`}
-                  </p>
-                </div>
+    <div className="space-y-6">
+      {/* Full Width Performance Table Section */}
+      <div className="w-full flex flex-col gap-6">
+        <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 overflow-hidden flex flex-col">
+          {/* Header Toolbar: Category Wise / Item Wise Switcher & Export Option */}
+          <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center text-primary font-bold shrink-0">
+                {viewMode === 'CATEGORY' ? '👖' : '👔'}
               </div>
-
-              {/* Action Controls: Switcher & User Expand Option */}
-              <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
-                {/* View Filter Pill Switcher */}
-                <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('CATEGORY')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                      viewMode === 'CATEGORY'
-                        ? 'bg-white text-navy-deep shadow-2xs border border-slate-200/90'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    <Layers className={`w-3.5 h-3.5 ${viewMode === 'CATEGORY' ? 'text-primary' : 'text-slate-400'}`} />
-                    <span>Category Wise</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('ITEM')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                      viewMode === 'ITEM'
-                        ? 'bg-white text-navy-deep shadow-2xs border border-slate-200/90'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    <Shirt className={`w-3.5 h-3.5 ${viewMode === 'ITEM' ? 'text-primary' : 'text-slate-400'}`} />
-                    <span>Item Wise</span>
-                  </button>
-                </div>
-
-                {/* USER EXPAND OPTION BUTTON */}
-                <button
-                  type="button"
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-2xs active:scale-95 ${
-                    isExpanded
-                      ? 'bg-primary text-white border-primary shadow-primary/20'
-                      : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
-                  }`}
-                  title={isExpanded ? "Compress to side-by-side view" : "Expand to full width view to show all columns"}
-                >
-                  {isExpanded ? (
-                    <>
-                      <Minimize2 className="w-3.5 h-3.5" />
-                      <span>Compress View</span>
-                    </>
-                  ) : (
-                    <>
-                      <Maximize2 className="w-3.5 h-3.5 text-primary" />
-                      <span>Expand View</span>
-                    </>
-                  )}
-                </button>
+              <div>
+                <h2 className="font-headline text-base font-bold text-navy-deep">
+                  {viewMode === 'CATEGORY' ? 'Category Wise Performance' : 'Item Wise Performance (Master SKU)'}
+                </h2>
+                <p className="text-xs text-slate-500">
+                  {viewMode === 'CATEGORY'
+                    ? 'Smart category sales realization, retention rates, and net delivered volume'
+                    : `Master product style realization across ${masterSkuItems.length} unique styles (sizes consolidated)`}
+                </p>
               </div>
             </div>
+
+            {/* Action Controls: Switcher & Export Option */}
+            <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+              {/* View Filter Pill Switcher */}
+              <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('CATEGORY')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    viewMode === 'CATEGORY'
+                      ? 'bg-white text-navy-deep shadow-2xs border border-slate-200/90'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Layers className={`w-3.5 h-3.5 ${viewMode === 'CATEGORY' ? 'text-primary' : 'text-slate-400'}`} />
+                  <span>Category Wise</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('ITEM')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    viewMode === 'ITEM'
+                      ? 'bg-white text-navy-deep shadow-2xs border border-slate-200/90'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Shirt className={`w-3.5 h-3.5 ${viewMode === 'ITEM' ? 'text-primary' : 'text-slate-400'}`} />
+                  <span>Item Wise</span>
+                </button>
+              </div>
+
+              {/* EXPORT OPTION BUTTON FOR CATEGORY & ITEM WISE PERFORMANCE */}
+              <button
+                type="button"
+                onClick={() => exportPerformanceReport(categories, masterSkuItems, viewMode)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-2xs active:scale-95 bg-white text-emerald-700 hover:bg-emerald-50 border-emerald-200/80 hover:border-emerald-300"
+                title={viewMode === 'CATEGORY' ? "Export Category Wise Performance to Excel (.xlsx)" : "Export Item Wise (Master SKU) Performance to Excel (.xlsx)"}
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Export .XLSX</span>
+              </button>
+            </div>
+          </div>
 
             {/* Sub-toolbar when Item Wise is selected */}
             {viewMode === 'ITEM' && (
@@ -318,9 +298,11 @@ export function ExecutiveOverviewTab({ summary, orders = [], skuList = [] }: Exe
                       <option value="ALL">All Categories ({masterSkuItems.length} Master SKUs)</option>
                       <option value="Jeans (Denim Core)">Jeans (Denim Core)</option>
                       <option value="Casual & Formal Shirts">Casual & Formal Shirts</option>
-                      <option value="T-Shirts & Polos">T-Shirts & Polos</option>
+                      <option value="Polo Shirts">Polo Shirts</option>
+                      <option value="T-Shirts">T-Shirts</option>
                       <option value="Twill Pants & Chinos">Twill Pants & Chinos</option>
-                      <option value="Jackets & Sweatshirts">Jackets & Sweatshirts</option>
+                      <option value="Jackets">Jackets</option>
+                      <option value="Sweatshirts & Hoodies">Sweatshirts & Hoodies</option>
                       <option value="Apparel & Accessories">Apparel & Accessories</option>
                     </select>
                   </div>
@@ -551,8 +533,8 @@ export function ExecutiveOverviewTab({ summary, orders = [], skuList = [] }: Exe
           </div>
         </div>
 
-        {/* Right Section (Side widgets when !isExpanded; moved below table when isExpanded) */}
-        <div className={`${isExpanded ? 'xl:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6' : 'xl:col-span-4 flex flex-col gap-6'} transition-all duration-300`}>
+        {/* Supporting Widgets (Placed below table in clean 2-column grid) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Card: Operational Health & Fulfillment Rates */}
           <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 p-5 flex flex-col gap-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">

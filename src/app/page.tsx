@@ -17,7 +17,9 @@ import {
   ItemReturnsTab,
   CustomerRiskTab,
   UnitEconomicsTab,
-  ExchangedOrdersTab
+  ExchangedOrdersTab,
+  OutletDispatchTab,
+  OutletSalesTab
 } from '@/components';
 import { runReconciliationEngine, ReconciliationResult } from '@/lib/reconciliationEngine';
 import { exportReconciledExcel } from '@/lib/excelExport';
@@ -422,8 +424,20 @@ export default function DashboardPage() {
   };
 
   const handleExport = () => {
-    if (!result) return;
-    exportReconciledExcel(result);
+    if (!result) {
+      setStatusMessage('No reconciled data available to export.');
+      return;
+    }
+    try {
+      setStatusMessage('Preparing and downloading DEEN Reconciliation Excel audit workbook (.xlsx)...');
+      exportReconciledExcel(result);
+      setTimeout(() => {
+        setStatusMessage('Excel reconciliation audit workbook (.xlsx) downloaded successfully.');
+      }, 1200);
+    } catch (err: any) {
+      console.error('Reconciliation export error:', err);
+      setStatusMessage(`Excel export failed: ${err?.message || 'Please check console'}`);
+    }
   };
 
   return (
@@ -537,6 +551,20 @@ export default function DashboardPage() {
                     summary={result.summary}
                     orders={result.reconciledOrders}
                     skuList={result.skuAnalytics}
+                  />
+                )}
+                {activeTab === 'tabOutletDispatch' && (
+                  <OutletDispatchTab
+                    orders={result.reconciledOrders}
+                    summary={result.summary}
+                    onSelectOrder={() => setActiveTab('tabOrders')}
+                  />
+                )}
+                {activeTab === 'tabOutletSales' && (
+                  <OutletSalesTab
+                    orders={result.reconciledOrders}
+                    summary={result.summary}
+                    onSelectOrder={() => setActiveTab('tabOrders')}
                   />
                 )}
                 {activeTab === 'tabCourierMismatch' && (

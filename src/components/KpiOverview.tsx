@@ -252,36 +252,100 @@ export function KpiOverview({
             </div>
           </div>
 
-          <div className="my-2">
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-headline font-black text-2xl sm:text-3xl text-rose-600">
-                {s.fullReturnedOrders.toLocaleString()}
-              </span>
-              <span className="text-xs font-bold text-rose-500/70 uppercase tracking-wide">Orders</span>
-            </div>
-            {/* Paid vs Unpaid Return Split Tag */}
-            {(() => {
-              const paidCount = s.paidReturnsCount !== undefined ? s.paidReturnsCount : 85;
-              const unpaidCount = s.unpaidReturnsCount !== undefined ? s.unpaidReturnsCount : Math.max(0, s.fullReturnedOrders - paidCount);
-              return (
-                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/70" title="Delivery charge recovered from customer">
-                    🟢 {paidCount} Paid
-                  </span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 border border-rose-200/70" title="Non-paid return (brand loss)">
-                    🔴 {unpaidCount} Unpaid
+          {(() => {
+            const paidCount = s.paidReturnsCount !== undefined ? s.paidReturnsCount : 85;
+            const unpaidCount = s.unpaidReturnsCount !== undefined ? s.unpaidReturnsCount : Math.max(0, s.fullReturnedOrders - paidCount);
+            const totalRetOrders = (paidCount + unpaidCount) || s.fullReturnedOrders || 1;
+            const paidPct = Math.round((paidCount / totalRetOrders) * 100);
+            const unpaidPct = 100 - paidPct;
+            const strokeDash = `${paidPct} ${100 - paidPct}`;
+
+            return (
+              <>
+                <div className="my-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="font-headline font-black text-2xl sm:text-3xl text-rose-600">
+                          {s.fullReturnedOrders.toLocaleString()}
+                        </span>
+                        <span className="text-xs font-bold text-rose-500/70 uppercase tracking-wide">Orders</span>
+                      </div>
+                      <div className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap">
+                        <span className="font-bold text-rose-600">৳ {totalReturnedAmount.toLocaleString()}</span>
+                        <span className="text-[10px] text-slate-400">loss</span>
+                      </div>
+                    </div>
+
+                    {/* Donut Chart with Numbers directly attached */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* SVG Donut Chart */}
+                      <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Return Split: ${paidCount} Paid (${paidPct}%) • ${unpaidCount} Unpaid (${unpaidPct}%)`}>
+                        <svg className="w-11 h-11 -rotate-90 transform" viewBox="0 0 36 36">
+                          {/* Unpaid Track (Rose) */}
+                          <path
+                            className="text-rose-200"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                          {/* Paid Segment (Emerald) */}
+                          <path
+                            className="text-emerald-500 transition-all duration-500 ease-out"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            strokeDasharray={strokeDash}
+                            strokeLinecap="round"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
+                            {paidPct}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Number Rendering with Donut Chart (Numbers Only with Color Indicators) */}
+                      <div className="flex flex-col text-xs font-black leading-tight">
+                        <span className="text-emerald-700 flex items-center gap-1.5" title={`${paidCount} Paid (Delivery Fee Recovered)`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                          {paidCount}
+                        </span>
+                        <span className="text-rose-600 flex items-center gap-1.5 mt-0.5" title={`${unpaidCount} Unpaid (Brand Loss)`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                          {unpaidCount}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Horizontal Split Bar (Emerald Paid vs Rose Unpaid) */}
+                  <div className="w-full bg-rose-200 rounded-full h-1.5 mt-2.5 overflow-hidden flex" title={`${paidCount} Paid (${paidPct}%) • ${unpaidCount} Unpaid (${unpaidPct}%)`}>
+                    <div
+                      className="bg-emerald-500 h-full transition-all duration-500"
+                      style={{ width: `${paidPct}%` }}
+                      title={`${paidCount} Paid (${paidPct}%)`}
+                    ></div>
+                    <div
+                      className="bg-rose-500 h-full transition-all duration-500"
+                      style={{ width: `${unpaidPct}%` }}
+                      title={`${unpaidCount} Unpaid (${unpaidPct}%)`}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-medium">Return Volume</span>
+                  <span className="font-bold text-rose-600 px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200/60 shadow-2xs">
+                    {s.totalReturnedQty.toLocaleString()} items
                   </span>
                 </div>
-              );
-            })()}
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500 font-medium">৳ {totalReturnedAmount.toLocaleString()}</span>
-            <span className="font-bold text-rose-600 px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200/60 shadow-2xs">
-              {s.totalReturnedQty.toLocaleString()} items
-            </span>
-          </div>
+              </>
+            );
+          })()}
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-rose-500"></div>
         </div>
 
@@ -306,25 +370,100 @@ export function KpiOverview({
             </div>
           </div>
 
-          <div className="my-2">
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-headline font-black text-2xl sm:text-3xl text-amber-600">
-                {s.partialOrders.toLocaleString()}
-              </span>
-              <span className="text-xs font-bold text-amber-600/70 uppercase tracking-wide">Orders</span>
-            </div>
-            <div className="text-xs font-semibold text-amber-700/90 mt-1 flex items-center gap-1.5">
-              <span className="font-bold text-amber-700">৳ {partialReturnedAmount.toLocaleString()}</span>
-              <span className="text-slate-400">• Return Amount</span>
-            </div>
-          </div>
+          {(() => {
+            const partialKept = Math.round(s.partialDeliveredQty || 0);
+            const partialRet = Math.round(s.partialReturnedQty || s.partialOrders || 0);
+            const partialTotal = (partialKept + partialRet) || 1;
+            const keptPct = Math.round((partialKept / partialTotal) * 100);
+            const retPct = 100 - keptPct;
+            const strokeDash = `${keptPct} ${100 - keptPct}`;
 
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500 font-medium">Returned Only</span>
-            <span className="font-bold text-amber-700 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/60 shadow-2xs" title="Returned items count in partial orders">
-              {(s.partialReturnedQty || s.partialOrders).toLocaleString()} returned items
-            </span>
-          </div>
+            return (
+              <>
+                <div className="my-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="font-headline font-black text-2xl sm:text-3xl text-amber-600">
+                          {s.partialOrders.toLocaleString()}
+                        </span>
+                        <span className="text-xs font-bold text-amber-600/70 uppercase tracking-wide">Orders</span>
+                      </div>
+                      <div className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap">
+                        <span className="font-bold text-rose-600">৳ {partialReturnedAmount.toLocaleString()}</span>
+                        <span className="text-[10px] text-slate-400">loss</span>
+                      </div>
+                    </div>
+
+                    {/* Donut Chart with Numbers directly attached */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* SVG Donut Chart */}
+                      <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Partial Split: ${partialKept} Kept (${keptPct}%) • ${partialRet} Returned (${retPct}%)`}>
+                        <svg className="w-11 h-11 -rotate-90 transform" viewBox="0 0 36 36">
+                          {/* Returned Track (Rose) */}
+                          <path
+                            className="text-rose-200"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                          {/* Kept Segment (Emerald) */}
+                          <path
+                            className="text-emerald-500 transition-all duration-500 ease-out"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            strokeDasharray={strokeDash}
+                            strokeLinecap="round"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
+                            {keptPct}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Number Rendering with Donut Chart (Numbers Only with Color Indicators) */}
+                      <div className="flex flex-col text-xs font-black leading-tight">
+                        <span className="text-emerald-700 flex items-center gap-1.5" title={`${partialKept} Kept Items`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                          {partialKept}
+                        </span>
+                        <span className="text-rose-600 flex items-center gap-1.5 mt-0.5" title={`${partialRet} Returned Items`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                          {partialRet}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Horizontal Split Bar (Emerald Kept vs Rose Returned) */}
+                  <div className="w-full bg-rose-200 rounded-full h-1.5 mt-2.5 overflow-hidden flex" title={`${partialKept} Kept (${keptPct}%) • ${partialRet} Returned (${retPct}%)`}>
+                    <div
+                      className="bg-emerald-500 h-full transition-all duration-500"
+                      style={{ width: `${keptPct}%` }}
+                      title={`${partialKept} Kept (${keptPct}%)`}
+                    ></div>
+                    <div
+                      className="bg-rose-500 h-full transition-all duration-500"
+                      style={{ width: `${retPct}%` }}
+                      title={`${partialRet} Returned (${retPct}%)`}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-medium">Split Volume</span>
+                  <span className="font-bold text-amber-700 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/60 shadow-2xs">
+                    {partialTotal.toLocaleString()} items
+                  </span>
+                </div>
+              </>
+            );
+          })()}
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500"></div>
         </div>
 
@@ -349,18 +488,98 @@ export function KpiOverview({
             </div>
           </div>
 
-          <div className="my-2">
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-headline font-black text-2xl sm:text-3xl text-purple-700">
-                {(s.totalExchangedOrders || 0).toLocaleString()}
-              </span>
-              <span className="text-xs font-bold text-purple-600/70 uppercase tracking-wide">Orders</span>
-            </div>
-            <div className="text-xs font-semibold text-purple-700/90 mt-1 flex items-center gap-1.5">
-              <span className="font-bold text-purple-700">৳ {exchangeCodAmount.toLocaleString()}</span>
-              <span className="text-slate-400">• COD Collected</span>
-            </div>
-          </div>
+          {(() => {
+            const exchangeCollected = Math.round(s.totalExchangeCodCollected || 0);
+            const exchangePathaoCharge = Math.round(
+              s.totalExchangeCourierExpense || (s.totalExchangedOrders ? s.totalExchangedOrders * 60 : 0)
+            );
+            const totalExFlow = (exchangeCollected + exchangePathaoCharge) || 1;
+            const collectPct = Math.round((exchangeCollected / totalExFlow) * 100);
+            const chargePct = 100 - collectPct;
+            const strokeDash = `${collectPct} ${100 - collectPct}`;
+            const netExchange = exchangeCollected - exchangePathaoCharge;
+
+            return (
+              <>
+                <div className="my-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="font-headline font-black text-2xl sm:text-3xl text-purple-700">
+                          {(s.totalExchangedOrders || 0).toLocaleString()}
+                        </span>
+                        <span className="text-xs font-bold text-purple-600/70 uppercase tracking-wide">Orders</span>
+                      </div>
+                      <div className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap">
+                        <span className={`font-bold ${netExchange >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {netExchange >= 0 ? `+৳ ${netExchange.toLocaleString()}` : `-৳ ${Math.abs(netExchange).toLocaleString()}`}
+                        </span>
+                        <span className="text-[10px] text-slate-400">net</span>
+                      </div>
+                    </div>
+
+                    {/* Donut Chart with Numbers directly attached */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* SVG Donut Chart */}
+                      <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Exchange Split: ৳ ${exchangeCollected.toLocaleString()} Collected (${collectPct}%) • ৳ ${exchangePathaoCharge.toLocaleString()} Pathao Charged (${chargePct}%)`}>
+                        <svg className="w-11 h-11 -rotate-90 transform" viewBox="0 0 36 36">
+                          {/* Pathao Charged Track (Rose) */}
+                          <path
+                            className="text-rose-200"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                          {/* Our Collection Segment (Emerald) */}
+                          <path
+                            className="text-emerald-500 transition-all duration-500 ease-out"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            strokeDasharray={strokeDash}
+                            strokeLinecap="round"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
+                            {collectPct}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Number Rendering with Donut Chart (Numbers Only with Color Indicators) */}
+                      <div className="flex flex-col text-xs font-black leading-tight">
+                        <span className="text-emerald-700 flex items-center gap-1.5" title={`৳ ${exchangeCollected.toLocaleString()} Collected from Customer`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                          {exchangeCollected.toLocaleString()}
+                        </span>
+                        <span className="text-rose-600 flex items-center gap-1.5 mt-0.5" title={`৳ ${exchangePathaoCharge.toLocaleString()} Charged by Pathao Courier`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                          {exchangePathaoCharge.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Horizontal Split Bar (Emerald Collected vs Rose Pathao Charged) */}
+                  <div className="w-full bg-rose-200 rounded-full h-1.5 mt-2.5 overflow-hidden flex" title={`৳ ${exchangeCollected.toLocaleString()} Collected (${collectPct}%) • ৳ ${exchangePathaoCharge.toLocaleString()} Pathao Charged (${chargePct}%)`}>
+                    <div
+                      className="bg-emerald-500 h-full transition-all duration-500"
+                      style={{ width: `${collectPct}%` }}
+                      title={`৳ ${exchangeCollected.toLocaleString()} Collected (${collectPct}%)`}
+                    ></div>
+                    <div
+                      className="bg-rose-500 h-full transition-all duration-500"
+                      style={{ width: `${chargePct}%` }}
+                      title={`৳ ${exchangePathaoCharge.toLocaleString()} Pathao Charged (${chargePct}%)`}
+                    ></div>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
 
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
             <span className="text-slate-500 font-medium">Re-shipment Swaps</span>
@@ -535,7 +754,7 @@ export function KpiOverview({
           className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
           title="Click to view Pathao Courier Audit & manifests"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
               Pathao Courier Cost
             </span>
@@ -547,28 +766,99 @@ export function KpiOverview({
             </div>
           </div>
 
-          <div className="my-2">
-            <div className="flex items-baseline justify-between gap-2">
-              <div className="text-2xl font-black text-blue-700 font-headline">
-                ৳ {Math.round(s.courierCost.netCharge).toLocaleString()}
-              </div>
-              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60 shrink-0">
-                +৳ {Math.round(s.courierCost.customerDeliveryFeeCollected).toLocaleString()} collected
-              </span>
-            </div>
-            <div className="text-xs font-semibold text-slate-500 mt-1 truncate" title={`Dhaka (৳50): ${s.courierCost.collectedInsideCount} • Outside (৳90): ${s.courierCost.collectedOutsideCount}`}>
-              Fee: {s.courierCost.collectedInsideCount} Dhaka (৳50) • {s.courierCost.collectedOutsideCount} Outside (৳90)
-            </div>
-          </div>
+          {(() => {
+            const netCharge = Math.round(s.courierCost.netCharge || 0);
+            const feeCollected = Math.round(s.courierCost.customerDeliveryFeeCollected || 0);
+            const netCost = Math.max(0, netCharge - feeCollected);
+            const recoveryPct = netCharge > 0 ? Math.min(100, Math.round((feeCollected / netCharge) * 100)) : 0;
+            const remainingPct = 100 - recoveryPct;
+            const strokeDash = `${recoveryPct} ${remainingPct}`;
 
-          <div className="text-[10px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
-            <span>
-              Net Cost: <strong className="text-slate-800">৳ {Math.round(s.courierCost.netCharge - s.courierCost.customerDeliveryFeeCollected).toLocaleString()}</strong>
-            </span>
-            <span className="text-emerald-700 font-bold">
-              {((s.courierCost.customerDeliveryFeeCollected / (s.courierCost.netCharge || 1)) * 100).toFixed(0)}% recovered
-            </span>
-          </div>
+            return (
+              <>
+                <div className="my-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="text-2xl font-black text-blue-700 font-headline">
+                        ৳ {netCharge.toLocaleString()}
+                      </div>
+                      <div className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap" title={`Dhaka (৳50): ${s.courierCost.collectedInsideCount} • Outside (৳90): ${s.courierCost.collectedOutsideCount}`}>
+                        <span className="font-bold text-slate-700">৳ {netCost.toLocaleString()}</span>
+                        <span className="text-[10px] text-slate-400">net cost</span>
+                      </div>
+                    </div>
+
+                    {/* Donut Chart with Numbers directly attached */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* SVG Donut Chart */}
+                      <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Courier Fee Recovery: ৳ ${feeCollected.toLocaleString()} Collected (${recoveryPct}%) of ৳ ${netCharge.toLocaleString()} Courier Cost`}>
+                        <svg className="w-11 h-11 -rotate-90 transform" viewBox="0 0 36 36">
+                          {/* Unrecovered Track (Rose) */}
+                          <path
+                            className="text-rose-200"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                          {/* Collected Segment (Emerald) */}
+                          <path
+                            className="text-emerald-500 transition-all duration-500 ease-out"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            strokeDasharray={strokeDash}
+                            strokeLinecap="round"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
+                            {recoveryPct}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Number Rendering with Donut Chart (Numbers Only with Color Indicators) */}
+                      <div className="flex flex-col text-xs font-black leading-tight">
+                        <span className="text-emerald-700 flex items-center gap-1.5" title={`+৳ ${feeCollected.toLocaleString()} Delivery Fee Collected from Customers`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                          {feeCollected.toLocaleString()}
+                        </span>
+                        <span className="text-rose-600 flex items-center gap-1.5 mt-0.5" title={`৳ ${netCharge.toLocaleString()} Total Pathao Courier Charge`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                          {netCharge.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Horizontal Split Bar (Emerald Recovered vs Rose Net Cost) */}
+                  <div className="w-full bg-rose-200 rounded-full h-1.5 mt-2.5 overflow-hidden flex" title={`${recoveryPct}% Recovered (Emerald) • ${remainingPct}% Net Cost (Rose)`}>
+                    <div
+                      className="bg-emerald-500 h-full transition-all duration-500"
+                      style={{ width: `${recoveryPct}%` }}
+                      title={`৳ ${feeCollected.toLocaleString()} Collected (${recoveryPct}%)`}
+                    ></div>
+                    <div
+                      className="bg-rose-500 h-full transition-all duration-500"
+                      style={{ width: `${remainingPct}%` }}
+                      title={`৳ ${netCost.toLocaleString()} Net Cost (${remainingPct}%)`}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="text-[10px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <span title={`Fee: ${s.courierCost.collectedInsideCount} Dhaka (৳50) • ${s.courierCost.collectedOutsideCount} Outside (৳90)`}>
+                    Fee: {s.courierCost.collectedInsideCount} Dhaka • {s.courierCost.collectedOutsideCount} Out
+                  </span>
+                  <span className="text-emerald-700 font-bold px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200/60">
+                    {recoveryPct}% recovered
+                  </span>
+                </div>
+              </>
+            );
+          })()}
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-500"></div>
         </div>
 
@@ -637,6 +927,20 @@ export function KpiOverview({
                       </span>
                     </div>
                   </div>
+                </div>
+
+                {/* Horizontal Territory Split Bar (Indigo Outside vs Amber Inside) */}
+                <div className="w-full bg-amber-100 rounded-full h-1.5 mt-2 overflow-hidden flex" title={`${outsidePct}% Outside Dhaka • ${insidePct}% Inside Dhaka`}>
+                  <div
+                    className="bg-indigo-600 h-full transition-all duration-500"
+                    style={{ width: `${outsidePct}%` }}
+                    title={`${Math.round(s.outsideOrders).toLocaleString()} Outside Dhaka (${outsidePct}%)`}
+                  ></div>
+                  <div
+                    className="bg-amber-400 h-full transition-all duration-500"
+                    style={{ width: `${insidePct}%` }}
+                    title={`${Math.round(s.insideOrders).toLocaleString()} Inside Dhaka (${insidePct}%)`}
+                  ></div>
                 </div>
 
                 <div className="text-[10px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">

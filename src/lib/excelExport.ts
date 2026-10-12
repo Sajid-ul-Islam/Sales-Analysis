@@ -183,23 +183,140 @@ export function exportReconciledExcel(result: ReconciliationResult, filenamePref
     XLSX.utils.book_append_sheet(wb, wsMismatch, 'Courier Mismatches');
   }
 
-  // Generate binary XLSX buffer and trigger download via Blob with standard OpenXML MIME type
-  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  const blob = new Blob([wbout], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8'
-  });
-
   const dateStamp = new Date().toISOString().slice(0, 10);
   const finalFilename = `${filenamePrefix}_${dateStamp}.xlsx`;
 
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = finalFilename;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => {
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  }, 150);
+  saveWorkbook(wb, finalFilename);
+}
+
+/**
+ * Robust cross-browser Excel workbook downloader.
+ * Fixes issue where Chromium cancels download if URL.revokeObjectURL is called prematurely.
+ */
+function saveWorkbook(wb: XLSX.WorkBook, filename: string) {
+  if (typeof window === 'undefined') return;
+
+  // 1. Primary: Use XLSX.writeFile which handles browser downloads natively
+  try {
+    if (typeof XLSX.writeFile === 'function') {
+      XLSX.writeFile(wb, filename);
+      return;
+    }
+  } catch (err) {
+    console.warn('XLSX.writeFile failed, falling back to manual Blob download:', err);
+  }
+
+  // 2. Secondary fallback: Manual Blob generation with safe 60s lifecycle
+  try {
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+
+    if ((window.navigator as any)?.msSaveOrOpenBlob) {
+      (window.navigator as any).msSaveOrOpenBlob(blob, filename);
+      return;
+    }
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.setAttribute('download', filename);
+    document.body.appendChild(a);
+    a.click();
+
+    // Clean up DOM and revoke object URL only after download stream has safely finished (60 seconds)
+    setTimeout(() => {
+      if (document.body.contains(a)) {
+        document.body.removeChild(a);
+      }
+      window.URL.revokeObjectURL(url);
+    }, 60000);
+  } catch (err) {
+    console.error('Failed to download Excel workbook:', err);
+    throw err;
+  }
+}
+
+export interface CategoryExportItem {
+  name: string;
+  sub?: string;
+  dispatched: number;
+  returns: number;
+  net: number;
+  retention: string;
+  revenue: number;
+}
+
+export interface MasterSkuExportItem {
+  masterSku: string;
+  name?: string;
+  mainName?: string;
+  category: string;
+  grossQty: number;
+  returnedQty: number;
+  deliveredQty: number;
+  retentionRate?: number;
+  returnRate?: number;
+  deliveredRevenue: number;
+  returnLoss: number;
+}
+
+export function exportPerformanceReport(
+  categories: CategoryExportItem[],
+  masterSkuItems: MasterSkuExportItem[],
+  viewMode: 'CATEGORY' | 'ITEM' = 'CATEGORY'
+) {
+  const wb = XLSX.utils.book_new();
+
+  // 1. Category Performance Data
+  const catData = categories.map((c, i) => ({
+    'SL': i + 1,
+    'Category': c.name,
+    'Focus / Subcategory': c.sub || '',
+    'Dispatched (Units)': c.dispatched,
+    'Returned (Units)': c.returns,
+    'Net Delivered (Units)': c.net,
+    'Retention Rate': c.retention + '%',
+    'Delivered Revenue (BDT)': c.revenue
+  }));
+  const wsCat = XLSX.utils.json_to_sheet(catData);
+
+  // 2. Item Wise Master SKU Data
+  const itemData = masterSkuItems.map((it, i) => {
+    const itemName = it.mainName || it.name || 'DEEN Apparel';
+    const retentionPct = it.retentionRate !== undefined
+      ? it.retentionRate.toFixed(1)
+      : (it.grossQty > 0 ? ((it.deliveredQty / it.grossQty) * 100).toFixed(1) : '0.0');
+
+    return {
+      'SL': i + 1,
+      'Master SKU': it.masterSku,
+      'Product Style Name': itemName,
+      'Category': it.category,
+      'Dispatched (Units)': it.grossQty,
+      'Returned (Units)': it.returnedQty,
+      'Net Delivered (Units)': it.deliveredQty,
+      'Retention Rate': retentionPct + '%',
+      'Delivered Revenue (BDT)': Math.round(it.deliveredRevenue),
+      'Return Revenue Loss (BDT)': Math.round(it.returnLoss)
+    };
+  });
+  const wsItem = XLSX.utils.json_to_sheet(itemData);
+
+  // Arrange active sheet first based on current viewMode
+  if (viewMode === 'CATEGORY') {
+    XLSX.utils.book_append_sheet(wb, wsCat, 'Category Wise Performance');
+    XLSX.utils.book_append_sheet(wb, wsItem, 'Item Wise (Master SKU)');
+  } else {
+    XLSX.utils.book_append_sheet(wb, wsItem, 'Item Wise (Master SKU)');
+    XLSX.utils.book_append_sheet(wb, wsCat, 'Category Wise Performance');
+  }
+
+  const dateStamp = new Date().toISOString().slice(0, 10);
+  const prefix = viewMode === 'CATEGORY' ? 'DEEN_Category_Wise_Performance' : 'DEEN_Item_Wise_Performance';
+  const finalFilename = `${prefix}_${dateStamp}.xlsx`;
+
+  saveWorkbook(wb, finalFilename);
 }

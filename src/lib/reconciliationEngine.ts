@@ -168,17 +168,27 @@ export function classifyProductCategory(itemName: string, sku: string): string {
     return 'Casual & Formal Shirts';
   }
 
-  // 3. T-Shirts & Polos (103- Polo, 105- T-Shirt)
-  if (isTshirt || isPolo || s.startsWith('103-') || s.startsWith('105-')) {
-    return 'T-Shirts & Polos';
+  // 3. Distinct: Polo Shirts (103-)
+  if (isPolo || s.startsWith('103-')) {
+    return 'Polo Shirts';
   }
 
-  // 4. Jackets, Sweatshirts & Winterwear (108- Sweatshirt, 115- Jacket)
-  if (n.includes('jacket') || n.includes('hoodie') || n.includes('sweatshirt') || n.includes('french-terry') || s.startsWith('108-') || s.startsWith('115-')) {
-    return 'Jackets & Sweatshirts';
+  // 4. Distinct: T-Shirts (105-)
+  if (isTshirt || s.startsWith('105-')) {
+    return 'T-Shirts';
   }
 
-  // 5. Pants, Chinos & Trousers (Twill, Chino, Cargo, Trouser, 104-, 110-)
+  // 5. Distinct: Jackets (115-)
+  if (n.includes('jacket') || s.startsWith('115-')) {
+    return 'Jackets';
+  }
+
+  // 6. Distinct: Sweatshirts & Hoodies (108- Sweatshirt, 114- Hoodie)
+  if (n.includes('sweatshirt') || n.includes('hoodie') || n.includes('french-terry') || s.startsWith('108-') || s.startsWith('114-')) {
+    return 'Sweatshirts & Hoodies';
+  }
+
+  // 7. Pants, Chinos & Trousers (Twill, Chino, Cargo, Trouser, 104-, 110-)
   if (n.includes('twill') || n.includes('chino') || n.includes('trouser') || n.includes('cargo') || n.includes('pant') || s.includes('104-') || s.startsWith('110-')) {
     return 'Twill Pants & Chinos';
   }
