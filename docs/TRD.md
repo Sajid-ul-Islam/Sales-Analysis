@@ -1,16 +1,16 @@
 # Technical Requirements Document (TRD)
 ## DEEN Commerce — Sales & Return Reconciliation Engine
 
-**Version:** 2.1.0  
+**Version:** 2.2.0  
 **Stack:** Next.js 14 (App Router) · React 18 · TypeScript 5.6 · Tailwind CSS 3.4  
-**Runtime:** Node.js 18+ (Node runtime on Vercel)  
+**Runtime:** Node.js 18+ (Vercel Serverless / Edge compatible)  
 **Last Updated:** October 2026  
 
 ---
 
 ## 1. System Architecture Overview
 
-The **DEEN Commerce Reconciliation Engine** is designed as a high-performance, client-heavy Next.js 14 web application with serverless API proxy routes.
+The **DEEN Commerce Reconciliation Engine** is designed as a high-performance, client-first Next.js 14 web application with serverless API proxy routes.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -18,13 +18,18 @@ The **DEEN Commerce Reconciliation Engine** is designed as a high-performance, c
 │  ┌───────────────────────────────────────────────────────────────────────┐  │
 │  │   UI Shell & Analysis Views (React 18 / Tailwind CSS)                 │  │
 │  │   - Executive Overview       - Outlet Dispatch       - Outlet Sales   │  │
-│  │   - Status Matrix            - SKU Performance       - Orders Ledger  │  │
+│  │   - Status Matrix            - SKU Performance       - Item Returns   │  │
+│  │   - Courier Mismatch Audit   - Territory Breakdown   - Customer Risk  │  │
+│  │   - Unit Economics           - Exchanged Hub         - Orders Ledger  │  │
 │  └───────────────────────────────────▲───────────────────────────────────┘  │
 │                                      │                                      │
 │  ┌───────────────────────────────────┴───────────────────────────────────┐  │
-│  │   Reconciliation Engine (src/lib/reconciliationEngine.ts)             │  │
-│  │   - Knapsack DP Solver       - Branch Suffix Parser  - Geo Classifier │  │
-│  │   - Split-Parcel Correlator  - Paid Return Propagator- Excel Exporter │  │
+│  │   Reconciliation Engine Core (src/lib/)                               │  │
+│  │   - Knapsack DP Solver (subsetSum.ts)                                 │  │
+│  │   - Discrepancy Auditor (discrepancyAuditor.ts)                       │  │
+│  │   - Reconciler & Geo Engine (reconciliationEngine.ts, geo.ts)         │  │
+│  │   - Multi-Sheet Export Engine (excelExport.ts)                        │  │
+│  │   - Local Override State Store (overrideStore.ts)                     │  │
 │  └───────────────────▲───────────────────────────────────▲───────────────┘  │
 └──────────────────────┼───────────────────────────────────┼──────────────────┘
                        │ Local XLSX / CSV                  │ JSON Payloads
@@ -35,6 +40,11 @@ The **DEEN Commerce Reconciliation Engine** is designed as a high-performance, c
 │  │ /api/sync/woocommerce │ │   /api/sync/pathao    │ │ /api/sample-data  │  │
 │  │ (WooCommerce v3 REST) │ │  (Pathao Hermes API)  │ │ (Serverless Safe) │  │
 │  └───────────▲───────────┘ └───────────▲───────────┘ └───────────────────┘  │
+│              │                         │                                    │
+│              │                         │ ┌───────────────────────────────┐  │
+│              │                         │ │       /api/sync/status        │  │
+│              │                         │ │ (Connectivity & Health Audit) │  │
+│              │                         │ └───────────────────────────────┘  │
 └──────────────┼─────────────────────────┼────────────────────────────────────┘
                │ HTTPS / OAuth 1.0a      │ Bearer Token / Hermes REST
 ┌──────────────┴───────────┐ ┌───────────┴───────────┐
@@ -58,23 +68,23 @@ The **DEEN Commerce Reconciliation Engine** is designed as a high-performance, c
 
 ---
 
-## 3. Core Reconciliation Engine & Algorithmic Logic
+## 3. Core Modules & Algorithmic Specifications
 
 ### 3.1 Knapsack / Subset-Sum Partial Matching (`subsetSum.ts`)
 When couriers accept partial item returns, the collected COD amount reflects:
 $$\text{Collected COD} = \sum_{i \in \text{Kept}} \text{ItemPrice}_i + \text{DeliveryCharge}$$
 
-The algorithm executes the following sequence:
-1. **Garment Unit Flattening**: Expands order line items into discrete items with single quantity (`qty = 1`).
+The dynamic programming algorithm executes the following sequence:
+1. **Garment Unit Flattening**: Expands multi-quantity order line items into discrete items with single quantity (`qty = 1`).
 2. **Delivery Charge Variations**: Iterates candidate shipping fees based on territory:
-   - Inside Dhaka: ৳50 (fallback: ৳60, ৳0)
-   - Outside Dhaka: ৳90 (fallback: ৳100, ৳120, ৳0)
+   - Inside Dhaka: ৳50 (candidate variants: ৳60, ৳0)
+   - Outside Dhaka: ৳90 (candidate variants: ৳100, ৳120, ৳0)
 3. **Exact & Tolerance Subset Solver**:
-   - `exactMatch`: Finds a combination whose total is within $\pm ৳2$ of `COD - DeliveryCharge`.
-   - `toleranceMatch`: Evaluates candidates within $\pm ৳25$.
+   - `exactMatch`: Finds a combination whose total is within $\pm ৳2$ of $\text{COD} - \text{DeliveryCharge}$.
+   - `toleranceMatch`: Evaluates candidate subsets within $\pm ৳25$.
    - `closestMatch`: Fallback choosing the closest discrete subset sum.
 4. **Strict Integer Constraint**:
-   Returned items quantity must always be a discrete positive integer:
+   Returned items quantity must always evaluate to whole positive integer values:
    $$\text{QuantityReturned} \in \mathbb{Z}_{\ge 0}$$
    **Fractional quantities (e.g. 0.5) are strictly prohibited and discarded.**
 
@@ -103,6 +113,22 @@ If at least one parcel is marked `Paid Return`, all returned parcels within that
 If an order is split into multiple branch shipments:
 $$\text{isDelivered}_{\text{order}} = \bigwedge_{p \in \text{parcels}} \text{isDelivered}_p$$
 An order is marked `DELIVERED` only if **every** branch parcel was successfully delivered. If some are delivered and some returned, the order status becomes `PARTIAL`.
+
+### 3.5 Discrepancy Auditor (`discrepancyAuditor.ts`)
+Audits differences between courier records and merchant order records:
+- **Status Mismatch**: Courier shows `Delivered` while merchant record is `Returned`, or courier shows `Returned to Merchant` while merchant record is `Delivered`.
+- **COD Mismatch**: Pathao collected cash diverges from expected collected amount by $> ৳10$.
+- **Missing In Courier**: Merchant order marked fulfilled but absent from courier dispatch manifests.
+- **Unlogged Return**: Courier marks parcel returned, but merchant system still flags order as open.
+
+### 3.6 Financial Unit Economics Waterfall
+- $\text{Gross Invoiced Sales} = \sum \text{Dispatched Gross Amount}$
+- $\text{Net Realized Sales} = \sum \text{Delivered Items Value} + \sum \text{Partial Kept Items Value}$
+- $\text{Estimated COGS} = 42\% \times \text{Net Realized Sales}$
+- $\text{Gross Margin} = \text{Net Realized Sales} - \text{Estimated COGS}$
+- $\text{Net Courier Burden} = \text{Pathao Gross Charges} - \text{Paid Return Recoveries} - \text{Customer Delivery Fees}$
+- $\text{Packaging Loss} = (\text{Total Full Returns} + \text{Total Partials}) \times ৳25$
+- $\text{Net Contribution Margin} = \text{Gross Margin} - \text{Net Courier Burden} - \text{Packaging Loss}$
 
 ---
 
@@ -157,3 +183,4 @@ To guarantee that CSS rendering **never breaks**:
 1. **Dual PostCSS Specification**: Both `postcss.config.js` (CommonJS `module.exports`) and `postcss.config.mjs` (ES Module `export default`) are maintained. This eliminates build tool loader ambiguities between Next.js webpack, Turbopack, and Tailwind CLI.
 2. **Intrinsic CSS Tokens & Resets**: `globals.css` injects CSS root custom properties (`--primary: #EB5A19`, `--brand-navy: #0F172A`) and universal `box-sizing: border-box`, ensuring structural styling remains intact even if utility stylesheets experience loading delays.
 3. **Responsive Container Contracts**: All tables and matrices utilize `.table-container-responsive` (`overflow-x: auto`) and `.min-w-0` to prevent flexbox blowouts on narrow displays.
+4. **Explicit SVG Sizing**: All inline SVG charts and donut meters must have hardcoded `width="44" height="44"` (or `48x48`) and `shrink-0` classes to prevent SVG viewports from distorting or expanding under flex layouts.

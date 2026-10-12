@@ -6,6 +6,8 @@
 * **Design System & CSS Architecture**: [docs/DESIGN.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/docs/DESIGN.md)
 * **Order & Fulfillment Rules**: [.agents/rules/order_rules.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/.agents/rules/order_rules.md)
 * **Unbreakable CSS & Styling Rules**: [.agents/rules/css_and_styling_rules.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/.agents/rules/css_and_styling_rules.md)
+* **Reconciliation & Accounting Rules**: [.agents/rules/reconciliation_and_accounting_rules.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/.agents/rules/reconciliation_and_accounting_rules.md)
+* **API Integration & Data Sync Rules**: [.agents/rules/api_and_data_sync_rules.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/.agents/rules/api_and_data_sync_rules.md)
 
 ---
 

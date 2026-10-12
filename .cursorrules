@@ -1,0 +1,32 @@
+# DEEN Commerce — Workspace AI Rules & Instructions (.cursorrules)
+
+## Documentation References
+- **PRD**: [docs/PRD.md](docs/PRD.md)
+- **TRD**: [docs/TRD.md](docs/TRD.md)
+- **Design System & CSS**: [docs/DESIGN.md](docs/DESIGN.md)
+- **Order & Fulfillment Rules**: [.agents/rules/order_rules.md](.agents/rules/order_rules.md)
+- **Unbreakable CSS & Styling Rules**: [.agents/rules/css_and_styling_rules.md](.agents/rules/css_and_styling_rules.md)
+- **Reconciliation & Accounting Rules**: [.agents/rules/reconciliation_and_accounting_rules.md](.agents/rules/reconciliation_and_accounting_rules.md)
+- **API Integration & Data Sync Rules**: [.agents/rules/api_and_data_sync_rules.md](.agents/rules/api_and_data_sync_rules.md)
+
+---
+
+## Core Business & Operational Constraints
+1. **Fulfillment Origin & Suffixes**:
+   - `Online Store (Central Warehouse)`: Base numeric ID without suffix (e.g. `17263`).
+   - `Mirpur Outlet POS`: Retail store POS register (`17263 m` or WooCommerce outlet ID `1`). Strictly distinct from the Online Store.
+   - `Cumilla Branch`: `17263 c` (outlet ID `2`).
+   - `Wari Branch`: `17263 w` (outlet ID `9`).
+   - `Sylhet Branch`: `17263 s` (outlet IDs `7` & `8`).
+
+2. **Order Reconciliation & Integer Constraint**:
+   - In partial delivery knapsack matching, returned items quantity **CANNOT be a float (e.g. 0.5 is strictly forbidden)**; it must always be an **integer (1, 2, 3...)**.
+   - Delivery charges (৳50 inside Dhaka, ৳90 outside Dhaka) are deducted from collected COD before matching kept items.
+   - If at least one parcel in an order is marked as Paid Return, all returned parcels in that order count as Paid Returns.
+   - Size exchanges are indicated by prefixes `D-` or `DD-`.
+
+3. **Unbreakable CSS & Styling Contracts**:
+   - Maintain dual PostCSS configs (`postcss.config.js` and `postcss.config.mjs`) in root.
+   - Wrap all tables in `.table-container-responsive` (`overflow-x-auto min-w-0`).
+   - Explicit inline SVG sizing (`width="44" height="44"` or `48x48`) with `shrink-0`.
+   - Adhere to semantic brand tokens (`--primary: #EB5A19`, `--brand-navy: #0F172A`).

@@ -1,7 +1,7 @@
 # Design System & CSS Architecture Document (DESIGN.md)
 ## DEEN Commerce — Sales & Return Reconciliation Engine
 
-**Version:** 2.1.0  
+**Version:** 2.2.0  
 **Design Theme:** Pristine Enterprise Light Theme with Vibrant Omni-Channel Accents  
 **Typography:** Plus Jakarta Sans & Inter  
 **Last Updated:** October 2026  
@@ -13,7 +13,7 @@
 The **DEEN Commerce Reconciliation Dashboard** balances high-density data analytics with modern enterprise aesthetics. The design adheres to three core tenets:
 
 1. **Immediate Clarity (The 3-Second Audit)**: Executives and operations leads can instantly identify net reconciled sales, return loss rates, and courier cost recovery without visual clutter.
-2. **Distinct Omni-Channel Color Coding**: Every branch outlet and order status is assigned a dedicated semantic color token, ensuring immediate identification across tables, badges, cards, and charts.
+2. **Distinct Omni-Channel Color Coding**: Every branch outlet, order status, mismatch severity, and customer risk tier is assigned a dedicated semantic color token, ensuring immediate identification across tables, badges, cards, and charts.
 3. **Unbreakable CSS Architecture**: Layouts are designed to never break, blow out, or collapse—even under extreme data volumes, narrow viewports, or asynchronous CSS loading.
 
 ---
@@ -52,6 +52,23 @@ Each fulfillment location carries a consistent semantic badge across all 12 modu
 | **Partial Order** | `bg-amber-50` | `text-amber-700` | `border-amber-200` | Split acceptance solved via knapsack solver |
 | **Exchange** | `bg-purple-50` | `text-purple-700` | `border-purple-200` | Size swap replacement (D- / DD-) |
 
+### 2.4 Courier Mismatch Severity Tokens
+
+| Severity | Tailwind Classes | Usage Context |
+|---|---|---|
+| **CRITICAL** | `bg-rose-100 text-rose-800 border-rose-300 font-bold` | Direct cash loss or status conflict |
+| **WARNING** | `bg-amber-100 text-amber-800 border-amber-300 font-bold` | COD variation or pending courier sync |
+| **MATCH** | `bg-emerald-100 text-emerald-800 border-emerald-300 font-medium` | Exact reconciliation between Pathao and manifest |
+| **MISSING** | `bg-slate-100 text-slate-800 border-slate-300 font-medium` | Order missing from courier system |
+
+### 2.5 Customer Risk Tier Tokens
+
+| Risk Tier | RTO Threshold | Tailwind Classes | Operational Action |
+|---|---|---|---|
+| **HIGH_RISK** | $> 50\%$ | `bg-rose-50 text-rose-700 border-rose-200` | Collect advance shipping fee |
+| **MEDIUM** | $20\% - 50\%$ | `bg-amber-50 text-amber-700 border-amber-200` | Mandatory phone confirmation call |
+| **LOW** | $< 20\%$ | `bg-emerald-50 text-emerald-700 border-emerald-200` | Automated dispatch processing |
+
 ---
 
 ## 3. Typography & Hierarchy
@@ -70,7 +87,7 @@ The interface combines **Plus Jakarta Sans** for headlines and numeric KPIs with
 
 ---
 
-## 4. Component Blueprints
+## 4. Component Blueprints & Layout Resiliency
 
 ### 4.1 KPI Overview Cards & Mini Donuts
 - **Immutable Dimensions**: All mini SVG donut meters feature hardcoded `width="44" height="44"` (or `48x48`) along with `shrink-0` to guarantee that browser SVG viewports never collapse or expand during font swaps.
@@ -81,7 +98,7 @@ The interface combines **Plus Jakarta Sans** for headlines and numeric KPIs with
 ### 4.2 Unbreakable Table Architecture
 - Every tabular view is enclosed within `.table-container-responsive`:
   ```html
-  <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs">
+  <div class="w-full overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs">
     <table class="w-full text-left border-collapse text-xs">
       <!-- ... -->
     </table>

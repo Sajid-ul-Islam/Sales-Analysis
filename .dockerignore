@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.gitignore
+README.md
+*.log
+Sample Docs
+*.xlsx
+*.csv
+.env.local
+secrets.toml

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { fetchWooCommerceOrders, formatWooCommerceToOrderRows, testWooCommerceConnection } from '@/lib/woocommerceClient';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // Allow up to 60s for multi-page order fetches on Vercel
+
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));

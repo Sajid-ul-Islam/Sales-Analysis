@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  deen-reconciliation:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: deen-reconciliation-engine
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # Optional Cloud Sync credentials (can also be read from .env)
+      - WOOCOMMERCE_STORE_URL=${WOOCOMMERCE_STORE_URL:-https://deencommerce.com}
+      - WOOCOMMERCE_CONSUMER_KEY=${WOOCOMMERCE_CONSUMER_KEY}
+      - WOOCOMMERCE_CONSUMER_SECRET=${WOOCOMMERCE_CONSUMER_SECRET}
+      - PATHAO_BASE_URL=${PATHAO_BASE_URL:-https://api-hermes.pathao.com}
+      - PATHAO_CLIENT_ID=${PATHAO_CLIENT_ID}
+      - PATHAO_CLIENT_SECRET=${PATHAO_CLIENT_SECRET}
+      - PATHAO_USERNAME=${PATHAO_USERNAME}
+      - PATHAO_PASSWORD=${PATHAO_PASSWORD}

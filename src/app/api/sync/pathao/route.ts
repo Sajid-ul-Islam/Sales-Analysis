@@ -4,6 +4,9 @@ import fs from 'fs';
 import * as XLSX from 'xlsx';
 import { batchFetchPathaoOrders, formatPathaoToReturnRows } from '@/lib/pathaoClient';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // Allow up to 60s for batch Pathao consignment requests on Vercel
+
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
