@@ -120,16 +120,20 @@ The interface combines **Plus Jakarta Sans** for headlines and numeric KPIs with
 
 ## 5. Unbreakable CSS Rules & Fail-Safe Patterns
 
-To prevent broken or unstyled CSS rendering:
+To guarantee that CSS rendering **never breaks under any condition**:
 
-1. **Dual PostCSS Files**:
+1. **Dual-Engine Fail-Safe Rendering**:
+   - **Layer 1 (Inline Critical Resets & CSS Variables)**: Embedded directly into `<head>` inside `<style id="critical-unbreakable-css">` in `src/app/layout.tsx`. Guarantees fundamental box-sizing, typography resets, table overflows, scrollbars, and color variables are active before any external network request finishes.
+   - **Layer 2 (Standalone Client-Side Tailwind CDN Engine)**: Injected via `https://cdn.tailwindcss.com` with a synchronized JSON theme in `layout.tsx`. If Next.js dev server ever returns a 404 for `layout.css` due to cache invalidation, the browser dynamically renders all Tailwind utility classes on the fly.
+   - **Layer 3 (Compiled Production CSS Bundle)**: Maintained via Next.js standard build and `globals.css`.
+   - **Layer 4 (Port Conflict & Zombie Process Protection)**: `Launch_Dashboard.bat` automatically terminates any orphaned processes holding port 3000 before launching `npm run dev`.
+2. **Dual PostCSS Configuration**:
    - `postcss.config.js` (CommonJS module export)
    - `postcss.config.mjs` (ESM default export)
-   - This ensures build stability across Next.js webpack, standalone scripts, and Tailwind CLI.
-2. **Explicit CSS Root Tokens in `globals.css`**:
-   - Fundamental variables (`--primary`, `--brand-navy`, `--background`) are declared in vanilla CSS `:root`.
-   - Structural fallbacks ensure elements never lose basic color definition even if utility classes lag.
-3. **Flex Child Protection (`min-w-0`)**:
+   - Guarantees seamless compatibility across Next.js webpack, Turbopack, and Tailwind CLI.
+3. **Flex Child Containment (`min-w-0`)**:
    - All flexbox children holding text or tables include `min-w-0` to prevent flex items from overflowing past container boundaries.
-4. **Scrollbar Design**:
-   - Lightweight custom scrollbars (`6px` width, `#f1f5f9` track, `#cbd5e1` thumb, `#EB5A19` on hover).
+4. **Table & Ledger Responsive Protection**:
+   - Every tabular component is enclosed within `.table-container-responsive` (`overflow-x: auto`) to prevent viewport blowouts.
+5. **Explicit Inline SVG Dimensions**:
+   - All SVG charts and meters specify explicit `width="44" height="44"` (or `48x48`) and `shrink-0` classes.

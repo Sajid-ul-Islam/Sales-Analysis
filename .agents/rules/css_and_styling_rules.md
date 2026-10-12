@@ -4,9 +4,30 @@ These rules govern all styling, layout composition, and CSS architecture for the
 
 ---
 
-## 1. Zero-Break Layout Contracts
+## 1. Dual-Engine Unbreakable Architecture (Fail-Safe CSS)
 
-### 1.1 Table & Grid Overflow Protection
+To ensure CSS can **NEVER be broken by anything no matter what** (stale dev caches, build transitions, webpack 404s, or client hydration delays):
+
+1. **Layer 1 — Inline Critical Resets & Tokens in `layout.tsx`**:
+   - Fundamental variables (`--primary: #EB5A19`, `--brand-navy: #0F172A`), container resets, scrollbar styles, table overflow wrappers, and glow utilities are injected directly in `<head>` via an inline `<style id="critical-unbreakable-css">` tag.
+   - The browser has structural and chromatic styles available before any external file request.
+
+2. **Layer 2 — Standalone Tailwind CDN Runtime in `layout.tsx`**:
+   - `layout.tsx` loads `https://cdn.tailwindcss.com` along with a synchronized inline theme configuration matching `tailwind.config.ts`.
+   - If Next.js dev server ever returns a 404 on `layout.css` (e.g., when a production build alters `.next` while dev server is active), the client-side Tailwind engine instantly parses and renders every single utility class dynamically in the browser.
+
+3. **Layer 3 — Next.js PostCSS Pipeline (`globals.css`)**:
+   - Full Tailwind compilation via standard build pipeline.
+   - Dual PostCSS configurations (`postcss.config.js` and `postcss.config.mjs`) remain in the project root to satisfy all bundlers (Next.js, Turbopack, Webpack, Tailwind CLI).
+
+4. **Layer 4 — Stale Process Purge in `Launch_Dashboard.bat`**:
+   - `Launch_Dashboard.bat` automatically terminates any zombie node processes bound to port 3000 before launching `npm run dev`.
+
+---
+
+## 2. Zero-Break Layout Contracts
+
+### 2.1 Table & Grid Overflow Protection
 - **Rule**: Every data table or ledger must be enclosed within an `overflow-x-auto` wrapper with `w-full` and `min-w-0`.
 - **Reason**: High-density order records with multiple SKU lines and customer notes will force horizontal expansion. Unwrapped tables break the entire parent flex container.
 - **Implementation**:
@@ -18,21 +39,13 @@ These rules govern all styling, layout composition, and CSS architecture for the
   </div>
   ```
 
-### 1.2 SVG Mini Charts & Meter Dimensions
+### 2.2 SVG Mini Charts & Meter Dimensions
 - **Rule**: All inline SVG charts (such as donut meters and KPI progress circles) MUST specify explicit `width` and `height` attributes (e.g. `width="44" height="44"`) and the `shrink-0` Tailwind class.
 - **Reason**: Without explicit width/height attributes, SVG elements under flex layouts can collapse to 0px or expand to viewport width, causing devastating layout shifts and broken rendering.
 
-### 1.3 Flex Child Containment (`min-w-0`)
+### 2.3 Flex Child Containment (`min-w-0`)
 - **Rule**: Any flex child containing truncated text (`truncate`) or child grids must have `min-w-0`.
 - **Reason**: The CSS flexbox specification defaults `min-width` to `auto`, which prevents flex items from shrinking below their content size, causing layout blowouts.
-
----
-
-## 2. PostCSS & Build Tool Stability
-
-- **Dual-File Rule**: Both `postcss.config.js` (CommonJS format) and `postcss.config.mjs` (ES Module format) must remain in the project root.
-- **Reason**: Next.js build runners, Webpack, Turbopack, and Tailwind CLI resolve PostCSS config files differently based on package context. Having both prevents PostCSS loader resolution failures.
-- **Root Tokens in `globals.css`**: Core brand variables (`--primary: #EB5A19`, `--brand-navy: #0F172A`) must always be defined in vanilla CSS `:root` so that fundamental brand aesthetics remain intact even if utility stylesheets experience hydration delays.
 
 ---
 

@@ -26,6 +26,7 @@
    - Size exchanges are indicated by prefixes `D-` or `DD-`.
 
 3. **Unbreakable CSS & Styling Contracts**:
+   - Dual-engine fail-safe rendering: inline critical CSS resets/tokens + standalone Tailwind CDN in `src/app/layout.tsx` guarantees zero unstyled HTML under any cache or dev server condition.
    - Maintain dual PostCSS configs (`postcss.config.js` and `postcss.config.mjs`) in root.
    - Wrap all tables in `.table-container-responsive` (`overflow-x-auto min-w-0`).
    - Explicit inline SVG sizing (`width="44" height="44"` or `48x48`) with `shrink-0`.

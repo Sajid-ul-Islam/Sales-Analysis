@@ -45,6 +45,7 @@ Refer to detailed rules in [.agents/rules/order_rules.md](file:///c:/Users/deenb
   * If order is **Exchange** -> `Exchange`
 
 ### 5. Unbreakable CSS & Styling Standards
+* Dual-engine fail-safe architecture: inlined critical resets/tokens and standalone Tailwind CDN in `src/app/layout.tsx` guarantees zero unstyled HTML regardless of dev server or build cache state.
 * Maintain dual PostCSS config (`postcss.config.js` and `postcss.config.mjs`) at all times.
 * All data tables must be wrapped in `overflow-x-auto` with `min-w-0` to guarantee zero layout blowout.
 * Inline SVG charts must specify explicit `width="44" height="44"` (or `48x48`) and `shrink-0` to prevent SVG viewport distortion.
