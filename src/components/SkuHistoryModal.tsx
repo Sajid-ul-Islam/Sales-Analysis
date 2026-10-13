@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { ReconciledOrderRow, SkuAnalytics } from '@/types';
 import {
   X,
@@ -34,6 +34,18 @@ export function SkuHistoryModal({
 }: SkuHistoryModalProps) {
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'DELIVERED' | 'RETURNED' | 'EXCHANGE'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   if (!isOpen || !sku) return null;
 
@@ -163,6 +175,7 @@ export function SkuHistoryModal({
           <div className="relative w-full sm:w-64">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
+              ref={searchRef}
               type="text"
               placeholder="Search order ID, phone..."
               value={searchTerm}

@@ -23,6 +23,14 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [overrides, setOverrides] = useState<Record<string, ManualOverride>>({});
 
+  const hasActiveFilter =
+    statusFilter !== 'ALL' ||
+    branchFilter !== 'ALL' ||
+    territoryFilter !== 'ALL' ||
+    searchTerm.trim() !== '';
+
+  const [hasActiveFilterRef, setHasActiveFilterRef] = useState(hasActiveFilter);
+
   useEffect(() => {
     if (initialStatusFilter) {
       setStatusFilter(initialStatusFilter);
@@ -117,51 +125,74 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-primary focus:bg-white"
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="DELIVERED">Delivered Only</option>
-              <option value="PARTIAL">Partial Orders</option>
-              <option value="EXCHANGE">Exchanges (D- / DD-)</option>
-              <option value="PAID_RETURN">Paid Returns</option>
-              <option value="NON_PAID_RETURN">Non-Paid Returns</option>
-              <option value="FULL_RETURN">All Returns (Full)</option>
-            </select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter('ALL');
+                  setBranchFilter('ALL');
+                  setTerritoryFilter('ALL');
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  hasActiveFilter
+                    ? 'bg-primary text-white border border-primary shadow-xs hover:bg-primary-hover'
+                    : 'bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed hover:bg-slate-200/60'
+                }`}
+                title={hasActiveFilter ? 'Clear all filters (resets search, status, territory, and page to 1)' : 'No active filter to clear'}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <span>Clear Filters</span>
+              </button>
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-primary focus:bg-white"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="DELIVERED">Delivered Only</option>
+                <option value="PARTIAL">Partial Orders</option>
+                <option value="EXCHANGE">Exchanges (D- / DD-)</option>
+                <option value="PAID_RETURN">Paid Returns</option>
+                <option value="NON_PAID_RETURN">Non-Paid Returns</option>
+                <option value="FULL_RETURN">All Returns (Full)</option>
+              </select>
 
-            <select
-              value={branchFilter}
-              onChange={(e) => {
-                setBranchFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-primary focus:bg-white"
-            >
-              <option value="ALL">All Outlets / Branches</option>
-              <option value="Online Store (Central Warehouse)">Online Store (Central Warehouse)</option>
-              <option value="Mirpur Outlet POS">Mirpur Outlet POS (m)</option>
-              <option value="Cumilla Branch">Cumilla Branch (c)</option>
-              <option value="Wari Branch">Wari Branch (w)</option>
-              <option value="Sylhet Branch">Sylhet Branch (s)</option>
-            </select>
+              <select
+                value={branchFilter}
+                onChange={(e) => {
+                  setBranchFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-primary focus:bg-white"
+              >
+                <option value="ALL">All Outlets / Branches</option>
+                <option value="Online Store (Central Warehouse)">Online Store (Central Warehouse)</option>
+                <option value="Mirpur Outlet POS">Mirpur Outlet POS (m)</option>
+                <option value="Cumilla Branch">Cumilla Branch (c)</option>
+                <option value="Wari Branch">Wari Branch (w)</option>
+                <option value="Sylhet Branch">Sylhet Branch (s)</option>
+              </select>
 
-            <select
-              value={territoryFilter}
-              onChange={(e) => {
-                setTerritoryFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-primary focus:bg-white"
-            >
-              <option value="ALL">All Territories</option>
-              <option value="Inside Dhaka">Inside Dhaka</option>
-              <option value="Outside Dhaka">Outside Dhaka</option>
-            </select>
+              <select
+                value={territoryFilter}
+                onChange={(e) => {
+                  setTerritoryFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-primary focus:bg-white"
+              >
+                <option value="ALL">All Territories</option>
+                <option value="Inside Dhaka">Inside Dhaka</option>
+                <option value="Outside Dhaka">Outside Dhaka</option>
+              </select>
+            </div>
           </div>
         </div>
 
