@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateAICompletion } from '@/lib/geminiClient';
 
+export const dynamic = 'force-dynamic';
+
 const COURIER_AUDIT_SYSTEM_PROMPT = `You are the Lead Logistics Reconciliation & Financial Dispute Auditor for DEEN Commerce (Bangladesh).
 Your objective is to audit post-delivery discrepancies between DEEN store invoices and Pathao/courier delivery manifests to detect and recover lost revenue.
 

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateAICompletion } from '@/lib/geminiClient';
 import { COPILOT_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

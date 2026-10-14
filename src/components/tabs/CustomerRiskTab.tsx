@@ -147,11 +147,20 @@ export function CustomerRiskTab({ profiles }: CustomerRiskTabProps) {
 
       {/* Customer Risk Ledger Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile Swipe Hint */}
+        <div className="md:hidden flex items-center justify-between px-3 py-1.5 text-[11px] text-slate-400 bg-slate-50/60 border-b border-slate-100">
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary/70 animate-pulse" />
+            <span>Swipe horizontally to view risk analysis & spend</span>
+          </span>
+          <span className="font-mono text-[10px] text-slate-400">Customer pinned</span>
+        </div>
+
+        <div className="overflow-x-auto min-w-0">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
               <tr>
-                <th className="py-3 px-4">Customer Phone & Name</th>
+                <th className="py-3 px-4 bg-slate-50 sticky left-0 z-20 min-w-[160px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Customer Phone & Name</th>
                 <th className="py-3 px-4 text-center">Total Orders</th>
                 <th className="py-3 px-4 text-center">Delivered</th>
                 <th className="py-3 px-4 text-center">Partial</th>
@@ -175,8 +184,8 @@ export function CustomerRiskTab({ profiles }: CustomerRiskTabProps) {
                   const isMed = p.riskTier === 'MEDIUM';
 
                   return (
-                    <tr key={`${p.phone}-${idx}`} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-3.5 px-4 font-mono">
+                    <tr key={`${p.phone}-${idx}`} className="hover:bg-slate-50 transition-colors group">
+                      <td className="py-3.5 px-4 font-mono sticky left-0 bg-white group-hover:bg-slate-50 z-10 min-w-[160px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
                         <div className="font-bold text-slate-900 text-xs">{p.phone}</div>
                         <div className="text-[11px] text-slate-500 font-sans truncate max-w-[150px]">{p.customerName || 'Customer'}</div>
                       </td>

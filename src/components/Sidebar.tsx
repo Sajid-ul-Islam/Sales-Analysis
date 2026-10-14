@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   Calculator,
@@ -10,10 +10,7 @@ import {
   Shirt,
   RotateCcw,
   ShieldAlert,
-  Coins,
-  ChevronDown,
   Layers,
-  HelpCircle,
   Settings,
   Truck,
   ArrowRightLeft,
@@ -24,7 +21,7 @@ import {
   User
 } from 'lucide-react';
 
-import { DeenLogo } from './DeenLogo';
+import { DeenLogo, DeenLogoMark } from './DeenLogo';
 
 export interface SidebarProps {
   activeTab: string;
@@ -37,31 +34,72 @@ export interface SidebarProps {
   onCloseMobile?: () => void;
 }
 
+interface NavItemConfig {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  countBadge?: number;
+  highlight?: boolean;
+}
+
+interface NavGroupConfig {
+  title: string;
+  items: NavItemConfig[];
+}
+
 export function Sidebar({
   activeTab,
   setActiveTab,
   returnCount,
-  mismatchCount,
-  exchangeCount,
+  mismatchCount = 0,
+  exchangeCount = 0,
   activeSourceMode = 'UPLOAD',
   mobileOpen = false,
   onCloseMobile
 }: SidebarProps) {
-  const navItems = [
-    { id: 'tabExecutive', label: 'Executive', icon: LayoutDashboard },
-    { id: 'tabMarketingAnalytics', label: 'Ad Analytics', icon: BarChart3, highlight: true },
-    { id: 'tabOutletDispatch', label: 'Outlet Dispatch', icon: Store, highlight: true },
-    { id: 'tabOutletSales', label: 'Outlet Sales', icon: ShoppingBag, highlight: true },
-    { id: 'tabCourierMismatch', label: 'Courier Audit', icon: Truck, countBadge: mismatchCount, highlight: true },
-    { id: 'tabTerritory', label: 'Territory', icon: MapPin },
-    { id: 'tabStatus', label: 'Status Matrix', icon: GitCompare },
-    { id: 'tabOrders', label: 'Orders Ledger', icon: ListOrdered },
-    { id: 'tabSku', label: 'SKU Flow', icon: Shirt },
-    { id: 'tabItemReturns', label: 'Returned Items', icon: RotateCcw, countBadge: returnCount },
-    { id: 'tabExchanges', label: 'Exchanges', icon: ArrowRightLeft, countBadge: exchangeCount, highlight: true },
-    { id: 'tabCustomerRisk', label: 'Customer Risk', icon: ShieldAlert, highlight: true },
-    { id: 'tabUnitEconomics', label: 'Unit Economics', icon: Calculator, highlight: true },
-    { id: 'tabSettings', label: 'Settings & Themes', icon: Settings, highlight: true },
+  // Floating tooltip state for tablet icon rail
+  const [activeTooltip, setActiveTooltip] = useState<{
+    label: string;
+    count?: number;
+    top: number;
+  } | null>(null);
+
+  // Grouped Navigation Structure
+  const navGroups: NavGroupConfig[] = [
+    {
+      title: 'Core Operations',
+      items: [
+        { id: 'tabExecutive', label: 'Executive Overview', icon: LayoutDashboard },
+        { id: 'tabOrders', label: 'Orders Ledger', icon: ListOrdered },
+        { id: 'tabItemReturns', label: 'Returned Items', icon: RotateCcw, countBadge: returnCount },
+        { id: 'tabCourierMismatch', label: 'Courier Audit', icon: Truck, countBadge: mismatchCount, highlight: true },
+      ]
+    },
+    {
+      title: 'Omni-Channel Outlets',
+      items: [
+        { id: 'tabOutletDispatch', label: 'Outlet Dispatch', icon: Store, highlight: true },
+        { id: 'tabOutletSales', label: 'Outlet Sales', icon: ShoppingBag, highlight: true },
+        { id: 'tabTerritory', label: 'Territory Distribution', icon: MapPin },
+        { id: 'tabExchanges', label: 'Exchanges', icon: ArrowRightLeft, countBadge: exchangeCount, highlight: true },
+      ]
+    },
+    {
+      title: 'Intelligence & Risk',
+      items: [
+        { id: 'tabMarketingAnalytics', label: 'Ad Analytics', icon: BarChart3, highlight: true },
+        { id: 'tabSku', label: 'SKU Flow', icon: Shirt },
+        { id: 'tabCustomerRisk', label: 'Customer Risk', icon: ShieldAlert, highlight: true },
+        { id: 'tabStatus', label: 'Status Matrix', icon: GitCompare },
+        { id: 'tabUnitEconomics', label: 'Unit Economics', icon: Calculator, highlight: true },
+      ]
+    },
+    {
+      title: 'Configuration',
+      items: [
+        { id: 'tabSettings', label: 'Settings & Themes', icon: Settings, highlight: true },
+      ]
+    }
   ];
 
   const handleItemClick = (id: string) => {
@@ -71,140 +109,410 @@ export function Sidebar({
     }
   };
 
-  const renderSidebarBody = (isMobile = false) => (
-    <>
-      <div className="flex flex-col min-h-0">
-        {/* Brand Header */}
-        <div className="h-16 px-5 border-b border-slate-100 flex items-center justify-between shrink-0">
-          <DeenLogo size="md" />
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          
-            </span>
-            {isMobile && onCloseMobile && (
-              <button
-                type="button"
-                onClick={onCloseMobile}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                aria-label="Close menu"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            )}
-          </div>
-        </div>
+  // Close mobile drawer on Escape key press
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && onCloseMobile) {
+        onCloseMobile();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileOpen, onCloseMobile]);
 
-        {/* Workspace Subheader Pill */}
-        <div className="px-3.5 py-2 mx-3 my-2.5 bg-slate-50/80 rounded-lg border border-slate-100 flex flex-col gap-1.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-5 h-5 rounded-md bg-orange-100/80 text-primary flex items-center justify-center shrink-0">
-                <Layers className="w-3 h-3" />
-              </div>
-              <span className="text-xs font-semibold text-slate-900 truncate">Operations Hub</span>
-            </div>
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200/60 text-slate-600 font-mono">
-              Live
-            </span>
-          </div>
-          <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px]">
-            <span className="text-slate-400 font-medium">Source:</span>
-            <span className={`font-bold flex items-center gap-1 ${
-              activeSourceMode === 'API' ? 'text-emerald-700' : 'text-primary'
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${
-                activeSourceMode === 'API' ? 'bg-emerald-500 animate-pulse' : 'bg-primary'
-              }`}></span>
-              {activeSourceMode === 'API' ? 'Cloud API' : 'Excel Files'}
-            </span>
-          </div>
-        </div>
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    if (mobileOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [mobileOpen]);
 
-        {/* Navigation Links */}
-        <nav className="flex-1 px-3 py-1 space-y-1 overflow-y-auto">
-          <div className="px-3 py-1 text-[10px] font-bold text-slate-400 tracking-wider uppercase font-headline">
-            Modules
-          </div>
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleItemClick(item.id)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all text-left group ${
-                  isActive
-                    ? 'bg-orange-50 text-primary font-bold shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Icon
-                    className={`w-4 h-4 shrink-0 transition-colors ${
-                      isActive
-                        ? 'text-primary'
-                        : item.highlight
-                        ? 'text-amber-500'
-                        : 'text-slate-400 group-hover:text-slate-600'
-                    }`}
-                  />
-                  <span className="truncate">{item.label}</span>
-                </div>
+  // Tooltip trigger helper for tablet rail
+  const showTooltip = (label: string, count: number | undefined, target: HTMLElement) => {
+    const rect = target.getBoundingClientRect();
+    setActiveTooltip({
+      label,
+      count,
+      top: rect.top + rect.height / 2
+    });
+  };
 
-                {item.countBadge !== undefined && item.countBadge > 0 && (
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                    isActive ? 'bg-primary text-white' : 'bg-rose-50 text-rose-600 border border-rose-200'
-                  }`}>
-                    {item.countBadge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* Bottom Account Pill & Settings Shortcut */}
-      <div className="p-3 border-t border-slate-200 shrink-0">
-        <div
-          onClick={() => handleItemClick('tabSettings')}
-          className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors group"
-          title="Open System Settings & Custom Themes"
-        >
-          <div className="relative w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 font-bold text-xs shrink-0 group-hover:border-primary/50 group-hover:bg-orange-50 group-hover:text-primary transition-all">
-            <User className="w-4 h-4" />
-            <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white"></span>
-          </div>
-          <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-xs font-semibold text-slate-900 truncate group-hover:text-primary transition-colors">
-              Operations Admin
-            </span>
-            <span className="text-[10px] text-slate-400 truncate">Settings & Themes</span>
-          </div>
-          <Settings className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors shrink-0" />
-        </div>
-      </div>
-    </>
-  );
+  const hideTooltip = () => {
+    setActiveTooltip(null);
+  };
 
   return (
     <>
-      {/* Desktop Persistent Sidebar */}
-      <aside className="hidden lg:flex w-64 border-r border-slate-200 bg-white flex-col justify-between shrink-0 h-screen sticky top-0 z-30 select-none shadow-2xs">
-        {renderSidebarBody(false)}
+      {/* ========================================================================= */}
+      {/* 1. TABLET ICON RAIL: md:flex lg:hidden (Width: 64px / w-16)               */}
+      {/* Maximizes screen real estate for wide data tables on 768px-1024px screens  */}
+      {/* ========================================================================= */}
+      <aside
+        className="hidden md:flex lg:hidden w-16 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col justify-between shrink-0 h-screen sticky top-0 z-30 select-none shadow-2xs"
+        aria-label="Tablet navigation rail"
+      >
+        <div className="flex flex-col min-h-0 flex-1">
+          {/* Brand Mark Header */}
+          <div className="h-16 flex items-center justify-center border-b border-slate-100 dark:border-slate-800 shrink-0">
+            <div
+              className="relative group cursor-pointer"
+              onClick={() => handleItemClick('tabExecutive')}
+              title="DEEN Commerce - Executive Overview"
+            >
+              <DeenLogoMark className="w-8 h-8 rounded-xl shadow-xs" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
+            </div>
+          </div>
+
+          {/* Icon List with Floating Tooltips */}
+          <nav className="flex-1 px-2 py-2.5 space-y-1 overflow-y-auto overflow-x-hidden">
+            {navGroups.map((group, groupIdx) => (
+              <React.Fragment key={group.title}>
+                {groupIdx > 0 && (
+                  <div className="my-1.5 mx-1 border-t border-slate-100 dark:border-slate-800" />
+                )}
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleItemClick(item.id)}
+                      onMouseEnter={(e) => showTooltip(item.label, item.countBadge, e.currentTarget)}
+                      onMouseLeave={hideTooltip}
+                      onFocus={(e) => showTooltip(item.label, item.countBadge, e.currentTarget)}
+                      onBlur={hideTooltip}
+                      aria-label={item.label}
+                      aria-current={isActive ? 'page' : undefined}
+                      className={`w-full min-h-[44px] h-11 rounded-xl flex items-center justify-center relative transition-all group focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+                        isActive
+                          ? 'bg-orange-50 text-primary font-bold shadow-2xs dark:bg-orange-950/40 dark:text-orange-400'
+                          : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/70'
+                      }`}
+                    >
+                      {/* Active indicator bar */}
+                      {isActive && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                      )}
+
+                      <Icon
+                        className={`w-5 h-5 shrink-0 transition-transform group-hover:scale-110 ${
+                          isActive
+                            ? 'text-primary dark:text-orange-400'
+                            : item.highlight
+                            ? 'text-amber-500/90 dark:text-amber-400'
+                            : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'
+                        }`}
+                      />
+
+                      {/* Count badge pill */}
+                      {item.countBadge !== undefined && item.countBadge > 0 && (
+                        <span className="absolute -top-1 -right-1 text-[9px] font-bold px-1.5 py-0.2 rounded-full min-w-[16px] text-center shadow-xs bg-rose-500 text-white leading-tight flex items-center justify-center">
+                          {item.countBadge > 99 ? '99+' : item.countBadge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </React.Fragment>
+            ))}
+          </nav>
+        </div>
+
+        {/* Tablet Rail Bottom Profile / Settings */}
+        <div className="p-2 border-t border-slate-200 dark:border-slate-800 shrink-0 flex items-center justify-center">
+          <button
+            type="button"
+            onClick={() => handleItemClick('tabSettings')}
+            onMouseEnter={(e) => showTooltip('Settings & Themes (Admin)', undefined, e.currentTarget)}
+            onMouseLeave={hideTooltip}
+            onFocus={(e) => showTooltip('Settings & Themes (Admin)', undefined, e.currentTarget)}
+            onBlur={hideTooltip}
+            aria-label="Settings and Themes"
+            className="w-11 h-11 min-h-[44px] rounded-xl flex items-center justify-center text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 relative group transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
+          >
+            <div className="relative w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-xs shrink-0 group-hover:border-primary/50 group-hover:text-primary transition-all">
+              <User className="w-4 h-4" />
+              <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-1.5 ring-white dark:ring-slate-900" />
+            </div>
+          </button>
+        </div>
+
+        {/* Floating Tooltip Portal Tethered to Screen Coordinates */}
+        {activeTooltip && (
+          <div
+            role="tooltip"
+            className="fixed z-50 px-2.5 py-1.5 bg-slate-900 dark:bg-slate-800 text-white text-xs font-semibold rounded-lg shadow-xl pointer-events-none flex items-center gap-1.5 border border-slate-700/60 transition-all duration-150 animate-in fade-in-0 zoom-in-95"
+            style={{
+              left: '4.5rem', // 72px (rail is 64px, + 8px gap)
+              top: `${activeTooltip.top}px`,
+              transform: 'translateY(-50%)'
+            }}
+          >
+            <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900 dark:border-r-slate-800" />
+            <span>{activeTooltip.label}</span>
+            {activeTooltip.count !== undefined && activeTooltip.count > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-rose-500 text-white">
+                {activeTooltip.count}
+              </span>
+            )}
+          </div>
+        )}
       </aside>
 
-      {/* Mobile Drawer Overlay */}
+      {/* ========================================================================= */}
+      {/* 2. DESKTOP PERSISTENT SIDEBAR: lg:flex (Width: 256px / w-64)              */}
+      {/* Full-featured desktop navigation with brand header and workspace status   */}
+      {/* ========================================================================= */}
+      <aside
+        className="hidden lg:flex w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col justify-between shrink-0 h-screen sticky top-0 z-30 select-none shadow-2xs"
+        aria-label="Desktop sidebar navigation"
+      >
+        <div className="flex flex-col min-h-0 flex-1">
+          {/* Brand Header */}
+          <div className="h-16 px-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+            <DeenLogo size="md" />
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live
+              </span>
+            </div>
+          </div>
+
+          {/* Workspace Subheader Pill */}
+          <div className="px-3.5 py-2.5 mx-3 my-2.5 bg-slate-50/80 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-700/60 flex flex-col gap-1.5 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-5 h-5 rounded-md bg-orange-100/80 dark:bg-orange-950/60 text-primary dark:text-orange-400 flex items-center justify-center shrink-0">
+                  <Layers className="w-3 h-3" />
+                </div>
+                <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                  Operations Hub
+                </span>
+              </div>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200/60 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-mono">
+                Live
+              </span>
+            </div>
+            <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-700/60 text-[10px]">
+              <span className="text-slate-400 dark:text-slate-400 font-medium">Source:</span>
+              <span className={`font-bold flex items-center gap-1 ${
+                activeSourceMode === 'API' ? 'text-emerald-700 dark:text-emerald-400' : 'text-primary dark:text-orange-400'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  activeSourceMode === 'API' ? 'bg-emerald-500 animate-pulse' : 'bg-primary'
+                }`} />
+                {activeSourceMode === 'API' ? 'Cloud API' : 'Excel Files'}
+              </span>
+            </div>
+          </div>
+
+          {/* Grouped Navigation Links (WCAG AA >=44px) */}
+          <nav className="flex-1 px-3 py-1 space-y-3 overflow-y-auto">
+            {navGroups.map((group) => (
+              <div key={group.title} className="space-y-1">
+                <div className="px-2.5 pt-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-wider uppercase font-headline">
+                  {group.title}
+                </div>
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleItemClick(item.id)}
+                      aria-current={isActive ? 'page' : undefined}
+                      className={`w-full min-h-[44px] flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all text-left group relative focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+                        isActive
+                          ? 'bg-orange-50 text-primary font-bold shadow-2xs dark:bg-orange-950/40 dark:text-orange-400'
+                          : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                      }`}
+                    >
+                      {/* Active indicator bar */}
+                      {isActive && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-full" />
+                      )}
+
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Icon
+                          className={`w-4 h-4 shrink-0 transition-colors ${
+                            isActive
+                              ? 'text-primary dark:text-orange-400'
+                              : item.highlight
+                              ? 'text-amber-500 dark:text-amber-400'
+                              : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'
+                          }`}
+                        />
+                        <span className="truncate">{item.label}</span>
+                      </div>
+
+                      {item.countBadge !== undefined && item.countBadge > 0 && (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          isActive
+                            ? 'bg-primary text-white'
+                            : 'bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800'
+                        }`}>
+                          {item.countBadge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </nav>
+        </div>
+
+        {/* Desktop Account & Settings Footer */}
+        <div className="p-3 border-t border-slate-200 dark:border-slate-800 shrink-0">
+          <button
+            type="button"
+            onClick={() => handleItemClick('tabSettings')}
+            className="w-full min-h-[44px] flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/70 cursor-pointer transition-colors group text-left focus:outline-none focus:ring-2 focus:ring-primary/40"
+            title="Open System Settings & Custom Themes"
+          >
+            <div className="relative w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-xs shrink-0 group-hover:border-primary/50 group-hover:bg-orange-50 dark:group-hover:bg-orange-950/40 group-hover:text-primary transition-all">
+              <User className="w-4 h-4" />
+              <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
+            </div>
+            <div className="flex flex-col min-w-0 flex-1">
+              <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate group-hover:text-primary transition-colors">
+                Operations Admin
+              </span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-400 truncate">Settings & Themes</span>
+            </div>
+            <Settings className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors shrink-0" />
+          </button>
+        </div>
+      </aside>
+
+      {/* ========================================================================= */}
+      {/* 3. MOBILE SLIDE-OVER DRAWER: md:hidden (Triggered via mobileOpen)         */}
+      {/* Slide-over off-canvas drawer with minimum 48px touch targets & backdrop  */}
+      {/* ========================================================================= */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden flex">
+        <div
+          className="fixed inset-0 z-50 md:hidden flex"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation drawer"
+        >
+          {/* Backdrop Overlay */}
           <div
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity duration-200"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity duration-200"
             onClick={onCloseMobile}
             aria-hidden="true"
           />
-          <div className="relative w-72 max-w-[85vw] bg-white h-full flex flex-col justify-between shadow-2xl z-10 animate-in slide-in-from-left duration-200 select-none">
-            {renderSidebarBody(true)}
+
+          {/* Drawer Sheet */}
+          <div className="relative w-72 sm:w-80 max-w-[85vw] bg-white dark:bg-slate-900 h-full flex flex-col justify-between shadow-2xl z-10 animate-in slide-in-from-left duration-200 select-none">
+            <div className="flex flex-col min-h-0 flex-1">
+              {/* Drawer Brand Header with 48px Close Button */}
+              <div className="h-16 px-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+                <DeenLogo size="md" />
+                <button
+                  type="button"
+                  onClick={onCloseMobile}
+                  className="min-h-[48px] min-w-[48px] p-3 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  aria-label="Close menu"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Drawer Workspace Subheader */}
+              <div className="px-3.5 py-2 mx-3 my-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-700 dark:text-slate-300">Operations Hub</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                  activeSourceMode === 'API' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' : 'bg-orange-50 text-primary dark:bg-orange-950/60 dark:text-orange-400'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    activeSourceMode === 'API' ? 'bg-emerald-500 animate-pulse' : 'bg-primary'
+                  }`} />
+                  {activeSourceMode === 'API' ? 'Cloud API' : 'Excel Files'}
+                </span>
+              </div>
+
+              {/* Drawer Navigation Links (Mobile 48px minimum touch targets) */}
+              <nav className="flex-1 px-3 py-2 space-y-3 overflow-y-auto">
+                {navGroups.map((group) => (
+                  <div key={group.title} className="space-y-1">
+                    <div className="px-2 pt-1 text-[11px] font-bold text-slate-400 dark:text-slate-500 tracking-wider uppercase font-headline">
+                      {group.title}
+                    </div>
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleItemClick(item.id)}
+                          aria-current={isActive ? 'page' : undefined}
+                          className={`w-full min-h-[48px] flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-left group focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+                            isActive
+                              ? 'bg-orange-50 text-primary font-bold shadow-2xs dark:bg-orange-950/50 dark:text-orange-400 border-l-4 border-primary'
+                              : 'text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <Icon
+                              className={`w-5 h-5 shrink-0 transition-colors ${
+                                isActive
+                                  ? 'text-primary dark:text-orange-400'
+                                  : item.highlight
+                                  ? 'text-amber-500 dark:text-amber-400'
+                                  : 'text-slate-400 dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200'
+                              }`}
+                            />
+                            <span className="truncate">{item.label}</span>
+                          </div>
+
+                          {item.countBadge !== undefined && item.countBadge > 0 && (
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                              isActive
+                                ? 'bg-primary text-white'
+                                : 'bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800'
+                            }`}>
+                              {item.countBadge}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
+              </nav>
+            </div>
+
+            {/* Drawer Account / Settings Footer (Safe Area padded) */}
+            <div className="p-3 border-t border-slate-200 dark:border-slate-800 shrink-0 pb-[max(0.875rem,env(safe-area-inset-bottom,0px))]">
+              <button
+                type="button"
+                onClick={() => handleItemClick('tabSettings')}
+                className="w-full min-h-[48px] flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-primary/40"
+              >
+                <div className="relative w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-sm shrink-0">
+                  <User className="w-5 h-5" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
+                </div>
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                    Operations Admin
+                  </span>
+                  <span className="text-xs text-slate-400 dark:text-slate-400 truncate">Settings & Themes</span>
+                </div>
+                <Settings className="w-5 h-5 text-slate-400 shrink-0" />
+              </button>
+            </div>
           </div>
         </div>
       )}

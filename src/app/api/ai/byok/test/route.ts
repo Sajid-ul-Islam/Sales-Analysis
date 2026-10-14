@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateAICompletion } from '@/lib/geminiClient';
 import { detectAIProvider, AIProvider } from '@/lib/byok';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

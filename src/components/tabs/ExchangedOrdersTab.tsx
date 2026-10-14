@@ -269,11 +269,20 @@ export function ExchangedOrdersTab({
 
       {/* Main Table */}
       <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+        {/* Mobile Swipe Hint */}
+        <div className="md:hidden flex items-center justify-between px-3 py-1.5 text-[11px] text-slate-400 bg-slate-50/60 border-b border-slate-100">
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary/70 animate-pulse" />
+            <span>Swipe horizontally to view consignment & addresses</span>
+          </span>
+          <span className="font-mono text-[10px] text-slate-400">Exchange ID pinned</span>
+        </div>
+
+        <div className="overflow-x-auto min-w-0 max-h-[600px] overflow-y-auto">
           <table className="w-full text-left border-collapse text-xs">
-            <thead className="bg-slate-50/90 text-slate-500 uppercase tracking-wider text-[10px] font-bold sticky top-0 z-10 border-b border-slate-200">
+            <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px] font-bold sticky top-0 z-10 border-b border-slate-200">
               <tr>
-                <th className="py-3 px-4">Order ID & Prefix</th>
+                <th className="py-3 px-4 bg-slate-50 sticky top-0 left-0 z-20 min-w-[140px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order ID & Prefix</th>
                 <th className="py-3 px-3">Consignment ID</th>
                 <th className="py-3 px-3">Recipient & Contact</th>
                 <th className="py-3 px-3">Destination / Address</th>
@@ -296,9 +305,9 @@ export function ExchangedOrdersTab({
                 </tr>
               ) : (
                 filteredOrders.map((order, idx) => (
-                  <tr key={`${order.orderId}-${order.consignmentId}-${idx}`} className="hover:bg-slate-50/70 transition-colors">
+                  <tr key={`${order.orderId}-${order.consignmentId}-${idx}`} className="hover:bg-slate-50/70 transition-colors group">
                     {/* Order ID & Prefix */}
-                    <td className="py-3 px-4 font-mono">
+                    <td className="py-3 px-4 font-mono sticky left-0 bg-white group-hover:bg-slate-50 z-10 min-w-[140px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
                       <div className="flex items-center gap-1.5">
                         <span className="font-bold text-slate-900 text-xs">
                           #{order.orderId}

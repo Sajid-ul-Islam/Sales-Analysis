@@ -180,11 +180,20 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
 
       {/* Detailed Item Returns Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile Swipe Hint */}
+        <div className="md:hidden flex items-center justify-between px-3 py-1.5 text-[11px] text-slate-400 bg-slate-50/60 border-b border-slate-100">
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary/70 animate-pulse" />
+            <span>Swipe horizontally to view financial losses</span>
+          </span>
+          <span className="font-mono text-[10px] text-slate-400">Order ID pinned</span>
+        </div>
+
+        <div className="overflow-x-auto min-w-0">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
               <tr>
-                <th className="py-3 px-3.5">Order ID</th>
+                <th className="py-3 px-3.5 bg-slate-50 sticky left-0 z-20 min-w-[120px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order ID</th>
                 <th className="py-3 px-3.5">Return Classification</th>
                 <th className="py-3 px-3.5">Customer & Contact</th>
                 <th className="py-3 px-3.5">Territory</th>
@@ -206,8 +215,8 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
                   const isPartial = item.returnSource.includes('Partial Order');
 
                   return (
-                    <tr key={`${item.orderId}-${item.sku}-${idx}`} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-3.5 px-3.5 font-bold text-slate-900 whitespace-nowrap">
+                    <tr key={`${item.orderId}-${item.sku}-${idx}`} className="hover:bg-slate-50 transition-colors group">
+                      <td className="py-3.5 px-3.5 font-bold text-slate-900 whitespace-nowrap sticky left-0 bg-white group-hover:bg-slate-50 z-10 min-w-[120px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
                         {item.orderId}
                       </td>
 

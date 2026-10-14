@@ -256,8 +256,10 @@ export function applyThemeToDocument(settings: CustomThemeSettings) {
   // Handle Dark Canvas option
   if (settings.backgroundId === 'dark-canvas' || settings.darkModeCanvas) {
     document.body.classList.add('dark-canvas');
+    document.documentElement.classList.add('dark');
   } else {
     document.body.classList.remove('dark-canvas');
+    document.documentElement.classList.remove('dark');
   }
 }
 

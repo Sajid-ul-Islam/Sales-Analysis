@@ -334,11 +334,20 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
 
       {/* SKU Performance Table */}
       <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+        {/* Mobile Swipe Hint */}
+        <div className="md:hidden flex items-center justify-between px-3 py-1.5 text-[11px] text-slate-400 bg-slate-50/60 border-b border-slate-100">
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary/70 animate-pulse" />
+            <span>Swipe horizontally to inspect unit economics</span>
+          </span>
+          <span className="font-mono text-[10px] text-slate-400">SKU pinned</span>
+        </div>
+
+        <div className="overflow-x-auto min-w-0 max-h-[600px] overflow-y-auto">
           <table className="w-full text-left text-xs border-collapse">
-            <thead className="bg-slate-50/90 text-slate-500 uppercase tracking-wider text-[10px] font-bold sticky top-0 z-10 border-b border-slate-200">
+            <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px] font-bold sticky top-0 z-10 border-b border-slate-200">
               <tr>
-                <th className="py-3 px-4">SKU Code</th>
+                <th className="py-3 px-4 bg-slate-50 sticky top-0 left-0 z-20 min-w-[130px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">SKU Code</th>
                 <th className="py-3 px-3">Product Description</th>
                 <th className="py-3 px-3">Category</th>
                 <th className="py-3 px-3 text-right">Unit Price</th>
@@ -363,7 +372,7 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
                 paginatedSkus.map((s, idx) => {
                   const rateColor =
                     s.returnRate > 25
-                      ? 'bg-rose-50 text-rose-700 border-rose-200/60'
+                       ? 'bg-rose-50 text-rose-700 border-rose-200/60'
                       : s.returnRate > 15
                       ? 'bg-amber-50 text-amber-700 border-amber-200/60'
                       : 'bg-emerald-50 text-emerald-700 border-emerald-200/60';
@@ -380,7 +389,7 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
                       title="Click to view all orders and delivery history for this SKU"
                     >
                       {/* SKU Code */}
-                      <td className="py-3 px-4 font-mono font-bold text-slate-900 whitespace-nowrap">
+                      <td className="py-3 px-4 font-mono font-bold text-slate-900 whitespace-nowrap sticky left-0 bg-white group-hover:bg-[#FFF7ED] z-10 min-w-[130px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
                         <span className="text-primary font-bold group-hover:underline flex items-center gap-1.5">
                           {s.sku}
                           <Eye className="w-3 h-3 text-slate-400 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity" />

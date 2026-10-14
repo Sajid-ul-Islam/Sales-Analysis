@@ -25,6 +25,7 @@ import {
   WeekComparisonModal
 } from '@/components';
 import { CopilotDrawer } from '@/components/ai/CopilotDrawer';
+import { MobileBottomNav } from '@/components/MobileBottomNav';
 import {
   runReconciliationEngine,
   ReconciliationResult,
@@ -734,10 +735,11 @@ export default function DashboardPage() {
           fileWeeks={dateFilterResult.fileWeeks}
           onOpenComparison={() => setIsWeekComparisonOpen(true)}
           onToggleMobileMenu={() => setMobileMenuOpen(prev => !prev)}
+          mobileOpen={mobileMenuOpen}
         />
 
         <main
-          className="px-3.5 py-4 sm:px-6 sm:py-6 space-y-5 max-w-[1920px] mx-auto w-full transition-colors duration-200"
+          className="px-3.5 py-4 sm:px-6 sm:py-6 pb-20 md:pb-6 space-y-5 max-w-[1920px] mx-auto w-full transition-colors duration-200"
           style={{ backgroundColor: 'var(--bg-surface, #FFFFFF)' }}
         >
           {/* Status Alert Banner */}
@@ -1040,6 +1042,17 @@ export default function DashboardPage() {
             summary={result.summary}
           />
         )}
+
+        {/* Sticky Mobile Bottom Navigation Bar (md:hidden) */}
+        <MobileBottomNav
+          activeTab={activeTab}
+          onSelectTab={handleSelectTab}
+          onOpenDrawer={() => setMobileMenuOpen(true)}
+          returnCount={result ? result.returnedItems.length : 0}
+          orderCount={result ? result.reconciledOrders.length : rawOrders.length}
+          activeSourceMode={dataSourceMode}
+          onTriggerSync={() => handleSelectTab('tabSettings')}
+        />
       </div>
     </div>
   );

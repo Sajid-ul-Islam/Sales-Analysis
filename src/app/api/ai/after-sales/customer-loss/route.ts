@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateAICompletion } from '@/lib/geminiClient';
 
+export const dynamic = 'force-dynamic';
+
 const CUSTOMER_LOSS_SYSTEM_PROMPT = `You are the Customer Operations & Profit Recovery Auditor for DEEN Commerce (Bangladesh).
 Your role is to audit AFTER-SALES customer behavior, specifically identifying chronic returners who abuse Cash on Delivery (COD) and destroy unit margins.
 

@@ -147,7 +147,7 @@ export function DateRangeSelector({
         aria-haspopup="true"
         aria-expanded={isOpen}
         title="Filter by date range or select dynamic weeks"
-        className={`flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-semibold transition-all shadow-2xs border cursor-pointer select-none ${
+        className={`inline-flex items-center gap-2 px-3 py-2 sm:px-3.5 sm:py-2.5 min-w-[44px] min-h-[44px] rounded-xl text-xs font-semibold transition-all shadow-2xs border cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 ${
           isFiltered
             ? 'bg-orange-50/90 text-slate-900 border-primary/30 ring-1 ring-primary/20'
             : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50/80 hover:text-slate-900'

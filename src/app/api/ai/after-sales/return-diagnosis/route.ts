@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateAICompletion } from '@/lib/geminiClient';
 
+export const dynamic = 'force-dynamic';
+
 const RETURN_DIAGNOSIS_SYSTEM_PROMPT = `You are the Lead Quality Assurance and After-Sales Merchandising Auditor for DEEN Commerce (D2C Apparel Brand, Bangladesh).
 Your role is to diagnose WHY customer returns, partial returns, and exchanges occurred after parcels were shipped.
 

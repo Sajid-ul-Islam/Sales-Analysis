@@ -248,11 +248,20 @@ export function CourierMismatchTab({
 
       {/* Mismatches Audit Ledger Table */}
       <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 overflow-hidden flex flex-col">
-        <div className="overflow-x-auto">
+        {/* Mobile Swipe Hint */}
+        <div className="md:hidden flex items-center justify-between px-3 py-1.5 text-[11px] text-slate-400 bg-slate-50/60 border-b border-slate-100">
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary/70 animate-pulse" />
+            <span>Swipe horizontally to view discrepancy details</span>
+          </span>
+          <span className="font-mono text-[10px] text-slate-400">Order & Track pinned</span>
+        </div>
+
+        <div className="overflow-x-auto min-w-0">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200/80">
-                <th className="py-3 px-4 uppercase tracking-wider">Order & Tracking</th>
+                <th className="py-3 px-4 uppercase tracking-wider bg-slate-50 sticky left-0 z-20 min-w-[140px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order & Tracking</th>
                 <th className="py-3 px-4 uppercase tracking-wider">Customer Info</th>
                 <th className="py-3 px-3 uppercase tracking-wider">Excel Status</th>
                 <th className="py-3 px-3 uppercase tracking-wider">Pathao Courier Status</th>
@@ -278,7 +287,7 @@ export function CourierMismatchTab({
                 filteredList.map((item, idx) => (
                   <tr
                     key={idx}
-                    className={`hover:bg-slate-50/70 transition-colors ${
+                    className={`hover:bg-slate-50/70 transition-colors group ${
                       item.severity === 'CRITICAL'
                         ? 'bg-rose-50/15'
                         : item.severity === 'WARNING'
@@ -287,7 +296,13 @@ export function CourierMismatchTab({
                     }`}
                   >
                     {/* Order ID & Consignment */}
-                    <td className="py-3 px-4">
+                    <td className={`py-3 px-4 sticky left-0 z-10 min-w-[140px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] ${
+                      item.severity === 'CRITICAL'
+                        ? 'bg-[#FFF1F2] group-hover:bg-[#FFE4E6]'
+                        : item.severity === 'WARNING'
+                        ? 'bg-[#FFFBEB] group-hover:bg-[#FEF3C7]'
+                        : 'bg-white group-hover:bg-slate-50'
+                    }`}>
                       <div className="flex flex-col">
                         <span className="font-headline font-bold text-slate-900">
                           #{item.orderId}

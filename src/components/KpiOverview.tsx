@@ -251,7 +251,7 @@ export function KpiOverview({
       </div>
 
       {/* 3. CORE EXECUTIVE ORDER & ITEM RECONCILIATION KPI CARDS (Interactive Funnel Flow) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
         {/* 1. Gross Dispatched Orders & Items */}
         <div
           onClick={() => onKpiClick?.('tabOrders', 'ALL')}
@@ -275,7 +275,7 @@ export function KpiOverview({
 
           <div className="my-2">
             <div className="flex items-baseline gap-1.5">
-              <span className="font-headline font-black text-2xl sm:text-3xl text-navy-deep">
+              <span className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-navy-deep">
                 {s.grossOrders.toLocaleString()}
               </span>
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Orders</span>
@@ -318,7 +318,7 @@ export function KpiOverview({
 
           <div className="my-2">
             <div className="flex items-baseline gap-1.5">
-              <span className="font-headline font-black text-2xl sm:text-3xl text-emerald-700">
+              <span className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-emerald-700">
                 {s.fullDeliveredOrders.toLocaleString()}
               </span>
               <span className="text-xs font-bold text-emerald-600/70 uppercase tracking-wide">Orders</span>
@@ -373,7 +373,7 @@ export function KpiOverview({
                   <div className="flex items-center justify-between gap-2">
                     <div>
                       <div className="flex items-baseline gap-1.5">
-                        <span className="font-headline font-black text-2xl sm:text-3xl text-rose-600">
+                        <span className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-rose-600">
                           {s.fullReturnedOrders.toLocaleString()}
                         </span>
                         <span className="text-xs font-bold text-rose-500/70 uppercase tracking-wide">Orders</span>
@@ -479,7 +479,7 @@ export function KpiOverview({
                   <div className="flex items-center justify-between gap-2">
                     <div>
                       <div className="flex items-baseline gap-1.5">
-                        <span className="font-headline font-black text-2xl sm:text-3xl text-amber-600">
+                        <span className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-amber-600">
                           {s.partialOrders.toLocaleString()}
                         </span>
                         <span className="text-xs font-bold text-amber-600/70 uppercase tracking-wide">Orders</span>
@@ -588,7 +588,7 @@ export function KpiOverview({
                   <div className="flex items-center justify-between gap-2">
                     <div>
                       <div className="flex items-baseline gap-1.5">
-                        <span className="font-headline font-black text-2xl sm:text-3xl text-purple-700">
+                        <span className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-purple-700">
                           {(s.totalExchangedOrders || 0).toLocaleString()}
                         </span>
                         <span className="text-xs font-bold text-purple-600/70 uppercase tracking-wide">Orders</span>
@@ -698,7 +698,7 @@ export function KpiOverview({
       </div>
 
       {/* 5. EXECUTIVE FINANCIALS, LOGISTICS, TERRITORY & PAYMENT RATIO METRICS (Consolidated 5-Card Grid) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
         {/* 1. Realized Net Revenue with Realization Rate & Return Leakage Donut */}
         <div
           onClick={() => onKpiClick?.('tabExecutive')}
