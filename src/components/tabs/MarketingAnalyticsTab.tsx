@@ -38,6 +38,8 @@ import {
 import { GA4FullReport } from '@/lib/ga4Client';
 import { MetaFullReport, MetaCampaignSummary } from '@/lib/metaClient';
 import { SummaryMetrics } from '@/types';
+import { DateScope, CustomDateRange, DateScopeCounts } from '@/lib/dateFilter';
+import { DateRangeSelector } from '@/components/DateRangeSelector';
 import {
   InteractiveAreaTrendChart,
   InteractiveDonutChart,
@@ -49,14 +51,45 @@ interface MarketingAnalyticsTabProps {
   summary?: SummaryMetrics;
   onSelectOrder?: () => void;
   configuredMetaCost?: number;
+  activeScope?: DateScope;
+  customRange?: CustomDateRange;
+  onScopeChange?: (scope: DateScope, customRange?: CustomDateRange) => void;
+  counts?: DateScopeCounts;
+  subLabel?: string;
+  minDateIso?: string;
+  maxDateIso?: string;
 }
 
 export function MarketingAnalyticsTab({
   summary,
   onSelectOrder,
   configuredMetaCost = 185000,
+  activeScope,
+  customRange,
+  onScopeChange,
+  counts,
+  subLabel,
+  minDateIso,
+  maxDateIso,
 }: MarketingAnalyticsTabProps) {
-  const [dateRange, setDateRange] = useState<'today' | '7d' | '30d' | '90d'>('30d');
+  // Map global activeScope to GA4/Meta range
+  const mapScopeToRange = (scope?: DateScope): 'today' | '7d' | '30d' | '90d' => {
+    if (scope === 'today') return 'today';
+    if (scope === '7d') return '7d';
+    if (scope === '90d') return '90d';
+    return '30d'; // Default 30-day baseline for 'all', 'month', '30d', 'custom'
+  };
+
+  const [dateRange, setDateRange] = useState<'today' | '7d' | '30d' | '90d'>(
+    mapScopeToRange(activeScope)
+  );
+
+  useEffect(() => {
+    if (activeScope) {
+      setDateRange(mapScopeToRange(activeScope));
+    }
+  }, [activeScope]);
+
   const [activeFilter, setActiveFilter] = useState<'all' | 'ga4' | 'meta' | 'reconciliation'>('all');
   const [trendMetric, setTrendMetric] = useState<'traffic' | 'revenue' | 'orders'>('traffic');
   const [loading, setLoading] = useState(true);
@@ -262,22 +295,24 @@ export function MarketingAnalyticsTab({
 
         {/* Action Controls */}
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Date Scope Filter */}
-          <div className="flex items-center p-1 bg-slate-100/80 rounded-xl border border-slate-200 text-xs font-medium">
-            {(['today', '7d', '30d', '90d'] as const).map((r) => (
-              <button
-                key={r}
-                onClick={() => setDateRange(r)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  dateRange === r
-                    ? 'bg-white text-slate-900 shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {r === 'today' ? 'Today' : r === '7d' ? '7 Days' : r === '30d' ? '30 Days' : '90 Days'}
-              </button>
-            ))}
-          </div>
+          {/* Synchronized Unified Date Range Selector */}
+          {activeScope && onScopeChange ? (
+            <DateRangeSelector
+              activeScope={activeScope}
+              customRange={customRange}
+              onScopeChange={onScopeChange}
+              counts={counts}
+              subLabel={subLabel}
+              minDateIso={minDateIso}
+              maxDateIso={maxDateIso}
+              align="right"
+            />
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-xl text-xs font-semibold text-slate-700">
+              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+              <span>{dateRange === 'today' ? 'Today' : dateRange === '7d' ? 'Last 7 Days' : dateRange === '30d' ? 'Last 30 Days' : 'Last 90 Days'}</span>
+            </div>
+          )}
 
           {/* Quick Refresh */}
           <button

@@ -1,16 +1,72 @@
 import { RawOrderRow } from '@/types';
 
-export type DateScope = 'all' | 'today' | '7d' | 'month';
+export type DateScope = 'all' | 'today' | '7d' | '30d' | 'month' | '90d' | 'custom';
+
+export interface CustomDateRange {
+  startDate: string; // 'YYYY-MM-DD'
+  endDate: string;   // 'YYYY-MM-DD'
+  label?: string;    // e.g. 'Week 1', 'Week 2'
+}
+
+export interface FileWeek {
+  id: string; // e.g. 'week-1'
+  weekIndex: number; // 1, 2, 3...
+  label: string; // 'Week 1'
+  dateRangeLabel: string; // '1 Sep – 7 Sep'
+  startDate: string; // 'YYYY-MM-DD'
+  endDate: string; // 'YYYY-MM-DD'
+  startMs: number;
+  endMs: number;
+  orderCount: number;
+}
+
+export interface PeriodMetrics {
+  label: string;
+  subLabel: string;
+  startMs: number;
+  endMs: number;
+  totalOrders: number;
+  deliveredOrders: number;
+  returnedOrders: number;
+  partialOrders: number;
+  exchangeOrders: number;
+  deliveryRate: number; // %
+  returnRate: number;   // %
+  grossRevenue: number; // Total order amount in ৳
+  deliveredRevenue: number; // Delivered revenue in ৳
+  aov: number; // grossRevenue / totalOrders
+}
+
+export interface PeriodComparisonResult {
+  periodA: PeriodMetrics;
+  periodB: PeriodMetrics;
+  deltas: {
+    ordersDelta: number;
+    ordersPct: number;
+    deliveryRateDiff: number; // percentage points
+    returnRateDiff: number;   // percentage points
+    grossRevenueDelta: number;
+    grossRevenuePct: number;
+    deliveredRevenueDelta: number;
+    deliveredRevenuePct: number;
+    aovDelta: number;
+    aovPct: number;
+  };
+}
 
 export interface DateScopeCounts {
   all: number;
   today: number;
   '7d': number;
+  '30d': number;
   month: number;
+  '90d': number;
+  custom?: number;
 }
 
 export interface DateFilterResult {
   scope: DateScope;
+  customRange?: CustomDateRange;
   filteredOrders: RawOrderRow[];
   totalOrders: number;
   matchedOrders: number;
@@ -20,6 +76,9 @@ export interface DateFilterResult {
   endMs: number;
   counts: DateScopeCounts;
   isFiltered: boolean;
+  minDateIso?: string;
+  maxDateIso?: string;
+  fileWeeks: FileWeek[];
 }
 
 /**
@@ -188,7 +247,11 @@ export function analyzeDates(orders: RawOrderRow[]): DateAnalysis {
 /**
  * Computes exact start and end timestamps (milliseconds) for a given date scope.
  */
-export function getScopeRange(scope: DateScope, analysis: DateAnalysis): {
+export function getScopeRange(
+  scope: DateScope,
+  analysis: DateAnalysis,
+  customRange?: CustomDateRange
+): {
   startMs: number;
   endMs: number;
   label: string;
@@ -232,6 +295,19 @@ export function getScopeRange(scope: DateScope, analysis: DateAnalysis): {
     };
   }
 
+  if (scope === '30d') {
+    const startMs = anchorMs - 29 * 86400000;
+    const endMs = anchorMs + 86400000;
+    const sStr = new Date(startMs).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const eStr = analysis.anchorDay.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    return {
+      startMs,
+      endMs,
+      label: 'Last 30 Days',
+      subLabel: `${sStr} – ${eStr}`,
+    };
+  }
+
   if (scope === 'month') {
     const { year, month } = analysis.dominantYearMonth;
     const mStart = new Date(year, month, 1);
@@ -244,39 +320,281 @@ export function getScopeRange(scope: DateScope, analysis: DateAnalysis): {
     };
   }
 
+  if (scope === '90d') {
+    const startMs = anchorMs - 89 * 86400000;
+    const endMs = anchorMs + 86400000;
+    const sStr = new Date(startMs).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const eStr = analysis.anchorDay.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    return {
+      startMs,
+      endMs,
+      label: 'Last 90 Days',
+      subLabel: `${sStr} – ${eStr}`,
+    };
+  }
+
+  if (scope === 'custom') {
+    if (customRange?.startDate && customRange?.endDate) {
+      const sDate = new Date(`${customRange.startDate}T00:00:00`);
+      const eDate = new Date(`${customRange.endDate}T23:59:59.999`);
+      const startMs = isNaN(sDate.getTime()) ? 0 : sDate.getTime();
+      const endMs = isNaN(eDate.getTime()) ? Infinity : eDate.getTime() + 1;
+      const sStr = !isNaN(sDate.getTime())
+        ? sDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+        : customRange.startDate;
+      const eStr = !isNaN(eDate.getTime())
+        ? eDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+        : customRange.endDate;
+      return {
+        startMs,
+        endMs,
+        label: customRange.label || 'Custom Range',
+        subLabel: `${sStr} – ${eStr}`,
+      };
+    }
+  }
+
   return { startMs: 0, endMs: Infinity, label: 'All Records' };
 }
 
 /**
- * Filters orders by date scope and returns filtered rows along with metadata and counts.
+ * Dynamically computes consecutive 7-day week chunks covering the uploaded file dataset.
  */
-export function filterOrdersByDateScope(orders: RawOrderRow[], scope: DateScope = 'all'): DateFilterResult {
+export function computeFileWeeks(orders: RawOrderRow[], analysis: DateAnalysis): FileWeek[] {
+  if (!analysis.minDate || !analysis.maxDate || orders.length === 0) return [];
+
+  const minYear = analysis.minDate.getFullYear();
+  const minMonth = analysis.minDate.getMonth();
+  const minDay = analysis.minDate.getDate();
+  const minStartOfDay = new Date(minYear, minMonth, minDay, 0, 0, 0, 0);
+
+  const maxYear = analysis.maxDate.getFullYear();
+  const maxMonth = analysis.maxDate.getMonth();
+  const maxDay = analysis.maxDate.getDate();
+  const maxEndOfDay = new Date(maxYear, maxMonth, maxDay, 23, 59, 59, 999);
+
+  const minMs = minStartOfDay.getTime();
+  const maxMs = maxEndOfDay.getTime() + 1;
+
+  // Extract order timestamps
+  const orderTimestamps: number[] = [];
+  for (const r of orders) {
+    const d = getOrderDate(r);
+    if (d && !isNaN(d.getTime())) {
+      orderTimestamps.push(d.getTime());
+    }
+  }
+
+  const weeks: FileWeek[] = [];
+  let currStart = minMs;
+  let weekIdx = 1;
+
+  while (currStart < maxMs) {
+    const nextStart = currStart + 7 * 86400000;
+    const currEnd = Math.min(nextStart, maxMs);
+
+    const sDate = new Date(currStart);
+    const eDate = new Date(currEnd - 1000);
+
+    const formatIso = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
+    const sIso = formatIso(sDate);
+    const eIso = formatIso(eDate);
+
+    const sStr = sDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const eStr = eDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+    let count = 0;
+    for (let i = 0; i < orderTimestamps.length; i++) {
+      if (orderTimestamps[i] >= currStart && orderTimestamps[i] < currEnd) {
+        count++;
+      }
+    }
+
+    weeks.push({
+      id: `week-${weekIdx}`,
+      weekIndex: weekIdx,
+      label: `Week ${weekIdx}`,
+      dateRangeLabel: `${sStr} – ${eStr}`,
+      startDate: sIso,
+      endDate: eIso,
+      startMs: currStart,
+      endMs: currEnd,
+      orderCount: count,
+    });
+
+    currStart = nextStart;
+    weekIdx++;
+  }
+
+  return weeks;
+}
+
+/**
+ * Computes essential order, realization, and return metrics for a specific timestamp interval.
+ */
+export function computePeriodMetrics(
+  orders: RawOrderRow[],
+  startMs: number,
+  endMs: number,
+  label: string,
+  subLabel: string
+): PeriodMetrics {
+  let totalOrders = 0;
+  let deliveredOrders = 0;
+  let returnedOrders = 0;
+  let partialOrders = 0;
+  let exchangeOrders = 0;
+  let grossRevenue = 0;
+  let deliveredRevenue = 0;
+
+  const seenOrderIds = new Set<string>();
+
+  for (const r of orders) {
+    const d = getOrderDate(r);
+    const ms = d ? d.getTime() : null;
+    if (ms === null || ms < startMs || ms >= endMs) continue;
+
+    const rawId = findCol(r, ['order_id', 'orderid', 'id', 'order number', 'invoice', 'invoice_no']);
+    const orderId = rawId !== null && rawId !== undefined ? String(rawId).trim() : '';
+
+    const rawAmount = findCol(r, ['orderamount', 'order_amount', 'total_amount', 'total', 'amount', 'itemcost', 'item_cost', 'price', 'total price']);
+    const amountNum = typeof rawAmount === 'number' ? rawAmount : parseFloat(String(rawAmount).replace(/[^0-9.-]/g, '')) || 0;
+
+    const cat = (r.orderCategory || r.deliveryCategory || '').toString().toUpperCase();
+    const status = (r.deliveryStatus || r.reconciledDeliveryStatus || r.status || '').toString().toLowerCase();
+
+    const isDelivered = cat === 'DELIVERED' || status.includes('delivered') || status.includes('received') || status.includes('kept');
+    const isReturned = cat === 'FULL_RETURN' || status.includes('return') || status.includes('rto') || status.includes('cancel');
+    const isPartial = cat === 'PARTIAL' || status.includes('partial');
+    const isExchange = cat === 'EXCHANGE' || status.includes('exchange');
+
+    if (!orderId || !seenOrderIds.has(orderId)) {
+      if (orderId) seenOrderIds.add(orderId);
+      totalOrders++;
+      grossRevenue += amountNum;
+
+      if (isDelivered) deliveredOrders++;
+      else if (isReturned) returnedOrders++;
+      else if (isPartial) partialOrders++;
+      else if (isExchange) exchangeOrders++;
+      else deliveredOrders++;
+    }
+
+    if (isDelivered || isExchange) {
+      deliveredRevenue += amountNum;
+    } else if (isPartial) {
+      deliveredRevenue += Math.round(amountNum * 0.5);
+    }
+  }
+
+  const deliveryRate = totalOrders > 0 ? (deliveredOrders / totalOrders) * 100 : 0;
+  const returnRate = totalOrders > 0 ? (returnedOrders / totalOrders) * 100 : 0;
+  const aov = totalOrders > 0 ? Math.round(grossRevenue / totalOrders) : 0;
+
+  return {
+    label,
+    subLabel,
+    startMs,
+    endMs,
+    totalOrders,
+    deliveredOrders,
+    returnedOrders,
+    partialOrders,
+    exchangeOrders,
+    deliveryRate,
+    returnRate,
+    grossRevenue,
+    deliveredRevenue,
+    aov,
+  };
+}
+
+/**
+ * Compares two periods side-by-side with delta analysis.
+ */
+export function comparePeriods(
+  orders: RawOrderRow[],
+  periodA: { startMs: number; endMs: number; label: string; subLabel?: string },
+  periodB: { startMs: number; endMs: number; label: string; subLabel?: string }
+): PeriodComparisonResult {
+  const metricsA = computePeriodMetrics(orders, periodA.startMs, periodA.endMs, periodA.label, periodA.subLabel || '');
+  const metricsB = computePeriodMetrics(orders, periodB.startMs, periodB.endMs, periodB.label, periodB.subLabel || '');
+
+  const calcPct = (a: number, b: number) => {
+    if (b === 0) return a === 0 ? 0 : 100;
+    return ((a - b) / b) * 100;
+  };
+
+  return {
+    periodA: metricsA,
+    periodB: metricsB,
+    deltas: {
+      ordersDelta: metricsA.totalOrders - metricsB.totalOrders,
+      ordersPct: calcPct(metricsA.totalOrders, metricsB.totalOrders),
+      deliveryRateDiff: metricsA.deliveryRate - metricsB.deliveryRate,
+      returnRateDiff: metricsA.returnRate - metricsB.returnRate,
+      grossRevenueDelta: metricsA.grossRevenue - metricsB.grossRevenue,
+      grossRevenuePct: calcPct(metricsA.grossRevenue, metricsB.grossRevenue),
+      deliveredRevenueDelta: metricsA.deliveredRevenue - metricsB.deliveredRevenue,
+      deliveredRevenuePct: calcPct(metricsA.deliveredRevenue, metricsB.deliveredRevenue),
+      aovDelta: metricsA.aov - metricsB.aov,
+      aovPct: calcPct(metricsA.aov, metricsB.aov),
+    },
+  };
+}
+
+/**
+ * Filters orders by date scope and returns filtered rows along with metadata, counts, and dynamic file weeks.
+ * Default is 'all' to ensure 100% of uploaded records are shown by default.
+ */
+export function filterOrdersByDateScope(
+  orders: RawOrderRow[],
+  scope: DateScope = 'all',
+  customRange?: CustomDateRange
+): DateFilterResult {
   const totalOrders = orders.length;
   if (!orders || orders.length === 0) {
     return {
       scope,
+      customRange,
       filteredOrders: [],
       totalOrders: 0,
       matchedOrders: 0,
       label: 'All Records',
       startMs: 0,
       endMs: Infinity,
-      counts: { all: 0, today: 0, '7d': 0, month: 0 },
+      counts: { all: 0, today: 0, '7d': 0, '30d': 0, month: 0, '90d': 0 },
       isFiltered: false,
+      fileWeeks: [],
     };
   }
 
   const analysis = analyzeDates(orders);
+  const minDateIso = analysis.minDate ? analysis.minDate.toISOString().slice(0, 10) : undefined;
+  const maxDateIso = analysis.maxDate ? analysis.maxDate.toISOString().slice(0, 10) : undefined;
+  const fileWeeks = computeFileWeeks(orders, analysis);
 
-  // Calculate order counts for all 4 scopes
+  // Calculate order counts for all preset scopes
   const allRange = getScopeRange('all', analysis);
   const todayRange = getScopeRange('today', analysis);
   const sevenDaysRange = getScopeRange('7d', analysis);
+  const thirtyDaysRange = getScopeRange('30d', analysis);
   const monthRange = getScopeRange('month', analysis);
+  const ninetyDaysRange = getScopeRange('90d', analysis);
+  const customCalculatedRange = customRange ? getScopeRange('custom', analysis, customRange) : null;
 
   let countToday = 0;
   let count7d = 0;
+  let count30d = 0;
   let countMonth = 0;
+  let count90d = 0;
+  let countCustom = 0;
 
   const orderDateMap: (number | null)[] = new Array(orders.length);
 
@@ -288,7 +606,12 @@ export function filterOrdersByDateScope(orders: RawOrderRow[], scope: DateScope 
     if (ms !== null) {
       if (ms >= todayRange.startMs && ms < todayRange.endMs) countToday++;
       if (ms >= sevenDaysRange.startMs && ms < sevenDaysRange.endMs) count7d++;
+      if (ms >= thirtyDaysRange.startMs && ms < thirtyDaysRange.endMs) count30d++;
       if (ms >= monthRange.startMs && ms < monthRange.endMs) countMonth++;
+      if (ms >= ninetyDaysRange.startMs && ms < ninetyDaysRange.endMs) count90d++;
+      if (customCalculatedRange && ms >= customCalculatedRange.startMs && ms < customCalculatedRange.endMs) {
+        countCustom++;
+      }
     }
   }
 
@@ -296,14 +619,18 @@ export function filterOrdersByDateScope(orders: RawOrderRow[], scope: DateScope 
     all: totalOrders,
     today: countToday,
     '7d': count7d,
+    '30d': count30d,
     month: countMonth,
+    '90d': count90d,
+    custom: customRange ? countCustom : undefined,
   };
 
-  const targetRange = getScopeRange(scope, analysis);
+  const targetRange = getScopeRange(scope, analysis, customRange);
 
   if (scope === 'all') {
     return {
       scope: 'all',
+      customRange,
       filteredOrders: orders,
       totalOrders,
       matchedOrders: totalOrders,
@@ -313,6 +640,9 @@ export function filterOrdersByDateScope(orders: RawOrderRow[], scope: DateScope 
       endMs: allRange.endMs,
       counts,
       isFiltered: false,
+      minDateIso,
+      maxDateIso,
+      fileWeeks,
     };
   }
 
@@ -326,6 +656,7 @@ export function filterOrdersByDateScope(orders: RawOrderRow[], scope: DateScope 
 
   return {
     scope,
+    customRange,
     filteredOrders,
     totalOrders,
     matchedOrders: filteredOrders.length,
@@ -335,5 +666,8 @@ export function filterOrdersByDateScope(orders: RawOrderRow[], scope: DateScope 
     endMs: targetRange.endMs,
     counts,
     isFiltered: true,
+    minDateIso,
+    maxDateIso,
+    fileWeeks,
   };
 }

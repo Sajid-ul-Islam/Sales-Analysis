@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import path from 'path';
 import * as XLSX from 'xlsx';
 import fs from 'fs';
+import baselineData from '@/data/baselineSample.json';
 
 function findFirstExistingFile(candidatePaths: string[]): string | null {
   try {
@@ -73,21 +74,41 @@ export async function GET() {
     const exchangesPath = findFirstExistingFile(exchangeCandidates);
     const pathaoPath = findFirstExistingFile(pathaoCandidates);
 
-    const orders = ordersPath ? parseExcelFile(ordersPath) : [];
-    const returns = returnsPath ? parseExcelFile(returnsPath) : [];
-    const partials = partialsPath ? parseExcelFile(partialsPath) : [];
-    const exchanges = exchangesPath ? parseExcelFile(exchangesPath) : [];
-    const pathaoDelivery = pathaoPath ? parseExcelFile(pathaoPath) : [];
+    let orders = ordersPath ? parseExcelFile(ordersPath) : [];
+    let returns = returnsPath ? parseExcelFile(returnsPath) : [];
+    let partials = partialsPath ? parseExcelFile(partialsPath) : [];
+    let exchanges = exchangesPath ? parseExcelFile(exchangesPath) : [];
+    let pathaoDelivery = pathaoPath ? parseExcelFile(pathaoPath) : [];
 
-    console.log(`[API /api/sample-data] Loaded ${orders.length} orders, ${returns.length} returns, ${partials.length} partials, ${exchanges.length} exchanges, ${pathaoDelivery.length} pathao records`);
+    // Vercel / Cloud Resilient Fallback:
+    // If files are absent on disk (e.g. Vercel serverless environment where Sample Docs is gitignored),
+    // fallback directly to the bundled, precompiled baseline dataset to guarantee 100% data availability.
+    const fallback = (baselineData || {}) as {
+      orders?: any[];
+      returns?: any[];
+      partials?: any[];
+      exchanges?: any[];
+      pathaoDelivery?: any[];
+    };
+
+    const isFallbackUsed = orders.length === 0;
+    if (isFallbackUsed) {
+      orders = fallback.orders || [];
+      returns = fallback.returns || [];
+      partials = fallback.partials || [];
+      exchanges = fallback.exchanges || [];
+      pathaoDelivery = fallback.pathaoDelivery || [];
+    }
+
+    console.log(`[API /api/sample-data] Loaded ${orders.length} orders, ${returns.length} returns, ${partials.length} partials, ${exchanges.length} exchanges, ${pathaoDelivery.length} pathao records (Fallback: ${isFallbackUsed})`);
 
     return NextResponse.json({
       success: true,
-      ordersPath: ordersPath ? path.basename(ordersPath) : null,
-      returnsPath: returnsPath ? path.basename(returnsPath) : null,
-      partialsPath: partialsPath ? path.basename(partialsPath) : null,
-      exchangesPath: exchangesPath ? path.basename(exchangesPath) : null,
-      pathaoDeliveryPath: pathaoPath ? path.basename(pathaoPath) : null,
+      ordersPath: ordersPath ? path.basename(ordersPath) : (isFallbackUsed ? 'baselineSample.json (Bundled)' : null),
+      returnsPath: returnsPath ? path.basename(returnsPath) : (isFallbackUsed ? 'baselineSample.json (Bundled)' : null),
+      partialsPath: partialsPath ? path.basename(partialsPath) : (isFallbackUsed ? 'baselineSample.json (Bundled)' : null),
+      exchangesPath: exchangesPath ? path.basename(exchangesPath) : (isFallbackUsed ? 'baselineSample.json (Bundled)' : null),
+      pathaoDeliveryPath: pathaoPath ? path.basename(pathaoPath) : (isFallbackUsed ? 'baselineSample.json (Bundled)' : null),
       ordersCount: orders.length,
       returnsCount: returns.length,
       partialsCount: partials.length,

@@ -596,9 +596,11 @@ export function runReconciliationEngine(
 
       const hasExchangeParcel = pEntries.some(p =>
         p.status.toLowerCase().includes('exchange') ||
+        (p.orderType && p.orderType.toLowerCase().includes('exchange')) ||
         p.rawMerchantId.toUpperCase().includes('D-') ||
-        p.rawMerchantId.toUpperCase().includes('DD-')
-      );
+        p.rawMerchantId.toUpperCase().includes('DD-') ||
+        p.rawMerchantId.toUpperCase().includes('EXCH-')
+      ) || exchEntries.length > 0;
       const hasPartialParcel = pEntries.some(p =>
         p.status.toLowerCase().includes('partial')
       );
@@ -1273,6 +1275,80 @@ export function runReconciliationEngine(
         itemDescription: itemDesc || undefined
       });
     }
+  }
+
+  // Also supplement / harvest exchange orders from Pathao Master Delivery report if exchangeRows was not explicitly provided or for missing exchange consignments
+  for (const r of pathaoDeliveryRows) {
+    const rawOid = String(findCol(r, ['merchantorderid', 'orderid', 'merchantid', 'oid', 'invoiceno']) || '').trim();
+    const cons = String(findCol(r, ['orderconsignmentid', 'consignmentid', 'trackingcode', 'consignment']) || '').trim();
+    const status = String(findCol(r, ['orderstatus', 'deliverystatus', 'status']) || '').trim();
+    const orderType = String(findCol(r, ['ordertype', 'type']) || '').trim();
+    const orderDesc = String(findCol(r, ['orderdescription', 'description']) || '').trim();
+
+    const isExchange =
+      status.toLowerCase().includes('exchange') ||
+      orderType.toLowerCase().includes('exchange') ||
+      orderDesc.toLowerCase().includes('exchange') ||
+      rawOid.toUpperCase().includes('D-') ||
+      rawOid.toUpperCase().includes('DD-') ||
+      rawOid.toUpperCase().includes('EXCH-');
+
+    if (!isExchange) continue;
+
+    const cleanOid = normalizeOrderId(rawOid);
+    const phone = cleanPhoneNumber(findCol(r, ['recipientphone', 'phone', 'contact']));
+    const key = `${cleanOid}_${cons}_${phone}`;
+
+    if (seenExchangeKeys.has(key)) continue;
+    seenExchangeKeys.add(key);
+
+    const recipient = String(findCol(r, ['recipientname', 'name', 'customername']) || '').trim();
+    const address = String(findCol(r, ['recipientaddress', 'address', 'destination']) || '').trim();
+    const date = String(findCol(r, ['orderstatusupdatedat', 'statusupdatedon', 'date', 'updatedat', 'createdat']) || '').trim();
+    const cod = parseFloat(findCol(r, ['collectedamount', 'collected', 'codamount', 'cod']) || '0') || 0;
+    const charge = parseFloat(findCol(r, ['totalfee', 'fee', 'charge']) || '0') || 0;
+    const paymentStatus = String(findCol(r, ['paymentstatus', 'payment']) || 'Paid').trim();
+
+    totalExchangeCodCollected += cod;
+    totalExchangeCourierExpense += charge;
+
+    let matchedGroup = cleanOid ? orderGroups.get(cleanOid) : undefined;
+    if (!matchedGroup && phone) {
+      matchedGroup = Array.from(orderGroups.values()).find(g => g.phone === phone);
+    }
+    const matchedInOrders = Boolean(matchedGroup);
+
+    let exchangeQty = 1;
+    let itemDesc = '';
+    if (matchedGroup && matchedGroup.items.length > 0) {
+      exchangeQty = matchedGroup.items.reduce((s, it) => {
+        const q = parseInt(findCol(it, ['quantity', 'qty']) || '1', 10) || 1;
+        return s + q;
+      }, 0);
+      itemDesc = matchedGroup.items.map(it => String(findCol(it, ['itemname', 'name', 'product']) || '')).filter(Boolean).join(', ');
+    } else if (orderDesc) {
+      itemDesc = orderDesc;
+    }
+
+    exchangedOrders.push({
+      orderId: cleanOid || rawOid,
+      rawOrderId: rawOid,
+      consignmentId: cons,
+      recipientName: recipient,
+      phone,
+      address,
+      deliveryStatus: status || 'Exchange',
+      type: orderType || 'Exchange',
+      statusUpdatedOn: date,
+      codAmount: cod,
+      courierCharge: charge,
+      discount: 0,
+      paymentStatus,
+      actionPod: undefined,
+      matchedInOrders,
+      quantity: exchangeQty,
+      itemDescription: itemDesc || undefined
+    });
   }
 
   const totalExchangedItemsQty = exchangedOrders.reduce((sum, o) => sum + (o.quantity || 1), 0);

@@ -20,7 +20,8 @@ import {
   ArrowRight,
   FileSpreadsheet,
   Cloud,
-  ArrowUpRight
+  ArrowUpRight,
+  Scale
 } from 'lucide-react';
 
 export interface KpiOverviewProps {
@@ -38,6 +39,7 @@ export interface KpiOverviewProps {
   onSwitchSourceMode?: (mode: 'UPLOAD' | 'API') => void;
   hasCloudData?: boolean;
   onKpiClick?: (targetTab: string, statusFilter?: string, territoryFilter?: string) => void;
+  onOpenComparison?: () => void;
 }
 
 export function KpiOverview({
@@ -54,7 +56,8 @@ export function KpiOverview({
   dataSourceName,
   onSwitchSourceMode,
   hasCloudData = false,
-  onKpiClick
+  onKpiClick,
+  onOpenComparison
 }: KpiOverviewProps) {
   const s = summary;
   const [isRecalculating, setIsRecalculating] = useState(false);
@@ -127,60 +130,44 @@ export function KpiOverview({
           </div>
         </div>
 
-        {/* Date Scope Filter */}
-        <div className="flex flex-col sm:items-end gap-1.5 self-start sm:self-auto shrink-0">
-          <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/70 shadow-2xs flex-wrap">
-            {[
-              { id: 'all' as DateScope, label: 'All Records' },
-              { id: 'today' as DateScope, label: 'Today' },
-              { id: '7d' as DateScope, label: 'Last 7 Days' },
-              { id: 'month' as DateScope, label: 'This Month' },
-            ].map((pill) => {
-              const isActive = activeDateScope === pill.id;
-              const count = dateScopeCounts ? dateScopeCounts[pill.id] : undefined;
-              return (
-                <button
-                  key={pill.id}
-                  onClick={() => handleRangeClick(pill.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all font-headline cursor-pointer select-none ${
-                    isActive
-                      ? 'bg-white text-navy-deep font-black shadow-xs border border-slate-200 ring-1 ring-slate-900/5'
-                      : 'text-slate-600 hover:text-navy-deep hover:bg-slate-200/60 font-semibold'
-                  }`}
-                >
-                  <span>{pill.label}</span>
-                  {count !== undefined && (
-                    <span
-                      className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
-                        isActive
-                          ? 'bg-orange-100 text-primary'
-                          : 'bg-slate-200 text-slate-600'
-                      }`}
-                    >
-                      {count.toLocaleString()}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          {dateScopeSubLabel && (
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium px-1">
-              <span className={`w-1.5 h-1.5 rounded-full ${activeDateScope !== 'all' ? 'bg-primary animate-pulse' : 'bg-slate-400'}`}></span>
-              <span>
-                {activeDateScope === 'all' ? 'Full Period: ' : 'Active Window: '}
-                <strong className="text-slate-700">{dateScopeSubLabel}</strong>
+        {/* Active Period & Scope Indicator (Unified with Header Date Selector) */}
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 self-start sm:self-auto shrink-0">
+          <div className="flex items-center gap-2 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs">
+            <span className={`w-2 h-2 rounded-full ${activeDateScope !== 'all' ? 'bg-primary animate-pulse' : 'bg-emerald-500'}`}></span>
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="text-slate-500 font-medium">Period:</span>
+              <span className="font-bold text-slate-900 font-headline">
+                {dateScopeLabel || (activeDateScope === 'all' ? 'All Records' : activeDateScope.toUpperCase())}
               </span>
-              {activeDateScope !== 'all' && (
-                <button
-                  onClick={() => handleRangeClick('all')}
-                  className="text-primary hover:underline font-bold text-[10px] ml-1 cursor-pointer"
-                  title="Reset date filter to All Records"
-                >
-                  (Clear)
-                </button>
+              {dateScopeSubLabel && (
+                <span className="text-slate-400 font-mono text-[11px] hidden sm:inline">
+                  ({dateScopeSubLabel})
+                </span>
               )}
             </div>
+
+            {activeDateScope !== 'all' && (
+              <button
+                type="button"
+                onClick={() => handleRangeClick('all')}
+                className="ml-1 px-2 py-0.5 rounded-md bg-orange-100/70 hover:bg-orange-200/80 text-primary text-[10px] font-bold transition-colors cursor-pointer"
+                title="Reset to All Records"
+              >
+                Reset to All
+              </button>
+            )}
+          </div>
+
+          {onOpenComparison && (
+            <button
+              type="button"
+              onClick={onOpenComparison}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 hover:border-slate-300 text-xs font-bold transition-all shadow-2xs cursor-pointer group"
+              title="Compare Performance Between Weeks (WoW Analysis)"
+            >
+              <Scale className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
+              <span>Compare Weeks</span>
+            </button>
           )}
         </div>
       </div>

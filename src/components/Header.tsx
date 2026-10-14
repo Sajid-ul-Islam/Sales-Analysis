@@ -15,7 +15,8 @@ import {
   Settings,
   Menu
 } from 'lucide-react';
-import { DateScope, DateScopeCounts } from '@/lib/dateFilter';
+import { DateScope, DateScopeCounts, CustomDateRange } from '@/lib/dateFilter';
+import { DateRangeSelector } from './DateRangeSelector';
 
 export interface HeaderProps {
   onExport: () => void;
@@ -28,9 +29,14 @@ export interface HeaderProps {
   hasCloudData?: boolean;
   onOpenSettings?: () => void;
   activeDateScope?: DateScope;
-  onDateScopeChange?: (scope: DateScope) => void;
+  customDateRange?: CustomDateRange;
+  onDateScopeChange?: (scope: DateScope, customRange?: CustomDateRange) => void;
   dateScopeCounts?: DateScopeCounts;
   dateScopeSubLabel?: string;
+  minDateIso?: string;
+  maxDateIso?: string;
+  fileWeeks?: import('@/lib/dateFilter').FileWeek[];
+  onOpenComparison?: () => void;
   onToggleMobileMenu?: () => void;
 }
 
@@ -45,9 +51,14 @@ export function Header({
   hasCloudData = false,
   onOpenSettings,
   activeDateScope,
+  customDateRange,
   onDateScopeChange,
   dateScopeCounts,
   dateScopeSubLabel,
+  minDateIso,
+  maxDateIso,
+  fileWeeks,
+  onOpenComparison,
   onToggleMobileMenu
 }: HeaderProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -140,40 +151,21 @@ export function Header({
           </button>
         </div>
 
-        {/* Date Scope Filter in Header (cross-tab quick filtering) */}
+        {/* Unified Date Range Selector in Header (cross-tab unified filtering) */}
         {activeDateScope && onDateScopeChange && (
-          <div className="hidden lg:flex items-center p-1 bg-slate-100/90 rounded-xl border border-slate-200 shadow-2xs">
-            {[
-              { id: 'all' as DateScope, label: 'All', title: 'All Records' },
-              { id: 'today' as DateScope, label: 'Today', title: 'Today' },
-              { id: '7d' as DateScope, label: '7D', title: 'Last 7 Days' },
-              { id: 'month' as DateScope, label: 'Month', title: 'This Month' },
-            ].map((pill) => {
-              const isActive = activeDateScope === pill.id;
-              const count = dateScopeCounts ? dateScopeCounts[pill.id] : undefined;
-              return (
-                <button
-                  key={pill.id}
-                  onClick={() => onDateScopeChange(pill.id)}
-                  title={`${pill.title}${count !== undefined ? ` (${count.toLocaleString()} orders)` : ''}`}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    isActive
-                      ? 'bg-white text-navy-deep shadow-2xs border border-slate-200/90'
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  <span>{pill.label}</span>
-                  {count !== undefined && (
-                    <span className={`px-1 py-0.2 rounded-full text-[9px] font-mono ${
-                      isActive ? 'bg-orange-100 text-primary font-bold' : 'bg-slate-200 text-slate-500'
-                    }`}>
-                      {count.toLocaleString()}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+          <DateRangeSelector
+            activeScope={activeDateScope}
+            customRange={customDateRange}
+            onScopeChange={onDateScopeChange}
+            counts={dateScopeCounts}
+            subLabel={dateScopeSubLabel}
+            minDateIso={minDateIso}
+            maxDateIso={maxDateIso}
+            fileWeeks={fileWeeks}
+            onOpenComparison={onOpenComparison}
+            align="right"
+            className="hidden md:block"
+          />
         )}
 
         <div className="h-4 w-px bg-slate-200 mx-0.5 hidden lg:block"></div>

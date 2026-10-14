@@ -21,13 +21,14 @@ import {
   OutletDispatchTab,
   OutletSalesTab,
   MarketingAnalyticsTab,
-  SettingsTab
+  SettingsTab,
+  WeekComparisonModal
 } from '@/components';
 import { runReconciliationEngine, ReconciliationResult } from '@/lib/reconciliationEngine';
 import { exportReconciledExcel } from '@/lib/excelExport';
 import { loadSavedThemeSettings, applyThemeToDocument } from '@/lib/themeManager';
 import { loadAppSettings } from '@/lib/settingsStore';
-import { DateScope, filterOrdersByDateScope } from '@/lib/dateFilter';
+import { DateScope, filterOrdersByDateScope, CustomDateRange } from '@/lib/dateFilter';
 import { RawOrderRow } from '@/types';
 import { RefreshCw, AlertCircle, CheckCircle2, UploadCloud, Database } from 'lucide-react';
 import {
@@ -81,9 +82,31 @@ export default function DashboardPage() {
     setCookie(DEEN_COOKIE_KEYS.ACTIVE_TAB, target, { days: 30 });
   };
 
-  const handleDateScopeChange = (range: DateScope) => {
+  const [dateScope, setDateScope] = useState<DateScope>('all');
+  const [customDateRange, setCustomDateRange] = useState<CustomDateRange | undefined>(undefined);
+  const [isWeekComparisonOpen, setIsWeekComparisonOpen] = useState(false);
+
+  const handleDateScopeChange = (range: DateScope, customRange?: CustomDateRange) => {
     setDateScope(range);
+    if (customRange) {
+      setCustomDateRange(customRange);
+    } else if (range !== 'custom') {
+      setCustomDateRange(undefined);
+    }
     setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, range, { days: 30 });
+
+    // Automatically re-run reconciliation engine on filtered order set
+    const filtered = filterOrdersByDateScope(rawOrders, range, customRange);
+    computeReconciliation(
+      filtered.filteredOrders,
+      rawReturns,
+      rawPartials,
+      excludeAugust,
+      excludePOS,
+      rawExchanges,
+      rawPathaoDelivery
+    );
+    setStatusMessage(`Date filter active: ${filtered.label}${filtered.subLabel ? ` (${filtered.subLabel})` : ''} — ${filtered.matchedOrders.toLocaleString()} orders reconciled.`);
   };
 
   const handleToggleExcludeAugust = (val: boolean) => {
@@ -98,6 +121,9 @@ export default function DashboardPage() {
 
   const handleResetBaseline = () => {
     removeCacheItem(DEEN_CACHE_KEYS.ACTIVE_DATASET);
+    setDateScope('all');
+    setCustomDateRange(undefined);
+    setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, 'all', { days: 30 });
     loadPreloadedSeptemberData(true);
   };
 
@@ -110,13 +136,10 @@ export default function DashboardPage() {
   const [excludeAugust, setExcludeAugust] = useState(true);
   const [excludePOS, setExcludePOS] = useState(true);
 
-  // Active Date Scope Filter ('all' | 'today' | '7d' | 'month')
-  const [dateScope, setDateScope] = useState<DateScope>('all');
-
   // Dynamically filter raw orders according to selected date scope
   const dateFilterResult = React.useMemo(() => {
-    return filterOrdersByDateScope(rawOrders, dateScope);
-  }, [rawOrders, dateScope]);
+    return filterOrdersByDateScope(rawOrders, dateScope, customDateRange);
+  }, [rawOrders, dateScope, customDateRange]);
 
   // Distinct Data Source Modes: Uploaded Spreadsheets vs Live Cloud API
   const [dataSourceMode, setDataSourceMode] = useState<DataSourceMode>('UPLOAD');
@@ -207,8 +230,9 @@ export default function DashboardPage() {
         setRawPartials(cached.partials || []);
         setRawExchanges(cached.exchanges || []);
         setDataSourceName(cached.sourceName || '📁 September Baseline (Cached)');
+        const filtered = filterOrdersByDateScope(cached.orders || [], dateScope, customDateRange);
         computeReconciliation(
-          cached.orders || [],
+          filtered.filteredOrders,
           cached.returns || [],
           cached.partials || [],
           excludeAugust,
@@ -217,7 +241,7 @@ export default function DashboardPage() {
           cached.pathaoDelivery || []
         );
         const pathaoInfo = (cached.pathaoDelivery || []).length ? `, ${cached.pathaoDelivery.length} Pathao delivery records` : '';
-        setStatusMessage(`⚡ Restored from Local Cache: ${cached.orders.length.toLocaleString()} orders${pathaoInfo}, ${cached.returns.length} returns, ${cached.partials.length} partials.`);
+        setStatusMessage(`⚡ Restored from Local Cache: ${filtered.filteredOrders.length.toLocaleString()} orders (${filtered.label})${pathaoInfo}, ${cached.returns.length} returns, ${cached.partials.length} partials.`);
         setIsProcessing(false);
         setInitialLoading(false);
         return;
@@ -250,8 +274,9 @@ export default function DashboardPage() {
         setRawPartials(data.partials || []);
         setRawExchanges(data.exchanges || []);
         setDataSourceName('📁 September Baseline (1,026 Clean)');
+        const filtered = filterOrdersByDateScope(data.orders || [], dateScope, customDateRange);
         computeReconciliation(
-          data.orders || [],
+          filtered.filteredOrders,
           data.returns || [],
           data.partials || [],
           excludeAugust,
@@ -260,7 +285,7 @@ export default function DashboardPage() {
           data.pathaoDelivery || []
         );
         const pathaoInfo = data.pathaoDeliveryCount ? `, ${data.pathaoDeliveryCount} Pathao delivery records` : '';
-        setStatusMessage(`Loaded and cached baseline: ${data.ordersCount} orders${pathaoInfo}, ${data.returnsCount} returns, ${data.partialsCount} partials, ${data.exchangesCount || (data.exchanges || []).length} exchanges.`);
+        setStatusMessage(`Loaded baseline: ${filtered.filteredOrders.length.toLocaleString()} orders (${filtered.label})${pathaoInfo}, ${data.returnsCount} returns, ${data.partialsCount} partials, ${data.exchangesCount || (data.exchanges || []).length} exchanges.`);
       } else {
         setDataSourceName('Ready for File Upload');
         setStatusMessage('Ready for file upload: drop store orders and Pathao delivery log into the dropzones below.');
@@ -275,7 +300,16 @@ export default function DashboardPage() {
   }, [excludeAugust, excludePOS, computeReconciliation]);
 
   // Initial mount: load saved theme, settings, session cookies, and workspace data
+  const hasInitialMountedRef = useRef(false);
+
   useEffect(() => {
+    if (hasInitialMountedRef.current) return;
+    hasInitialMountedRef.current = true;
+
+    // Safety timeout: Guarantee that initialLoading is dismissed even under slow network or hydration
+    const safetyTimer = setTimeout(() => {
+      setInitialLoading(false);
+    }, 2500);
 
     // 1. Initialize anonymous session ID and record session visit
     getOrCreateSessionId();
@@ -286,7 +320,12 @@ export default function DashboardPage() {
     if (savedTab) setActiveTab(savedTab);
 
     const savedScope = getCookie(DEEN_COOKIE_KEYS.DATE_SCOPE) as DateScope | null;
-    if (savedScope) setDateScope(savedScope);
+    if (savedScope) {
+      setDateScope(savedScope);
+    } else {
+      setDateScope('all');
+      setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, 'all', { days: 30 });
+    }
 
     const savedExcludeAug = getCookie(DEEN_COOKIE_KEYS.EXCLUDE_AUGUST);
     if (savedExcludeAug !== null) setExcludeAugust(savedExcludeAug === 'true');
@@ -312,6 +351,8 @@ export default function DashboardPage() {
     }
 
     loadPreloadedSeptemberData();
+
+    return () => clearTimeout(safetyTimer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -515,6 +556,9 @@ export default function DashboardPage() {
       setRawPartials(parsedPartials);
       setRawExchanges(parsedExchanges);
       setDataSourceName(sourceLabel);
+      setDateScope('all');
+      setCustomDateRange(undefined);
+      setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, 'all', { days: 30 });
 
       computeReconciliation(ordersToUse, parsedReturns, parsedPartials, excludeAugust, excludePOS, parsedExchanges, parsedPathaoDelivery);
       const pathaoInfo = parsedPathaoDelivery.length > 0 ? `, ${parsedPathaoDelivery.length.toLocaleString()} Pathao records` : '';
@@ -663,9 +707,14 @@ export default function DashboardPage() {
           hasCloudData={cloudApiDataset !== null && cloudApiDataset.orders.length > 0}
           onOpenSettings={() => handleSelectTab('tabSettings')}
           activeDateScope={dateScope}
+          customDateRange={customDateRange}
           onDateScopeChange={handleDateScopeChange}
           dateScopeCounts={dateFilterResult.counts}
           dateScopeSubLabel={dateFilterResult.subLabel}
+          minDateIso={dateFilterResult.minDateIso}
+          maxDateIso={dateFilterResult.maxDateIso}
+          fileWeeks={dateFilterResult.fileWeeks}
+          onOpenComparison={() => setIsWeekComparisonOpen(true)}
           onToggleMobileMenu={() => setMobileMenuOpen(prev => !prev)}
         />
 
@@ -735,6 +784,13 @@ export default function DashboardPage() {
               summary={result?.summary}
               onSelectOrder={() => setActiveTab('tabOrders')}
               configuredMetaCost={metaAdCost}
+              activeScope={dateScope}
+              customRange={customDateRange}
+              onScopeChange={handleDateScopeChange}
+              counts={dateFilterResult.counts}
+              subLabel={dateFilterResult.subLabel}
+              minDateIso={dateFilterResult.minDateIso}
+              maxDateIso={dateFilterResult.maxDateIso}
             />
           )}
 
@@ -792,7 +848,7 @@ export default function DashboardPage() {
                   hasCloudData={cloudApiDataset !== null && cloudApiDataset.orders.length > 0}
                   onKpiClick={handleKpiCardClick}
                   activeDateScope={dateScope}
-                  onDateRangeSelect={setDateScope}
+                  onDateRangeSelect={handleDateScopeChange}
                   dateScopeCounts={dateFilterResult.counts}
                   dateScopeLabel={dateFilterResult.label}
                   dateScopeSubLabel={dateFilterResult.subLabel}
@@ -814,6 +870,7 @@ export default function DashboardPage() {
                     const el = document.getElementById('cloudSyncSection');
                     el?.scrollIntoView({ behavior: 'smooth' });
                   }}
+                  onOpenComparison={() => setIsWeekComparisonOpen(true)}
                 />
               )}
 
@@ -870,7 +927,11 @@ export default function DashboardPage() {
                   />
                 )}
                 {activeTab === 'tabTerritory' && (
-                  <TerritoryTab summary={result.summary} />
+                  <TerritoryTab
+                    summary={result.summary}
+                    orders={result.reconciledOrders}
+                    onSelectOrder={() => setActiveTab('tabOrders')}
+                  />
                 )}
                 {activeTab === 'tabStatus' && (
                   <StatusMatrixTab summary={result.summary} />
@@ -940,6 +1001,17 @@ export default function DashboardPage() {
             </div>
           )}
         </main>
+
+        {/* Dynamic Week-over-Week & Period Performance Comparison Modal */}
+        <WeekComparisonModal
+          isOpen={isWeekComparisonOpen}
+          onClose={() => setIsWeekComparisonOpen(false)}
+          orders={rawOrders}
+          fileWeeks={dateFilterResult.fileWeeks}
+          onApplyPeriod={handleDateScopeChange}
+          activeScope={dateScope}
+          activeCustomRange={customDateRange}
+        />
       </div>
     </div>
   );

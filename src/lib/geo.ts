@@ -145,3 +145,289 @@ export function classifyLocation(
   // Default to Outside Dhaka if undetermined
   return 'Outside Dhaka';
 }
+
+import bangladeshDivisionsData from '@/data/bangladeshDivisions.json';
+import { ReconciledOrderRow } from '@/types';
+
+export type BangladeshDivision =
+  | 'Dhaka'
+  | 'Chattogram'
+  | 'Rajshahi'
+  | 'Khulna'
+  | 'Barishal'
+  | 'Sylhet'
+  | 'Rangpur'
+  | 'Mymensingh';
+
+export interface DivisionBranchInfo {
+  name: string;
+  code: string;
+  outletId?: number;
+  x: number;
+  y: number;
+}
+
+export interface DivisionMetric {
+  id: string;
+  name: BangladeshDivision;
+  nameBn: string;
+  color: string;
+  centerX: number;
+  centerY: number;
+  svgPath: string;
+  dispatchedOrders: number;
+  deliveredOrders: number;
+  partialOrders: number;
+  returnedOrders: number;
+  exchangeOrders: number;
+  netRevenue: number;
+  grossRevenue: number;
+  returnRate: number;
+  orderShare: number;
+  revenueShare: number;
+  aov: number;
+  topDistricts: { name: string; count: number; revenue: number }[];
+  branches?: DivisionBranchInfo[];
+}
+
+/**
+ * Intelligent Bangladesh division classifier.
+ * Matches order attributes against standard geographical boundaries of all 8 administrative divisions.
+ */
+export function detectDivision(
+  city?: string | null,
+  address?: string | null,
+  note?: string | null,
+  districtArea?: LocationType,
+  fulfillmentLocation?: string | null
+): BangladeshDivision {
+  if (districtArea === 'Inside Dhaka' || fulfillmentLocation === 'Mirpur Outlet POS' || fulfillmentLocation === 'Wari Branch') {
+    return 'Dhaka';
+  }
+  if (fulfillmentLocation === 'Cumilla Branch') return 'Chattogram';
+  if (fulfillmentLocation === 'Sylhet Branch') return 'Sylhet';
+
+  const combined = `${city || ''} ${address || ''} ${note || ''}`.toLowerCase();
+
+  for (const div of bangladeshDivisionsData) {
+    for (const kw of div.districts) {
+      if (combined.includes(kw.toLowerCase())) {
+        return div.name as BangladeshDivision;
+      }
+    }
+  }
+
+  return 'Dhaka';
+}
+
+/**
+ * Detects destination district name from city or address.
+ */
+export function detectDistrictName(city?: string | null, address?: string | null): string {
+  const cleanCity = String(city || '').trim();
+  if (cleanCity && cleanCity.length > 2 && !/^\d+$/.test(cleanCity) && !cleanCity.toLowerCase().includes('outside')) {
+    return cleanCity;
+  }
+  const cleanAddr = String(address || '').trim().toLowerCase();
+  for (const term of GEO_DICT.outside_en) {
+    if (term.length > 3 && cleanAddr.includes(term)) {
+      return term.charAt(0).toUpperCase() + term.slice(1);
+    }
+  }
+  return cleanCity || 'Dhaka Metro';
+}
+
+/**
+ * Aggregates complete division-level sales, dispatch, and return metrics across Bangladesh.
+ */
+export function aggregateDivisionMetrics(orders: ReconciledOrderRow[]): {
+  divisions: DivisionMetric[];
+  nationalTotal: {
+    dispatchedOrders: number;
+    deliveredOrders: number;
+    returnedOrders: number;
+    partialOrders: number;
+    exchangeOrders: number;
+    netRevenue: number;
+    grossRevenue: number;
+    nationalReturnRate: number;
+  };
+  topNationwideDistricts: { name: string; division: string; count: number; revenue: number }[];
+} {
+  // 1. Group items by unique Order ID
+  const orderGroups = new Map<string, ReconciledOrderRow[]>();
+  for (const r of orders) {
+    if (!orderGroups.has(r.orderId)) {
+      orderGroups.set(r.orderId, []);
+    }
+    orderGroups.get(r.orderId)!.push(r);
+  }
+
+  // 2. Initialize tracking per division
+  const divStats = new Map<string, {
+    dispatchedOrders: number;
+    deliveredOrders: number;
+    partialOrders: number;
+    returnedOrders: number;
+    exchangeOrders: number;
+    netRevenue: number;
+    grossRevenue: number;
+    districtsMap: Map<string, { count: number; revenue: number }>;
+  }>();
+
+  for (const d of bangladeshDivisionsData) {
+    divStats.set(d.name, {
+      dispatchedOrders: 0,
+      deliveredOrders: 0,
+      partialOrders: 0,
+      returnedOrders: 0,
+      exchangeOrders: 0,
+      netRevenue: 0,
+      grossRevenue: 0,
+      districtsMap: new Map()
+    });
+  }
+
+  let totalDispatched = 0;
+  let totalDelivered = 0;
+  let totalReturned = 0;
+  let totalPartial = 0;
+  let totalExchange = 0;
+  let totalNetRevenue = 0;
+  let totalGrossRevenue = 0;
+
+  const nationwideDistrictsMap = new Map<string, { division: string; count: number; revenue: number }>();
+
+  // 3. Process each unique order
+  orderGroups.forEach((items) => {
+    const primary = items[0];
+    const divName = detectDivision(
+      primary.city,
+      primary.rawNote,
+      primary.rawNote,
+      primary.districtArea,
+      primary.fulfillmentLocation
+    );
+
+    const stats = divStats.get(divName) || divStats.get('Dhaka')!;
+
+    const orderAmount = primary.orderAmount || items.reduce((s, it) => s + (it.itemCost * it.quantity), 0);
+    const netRevenue = items.reduce((s, it) => s + it.netRevenueImpact, 0);
+
+    stats.dispatchedOrders++;
+    stats.grossRevenue += orderAmount;
+    stats.netRevenue += netRevenue;
+
+    totalDispatched++;
+    totalGrossRevenue += orderAmount;
+    totalNetRevenue += netRevenue;
+
+    if (primary.orderCategory === 'DELIVERED') {
+      stats.deliveredOrders++;
+      totalDelivered++;
+    } else if (primary.orderCategory === 'FULL_RETURN') {
+      stats.returnedOrders++;
+      totalReturned++;
+    } else if (primary.orderCategory === 'PARTIAL') {
+      stats.partialOrders++;
+      totalPartial++;
+    } else if (primary.orderCategory === 'EXCHANGE') {
+      stats.exchangeOrders++;
+      totalExchange++;
+    }
+
+    // District accumulation
+    const districtName = detectDistrictName(primary.city, primary.rawNote);
+    if (!stats.districtsMap.has(districtName)) {
+      stats.districtsMap.set(districtName, { count: 0, revenue: 0 });
+    }
+    const dEntry = stats.districtsMap.get(districtName)!;
+    dEntry.count++;
+    dEntry.revenue += netRevenue;
+
+    // Nationwide district accumulation
+    if (!nationwideDistrictsMap.has(districtName)) {
+      nationwideDistrictsMap.set(districtName, { division: divName, count: 0, revenue: 0 });
+    }
+    const nEntry = nationwideDistrictsMap.get(districtName)!;
+    nEntry.count++;
+    nEntry.revenue += netRevenue;
+  });
+
+  // 4. Compile division metrics list
+  const divisions: DivisionMetric[] = bangladeshDivisionsData.map((d: any) => {
+    const stats = divStats.get(d.name) || {
+      dispatchedOrders: 0,
+      deliveredOrders: 0,
+      partialOrders: 0,
+      returnedOrders: 0,
+      exchangeOrders: 0,
+      netRevenue: 0,
+      grossRevenue: 0,
+      districtsMap: new Map()
+    };
+
+    const returnRate = stats.dispatchedOrders > 0
+      ? ((stats.returnedOrders + stats.partialOrders) / stats.dispatchedOrders) * 100
+      : 0;
+
+    const orderShare = totalDispatched > 0 ? (stats.dispatchedOrders / totalDispatched) * 100 : 0;
+    const revenueShare = totalNetRevenue > 0 ? (stats.netRevenue / totalNetRevenue) * 100 : 0;
+    const aov = (stats.deliveredOrders + stats.partialOrders) > 0
+      ? stats.netRevenue / (stats.deliveredOrders + stats.partialOrders)
+      : (stats.dispatchedOrders > 0 ? stats.grossRevenue / stats.dispatchedOrders : 0);
+
+    const topDistricts = Array.from(stats.districtsMap.entries())
+      .map(([name, data]) => ({ name, count: data.count, revenue: Math.round(data.revenue) }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    return {
+      id: d.id,
+      name: d.name as BangladeshDivision,
+      nameBn: d.nameBn,
+      color: d.color,
+      centerX: d.centerX,
+      centerY: d.centerY,
+      svgPath: d.d,
+      dispatchedOrders: stats.dispatchedOrders,
+      deliveredOrders: stats.deliveredOrders,
+      partialOrders: stats.partialOrders,
+      returnedOrders: stats.returnedOrders,
+      exchangeOrders: stats.exchangeOrders,
+      netRevenue: Math.round(stats.netRevenue),
+      grossRevenue: Math.round(stats.grossRevenue),
+      returnRate: Math.round(returnRate * 10) / 10,
+      orderShare: Math.round(orderShare * 10) / 10,
+      revenueShare: Math.round(revenueShare * 10) / 10,
+      aov: Math.round(aov),
+      topDistricts,
+      branches: d.branches
+    };
+  });
+
+  // 5. Compile top nationwide districts
+  const topNationwideDistricts = Array.from(nationwideDistrictsMap.entries())
+    .map(([name, data]) => ({ name, division: data.division, count: data.count, revenue: Math.round(data.revenue) }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  const nationalReturnRate = totalDispatched > 0
+    ? ((totalReturned + totalPartial) / totalDispatched) * 100
+    : 0;
+
+  return {
+    divisions,
+    nationalTotal: {
+      dispatchedOrders: totalDispatched,
+      deliveredOrders: totalDelivered,
+      returnedOrders: totalReturned,
+      partialOrders: totalPartial,
+      exchangeOrders: totalExchange,
+      netRevenue: Math.round(totalNetRevenue),
+      grossRevenue: Math.round(totalGrossRevenue),
+      nationalReturnRate: Math.round(nationalReturnRate * 10) / 10
+    },
+    topNationwideDistricts
+  };
+}
