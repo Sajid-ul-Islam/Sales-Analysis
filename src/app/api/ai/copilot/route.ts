@@ -11,6 +11,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Query string required' }, { status: 400 });
     }
 
+    // Format recent chat turns for contextual multi-turn understanding
+    let historyContext = '';
+    if (Array.isArray(history) && history.length > 0) {
+      const turns = history
+        .filter((h: any) => h && h.text && (h.sender === 'user' || h.sender === 'assistant'))
+        .slice(-6)
+        .map((h: any) => `${h.sender === 'user' ? 'Merchant' : 'DEEN Copilot'}: ${h.text.trim()}`)
+        .join('\n\n');
+      if (turns) {
+        historyContext = `\nRecent Conversation Context:\n${turns}\n`;
+      }
+    }
+
     // Prepare contextual store facts
     const contextPrompt = `Store Performance Facts (Reconciled by Knapsack DP Engine):
 - Gross Orders Dispatched: ${summary?.grossOrders?.toLocaleString() || 0}
@@ -24,12 +37,18 @@ export async function POST(req: NextRequest) {
 - Outside Dhaka Orders: ${summary?.outsideOrders?.toLocaleString() || 0} (Net: ৳${(summary?.outsideNetRevenue || 0).toLocaleString()})
 - Territory Outside Ratio: ~${Math.round(Number(summary?.outsideRatio) || (summary?.outsideOrders / Math.max(1, summary?.insideOrders || 1))) || 1} : 1
 - Exchanged Orders: ${summary?.totalExchangedOrders || 0} (COD collected: ৳${(summary?.totalExchangeCodCollected || 0).toLocaleString()})
-
+${historyContext}
 User Executive Question:
 "${query}"
 
 Instructions:
-Provide a crisp, analytical, executive-level answer based on the real store numbers above. Highlight takeaways, risks, and recommendations.`;
+1. Provide a crisp, analytical, executive-level answer based on the real store numbers above and previous context.
+2. Format your response cleanly using rich GitHub Flavored Markdown:
+   - Use headings (### for sections)
+   - Use bullet points (- ) with bold keys (**Metric:** value)
+   - Use markdown tables (| ... |) when comparing metrics or locations
+   - Highlight monetary amounts with '৳' symbol
+   - Avoid unformatted plain walls of text.`;
 
     const aiAnswer = await generateAICompletion({
       prompt: contextPrompt,

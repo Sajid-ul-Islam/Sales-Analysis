@@ -272,10 +272,23 @@ export function getAllCacheEntries(): CacheEntrySummary[] {
       if (!raw) continue;
 
       const byteSize = new Blob([raw]).size;
-      const meta = CACHE_KEY_NAMES[key] || {
-        name: key.replace(/_/g, ' ').replace(/^deen\s+/i, ''),
-        tag: 'general' as CacheTag
-      };
+      let meta = CACHE_KEY_NAMES[key];
+      if (!meta && key.startsWith('deen_sync_')) {
+        const parts = key.split('_');
+        const providerName = parts[2] === 'woocommerce' ? 'WooCommerce Orders' : parts[2] === 'pathao' ? 'Pathao Courier' : 'API Sync';
+        const start = parts[3] || '';
+        const end = parts[4] || '';
+        meta = {
+          name: `${providerName} Cache (${start} → ${end})`,
+          tag: 'api' as CacheTag
+        };
+      }
+      if (!meta) {
+        meta = {
+          name: key.replace(/_/g, ' ').replace(/^deen\s+/i, ''),
+          tag: 'general' as CacheTag
+        };
+      }
 
       let timestamp = Date.now();
       let ttlMs = 0;
@@ -286,9 +299,12 @@ export function getAllCacheEntries(): CacheEntrySummary[] {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === 'object') {
           if ('timestamp' in parsed) timestamp = parsed.timestamp;
+          else if ('cachedAt' in parsed) timestamp = parsed.cachedAt;
           if ('ttlMs' in parsed) ttlMs = parsed.ttlMs;
           if ('tag' in parsed) tag = parsed.tag;
-          if ('data' in parsed) {
+          if ('ordersCount' in parsed && typeof parsed.ordersCount === 'number') {
+            itemCount = parsed.ordersCount;
+          } else if ('data' in parsed) {
             if (Array.isArray(parsed.data)) itemCount = parsed.data.length;
             else if (parsed.data && typeof parsed.data === 'object' && 'orders' in parsed.data && Array.isArray(parsed.data.orders)) {
               itemCount = parsed.data.orders.length;

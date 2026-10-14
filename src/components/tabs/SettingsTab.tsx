@@ -70,6 +70,12 @@ import {
   CacheEntrySummary,
   StorageEstimateResult
 } from '@/lib/cacheManager';
+import {
+  getSyncCache,
+  setSyncCache,
+  clearAllSyncCaches,
+  getSyncCacheStats
+} from '@/lib/apiCache';
 import { RawOrderRow } from '@/types';
 import { loadBYOKConfig, BYOKConfig } from '@/lib/byok';
 import { BYOKModal } from '@/components/ai/BYOKModal';
@@ -506,8 +512,27 @@ export function SettingsTab({
     }
   };
 
-  // Sync WooCommerce Orders
+  // Purge API Sync Caches specifically
+  const handlePurgeApiCaches = () => {
+    const cleared = clearAllSyncCaches();
+    refreshStorageData();
+    logAuditAction('API Cache Cleared', `Purged ${cleared} cached API query snapshots.`);
+    showToast(`Purged ${cleared} API sync cache entries.`);
+  };
+
+  // Sync WooCommerce Orders with Local Storage Caching
   const handleSyncWooCommerce = async () => {
+    // 1. Check local storage cache for instant 0ms hit
+    const cached = getSyncCache('woocommerce', startDate, endDate, orderStatus);
+    if (cached.hit && cached.data && cached.data.length > 0) {
+      onDataSynced?.('orders', cached.data);
+      setApiMessage(`⚡ Instant 0ms Load: Retrieved ${cached.ordersCount} WooCommerce orders from local cache (${cached.ageFormatted}). 0 API calls.`);
+      showToast(`⚡ Loaded ${cached.ordersCount} cached orders (0ms).`);
+      logAuditAction('Cache Hit', `Loaded ${cached.ordersCount} WooCommerce orders from local cache (${cached.ageFormatted}).`);
+      refreshStorageData();
+      return;
+    }
+
     setSyncingWc(true);
     setApiMessage(`Connecting to WooCommerce REST API (${startDate} to ${endDate})...`);
     try {
@@ -529,9 +554,15 @@ export function SettingsTab({
       });
       const data = await res.json();
       if (data.success && data.orders && data.orders.length > 0) {
+        setSyncCache('woocommerce', startDate, endDate, orderStatus, data.orders, {
+          ordersCount: data.ordersCount || data.orders.length,
+          lineItemsCount: data.lineItemsCount,
+        });
         onDataSynced?.('orders', data.orders);
-        setApiMessage(`Successfully imported ${data.ordersCount} WooCommerce orders.`);
+        setApiMessage(`Successfully imported ${data.ordersCount} WooCommerce orders & saved to local cache.`);
         showToast(`Synced ${data.ordersCount} orders.`);
+        logAuditAction('WooCommerce Synced', `Fetched ${data.ordersCount} orders via live REST API.`);
+        refreshStorageData();
       } else {
         setApiMessage(data.message || 'WooCommerce responded with 0 matching orders.');
       }
@@ -542,8 +573,19 @@ export function SettingsTab({
     }
   };
 
-  // Sync Pathao Consignments
+  // Sync Pathao Consignments with Local Storage Caching
   const handleSyncPathao = async () => {
+    // 1. Check local storage cache for instant 0ms hit
+    const cached = getSyncCache('pathao', startDate, endDate, 'any');
+    if (cached.hit && cached.data && cached.data.length > 0) {
+      onDataSynced?.('returns', cached.data);
+      setApiMessage(`⚡ Instant 0ms Load: Retrieved ${cached.ordersCount} Pathao consignments from local cache (${cached.ageFormatted}). 0 API calls.`);
+      showToast(`⚡ Loaded ${cached.ordersCount} cached parcels (0ms).`);
+      logAuditAction('Cache Hit', `Loaded ${cached.ordersCount} Pathao parcels from local cache (${cached.ageFormatted}).`);
+      refreshStorageData();
+      return;
+    }
+
     setSyncingPathao(true);
     setApiMessage(`Querying Pathao Hermes API (${startDate} to ${endDate})...`);
     try {
@@ -564,9 +606,14 @@ export function SettingsTab({
       });
       const data = await res.json();
       if (data.success && data.orders && data.orders.length > 0) {
+        setSyncCache('pathao', startDate, endDate, 'any', data.orders, {
+          ordersCount: data.ordersCount || data.orders.length,
+        });
         onDataSynced?.('returns', data.orders);
-        setApiMessage(`Retrieved ${data.ordersCount} Pathao return & delivery records.`);
+        setApiMessage(`Retrieved ${data.ordersCount} Pathao return & delivery records & saved to local cache.`);
         showToast(`Synced ${data.ordersCount} courier parcels.`);
+        logAuditAction('Pathao Synced', `Fetched ${data.ordersCount} consignments from Pathao Hermes API.`);
+        refreshStorageData();
       } else {
         setApiMessage(data.message || 'Pathao sync finished with cached consignments.');
       }
@@ -1708,6 +1755,15 @@ export function SettingsTab({
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Purge Working Cache</span>
+                  </button>
+
+                  <button
+                    onClick={handlePurgeApiCaches}
+                    className="px-3 py-1.5 rounded-xl bg-white hover:bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
+                    title="Purge only cached API sync snapshots (WooCommerce and Pathao)"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Purge API Caches</span>
                   </button>
 
                   <button

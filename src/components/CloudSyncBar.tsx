@@ -11,10 +11,22 @@ import {
   ChevronDown,
   ChevronUp,
   Calendar,
-  Layers
+  Layers,
+  Zap,
+  HardDrive,
+  Trash2,
+  ShieldCheck
 } from 'lucide-react';
 import { RawOrderRow } from '@/types';
 import { loadAppSettings } from '@/lib/settingsStore';
+import {
+  getSyncCache,
+  setSyncCache,
+  clearAllSyncCaches,
+  getSyncCacheStats,
+  isHistoricalDateRange,
+  formatCacheAge
+} from '@/lib/apiCache';
 
 export interface CloudSyncBarProps {
   onDataSynced: (type: 'orders' | 'returns', rows: RawOrderRow[]) => void;
@@ -34,11 +46,21 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
   const [orderStatus, setOrderStatus] = useState<string>('any');
   const [activePreset, setActivePreset] = useState<string>('september');
 
+  // Cache & Bypass State
+  const [forceLiveSync, setForceLiveSync] = useState(false);
+  const [cacheStats, setCacheStats] = useState(() => getSyncCacheStats());
+  const [lastSyncFromCache, setLastSyncFromCache] = useState<{ wc?: boolean; pathao?: boolean; age?: string } | null>(null);
+
   const [pathaoStatus, setPathaoStatus] = useState<any>(null);
   const [wcStatus, setWcStatus] = useState<any>(null);
   const [ga4Status, setGa4Status] = useState<any>(null);
   const [metaStatus, setMetaStatus] = useState<any>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  // Real-time cache probes for current date window
+  const wcCached = getSyncCache('woocommerce', startDate, endDate, orderStatus, forceLiveSync);
+  const pathaoCached = getSyncCache('pathao', startDate, endDate, 'any', forceLiveSync);
+  const isHistorical = isHistoricalDateRange(endDate);
 
   const getClientCredentials = () => {
     if (typeof window === 'undefined') return { wc: undefined, pathao: undefined };
@@ -88,6 +110,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
 
   useEffect(() => {
     checkStatus();
+    setCacheStats(getSyncCacheStats());
   }, []);
 
   // Quick Preset Handlers
@@ -118,8 +141,26 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
     }
   };
 
-  // Sync Pathao Live with Date Range
+  const handleClearApiCaches = () => {
+    const cleared = clearAllSyncCaches();
+    setCacheStats(getSyncCacheStats());
+    setMessage(`Cleared ${cleared} API sync cache snapshots. Subsequent requests will query live endpoints.`);
+  };
+
+  // Sync Pathao Live with Date Range and Local Cache
   const handleSyncPathao = async () => {
+    // 1. Check local storage cache if not bypassing
+    if (!forceLiveSync) {
+      const cached = getSyncCache('pathao', startDate, endDate, 'any');
+      if (cached.hit && cached.data && cached.data.length > 0) {
+        onDataSynced('returns', cached.data);
+        setMessage(`⚡ Instant 0ms Load: Retrieved ${cached.ordersCount} Pathao consignments from local cache (${cached.ageFormatted}). Zero external API calls made.`);
+        setLastSyncFromCache(prev => ({ ...prev, pathao: true, age: cached.ageFormatted }));
+        setCacheStats(getSyncCacheStats());
+        return;
+      }
+    }
+
     setSyncingPathao(true);
     setMessage(`Connecting to Pathao Hermes API (${startDate} to ${endDate})...`);
     try {
@@ -137,8 +178,13 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
       });
       const data = await res.json();
       if (data.success && data.orders && data.orders.length > 0) {
+        setSyncCache('pathao', startDate, endDate, 'any', data.orders, {
+          ordersCount: data.count || data.orders.length,
+        });
         onDataSynced('returns', data.orders);
-        setMessage(`Success: Fetched ${data.count} consignments from Pathao (${startDate} to ${endDate}).`);
+        setMessage(`Success: Fetched ${data.count} consignments from live Pathao API & cached in local storage.`);
+        setLastSyncFromCache(prev => ({ ...prev, pathao: false }));
+        setCacheStats(getSyncCacheStats());
       } else {
         setMessage(data.message || data.error || 'Failed to sync Pathao');
       }
@@ -149,8 +195,20 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
     }
   };
 
-  // Sync WooCommerce Live with Date Range
+  // Sync WooCommerce Live with Date Range and Local Cache
   const handleSyncWooCommerce = async () => {
+    // 1. Check local storage cache if not bypassing
+    if (!forceLiveSync) {
+      const cached = getSyncCache('woocommerce', startDate, endDate, orderStatus);
+      if (cached.hit && cached.data && cached.data.length > 0) {
+        onDataSynced('orders', cached.data);
+        setMessage(`⚡ Instant 0ms Load: Retrieved ${cached.ordersCount} orders (${cached.lineItemsCount || cached.data.length} items) from local cache (${cached.ageFormatted}). Zero external API calls made.`);
+        setLastSyncFromCache(prev => ({ ...prev, wc: true, age: cached.ageFormatted }));
+        setCacheStats(getSyncCacheStats());
+        return;
+      }
+    }
+
     setSyncingWc(true);
     setMessage(`Connecting to WooCommerce (${startDate} to ${endDate}, status: ${orderStatus})...`);
     try {
@@ -170,8 +228,14 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
       });
       const data = await res.json();
       if (data.success && data.orders && data.orders.length > 0) {
+        setSyncCache('woocommerce', startDate, endDate, orderStatus, data.orders, {
+          ordersCount: data.ordersCount || data.orders.length,
+          lineItemsCount: data.lineItemsCount,
+        });
         onDataSynced('orders', data.orders);
-        setMessage(`Success: Synced ${data.ordersCount} orders (${data.lineItemsCount} items) from WooCommerce (${startDate} to ${endDate}).`);
+        setMessage(`Success: Synced ${data.ordersCount} orders (${data.lineItemsCount} items) from live WooCommerce API & stored in local cache.`);
+        setLastSyncFromCache(prev => ({ ...prev, wc: false }));
+        setCacheStats(getSyncCacheStats());
       } else {
         setMessage(data.message || data.error || 'WooCommerce sync returned 0 orders for the specified date range.');
       }
@@ -182,55 +246,112 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
     }
   };
 
-  // One-Click Sync Both (WooCommerce + Pathao)
+  // One-Click Sync Both (WooCommerce + Pathao) with Smart Dual Caching
   const handleSyncBoth = async () => {
     setSyncingBoth(true);
     setMessage(`Running consolidated cloud sync for WooCommerce & Pathao (${startDate} to ${endDate})...`);
     try {
       const creds = getClientCredentials();
-      const wcPromise = fetch('/api/sync/woocommerce', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          after: `${startDate}T00:00:00`,
-          before: `${endDate}T23:59:59`,
-          status: orderStatus,
-          perPage: 100,
-          fetchAllPages: true,
-          maxPages: 3,
-          credentials: creds.wc,
-        }),
-      }).then(r => r.json());
+      let wcData: RawOrderRow[] | null = null;
+      let wcMsg = '';
+      let pathaoData: RawOrderRow[] | null = null;
+      let pathaoMsg = '';
 
-      const pathaoPromise = fetch('/api/sync/pathao', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          startDate,
-          endDate,
-          limit: 35,
-          activeOrders: activeOrders?.slice(0, 100),
-          credentials: creds.pathao,
-        }),
-      }).then(r => r.json());
-
-      const [wcRes, pathaoRes] = await Promise.all([wcPromise, pathaoPromise]);
-
-      let summaryMsgs: string[] = [];
-      if (wcRes.success && wcRes.orders && wcRes.orders.length > 0) {
-        onDataSynced('orders', wcRes.orders);
-        summaryMsgs.push(`WooCommerce: ${wcRes.ordersCount} orders (${wcRes.lineItemsCount} items)`);
-      }
-      if (pathaoRes.success && pathaoRes.orders && pathaoRes.orders.length > 0) {
-        onDataSynced('returns', pathaoRes.orders);
-        summaryMsgs.push(`Pathao: ${pathaoRes.count} consignments`);
+      // Check WooCommerce Cache
+      const wcCache = !forceLiveSync ? getSyncCache('woocommerce', startDate, endDate, orderStatus) : null;
+      if (wcCache?.hit && wcCache.data && wcCache.data.length > 0) {
+        wcData = wcCache.data;
+        wcMsg = `WooCommerce: ⚡ ${wcCache.ordersCount} orders (cached ${wcCache.ageFormatted})`;
       }
 
-      if (summaryMsgs.length > 0) {
-        setMessage(`Cloud Sync Complete (${startDate} to ${endDate}): ${summaryMsgs.join(' • ')}`);
-      } else {
-        setMessage('Sync completed but no matching records were found for this date range.');
+      // Check Pathao Cache
+      const pathaoCache = !forceLiveSync ? getSyncCache('pathao', startDate, endDate, 'any') : null;
+      if (pathaoCache?.hit && pathaoCache.data && pathaoCache.data.length > 0) {
+        pathaoData = pathaoCache.data;
+        pathaoMsg = `Pathao: ⚡ ${pathaoCache.ordersCount} consignments (cached ${pathaoCache.ageFormatted})`;
       }
+
+      // If both were in cache, instant return with 0 network calls!
+      if (wcData && pathaoData) {
+        onDataSynced('orders', wcData);
+        onDataSynced('returns', pathaoData);
+        setMessage(`⚡ Instant 0ms Sync (0 API Calls): ${wcMsg} • ${pathaoMsg}`);
+        setLastSyncFromCache({ wc: true, pathao: true, age: wcCache?.ageFormatted });
+        setCacheStats(getSyncCacheStats());
+        return;
+      }
+
+      // Run network fetch for cache misses only
+      const promises: Promise<any>[] = [];
+
+      if (!wcData) {
+        promises.push(
+          fetch('/api/sync/woocommerce', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              after: `${startDate}T00:00:00`,
+              before: `${endDate}T23:59:59`,
+              status: orderStatus,
+              perPage: 100,
+              fetchAllPages: true,
+              maxPages: 3,
+              credentials: creds.wc,
+            }),
+          }).then(r => r.json()).then(res => ({ type: 'wc', res }))
+        );
+      }
+
+      if (!pathaoData) {
+        promises.push(
+          fetch('/api/sync/pathao', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              startDate,
+              endDate,
+              limit: 35,
+              activeOrders: activeOrders?.slice(0, 100),
+              credentials: creds.pathao,
+            }),
+          }).then(r => r.json()).then(res => ({ type: 'pathao', res }))
+        );
+      }
+
+      const results = await Promise.all(promises);
+
+      for (const item of results) {
+        if (item.type === 'wc') {
+          if (item.res.success && item.res.orders && item.res.orders.length > 0) {
+            wcData = item.res.orders;
+            setSyncCache('woocommerce', startDate, endDate, orderStatus, item.res.orders, {
+              ordersCount: item.res.ordersCount || item.res.orders.length,
+              lineItemsCount: item.res.lineItemsCount,
+            });
+            wcMsg = `WooCommerce: 🌐 ${item.res.ordersCount} orders (Live API)`;
+          } else {
+            wcMsg = `WooCommerce: ${item.res.message || 'No orders'}`;
+          }
+        } else if (item.type === 'pathao') {
+          if (item.res.success && item.res.orders && item.res.orders.length > 0) {
+            pathaoData = item.res.orders;
+            setSyncCache('pathao', startDate, endDate, 'any', item.res.orders, {
+              ordersCount: item.res.count || item.res.orders.length,
+            });
+            pathaoMsg = `Pathao: 🌐 ${item.res.count} consignments (Live API)`;
+          } else {
+            pathaoMsg = `Pathao: ${item.res.message || 'No consignments'}`;
+          }
+        }
+      }
+
+      if (wcData) onDataSynced('orders', wcData);
+      if (pathaoData) onDataSynced('returns', pathaoData);
+
+      const summaries = [wcMsg, pathaoMsg].filter(Boolean);
+      setMessage(`Cloud Sync Complete (${startDate} to ${endDate}): ${summaries.join(' • ')}`);
+      setLastSyncFromCache({ wc: !promises.some(p => p.toString().includes('woocommerce')), pathao: !promises.some(p => p.toString().includes('pathao')) });
+      setCacheStats(getSyncCacheStats());
     } catch (err: any) {
       setMessage(`Consolidated sync error: ${err.message}`);
     } finally {
@@ -369,6 +490,51 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
                 </select>
               </div>
             </div>
+
+            {/* Cache Strategy & Bypass Controls */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200 text-[11px]">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white text-slate-700 font-bold border border-slate-200 shadow-2xs">
+                  <HardDrive className="w-3 h-3 text-primary" />
+                  <span>API Cache:</span>
+                  <span className="text-primary font-mono font-bold">
+                    {cacheStats.totalCachedEntries} saved (~{(cacheStats.totalCachedBytes / 1024).toFixed(0)} KB)
+                  </span>
+                  <span className="text-emerald-600 font-semibold">
+                    • ~{cacheStats.savedApiCallsEstimate} calls saved
+                  </span>
+                </span>
+
+                <span className="text-slate-400 font-mono text-[10px]">
+                  TTL: {isHistorical ? '🔒 Historical (7d cache)' : '⚡ Active MTD (2h cache)'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer select-none text-[11px]">
+                  <input
+                    type="checkbox"
+                    checked={forceLiveSync}
+                    onChange={(e) => setForceLiveSync(e.target.checked)}
+                    className="w-3.5 h-3.5 accent-primary rounded cursor-pointer"
+                  />
+                  <span>Force Live Refresh</span>
+                  <span className="text-[10px] text-slate-400 font-normal">(Bypass Cache)</span>
+                </label>
+
+                {cacheStats.totalCachedEntries > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearApiCaches}
+                    className="text-[11px] text-rose-600 hover:text-rose-700 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                    title="Clear all stored API sync responses from browser"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Clear Cache</span>
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Connection Cards */}
@@ -398,7 +564,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
                 )}
               </div>
 
-              <div className="space-y-1 text-[11px] text-slate-600 mb-4 bg-white p-3 rounded-lg border border-slate-200">
+              <div className="space-y-1.5 text-[11px] text-slate-600 mb-4 bg-white p-3 rounded-lg border border-slate-200">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Total Store Orders:</span>
                   <span className="font-bold text-slate-800">{wcStatus?.totalOrdersCount || '1,500+'}</span>
@@ -407,23 +573,45 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
                   <span className="text-slate-400">Filter Window:</span>
                   <span className="font-mono text-primary font-semibold">{startDate} → {endDate}</span>
                 </div>
+                <div className="flex justify-between items-center pt-1 border-t border-slate-100">
+                  <span className="text-slate-400">Cache Status:</span>
+                  {wcCached.hit && !forceLiveSync ? (
+                    <span className="font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-1 text-[10px]">
+                      <Zap className="w-3 h-3 text-emerald-600" />
+                      Cached ({wcCached.ordersCount} orders • {wcCached.ageFormatted})
+                    </span>
+                  ) : (
+                    <span className="text-slate-500 font-mono text-[10px]">
+                      {forceLiveSync ? 'Bypassed (Live Fetch)' : 'Not Cached (Live API)'}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <button
                 type="button"
                 onClick={handleSyncWooCommerce}
                 disabled={syncingWc || syncingBoth}
-                className="w-full px-3 py-2 rounded-lg bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95"
+                className={`w-full px-3 py-2 rounded-lg disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 ${
+                  wcCached.hit && !forceLiveSync
+                    ? 'bg-emerald-600 hover:bg-emerald-700'
+                    : 'bg-primary hover:bg-primary-hover'
+                }`}
               >
                 {syncingWc ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                     <span>Syncing WooCommerce Orders...</span>
                   </>
+                ) : wcCached.hit && !forceLiveSync ? (
+                  <>
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>Load from Cache (0ms • 0 API Calls)</span>
+                  </>
                 ) : (
                   <>
                     <ShoppingBag className="w-3.5 h-3.5" />
-                    <span>Sync WooCommerce Orders</span>
+                    <span>Sync WooCommerce Orders (Live API)</span>
                   </>
                 )}
               </button>
@@ -454,7 +642,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
                 )}
               </div>
 
-              <div className="space-y-1 text-[11px] text-slate-600 mb-4 bg-white p-3 rounded-lg border border-slate-200">
+              <div className="space-y-1.5 text-[11px] text-slate-600 mb-4 bg-white p-3 rounded-lg border border-slate-200">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Verified Hubs:</span>
                   <span className="font-bold text-slate-800">{pathaoStatus?.storesCount || 5} Logistics Stores</span>
@@ -462,6 +650,19 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
                 <div className="flex justify-between">
                   <span className="text-slate-400">Primary Hub:</span>
                   <span className="font-semibold text-slate-800">DEEN Logistics</span>
+                </div>
+                <div className="flex justify-between items-center pt-1 border-t border-slate-100">
+                  <span className="text-slate-400">Cache Status:</span>
+                  {pathaoCached.hit && !forceLiveSync ? (
+                    <span className="font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-1 text-[10px]">
+                      <Zap className="w-3 h-3 text-emerald-600" />
+                      Cached ({pathaoCached.ordersCount} consignments • {pathaoCached.ageFormatted})
+                    </span>
+                  ) : (
+                    <span className="text-slate-500 font-mono text-[10px]">
+                      {forceLiveSync ? 'Bypassed (Live Fetch)' : 'Not Cached (Live API)'}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -476,10 +677,15 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                     <span>Fetching Pathao Consignments...</span>
                   </>
+                ) : pathaoCached.hit && !forceLiveSync ? (
+                  <>
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>Load from Cache (0ms • 0 API Calls)</span>
+                  </>
                 ) : (
                   <>
                     <Truck className="w-3.5 h-3.5" />
-                    <span>Fetch Pathao Consignments</span>
+                    <span>Fetch Pathao Consignments (Live API)</span>
                   </>
                 )}
               </button>
@@ -498,6 +704,16 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-primary" />
                   <span>Synchronizing WooCommerce & Pathao in Parallel...</span>
+                </>
+              ) : wcCached.hit && pathaoCached.hit && !forceLiveSync ? (
+                <>
+                  <Zap className="w-4 h-4 text-emerald-400" />
+                  <span>Instant Load All from Cache (0ms • 0 API Calls)</span>
+                </>
+              ) : (wcCached.hit || pathaoCached.hit) && !forceLiveSync ? (
+                <>
+                  <Zap className="w-4 h-4 text-amber-400" />
+                  <span>Smart Sync (1 from Cache, 1 Live Fetch)</span>
                 </>
               ) : (
                 <>

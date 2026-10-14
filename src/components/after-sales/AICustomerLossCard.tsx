@@ -28,6 +28,28 @@ export function AICustomerLossCard({ profiles }: AICustomerLossCardProps) {
   const [byokConfig, setByokConfig] = useState<BYOKConfig>(() => loadBYOKConfig());
   const [isBYOKModalOpen, setIsBYOKModalOpen] = useState(false);
 
+  const CACHE_KEY = 'deen_cached_ai_customer_loss';
+  const [cachedTime, setCachedTime] = useState<string | null>(null);
+
+  // Load cached customer loss audit on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.audit) {
+          setAudit(parsed.audit);
+          if (parsed.timestamp) {
+            setCachedTime(new Date(parsed.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load cached customer loss audit:', e);
+    }
+  }, []);
+
   // Listen for BYOK updates across components
   useEffect(() => {
     const handleBYOKUpdate = (e: any) => {
@@ -55,6 +77,15 @@ export function AICustomerLossCard({ profiles }: AICustomerLossCardProps) {
       const data = await res.json();
       if (data?.audit) {
         setAudit(data.audit);
+        const now = new Date();
+        setCachedTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({
+            audit: data.audit,
+            timestamp: now.toISOString(),
+            profileCount: profiles.length,
+          }));
+        } catch {}
       }
     } catch (err) {
       console.error('Failed to run AI customer loss audit:', err);
@@ -64,7 +95,9 @@ export function AICustomerLossCard({ profiles }: AICustomerLossCardProps) {
   };
 
   useEffect(() => {
-    fetchAudit();
+    if (!audit && profiles.length > 0) {
+      fetchAudit();
+    }
   }, [profiles.length]);
 
   if (profiles.length === 0) return null;
@@ -85,6 +118,11 @@ export function AICustomerLossCard({ profiles }: AICustomerLossCardProps) {
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">
                 Post-Sale CRM Protection
               </span>
+              {cachedTime && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-slate-100 text-slate-500 border border-slate-200 hidden sm:inline">
+                  Cached: {cachedTime}
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               Quantifies after-sales courier expense wasted on repeat COD returners and enforces prepaid policy.

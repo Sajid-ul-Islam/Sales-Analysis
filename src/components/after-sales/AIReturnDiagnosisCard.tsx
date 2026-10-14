@@ -28,6 +28,28 @@ export function AIReturnDiagnosisCard({ returnedItems }: AIReturnDiagnosisCardPr
   const [byokConfig, setByokConfig] = useState<BYOKConfig>(() => loadBYOKConfig());
   const [isBYOKModalOpen, setIsBYOKModalOpen] = useState(false);
 
+  const CACHE_KEY = 'deen_cached_ai_return_diagnosis';
+  const [cachedTime, setCachedTime] = useState<string | null>(null);
+
+  // Load cached diagnosis on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.diagnosis) {
+          setDiagnosis(parsed.diagnosis);
+          if (parsed.timestamp) {
+            setCachedTime(new Date(parsed.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load cached diagnosis:', e);
+    }
+  }, []);
+
   // Listen for BYOK updates across components
   useEffect(() => {
     const handleBYOKUpdate = (e: any) => {
@@ -55,6 +77,15 @@ export function AIReturnDiagnosisCard({ returnedItems }: AIReturnDiagnosisCardPr
       const data = await res.json();
       if (data?.diagnosis) {
         setDiagnosis(data.diagnosis);
+        const now = new Date();
+        setCachedTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({
+            diagnosis: data.diagnosis,
+            timestamp: now.toISOString(),
+            itemCount: returnedItems.length,
+          }));
+        } catch {}
       }
     } catch (err) {
       console.error('Failed to run AI return diagnosis:', err);
@@ -64,7 +95,9 @@ export function AIReturnDiagnosisCard({ returnedItems }: AIReturnDiagnosisCardPr
   };
 
   useEffect(() => {
-    fetchDiagnosis();
+    if (!diagnosis && returnedItems.length > 0) {
+      fetchDiagnosis();
+    }
   }, [returnedItems.length]);
 
   if (returnedItems.length === 0) return null;
@@ -85,6 +118,11 @@ export function AIReturnDiagnosisCard({ returnedItems }: AIReturnDiagnosisCardPr
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700">
                 After-Sales QA Engine
               </span>
+              {cachedTime && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-slate-100 text-slate-500 border border-slate-200 hidden sm:inline">
+                  Cached: {cachedTime}
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               Audits returned garment line items, sizing discrepancies, and customer feedback.

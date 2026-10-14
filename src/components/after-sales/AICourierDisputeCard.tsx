@@ -32,6 +32,28 @@ export function AICourierDisputeCard({ mismatches }: AICourierDisputeCardProps) 
   const [byokConfig, setByokConfig] = useState<BYOKConfig>(() => loadBYOKConfig());
   const [isBYOKModalOpen, setIsBYOKModalOpen] = useState(false);
 
+  const CACHE_KEY = 'deen_cached_ai_courier_audit';
+  const [cachedTime, setCachedTime] = useState<string | null>(null);
+
+  // Load cached courier audit on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.audit) {
+          setAudit(parsed.audit);
+          if (parsed.timestamp) {
+            setCachedTime(new Date(parsed.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load cached courier audit:', e);
+    }
+  }, []);
+
   // Listen for BYOK updates across components
   useEffect(() => {
     const handleBYOKUpdate = (e: any) => {
@@ -59,6 +81,15 @@ export function AICourierDisputeCard({ mismatches }: AICourierDisputeCardProps) 
       const data = await res.json();
       if (data?.audit) {
         setAudit(data.audit);
+        const now = new Date();
+        setCachedTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({
+            audit: data.audit,
+            timestamp: now.toISOString(),
+            mismatchCount: mismatches.length,
+          }));
+        } catch {}
       }
     } catch (err) {
       console.error('Failed to run AI courier audit:', err);
@@ -68,7 +99,9 @@ export function AICourierDisputeCard({ mismatches }: AICourierDisputeCardProps) 
   };
 
   useEffect(() => {
-    fetchAudit();
+    if (!audit && mismatches.length > 0) {
+      fetchAudit();
+    }
   }, [mismatches.length]);
 
   const handleCopyClaim = () => {
@@ -96,6 +129,11 @@ export function AICourierDisputeCard({ mismatches }: AICourierDisputeCardProps) 
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">
                 Revenue Recovery
               </span>
+              {cachedTime && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-slate-100 text-slate-500 border border-slate-200 hidden sm:inline">
+                  Cached: {cachedTime}
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               Audits COD under-collections, ghost returns, and generates formal dispute dossiers for Pathao.
