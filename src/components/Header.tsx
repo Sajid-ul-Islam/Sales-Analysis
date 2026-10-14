@@ -35,6 +35,7 @@ export interface HeaderProps {
   minDateIso?: string;
   maxDateIso?: string;
   fileWeeks?: FileWeek[];
+  onOpenComparison?: () => void;
   onToggleMobileMenu?: () => void;
   mobileOpen?: boolean;
   isDarkMode?: boolean;

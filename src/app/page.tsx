@@ -16,7 +16,6 @@ import {
   SkuPerformanceTab,
   ItemReturnsTab,
   CustomerRiskTab,
-  UnitEconomicsTab,
   ExchangedOrdersTab,
   OutletDispatchTab,
   OutletSalesTab,
@@ -952,7 +951,7 @@ export default function DashboardPage() {
                     onSelectOrder={() => setActiveTab('tabOrders')}
                   />
                 )}
-                {activeTab === 'tabStatus' && (
+                {(activeTab === 'tabStatus' || activeTab === 'tabUnitEconomics') && (
                   <StatusMatrixTab summary={result.summary} orders={result.reconciledOrders} />
                 )}
                 {activeTab === 'tabOrders' && (
@@ -980,9 +979,6 @@ export default function DashboardPage() {
                 )}
                 {activeTab === 'tabCustomerRisk' && (
                   <CustomerRiskTab profiles={result.customerRiskProfiles} />
-                )}
-                {activeTab === 'tabUnitEconomics' && (
-                  <UnitEconomicsTab summary={result.summary} />
                 )}
               </div>
             </div>

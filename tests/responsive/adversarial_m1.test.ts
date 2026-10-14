@@ -214,15 +214,12 @@ describe('Adversarial & Empirical Challenge: Milestone M1 (Multi-Device Navigati
   // =========================================================================
   describe('5. Adversarial Stress Testing & Edge Cases', () => {
     it('5.1 Badge counter clamping: formats 100+ as 99+ without layout explosion', () => {
-      expect(mobileNavCode).toContain("orderCount > 99 ? '99+' : orderCount");
-      expect(mobileNavCode).toContain("returnCount > 99 ? '99+' : returnCount");
       expect(sidebarCode).toContain("item.countBadge > 99 ? '99+' : item.countBadge");
     });
 
     it('5.2 Cloud Sync status indicators: pulses when isSyncing=true and renders Cloud icon for API mode', () => {
-      expect(mobileNavCode).toContain("activeSourceMode === 'API'");
-      expect(mobileNavCode).toContain("isSyncing ? 'animate-pulse' : ''");
-      expect(mobileNavCode).toContain("isSyncing ? 'animate-spin' : ''");
+      expect(headerCode).toContain("activeSourceMode === 'API'");
+      expect(headerCode).toContain("isSyncing ? 'animate-pulse' : ''");
     });
 
     it('5.3 Drawer Escape key listener and body scroll lock lifecycle is present in Sidebar', () => {

@@ -90,7 +90,7 @@ export function Sidebar({
         { id: 'tabMarketingAnalytics', label: 'Ad Analytics', icon: BarChart3, highlight: true },
         { id: 'tabSku', label: 'SKU Flow', icon: Shirt },
         { id: 'tabCustomerRisk', label: 'Customer Risk', icon: ShieldAlert, highlight: true },
-        { id: 'tabStatus', label: 'Status Matrix', icon: GitCompare },
+        { id: 'tabStatus', label: 'Status & Economics', icon: GitCompare },
         { id: 'tabUnitEconomics', label: 'Unit Economics', icon: Calculator, highlight: true },
       ]
     },
