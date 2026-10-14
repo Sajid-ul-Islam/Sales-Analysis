@@ -10,6 +10,16 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        deepBlack: {
+          DEFAULT: "#000000",
+          pure: "#000000",
+          surface: "#050505",
+          card: "#0A0A0A",
+          elevated: "#121212",
+          border: "#1F1F1F",
+          borderSubtle: "#161616",
+          hover: "#171717"
+        },
         primary: {
           DEFAULT: "#EB5A19",
           hover: "#D4490E",

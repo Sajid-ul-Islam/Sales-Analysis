@@ -90,7 +90,7 @@ export function MobileBottomNav({
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/90 dark:border-slate-800/90 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom,0px)] select-none transition-colors duration-200"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#050505]/95 backdrop-blur-md border-t border-slate-200/90 dark:border-[#1F1F1F] shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom,0px)] select-none transition-colors duration-200"
       aria-label="Mobile Navigation"
       role="navigation"
     >

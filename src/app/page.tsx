@@ -38,7 +38,7 @@ import { loadSavedThemeSettings, applyThemeToDocument } from '@/lib/themeManager
 import { loadAppSettings } from '@/lib/settingsStore';
 import { DateScope, filterOrdersByDateScope, CustomDateRange } from '@/lib/dateFilter';
 import { RawOrderRow } from '@/types';
-import { RefreshCw, AlertCircle, CheckCircle2, UploadCloud, Database } from 'lucide-react';
+import { RefreshCw, AlertCircle, CheckCircle2, UploadCloud, Database, MessageSquare, Bot, Sparkles } from 'lucide-react';
 import {
   getCookie,
   setCookie,
@@ -723,8 +723,6 @@ export default function DashboardPage() {
           activeSourceMode={dataSourceMode}
           onSwitchSourceMode={handleSwitchDataSource}
           hasCloudData={cloudApiDataset !== null && cloudApiDataset.orders.length > 0}
-          onOpenSettings={() => handleSelectTab('tabSettings')}
-          onToggleCopilot={() => setIsCopilotOpen(prev => !prev)}
           activeDateScope={dateScope}
           customDateRange={customDateRange}
           onDateScopeChange={handleDateScopeChange}
@@ -1034,12 +1032,39 @@ export default function DashboardPage() {
           activeCustomRange={customDateRange}
         />
 
-        {/* AI Executive Copilot Drawer */}
+        {/* Floating Business Intelligence Assistant Glowing Action Icon */}
+        <div className="fixed z-40 bottom-20 right-4 md:bottom-6 md:right-6 group">
+          {/* Ambient Glowing Outer Aura Pulse */}
+          <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-orange-500 via-amber-400 to-orange-600 opacity-75 blur-md group-hover:opacity-100 group-hover:blur-lg transition-all duration-300 animate-pulse pointer-events-none" />
+
+          <button
+            type="button"
+            onClick={() => setIsCopilotOpen(prev => !prev)}
+            aria-label="Open Business Assistant"
+            title="Business Intelligence Assistant"
+            className="relative flex items-center justify-center w-13 h-13 min-w-[52px] min-h-[52px] rounded-full bg-gradient-to-br from-orange-500 via-orange-600 to-amber-600 hover:from-orange-400 hover:to-amber-500 text-white shadow-[0_0_25px_rgba(235,90,25,0.6),0_4px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_0_35px_rgba(235,90,25,0.85),0_6px_20px_rgba(0,0,0,0.4)] transition-all duration-300 transform hover:scale-105 active:scale-95 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-orange-500 dark:focus-visible:ring-offset-black border border-white/20"
+          >
+            {/* Glowing Icon (Bot with Sparkle accent) */}
+            <div className="relative flex items-center justify-center">
+              <Bot className="w-6 h-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] transition-transform duration-300 group-hover:scale-110" />
+              <Sparkles className="w-3.5 h-3.5 text-amber-200 absolute -top-1.5 -right-1.5 animate-pulse" />
+            </div>
+
+            {/* Live Operational Status Radar Ping */}
+            <span className="absolute top-1 right-1 flex h-3 w-3 pointer-events-none">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 ring-2 ring-orange-600" />
+            </span>
+          </button>
+        </div>
+
+        {/* AI Business Assistant Drawer */}
         {result?.summary && (
           <CopilotDrawer
             isOpen={isCopilotOpen}
             onClose={() => setIsCopilotOpen(false)}
             summary={result.summary}
+            activeTab={activeTab}
           />
         )}
 

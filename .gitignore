@@ -103,3 +103,10 @@ desktop.ini
 .idea/
 *.sublime-project
 *.sublime-workspace
+
+# Subagent Scratch Runs
+.agents/*
+!.agents/rules/
+ORIGINAL_REQUEST.md
+TEST_INFRA.md
+TEST_READY.md

@@ -7,10 +7,8 @@ import {
   RefreshCw,
   FileSpreadsheet,
   Cloud,
-  Settings,
   Menu,
   X,
-  Sparkles,
   Sun,
   Moon
 } from 'lucide-react';
@@ -137,17 +135,17 @@ export function Header({
   };
 
   return (
-    <header className="sticky top-0 h-16 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 shrink-0 z-20 shadow-xs transition-colors duration-200">
+    <header className="sticky top-0 h-16 border-b border-slate-200 dark:border-[#1F1F1F] bg-white/95 dark:bg-[#000000]/95 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 shrink-0 z-20 shadow-xs transition-colors duration-200">
       {/* Search Input Bar with Mobile Menu Toggle & ⌘K shortcut */}
       <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 mr-2 sm:mr-4">
         {onToggleMobileMenu && (
           <button
             type="button"
             onClick={onToggleMobileMenu}
-            className={`md:hidden p-2.5 min-w-[44px] min-h-[44px] rounded-xl transition-all shrink-0 inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 ${
+            className={`md:hidden p-2.5 min-w-[44px] min-h-[44px] rounded-xl transition-all shrink-0 inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black ${
               mobileOpen
                 ? 'bg-primary/10 text-primary border border-primary/20'
-                : 'text-slate-600 hover:text-navy-deep hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
+                : 'text-slate-600 hover:text-navy-deep hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-[#161616]'
             }`}
             aria-label="Toggle navigation menu"
             aria-expanded={mobileOpen}
@@ -168,9 +166,9 @@ export function Header({
             onChange={handleSearchChange}
             placeholder="Search order, SKU, phone..."
             aria-label="Search orders, SKUs, customer phones"
-            className="w-full min-w-[44px] pl-9 pr-8 sm:pr-12 py-2.5 min-h-[44px] bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-800 dark:focus:bg-slate-900 text-xs border border-slate-200 dark:border-slate-700 rounded-xl placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary transition-all text-slate-800 dark:text-slate-100"
+            className="w-full min-w-[44px] pl-9 pr-8 sm:pr-12 py-2.5 min-h-[44px] bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-[#0D0D0D] dark:hover:bg-[#141414] dark:focus:bg-[#000000] text-xs border border-slate-200 dark:border-[#262626] rounded-xl placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary transition-all text-slate-800 dark:text-slate-100"
           />
-          <kbd className="hidden sm:inline-block absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded shadow-2xs pointer-events-none">
+          <kbd className="hidden sm:inline-block absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-white dark:bg-[#141414] border border-slate-200 dark:border-[#262626] rounded shadow-2xs pointer-events-none">
             ⌘K
           </kbd>
         </div>
@@ -179,13 +177,13 @@ export function Header({
       {/* Header Tools & Indicators */}
       <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
         {/* Distinct Data Source Switcher: Uploaded Spreadsheets vs WooCommerce & Pathao API */}
-        <div className="flex items-center p-1 bg-slate-100/90 dark:bg-slate-800/90 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
+        <div className="flex items-center p-1 bg-slate-100/90 dark:bg-[#0A0A0A] rounded-xl border border-slate-200 dark:border-[#1F1F1F] shadow-2xs">
           <button
             type="button"
             onClick={() => onSwitchSourceMode?.('UPLOAD')}
             className={`inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-w-[44px] min-h-[44px] rounded-lg text-xs font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
               activeSourceMode === 'UPLOAD'
-                ? 'bg-white dark:bg-slate-900 text-navy-deep dark:text-slate-100 shadow-2xs border border-slate-200/90 dark:border-slate-700'
+                ? 'bg-white dark:bg-[#141414] text-navy-deep dark:text-slate-100 shadow-2xs border border-slate-200/90 dark:border-[#262626]'
                 : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
             title="Render from uploaded spreadsheets & offline manifests (.xlsx / .csv)"
@@ -203,7 +201,7 @@ export function Header({
             onClick={() => onSwitchSourceMode?.('API')}
             className={`inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-w-[44px] min-h-[44px] rounded-lg text-xs font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
               activeSourceMode === 'API'
-                ? 'bg-white dark:bg-slate-900 text-emerald-800 dark:text-emerald-400 shadow-2xs border border-emerald-200/80 dark:border-emerald-800/60'
+                ? 'bg-white dark:bg-[#141414] text-emerald-800 dark:text-emerald-400 shadow-2xs border border-emerald-200/80 dark:border-emerald-800/60'
                 : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
             title="Render from live WooCommerce & Pathao Hermes API"
@@ -267,25 +265,11 @@ export function Header({
           <span className="sm:hidden">Export</span>
         </button>
 
-        {/* AI Copilot Button */}
-        {onToggleCopilot && (
-          <button
-            type="button"
-            onClick={onToggleCopilot}
-            className="p-2.5 sm:px-3 sm:py-2.5 min-w-[44px] min-h-[44px] rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-headline text-xs font-bold shadow-sm shadow-indigo-500/20 transition-all active:scale-95 group inline-flex items-center justify-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
-            title="Open DEEN AI Copilot"
-            aria-label="Toggle DEEN AI Copilot"
-          >
-            <Sparkles className="w-4 h-4 text-blue-200 group-hover:rotate-12 transition-transform shrink-0" />
-            <span className="hidden lg:inline">AI Copilot</span>
-          </button>
-        )}
-
         {/* Quick Light/Dark Theme Toggle Button */}
         <button
           type="button"
           onClick={handleThemeToggle}
-          className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-amber-400 hover:text-navy-deep dark:hover:text-amber-300 border border-slate-200 dark:border-slate-700 transition-all shadow-2xs active:scale-95 inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 group"
+          className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-[#0D0D0D] dark:hover:bg-[#161616] text-slate-600 dark:text-amber-400 hover:text-navy-deep dark:hover:text-amber-300 border border-slate-200 dark:border-[#1F1F1F] transition-all shadow-2xs active:scale-95 inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black group"
           title={activeDarkMode ? 'Switch to light mode (Current: Dark)' : 'Switch to dark mode (Current: Light)'}
           aria-label={activeDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           aria-pressed={activeDarkMode}
@@ -296,35 +280,6 @@ export function Header({
             <Moon className="w-4 h-4 text-slate-600 dark:text-slate-300 group-hover:-rotate-12 transition-transform shrink-0" />
           )}
         </button>
-
-        {/* Settings & Custom Themes Button */}
-        {onOpenSettings && (
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary border border-slate-200 dark:border-slate-700 transition-all shadow-2xs active:scale-95 inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
-            title="System Settings & Custom Themes"
-            aria-label="System Settings & Custom Themes"
-          >
-            <Settings className="w-4 h-4 shrink-0" />
-          </button>
-        )}
-
-        {/* User Account Avatar */}
-        <div className="flex items-center pl-1 sm:pl-2 border-l border-slate-200 dark:border-slate-700">
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            className="relative min-w-[44px] min-h-[44px] p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 inline-flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 cursor-pointer group"
-            title="Account & System Settings"
-            aria-label="Account & System Settings"
-          >
-            <div className="relative w-8 h-8 rounded-full bg-slate-900 dark:bg-slate-700 group-hover:bg-primary text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs ring-1 ring-slate-200 dark:ring-slate-600 group-hover:ring-primary/40 transition-all">
-              <span className="font-headline tracking-tight text-[11px] group-hover:scale-105 transition-transform">AD</span>
-              <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900"></span>
-            </div>
-          </button>
-        </div>
       </div>
     </header>
   );

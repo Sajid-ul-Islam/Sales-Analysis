@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { query, summary, history = [], byok } = body;
+    const { query, summary, history = [], byok, activeTab, tabLabel, pageContext } = body;
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json({ error: 'Query string required' }, { status: 400 });
@@ -19,12 +19,17 @@ export async function POST(req: NextRequest) {
       const turns = history
         .filter((h: any) => h && h.text && (h.sender === 'user' || h.sender === 'assistant'))
         .slice(-6)
-        .map((h: any) => `${h.sender === 'user' ? 'Merchant' : 'DEEN Copilot'}: ${h.text.trim()}`)
+        .map((h: any) => `${h.sender === 'user' ? 'Merchant' : 'Business Assistant'}: ${h.text.trim()}`)
         .join('\n\n');
       if (turns) {
         historyContext = `\nRecent Conversation Context:\n${turns}\n`;
       }
     }
+
+    // Active Dashboard View Context
+    const activeModuleContext = tabLabel
+      ? `\nActive Dashboard View / Context:\n- Active Page: ${tabLabel}${activeTab ? ` (${activeTab})` : ''}\n${pageContext ? `- Page Focus: ${pageContext}\n` : ''}`
+      : '';
 
     // Prepare contextual store facts
     const contextPrompt = `Store Performance Facts (Reconciled by Knapsack DP Engine):
@@ -39,13 +44,15 @@ export async function POST(req: NextRequest) {
 - Outside Dhaka Orders: ${summary?.outsideOrders?.toLocaleString() || 0} (Net: ৳${(summary?.outsideNetRevenue || 0).toLocaleString()})
 - Territory Outside Ratio: ~${Math.round(Number(summary?.outsideRatio) || (summary?.outsideOrders / Math.max(1, summary?.insideOrders || 1))) || 1} : 1
 - Exchanged Orders: ${summary?.totalExchangedOrders || 0} (COD collected: ৳${(summary?.totalExchangeCodCollected || 0).toLocaleString()})
+${activeModuleContext}
 ${historyContext}
 User Executive Question:
 "${query}"
 
 Instructions:
 1. Provide a crisp, analytical, executive-level answer based on the real store numbers above and previous context.
-2. Format your response cleanly using rich GitHub Flavored Markdown:
+2. Ground your advice in the merchant's current page context (${tabLabel || 'Executive Overview'}), answering directly to the data table or operational area they are currently inspecting.
+3. Format your response cleanly using rich GitHub Flavored Markdown:
    - Use headings (### for sections)
    - Use bullet points (- ) with bold keys (**Metric:** value)
    - Use markdown tables (| ... |) when comparing metrics or locations

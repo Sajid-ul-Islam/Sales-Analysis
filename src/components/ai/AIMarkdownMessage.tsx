@@ -29,7 +29,7 @@ export function AIMarkdownMessage({ content, isUser = false }: AIMarkdownMessage
   const blocks = parseMarkdownBlocks(content);
 
   return (
-    <div className="space-y-3 text-xs text-slate-800 leading-relaxed font-normal">
+    <div className="space-y-3 text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-normal">
       {blocks.map((block, idx) => (
         <React.Fragment key={idx}>{renderBlock(block, idx)}</React.Fragment>
       ))}
@@ -216,29 +216,29 @@ function renderBlock(block: BlockType, key: number) {
     case 'header': {
       if (block.level === 1) {
         return (
-          <h1 className="text-sm sm:text-base font-extrabold text-slate-900 mt-3 mb-1.5 font-headline border-b border-slate-200/80 pb-1">
+          <h1 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white mt-3 mb-1.5 font-headline border-b border-slate-200/80 dark:border-[#1F1F1F] pb-1">
             {formatInlineText(block.text)}
           </h1>
         );
       }
       if (block.level === 2) {
         return (
-          <h2 className="text-xs sm:text-sm font-bold text-slate-900 mt-2.5 mb-1 font-headline flex items-center gap-1.5">
-            <span className="w-1.5 h-3.5 bg-primary rounded-full shrink-0" />
+          <h2 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white mt-2.5 mb-1 font-headline flex items-center gap-1.5">
+            <span className="w-1.5 h-3.5 bg-primary dark:bg-orange-500 rounded-full shrink-0" />
             <span>{formatInlineText(block.text)}</span>
           </h2>
         );
       }
       if (block.level === 3) {
         return (
-          <h3 className="text-xs font-bold text-slate-800 mt-2 mb-1 flex items-center gap-1.5 uppercase tracking-wide">
-            <span className="w-1 h-2.5 bg-indigo-500 rounded-full shrink-0" />
+          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-2 mb-1 flex items-center gap-1.5 uppercase tracking-wide">
+            <span className="w-1 h-2.5 bg-indigo-500 dark:bg-orange-400 rounded-full shrink-0" />
             <span>{formatInlineText(block.text)}</span>
           </h3>
         );
       }
       return (
-        <h4 className="text-xs font-semibold text-slate-700 mt-1.5 mb-0.5">
+        <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-1.5 mb-0.5">
           {formatInlineText(block.text)}
         </h4>
       );
@@ -246,7 +246,7 @@ function renderBlock(block: BlockType, key: number) {
 
     case 'paragraph': {
       return (
-        <p className="leading-relaxed text-slate-700 whitespace-pre-line">
+        <p className="leading-relaxed text-slate-700 dark:text-slate-300 whitespace-pre-line">
           {formatInlineText(block.text)}
         </p>
       );
@@ -256,8 +256,8 @@ function renderBlock(block: BlockType, key: number) {
       return (
         <ul className="space-y-1.5 my-1.5 pl-0.5">
           {block.items.map((item, idx) => (
-            <li key={idx} className="flex items-start gap-2 leading-relaxed text-slate-700">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
+            <li key={idx} className="flex items-start gap-2 leading-relaxed text-slate-700 dark:text-slate-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-orange-500 shrink-0 mt-1.5" />
               <div className="flex-1 min-w-0">{formatInlineText(item)}</div>
             </li>
           ))}
@@ -269,8 +269,8 @@ function renderBlock(block: BlockType, key: number) {
       return (
         <ol className="space-y-1.5 my-1.5 pl-0.5">
           {block.items.map((item, idx) => (
-            <li key={idx} className="flex items-start gap-2 leading-relaxed text-slate-700">
-              <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5 border border-slate-200">
+            <li key={idx} className="flex items-start gap-2 leading-relaxed text-slate-700 dark:text-slate-300">
+              <span className="w-4 h-4 rounded-full bg-slate-100 dark:bg-[#1A1A1A] text-slate-700 dark:text-slate-200 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5 border border-slate-200 dark:border-[#262626]">
                 {idx + 1}
               </span>
               <div className="flex-1 min-w-0">{formatInlineText(item)}</div>
@@ -282,7 +282,7 @@ function renderBlock(block: BlockType, key: number) {
 
     case 'quote': {
       return (
-        <div className="p-3 my-2 rounded-xl bg-indigo-50/70 border-l-3 border-indigo-600 text-indigo-950 text-xs leading-relaxed shadow-2xs">
+        <div className="p-3 my-2 rounded-xl bg-indigo-50/70 dark:bg-[#121212] border-l-3 border-indigo-600 dark:border-orange-500 text-indigo-950 dark:text-orange-200 text-xs leading-relaxed shadow-2xs">
           {formatInlineText(block.text)}
         </div>
       );
@@ -294,15 +294,15 @@ function renderBlock(block: BlockType, key: number) {
 
     case 'table': {
       return (
-        <div className="overflow-x-auto my-2 rounded-xl border border-slate-200 shadow-2xs bg-white">
-          <table className="min-w-full text-[11px] divide-y divide-slate-200">
+        <div className="overflow-x-auto my-2 rounded-xl border border-slate-200 dark:border-[#1F1F1F] shadow-2xs bg-white dark:bg-[#0D0D0D]">
+          <table className="min-w-full text-[11px] divide-y divide-slate-200 dark:divide-[#1F1F1F]">
             {block.headers.length > 0 && (
-              <thead className="bg-slate-50">
+              <thead className="bg-slate-50 dark:bg-[#141414]">
                 <tr>
                   {block.headers.map((h, hIdx) => (
                     <th
                       key={hIdx}
-                      className="px-3 py-2 text-left font-bold text-slate-700 uppercase tracking-wider text-[10px]"
+                      className="px-3 py-2 text-left font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider text-[10px]"
                     >
                       {formatInlineText(h)}
                     </th>
@@ -310,11 +310,11 @@ function renderBlock(block: BlockType, key: number) {
                 </tr>
               </thead>
             )}
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-[#1F1F1F]">
               {block.rows.map((row, rIdx) => (
-                <tr key={rIdx} className="hover:bg-slate-50/70 transition-colors">
+                <tr key={rIdx} className="hover:bg-slate-50/70 dark:hover:bg-[#141414] transition-colors">
                   {row.map((cell, cIdx) => (
-                    <td key={cIdx} className="px-3 py-1.5 text-slate-700 whitespace-nowrap">
+                    <td key={cIdx} className="px-3 py-1.5 text-slate-700 dark:text-slate-300 whitespace-nowrap">
                       {formatInlineText(cell)}
                     </td>
                   ))}
@@ -327,7 +327,7 @@ function renderBlock(block: BlockType, key: number) {
     }
 
     case 'hr': {
-      return <hr className="my-2 border-slate-200" />;
+      return <hr className="my-2 border-slate-200 dark:border-[#1F1F1F]" />;
     }
 
     default:
@@ -398,7 +398,7 @@ function formatInlineText(text: string): React.ReactNode {
       return (
         <code
           key={pIdx}
-          className="px-1.5 py-0.5 mx-0.5 rounded-md bg-slate-100 text-slate-800 font-mono text-[11px] border border-slate-200/80 font-medium"
+          className="px-1.5 py-0.5 mx-0.5 rounded-md bg-slate-100 dark:bg-[#141414] text-slate-800 dark:text-orange-300 font-mono text-[11px] border border-slate-200/80 dark:border-[#262626] font-medium"
         >
           {part.slice(1, -1)}
         </code>
@@ -425,7 +425,7 @@ function formatInlineText(text: string): React.ReactNode {
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5"
+          className="text-primary dark:text-orange-400 hover:underline font-semibold inline-flex items-center gap-0.5"
         >
           <span>{label}</span>
           <ExternalLink className="w-2.5 h-2.5 inline" />
@@ -453,7 +453,7 @@ function formatBoldItalics(text: string, keyPrefix: string): React.ReactNode {
     ) {
       const inner = bPart.slice(2, -2);
       return (
-        <strong key={`${keyPrefix}-b-${bIdx}`} className="font-bold text-slate-900">
+        <strong key={`${keyPrefix}-b-${bIdx}`} className="font-bold text-slate-900 dark:text-white">
           {formatItalics(inner, `${keyPrefix}-b-${bIdx}`)}
         </strong>
       );
@@ -473,7 +473,7 @@ function formatItalics(text: string, keyPrefix: string): React.ReactNode {
       (iPart.startsWith('_') && iPart.endsWith('_') && iPart.length > 2)
     ) {
       return (
-        <em key={`${keyPrefix}-i-${iIdx}`} className="italic text-slate-800">
+        <em key={`${keyPrefix}-i-${iIdx}`} className="italic text-slate-800 dark:text-slate-200">
           {iPart.slice(1, -1)}
         </em>
       );

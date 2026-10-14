@@ -153,19 +153,19 @@ export function Sidebar({
       {/* Maximizes screen real estate for wide data tables on 768px-1024px screens  */}
       {/* ========================================================================= */}
       <aside
-        className="hidden md:flex lg:hidden w-16 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col justify-between shrink-0 h-screen sticky top-0 z-30 select-none shadow-2xs"
+        className="hidden md:flex lg:hidden w-16 border-r border-slate-200 dark:border-[#1F1F1F] bg-white dark:bg-[#050505] flex-col justify-between shrink-0 h-screen sticky top-0 z-30 select-none shadow-2xs"
         aria-label="Tablet navigation rail"
       >
         <div className="flex flex-col min-h-0 flex-1">
           {/* Brand Mark Header */}
-          <div className="h-16 flex items-center justify-center border-b border-slate-100 dark:border-slate-800 shrink-0">
+          <div className="h-16 flex items-center justify-center border-b border-slate-100 dark:border-[#1F1F1F] shrink-0">
             <div
               className="relative group cursor-pointer"
               onClick={() => handleItemClick('tabExecutive')}
               title="DEEN Commerce - Executive Overview"
             >
               <DeenLogoMark className="w-8 h-8 rounded-xl shadow-xs" />
-              <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-black animate-pulse" />
             </div>
           </div>
 
@@ -226,7 +226,7 @@ export function Sidebar({
         </div>
 
         {/* Tablet Rail Bottom Profile / Settings */}
-        <div className="p-2 border-t border-slate-200 dark:border-slate-800 shrink-0 flex items-center justify-center">
+        <div className="p-2 border-t border-slate-200 dark:border-[#1F1F1F] shrink-0 flex items-center justify-center">
           <button
             type="button"
             onClick={() => handleItemClick('tabSettings')}
@@ -235,11 +235,11 @@ export function Sidebar({
             onFocus={(e) => showTooltip('Settings & Themes (Admin)', undefined, e.currentTarget)}
             onBlur={hideTooltip}
             aria-label="Settings and Themes"
-            className="w-11 h-11 min-h-[44px] rounded-xl flex items-center justify-center text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 relative group transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
+            className="w-11 h-11 min-h-[44px] rounded-xl flex items-center justify-center text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-[#161616] relative group transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
           >
-            <div className="relative w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-xs shrink-0 group-hover:border-primary/50 group-hover:text-primary transition-all">
+            <div className="relative w-8 h-8 rounded-full bg-slate-100 dark:bg-[#141414] border border-slate-200 dark:border-[#262626] flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-xs shrink-0 group-hover:border-primary/50 group-hover:text-primary transition-all">
               <User className="w-4 h-4" />
-              <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-1.5 ring-white dark:ring-slate-900" />
+              <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-1.5 ring-white dark:ring-black" />
             </div>
           </button>
         </div>
@@ -271,12 +271,12 @@ export function Sidebar({
       {/* Full-featured desktop navigation with brand header and workspace status   */}
       {/* ========================================================================= */}
       <aside
-        className="hidden lg:flex w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col justify-between shrink-0 h-screen sticky top-0 z-30 select-none shadow-2xs"
+        className="hidden lg:flex w-64 border-r border-slate-200 dark:border-[#1F1F1F] bg-white dark:bg-[#050505] flex-col justify-between shrink-0 h-screen sticky top-0 z-30 select-none shadow-2xs"
         aria-label="Desktop sidebar navigation"
       >
         <div className="flex flex-col min-h-0 flex-1">
           {/* Brand Header */}
-          <div className="h-16 px-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+          <div className="h-16 px-5 border-b border-slate-100 dark:border-[#1F1F1F] flex items-center justify-between shrink-0">
             <DeenLogo size="md" />
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
@@ -287,7 +287,7 @@ export function Sidebar({
           </div>
 
           {/* Workspace Subheader Pill */}
-          <div className="px-3.5 py-2.5 mx-3 my-2.5 bg-slate-50/80 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-700/60 flex flex-col gap-1.5 shadow-2xs">
+          <div className="px-3.5 py-2.5 mx-3 my-2.5 bg-slate-50/80 dark:bg-[#0D0D0D] rounded-xl border border-slate-100 dark:border-[#1F1F1F] flex flex-col gap-1.5 shadow-2xs">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 min-w-0">
                 <div className="w-5 h-5 rounded-md bg-orange-100/80 dark:bg-orange-950/60 text-primary dark:text-orange-400 flex items-center justify-center shrink-0">
@@ -297,11 +297,11 @@ export function Sidebar({
                   Operations Hub
                 </span>
               </div>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200/60 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-mono">
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200/60 dark:bg-[#1A1A1A] text-slate-600 dark:text-slate-300 font-mono">
                 Live
               </span>
             </div>
-            <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-700/60 text-[10px]">
+            <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-[#1F1F1F] text-[10px]">
               <span className="text-slate-400 dark:text-slate-400 font-medium">Source:</span>
               <span className={`font-bold flex items-center gap-1 ${
                 activeSourceMode === 'API' ? 'text-emerald-700 dark:text-emerald-400' : 'text-primary dark:text-orange-400'
@@ -372,16 +372,16 @@ export function Sidebar({
         </div>
 
         {/* Desktop Account & Settings Footer */}
-        <div className="p-3 border-t border-slate-200 dark:border-slate-800 shrink-0">
+        <div className="p-3 border-t border-slate-200 dark:border-[#1F1F1F] shrink-0">
           <button
             type="button"
             onClick={() => handleItemClick('tabSettings')}
-            className="w-full min-h-[44px] flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/70 cursor-pointer transition-colors group text-left focus:outline-none focus:ring-2 focus:ring-primary/40"
+            className="w-full min-h-[44px] flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-[#161616] cursor-pointer transition-colors group text-left focus:outline-none focus:ring-2 focus:ring-primary/40"
             title="Open System Settings & Custom Themes"
           >
-            <div className="relative w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-xs shrink-0 group-hover:border-primary/50 group-hover:bg-orange-50 dark:group-hover:bg-orange-950/40 group-hover:text-primary transition-all">
+            <div className="relative w-8 h-8 rounded-full bg-slate-100 dark:bg-[#121212] border border-slate-200 dark:border-[#262626] flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-xs shrink-0 group-hover:border-primary/50 group-hover:bg-orange-50 dark:group-hover:bg-orange-950/40 group-hover:text-primary transition-all">
               <User className="w-4 h-4" />
-              <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
+              <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-black" />
             </div>
             <div className="flex flex-col min-w-0 flex-1">
               <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate group-hover:text-primary transition-colors">
@@ -407,21 +407,21 @@ export function Sidebar({
         >
           {/* Backdrop Overlay */}
           <div
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity duration-200"
+            className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-xs transition-opacity duration-200"
             onClick={onCloseMobile}
             aria-hidden="true"
           />
 
           {/* Drawer Sheet */}
-          <div className="relative w-72 sm:w-80 max-w-[85vw] bg-white dark:bg-slate-900 h-full flex flex-col justify-between shadow-2xl z-10 animate-in slide-in-from-left duration-200 select-none">
+          <div className="relative w-72 sm:w-80 max-w-[85vw] bg-white dark:bg-[#050505] h-full flex flex-col justify-between shadow-2xl z-10 animate-in slide-in-from-left duration-200 select-none">
             <div className="flex flex-col min-h-0 flex-1">
               {/* Drawer Brand Header with 48px Close Button */}
-              <div className="h-16 px-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+              <div className="h-16 px-4 border-b border-slate-100 dark:border-[#1F1F1F] flex items-center justify-between shrink-0">
                 <DeenLogo size="md" />
                 <button
                   type="button"
                   onClick={onCloseMobile}
-                  className="min-h-[48px] min-w-[48px] p-3 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  className="min-h-[48px] min-w-[48px] p-3 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#161616] transition-colors flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/40"
                   aria-label="Close menu"
                 >
                   <X className="w-6 h-6" />
@@ -429,7 +429,7 @@ export function Sidebar({
               </div>
 
               {/* Drawer Workspace Subheader */}
-              <div className="px-3.5 py-2 mx-3 my-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs">
+              <div className="px-3.5 py-2 mx-3 my-2 bg-slate-50 dark:bg-[#0D0D0D] rounded-xl border border-slate-100 dark:border-[#1F1F1F] flex items-center justify-between text-xs">
                 <span className="font-semibold text-slate-700 dark:text-slate-300">Operations Hub</span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
                   activeSourceMode === 'API' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' : 'bg-orange-50 text-primary dark:bg-orange-950/60 dark:text-orange-400'
@@ -494,15 +494,15 @@ export function Sidebar({
             </div>
 
             {/* Drawer Account / Settings Footer (Safe Area padded) */}
-            <div className="p-3 border-t border-slate-200 dark:border-slate-800 shrink-0 pb-[max(0.875rem,env(safe-area-inset-bottom,0px))]">
+            <div className="p-3 border-t border-slate-200 dark:border-[#1F1F1F] shrink-0 pb-[max(0.875rem,env(safe-area-inset-bottom,0px))]">
               <button
                 type="button"
                 onClick={() => handleItemClick('tabSettings')}
-                className="w-full min-h-[48px] flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="w-full min-h-[48px] flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-[#161616] transition-colors cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-primary/40"
               >
-                <div className="relative w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-sm shrink-0">
+                <div className="relative w-9 h-9 rounded-full bg-slate-100 dark:bg-[#121212] border border-slate-200 dark:border-[#262626] flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-sm shrink-0">
                   <User className="w-5 h-5" />
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-black" />
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
                   <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">

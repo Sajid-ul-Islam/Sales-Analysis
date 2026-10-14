@@ -139,13 +139,13 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
   },
   {
     id: 'dark-canvas',
-    name: 'Deep Midnight Canvas',
-    bgHex: '#0B0F19',
-    sidebarHex: '#111827',
-    cardHex: '#1F2937',
-    borderHex: '#374151',
+    name: 'Actual Deep Black Canvas',
+    bgHex: '#000000',
+    sidebarHex: '#050505',
+    cardHex: '#0A0A0A',
+    borderHex: '#1F1F1F',
     textHex: '#F9FAFB',
-    description: 'Executive dark canvas with high contrast glowing metrics'
+    description: 'Actual deep pitch black OLED canvas with high contrast glowing metrics'
   }
 ];
 
@@ -243,23 +243,28 @@ export function applyThemeToDocument(settings: CustomThemeSettings) {
     (window as any).tailwind.config.theme.extend.colors.primary.subtle = subtle;
   }
 
-  // Apply Background Style
-  const bgPreset = BACKGROUND_PRESETS.find(b => b.id === settings.backgroundId) || BACKGROUND_PRESETS[0];
-  root.style.setProperty('--bg-surface', bgPreset.bgHex);
-  root.style.setProperty('--sidebar-surface', bgPreset.sidebarHex);
-  root.style.setProperty('--card-surface', bgPreset.cardHex);
-  root.style.setProperty('--border-surface', bgPreset.borderHex);
-  root.style.setProperty('--text-surface', bgPreset.textHex);
-
-  document.body.style.backgroundColor = bgPreset.bgHex;
-
   // Handle Dark Canvas option
-  if (settings.backgroundId === 'dark-canvas' || settings.darkModeCanvas) {
+  const isDark = settings.backgroundId === 'dark-canvas' || settings.darkModeCanvas;
+  if (isDark) {
     document.body.classList.add('dark-canvas');
     document.documentElement.classList.add('dark');
+    root.style.setProperty('--bg-surface', '#000000');
+    root.style.setProperty('--sidebar-surface', '#050505');
+    root.style.setProperty('--card-surface', '#0A0A0A');
+    root.style.setProperty('--border-surface', '#1F1F1F');
+    root.style.setProperty('--text-surface', '#F9FAFB');
+    document.body.style.backgroundColor = '#000000';
   } else {
     document.body.classList.remove('dark-canvas');
     document.documentElement.classList.remove('dark');
+    // Apply Background Style
+    const bgPreset = BACKGROUND_PRESETS.find(b => b.id === settings.backgroundId) || BACKGROUND_PRESETS[0];
+    root.style.setProperty('--bg-surface', bgPreset.bgHex);
+    root.style.setProperty('--sidebar-surface', bgPreset.sidebarHex);
+    root.style.setProperty('--card-surface', bgPreset.cardHex);
+    root.style.setProperty('--border-surface', bgPreset.borderHex);
+    root.style.setProperty('--text-surface', bgPreset.textHex);
+    document.body.style.backgroundColor = bgPreset.bgHex;
   }
 }
 
