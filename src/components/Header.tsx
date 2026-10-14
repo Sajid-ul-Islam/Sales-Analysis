@@ -35,11 +35,11 @@ export interface HeaderProps {
   minDateIso?: string;
   maxDateIso?: string;
   fileWeeks?: FileWeek[];
-  onOpenComparison?: () => void;
   onToggleMobileMenu?: () => void;
   mobileOpen?: boolean;
   isDarkMode?: boolean;
   onToggleTheme?: () => void;
+  isSyncing?: boolean;
 }
 
 export function Header({
@@ -65,7 +65,8 @@ export function Header({
   onToggleMobileMenu,
   mobileOpen,
   isDarkMode: propIsDarkMode,
-  onToggleTheme
+  onToggleTheme,
+  isSyncing = false
 }: HeaderProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
@@ -142,11 +143,7 @@ export function Header({
           <button
             type="button"
             onClick={onToggleMobileMenu}
-            className={`md:hidden p-2.5 min-w-[44px] min-h-[44px] rounded-xl transition-all shrink-0 inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black ${
-              mobileOpen
-                ? 'bg-primary/10 text-primary border border-primary/20'
-                : 'text-slate-600 hover:text-navy-deep hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-[#161616]'
-            }`}
+            className="md:hidden p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all shrink-0 inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
             aria-label="Toggle navigation menu"
             aria-expanded={mobileOpen}
           >
@@ -157,63 +154,62 @@ export function Header({
             )}
           </button>
         )}
-        <div className="relative w-full max-w-[160px] xs:max-w-xs sm:max-w-md">
+        <div className="relative w-full max-w-[120px] xs:max-w-[160px] sm:max-w-xs md:max-w-sm">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             ref={searchRef}
             type="text"
             value={searchTerm}
             onChange={handleSearchChange}
-            placeholder="Search order, SKU, phone..."
+            placeholder="Search..."
             aria-label="Search orders, SKUs, customer phones"
-            className="w-full min-w-[44px] pl-9 pr-8 sm:pr-12 py-2.5 min-h-[44px] bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-[#0D0D0D] dark:hover:bg-[#141414] dark:focus:bg-[#000000] text-xs border border-slate-200 dark:border-[#262626] rounded-xl placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary transition-all text-slate-800 dark:text-slate-100"
+            className="w-full min-w-[44px] pl-9 pr-3 sm:pr-10 py-2 sm:py-2.5 min-h-[44px] bg-slate-100/70 hover:bg-slate-100 focus:bg-white dark:bg-[#0D0D0D] dark:hover:bg-[#141414] dark:focus:bg-[#000000] text-xs border border-transparent hover:border-slate-200 dark:hover:border-[#222222] focus:border-slate-300 dark:focus:border-[#333333] rounded-xl placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all text-slate-800 dark:text-slate-100"
           />
-          <kbd className="hidden sm:inline-block absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-white dark:bg-[#141414] border border-slate-200 dark:border-[#262626] rounded shadow-2xs pointer-events-none">
+          <kbd className="hidden sm:inline-block absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-white/80 dark:bg-[#141414] border border-slate-200 dark:border-[#262626] rounded shadow-2xs pointer-events-none">
             ⌘K
           </kbd>
         </div>
       </div>
 
-      {/* Header Tools & Indicators */}
-      <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-        {/* Distinct Data Source Switcher: Uploaded Spreadsheets vs WooCommerce & Pathao API */}
-        <div className="flex items-center p-1 bg-slate-100/90 dark:bg-[#0A0A0A] rounded-xl border border-slate-200 dark:border-[#1F1F1F] shadow-2xs">
+      {/* Header Tools & Indicators (Clean Native Icons, No Boxed Buttons) */}
+      <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+        {/* Data Source Switcher: Clean Native Icons */}
+        <div className="flex items-center">
           <button
             type="button"
             onClick={() => onSwitchSourceMode?.('UPLOAD')}
-            className={`inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-w-[44px] min-h-[44px] rounded-lg text-xs font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+            className={`relative inline-flex items-center justify-center p-2.5 min-w-[44px] min-h-[44px] rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer ${
               activeSourceMode === 'UPLOAD'
-                ? 'bg-white dark:bg-[#141414] text-navy-deep dark:text-slate-100 shadow-2xs border border-slate-200/90 dark:border-[#262626]'
-                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                ? 'text-[#EB5A19]'
+                : 'text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300'
             }`}
             title="Render from uploaded spreadsheets & offline manifests (.xlsx / .csv)"
             aria-label="Switch data source to uploaded spreadsheets"
             aria-pressed={activeSourceMode === 'UPLOAD'}
           >
-            <FileSpreadsheet className={`w-3.5 h-3.5 ${activeSourceMode === 'UPLOAD' ? 'text-primary' : 'text-slate-400 dark:text-slate-500'}`} />
-            <span className="hidden md:inline">Spreadsheets</span>
+            <FileSpreadsheet className="w-5 h-5 shrink-0" />
             {activeSourceMode === 'UPLOAD' && (
-              <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0"></span>
+              <span className="absolute bottom-1.5 w-1 h-1 rounded-full bg-[#EB5A19]" />
             )}
           </button>
+
           <button
             type="button"
             onClick={() => onSwitchSourceMode?.('API')}
-            className={`inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-w-[44px] min-h-[44px] rounded-lg text-xs font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+            className={`relative inline-flex items-center justify-center p-2.5 min-w-[44px] min-h-[44px] rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer ${
               activeSourceMode === 'API'
-                ? 'bg-white dark:bg-[#141414] text-emerald-800 dark:text-emerald-400 shadow-2xs border border-emerald-200/80 dark:border-emerald-800/60'
-                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                ? 'text-emerald-500'
+                : 'text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300'
             }`}
             title="Render from live WooCommerce & Pathao Hermes API"
             aria-label="Switch data source to Cloud API"
             aria-pressed={activeSourceMode === 'API'}
           >
-            <Cloud className={`w-3.5 h-3.5 ${activeSourceMode === 'API' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`} />
-            <span className="hidden md:inline">Cloud API</span>
+            <Cloud className={`w-5 h-5 shrink-0 ${activeSourceMode === 'API' && isSyncing ? 'animate-pulse' : ''}`} />
             {activeSourceMode === 'API' ? (
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+              <span className="absolute bottom-1.5 w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
             ) : hasCloudData ? (
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" title="Cloud data synced"></span>
+              <span className="absolute bottom-1.5 w-1 h-1 rounded-full bg-emerald-400/60" title="Cloud data synced" />
             ) : null}
           </button>
         </div>
@@ -235,49 +231,46 @@ export function Header({
           />
         )}
 
-        <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 hidden sm:block"></div>
+        <div className="h-5 w-px bg-slate-200 dark:bg-[#1F1F1F] mx-0.5 hidden sm:block" />
 
-        {/* Reset Baseline Action */}
+        {/* Reset Baseline Action (Clean Native Icon) */}
         {onResetBaseline && (
           <button
             type="button"
             onClick={onResetBaseline}
-            className="p-2.5 sm:px-3 sm:py-2.5 min-w-[44px] min-h-[44px] rounded-xl bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/40 dark:hover:bg-orange-900/50 text-primary dark:text-orange-400 border border-orange-200/80 dark:border-orange-800/60 text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+            className="inline-flex items-center justify-center p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-slate-400 hover:text-[#EB5A19] dark:text-slate-500 dark:hover:text-[#EB5A19] hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
             title="Reload verified 1,026 clean orders September baseline"
             aria-label="Reload verified baseline dataset"
           >
-            <RefreshCw className="w-4 h-4 shrink-0" />
-            <span className="hidden xl:inline">Reset Baseline</span>
+            <RefreshCw className="w-5 h-5 shrink-0" />
           </button>
         )}
 
-        {/* Export Excel Button */}
+        {/* Export Excel Action (Clean Native Icon) */}
         <button
           type="button"
           onClick={onExport}
           disabled={!hasData}
-          className="p-2.5 sm:px-3.5 sm:py-2.5 min-w-[44px] min-h-[44px] rounded-xl bg-primary hover:bg-primary-hover disabled:opacity-40 text-white font-headline text-xs font-bold shadow-sm shadow-primary/20 transition-all active:scale-95 inline-flex items-center justify-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+          className="inline-flex items-center justify-center p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-slate-400 hover:text-emerald-600 dark:text-slate-500 dark:hover:text-emerald-400 disabled:opacity-30 hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
           title="Export Reconciled Dataset to Excel (.xlsx)"
           aria-label="Export Reconciled Dataset to Excel (.xlsx)"
         >
-          <Download className="w-4 h-4 shrink-0" />
-          <span className="hidden sm:inline">Export .XLSX</span>
-          <span className="sm:hidden">Export</span>
+          <Download className="w-5 h-5 shrink-0" />
         </button>
 
-        {/* Quick Light/Dark Theme Toggle Button */}
+        {/* Quick Light/Dark Theme Toggle Action (Clean Native Icon) */}
         <button
           type="button"
           onClick={handleThemeToggle}
-          className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-[#0D0D0D] dark:hover:bg-[#161616] text-slate-600 dark:text-amber-400 hover:text-navy-deep dark:hover:text-amber-300 border border-slate-200 dark:border-[#1F1F1F] transition-all shadow-2xs active:scale-95 inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black group"
+          className="inline-flex items-center justify-center p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-slate-400 hover:text-amber-500 dark:text-slate-400 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary group cursor-pointer"
           title={activeDarkMode ? 'Switch to light mode (Current: Dark)' : 'Switch to dark mode (Current: Light)'}
           aria-label={activeDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           aria-pressed={activeDarkMode}
         >
           {activeDarkMode ? (
-            <Sun className="w-4 h-4 text-amber-400 group-hover:rotate-45 transition-transform shrink-0" />
+            <Sun className="w-5 h-5 text-amber-400 group-hover:rotate-45 transition-transform shrink-0" />
           ) : (
-            <Moon className="w-4 h-4 text-slate-600 dark:text-slate-300 group-hover:-rotate-12 transition-transform shrink-0" />
+            <Moon className="w-5 h-5 text-slate-400 group-hover:-rotate-12 transition-transform shrink-0" />
           )}
         </button>
       </div>

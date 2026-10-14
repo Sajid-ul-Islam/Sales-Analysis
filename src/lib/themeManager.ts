@@ -141,8 +141,8 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
     id: 'dark-canvas',
     name: 'Actual Deep Black Canvas',
     bgHex: '#000000',
-    sidebarHex: '#050505',
-    cardHex: '#0A0A0A',
+    sidebarHex: '#000000',
+    cardHex: '#000000',
     borderHex: '#1F1F1F',
     textHex: '#F9FAFB',
     description: 'Actual deep pitch black OLED canvas with high contrast glowing metrics'
@@ -249,8 +249,8 @@ export function applyThemeToDocument(settings: CustomThemeSettings) {
     document.body.classList.add('dark-canvas');
     document.documentElement.classList.add('dark');
     root.style.setProperty('--bg-surface', '#000000');
-    root.style.setProperty('--sidebar-surface', '#050505');
-    root.style.setProperty('--card-surface', '#0A0A0A');
+    root.style.setProperty('--sidebar-surface', '#000000');
+    root.style.setProperty('--card-surface', '#000000');
     root.style.setProperty('--border-surface', '#1F1F1F');
     root.style.setProperty('--text-surface', '#F9FAFB');
     document.body.style.backgroundColor = '#000000';

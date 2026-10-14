@@ -87,8 +87,8 @@ body.dark-canvas,
 .dark {
   color-scheme: dark;
   --bg-surface: #000000;
-  --sidebar-surface: #050505;
-  --card-surface: #0A0A0A;
+  --sidebar-surface: #000000;
+  --card-surface: #000000;
   --border-surface: #1F1F1F;
   --text-surface: #F9FAFB;
 }
@@ -103,42 +103,52 @@ body.dark-canvas {
 /* Deep Black Containers, Main, and Surface Wrappers */
 .dark body,
 .dark main,
+.dark footer,
 .dark [style*="--bg-surface"] {
   background-color: #000000 !important;
 }
 
-/* Header, Navigation & Sidebar True Deep Black Insets */
+/* Header, Navigation & Sidebar True Deep Black */
 .dark header,
 .dark nav,
 .dark aside {
-  background-color: #050505 !important;
+  background-color: #000000 !important;
   border-color: #1F1F1F !important;
 }
 
 /* All Cards, Panels, Modals & Dropzone Containers across ALL components */
 .dark .bg-white:not(.keep-white) {
-  background-color: #0A0A0A !important;
+  background-color: #000000 !important;
   color: #F9FAFB;
 }
 
-/* Neutral Pills, Secondary Containers, and Sub-panels */
+/* Neutral Pills, Secondary Containers, Sub-panels, and Dark Shells */
 .dark .bg-slate-50:not([class*="text-emerald"]):not([class*="text-rose"]):not([class*="text-amber"]):not([class*="text-blue"]):not([class*="text-purple"]):not([class*="text-indigo"]):not([class*="text-sky"]):not([class*="text-primary"]):not(.keep-white),
 .dark .bg-slate-100:not([class*="text-emerald"]):not([class*="text-rose"]):not([class*="text-amber"]):not([class*="text-blue"]):not([class*="text-purple"]):not([class*="text-indigo"]):not([class*="text-sky"]):not([class*="text-primary"]):not(.keep-white),
+.dark .bg-slate-200:not([class*="text-emerald"]):not([class*="text-rose"]):not([class*="text-amber"]):not([class*="text-blue"]):not([class*="text-purple"]):not([class*="text-indigo"]):not([class*="text-sky"]):not([class*="text-primary"]):not(.keep-white),
+.dark .bg-slate-800,
+.dark .bg-slate-900:not([class*="text-primary"]),
+.dark .bg-navy-deep,
 .dark .bg-gray-50,
 .dark .bg-gray-100,
-.dark .bg-slate-50\/50,
-.dark .bg-slate-100\/90,
-.dark .bg-slate-200\/70 {
-  background-color: #121212 !important;
+.dark .bg-gray-200,
+.dark .bg-gray-800,
+.dark .bg-gray-900,
+.dark [class*="bg-slate-50\/"],
+.dark [class*="bg-slate-100\/"],
+.dark [class*="bg-slate-200\/"] {
+  background-color: #000000 !important;
 }
 
 /* Hover states for interactive items */
 .dark .hover\:bg-slate-50:hover,
 .dark .hover\:bg-slate-100:hover,
 .dark .hover\:bg-slate-100\/70:hover,
+.dark .hover\:bg-slate-200:hover,
 .dark .hover\:bg-gray-50:hover,
-.dark .hover\:bg-gray-100:hover {
-  background-color: #161616 !important;
+.dark .hover\:bg-gray-100:hover,
+.dark .hover\:bg-gray-200:hover {
+  background-color: #0A0A0A !important;
 }
 
 /* Deep Black Clean Borders */
@@ -148,58 +158,65 @@ body.dark-canvas {
 .dark .border-slate-100,
 .dark .border-slate-300,
 .dark .border-slate-300\/60,
+.dark .border-slate-700,
+.dark .border-slate-800,
 .dark .border-gray-200,
-.dark .border-gray-100 {
+.dark .border-gray-100,
+.dark .border-gray-700,
+.dark .border-gray-800 {
   border-color: #1F1F1F !important;
 }
 
-/* High-Density Data Tables in Actual Deep Black */
+/* High-Density Data Tables in Same Deep Black */
 .dark table {
-  background-color: #0A0A0A !important;
+  background-color: #000000 !important;
   border-color: #1F1F1F !important;
 }
 
 .dark table thead tr,
 .dark table thead th {
-  background-color: #0D0D0D !important;
+  background-color: #000000 !important;
   color: #9CA3AF !important;
   border-color: #1F1F1F !important;
 }
 
 .dark table tbody tr {
-  border-color: #1A1A1A !important;
+  background-color: #000000 !important;
+  border-color: #1F1F1F !important;
 }
 
 .dark table tbody tr:hover {
-  background-color: #141414 !important;
+  background-color: #0A0A0A !important;
 }
 
 .dark table td {
-  border-color: #1A1A1A !important;
+  border-color: #1F1F1F !important;
 }
 
 /* Frozen Sticky Table Identifiers (Order ID / SKU) during swipe */
 .dark .sticky.left-0 {
-  background-color: #0A0A0A !important;
+  background-color: #000000 !important;
 }
 
 .dark thead .sticky.left-0 {
-  background-color: #0D0D0D !important;
+  background-color: #000000 !important;
 }
 
 .dark table tbody tr:hover .sticky.left-0 {
-  background-color: #141414 !important;
+  background-color: #0A0A0A !important;
 }
 
-/* Form Controls, Inputs, Selects & Search Bars */
+/* Form Controls, Inputs, Selects & Search Bars in Same Deep Black */
 .dark input[type="text"],
 .dark input[type="search"],
 .dark input[type="number"],
+.dark input[type="password"],
+.dark input[type="date"],
 .dark select,
 .dark textarea {
-  background-color: #0D0D0D !important;
+  background-color: #000000 !important;
   color: #F9FAFB !important;
-  border-color: #262626 !important;
+  border-color: #1F1F1F !important;
 }
 
 .dark input::placeholder,
@@ -208,7 +225,7 @@ body.dark-canvas {
 }
 
 .dark select option {
-  background-color: #0D0D0D !important;
+  background-color: #000000 !important;
   color: #F9FAFB !important;
 }
 

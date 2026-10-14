@@ -61,8 +61,8 @@ const criticalCSS = `
   html.dark, body.dark-canvas, .dark {
     color-scheme: dark;
     --bg-surface: #000000;
-    --sidebar-surface: #050505;
-    --card-surface: #0A0A0A;
+    --sidebar-surface: #000000;
+    --card-surface: #000000;
     --border-surface: #1F1F1F;
     --text-surface: #F9FAFB;
   }
@@ -70,44 +70,47 @@ const criticalCSS = `
     background-color: #000000 !important;
     color: #F9FAFB !important;
   }
-  .dark body, .dark main, .dark [style*="--bg-surface"] {
+  .dark body, .dark main, .dark footer, .dark [style*="--bg-surface"] {
     background-color: #000000 !important;
   }
   .dark header, .dark nav, .dark aside {
-    background-color: #050505 !important;
+    background-color: #000000 !important;
     border-color: #1F1F1F !important;
   }
   .dark .bg-white:not(.keep-white) {
-    background-color: #0A0A0A !important;
+    background-color: #000000 !important;
     color: #F9FAFB;
   }
   .dark .bg-slate-50:not([class*="text-emerald"]):not([class*="text-rose"]):not([class*="text-amber"]):not([class*="text-blue"]):not([class*="text-purple"]):not([class*="text-indigo"]):not([class*="text-sky"]):not([class*="text-primary"]):not(.keep-white),
   .dark .bg-slate-100:not([class*="text-emerald"]):not([class*="text-rose"]):not([class*="text-amber"]):not([class*="text-blue"]):not([class*="text-purple"]):not([class*="text-indigo"]):not([class*="text-sky"]):not([class*="text-primary"]):not(.keep-white),
-  .dark .bg-gray-50, .dark .bg-gray-100, .dark .bg-slate-50\/50, .dark .bg-slate-100\/90, .dark .bg-slate-200\/70 {
-    background-color: #121212 !important;
+  .dark .bg-slate-200:not([class*="text-emerald"]):not([class*="text-rose"]):not([class*="text-amber"]):not([class*="text-blue"]):not([class*="text-purple"]):not([class*="text-indigo"]):not([class*="text-sky"]):not([class*="text-primary"]):not(.keep-white),
+  .dark .bg-slate-800, .dark .bg-slate-900:not([class*="text-primary"]), .dark .bg-navy-deep,
+  .dark .bg-gray-50, .dark .bg-gray-100, .dark .bg-gray-200, .dark .bg-gray-800, .dark .bg-gray-900,
+  .dark [class*="bg-slate-50\/"], .dark [class*="bg-slate-100\/"], .dark [class*="bg-slate-200\/"] {
+    background-color: #000000 !important;
   }
-  .dark .border-slate-200, .dark .border-slate-200\/80, .dark .border-slate-200\/90, .dark .border-slate-100, .dark .border-slate-300, .dark .border-gray-200 {
+  .dark .border-slate-200, .dark .border-slate-200\/80, .dark .border-slate-200\/90, .dark .border-slate-100, .dark .border-slate-300, .dark .border-slate-700, .dark .border-slate-800, .dark .border-gray-200, .dark .border-gray-700 {
     border-color: #1F1F1F !important;
   }
   .dark table {
-    background-color: #0A0A0A !important;
+    background-color: #000000 !important;
     border-color: #1F1F1F !important;
   }
   .dark table thead tr, .dark table thead th {
-    background-color: #0D0D0D !important;
+    background-color: #000000 !important;
     color: #9CA3AF !important;
     border-color: #1F1F1F !important;
   }
-  .dark table tbody tr { border-color: #1A1A1A !important; }
-  .dark table tbody tr:hover { background-color: #141414 !important; }
-  .dark table td { border-color: #1A1A1A !important; }
-  .dark .sticky.left-0 { background-color: #0A0A0A !important; }
-  .dark thead .sticky.left-0 { background-color: #0D0D0D !important; }
-  .dark table tbody tr:hover .sticky.left-0 { background-color: #141414 !important; }
-  .dark input[type="text"], .dark input[type="search"], .dark input[type="number"], .dark select, .dark textarea {
-    background-color: #0D0D0D !important;
+  .dark table tbody tr { background-color: #000000 !important; border-color: #1F1F1F !important; }
+  .dark table tbody tr:hover { background-color: #0A0A0A !important; }
+  .dark table td { border-color: #1F1F1F !important; }
+  .dark .sticky.left-0 { background-color: #000000 !important; }
+  .dark thead .sticky.left-0 { background-color: #000000 !important; }
+  .dark table tbody tr:hover .sticky.left-0 { background-color: #0A0A0A !important; }
+  .dark input[type="text"], .dark input[type="search"], .dark input[type="number"], .dark input[type="password"], .dark select, .dark textarea {
+    background-color: #000000 !important;
     color: #F9FAFB !important;
-    border-color: #262626 !important;
+    border-color: #1F1F1F !important;
   }
   .dark .text-slate-900, .dark .text-slate-800, .dark .text-gray-900, .dark .text-gray-800, .dark .text-navy-deep { color: #F9FAFB !important; }
   .dark .text-slate-700, .dark .text-gray-700 { color: #E5E7EB !important; }

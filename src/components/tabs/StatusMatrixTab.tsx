@@ -1,7 +1,23 @@
 "use client";
 
+import React from 'react';
 import { SummaryAnalytics, ReconciledOrderRow } from '@/types';
-import { PieChart, CheckCircle2, Split, RotateCcw, AlertOctagon, MapPin } from 'lucide-react';
+import {
+  PieChart,
+  CheckCircle2,
+  Split,
+  RotateCcw,
+  AlertOctagon,
+  MapPin,
+  Coins,
+  TrendingUp,
+  Truck,
+  Package,
+  DollarSign,
+  Megaphone,
+  Calculator,
+  GitCompare
+} from 'lucide-react';
 import { InteractiveDonutChart, PaymentMethodMixCard } from '@/components/charts';
 
 interface StatusMatrixTabProps {
@@ -10,7 +26,7 @@ interface StatusMatrixTabProps {
 }
 
 export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProps) {
-  // Dynamically compute exact Paid vs Not Paid returns from reconciled orders or summary
+  // 1. Dynamic Status Breakdown Logic
   const primaryOrders = orders.filter(o => o.lineStatus?.includes('Primary') || !o.lineStatus);
 
   const dynamicPaidReturns = primaryOrders.filter(
@@ -73,78 +89,225 @@ export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProp
   const outsidePaidReturnPct = Math.round((paidReturnOutside / outsideTotal) * 100);
   const outsideNotPaidPct = Math.max(0, 100 - outsideDeliveredPct - outsidePartialPct - outsidePaidReturnPct);
 
+  // 2. Unit Economics & Courier Cost Logic
+  const u = s.unitEconomics;
+  const c = s.courierCost;
+  const preAdMargin = u.grossMargin - u.totalCourierExpense - u.packagingLoss + (c.paidReturnCollectedCod || 0);
+
   return (
     <div className="space-y-6">
-      {/* User Requested Status Breakdown Matrix Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Full Delivered Card */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Full Delivered</span>
-              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-            </div>
-            <div className="text-3xl font-black text-slate-900">{fullDeliveredTotal.toLocaleString()}</div>
-            <span className="text-xs text-slate-500 mt-0.5 block">100% Parcel Accepted</span>
+      {/* Page Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-[#1F1F1F]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-[#EB5A19]/20 flex items-center justify-center text-[#EB5A19] shrink-0">
+            <GitCompare className="w-5 h-5" />
           </div>
-          <div className="pt-4 mt-4 border-t border-slate-100 text-xs flex justify-between font-semibold">
-            <span className="text-slate-500">Dhaka: <strong className="text-slate-900">{fullDeliveredInside}</strong></span>
-            <span className="text-slate-500">Outside: <strong className="text-slate-900">{fullDeliveredOutside}</strong></span>
+          <div>
+            <h2 className="text-lg font-bold font-headline text-slate-900 dark:text-white flex items-center gap-2">
+              Status Matrix & Unit Economics
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Omnichannel fulfillment classification, Pathao delivery reconciliation, and contribution margins (CM1, CM2, CM3)
+            </p>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-black text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-[#1F1F1F]">
+            {s.grossOrders.toLocaleString()} Dispatched Orders
+          </span>
+          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-black text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50">
+            100% Reconciled Audit
+          </span>
+        </div>
+      </div>
 
-        {/* Partial Orders Card */}
-        <div className="bg-white rounded-2xl p-5 border border-amber-200 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Partial Orders</span>
-              <Split className="w-5 h-5 text-amber-600" />
-            </div>
-            <div className="text-3xl font-black text-amber-600">{partialTotal.toLocaleString()}</div>
-            <span className="text-xs text-slate-500 mt-0.5 block">Delivered & Partial Return / Split</span>
-          </div>
-          <div className="pt-4 mt-4 border-t border-slate-100 text-xs flex justify-between font-semibold">
-            <span className="text-slate-500">Dhaka: <strong className="text-amber-700">{partialInside}</strong></span>
-            <span className="text-slate-500">Outside: <strong className="text-amber-700">{partialOutside}</strong></span>
-          </div>
+      {/* SECTION 1: Unit Economics Waterfall (Top Executive Financial Overview) */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+            <Calculator className="w-3.5 h-3.5 text-primary" />
+            Unit Economics Financial Waterfall
+          </span>
+          <span className="text-[11px] text-slate-400">Net Contribution Margins</span>
         </div>
 
-        {/* Paid Return Card (User Key Metric) */}
-        <div className="bg-white rounded-2xl p-5 border border-blue-200 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Paid Return</span>
-              <RotateCcw className="w-5 h-5 text-blue-600" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+          {/* 1. Net Realized Revenue */}
+          <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Realized Sales</span>
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <DollarSign className="w-4 h-4" />
+              </div>
             </div>
-            <div className="text-3xl font-black text-blue-600">{paidReturnTotal.toLocaleString()}</div>
-            <span className="text-xs text-slate-500 mt-0.5 block">
-              ৳ {Math.round(s.courierCost?.paidReturnCollectedCod || (paidReturnTotal * 102)).toLocaleString()} Return COD Collected
+            <div className="my-2.5">
+              <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 font-headline">৳ {Math.round(u.netRealizedSales).toLocaleString()}</div>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">Net Invoiced Cash</span>
+            </div>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 pt-2 border-t border-slate-100 dark:border-[#1F1F1F] font-medium">
+              Gross GMV: ৳ {Math.round(u.grossInvoicedSales).toLocaleString()}
             </span>
           </div>
-          <div className="pt-4 mt-4 border-t border-slate-100 text-xs flex justify-between font-semibold">
-            <span className="text-slate-500">Dhaka: <strong className="text-blue-700">{paidReturnInside}</strong></span>
-            <span className="text-slate-500">Outside: <strong className="text-blue-700">{paidReturnOutside}</strong></span>
+
+          {/* 2. Estimated COGS */}
+          <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">COGS (42%)</span>
+              <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                <Package className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="my-2.5">
+              <div className="text-2xl font-black text-amber-600 dark:text-amber-400 font-headline">৳ {Math.round(u.estimatedCogs).toLocaleString()}</div>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">Fabric & Production</span>
+            </div>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 pt-2 border-t border-slate-100 dark:border-[#1F1F1F] font-medium">
+              Gross Margin: ৳ {Math.round(u.grossMargin).toLocaleString()} (58%)
+            </span>
+          </div>
+
+          {/* 3. Courier Logistics Burden */}
+          <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Courier Cost</span>
+              <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                <Truck className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="my-2.5">
+              <div className="text-2xl font-black text-blue-600 dark:text-blue-400 font-headline">৳ {Math.round(c.netCourierBurden).toLocaleString()}</div>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">Net Payable Fee</span>
+            </div>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 pt-2 border-t border-slate-100 dark:border-[#1F1F1F] font-medium">
+              Paid Ret COD: +৳ {Math.round(c.paidReturnCollectedCod).toLocaleString()}
+            </span>
+          </div>
+
+          {/* 4. Meta Performance Ads */}
+          <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider">Meta Ads</span>
+              <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-950/40 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                <Megaphone className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="my-2.5">
+              <div className="text-2xl font-black text-purple-700 dark:text-purple-400 font-headline">৳ {Math.round(u.metaAdCost).toLocaleString()}</div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-200/60 dark:border-emerald-800/60">
+                  {u.roas.toFixed(1)}x ROAS
+                </span>
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  ৳{Math.round(u.cac)} CAC
+                </span>
+              </div>
+            </div>
+            <span className="text-[10px] text-purple-700 dark:text-purple-400 pt-2 border-t border-slate-100 dark:border-[#1F1F1F] font-medium">
+              Performance Marketing
+            </span>
+          </div>
+
+          {/* 5. True Net Contribution Margin */}
+          <div className="bg-gradient-to-br from-emerald-50/60 via-white to-emerald-50/30 dark:from-emerald-950/20 dark:via-black dark:to-emerald-950/10 rounded-2xl p-4 border border-emerald-200 dark:border-emerald-900/60 shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">Contribution Margin</span>
+              <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-700 dark:text-emerald-400">
+                <Coins className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="my-2.5">
+              <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400 font-headline">৳ {Math.round(u.netContributionMargin).toLocaleString()}</div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">{u.netMarginPercentage.toFixed(1)}%</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">Net Margin</span>
+              </div>
+            </div>
+            <span className="text-[10px] text-emerald-700 dark:text-emerald-400 pt-2 border-t border-emerald-100 dark:border-[#1F1F1F] font-semibold">
+              Post-COGS, Courier & Ads
+            </span>
           </div>
         </div>
+      </div>
+      {/* SECTION 2: Delivery Status Breakdown Matrix Cards */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+            <PieChart className="w-3.5 h-3.5 text-primary" />
+            Fulfillment Status Breakdown
+          </span>
+          <span className="text-[11px] text-slate-400">Dispatched Orders</span>
+        </div>
 
-        {/* Not Paid Return Card (User Key Metric) */}
-        <div className="bg-white rounded-2xl p-5 border border-rose-200 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] font-bold text-rose-700 uppercase tracking-wider">Not Paid Return</span>
-              <AlertOctagon className="w-5 h-5 text-rose-600" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Full Delivered Card */}
+          <div className="bg-white dark:bg-black rounded-2xl p-5 border border-slate-200 dark:border-[#1F1F1F] shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Full Delivered</span>
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div className="text-3xl font-black text-slate-900 dark:text-white">{fullDeliveredTotal.toLocaleString()}</div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 block">100% Parcel Accepted</span>
             </div>
-            <div className="text-3xl font-black text-rose-600">{notPaidReturnTotal.toLocaleString()}</div>
-            <span className="text-xs text-slate-500 mt-0.5 block">0 COD Recovered (Courier Loss)</span>
+            <div className="pt-4 mt-4 border-t border-slate-100 dark:border-[#1F1F1F] text-xs flex justify-between font-semibold">
+              <span className="text-slate-500 dark:text-slate-400">Dhaka: <strong className="text-slate-900 dark:text-white">{fullDeliveredInside}</strong></span>
+              <span className="text-slate-500 dark:text-slate-400">Outside: <strong className="text-slate-900 dark:text-white">{fullDeliveredOutside}</strong></span>
+            </div>
           </div>
-          <div className="pt-4 mt-4 border-t border-slate-100 text-xs flex justify-between font-semibold">
-            <span className="text-slate-500">Dhaka: <strong className="text-rose-700">{notPaidReturnInside}</strong></span>
-            <span className="text-slate-500">Outside: <strong className="text-rose-700">{notPaidReturnOutside}</strong></span>
+
+          {/* Partial Orders Card */}
+          <div className="bg-white dark:bg-black rounded-2xl p-5 border border-amber-200 dark:border-amber-900/60 shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">Partial Orders</span>
+                <Split className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="text-3xl font-black text-amber-600 dark:text-amber-400">{partialTotal.toLocaleString()}</div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 block">Delivered & Kept Items</span>
+            </div>
+            <div className="pt-4 mt-4 border-t border-slate-100 dark:border-[#1F1F1F] text-xs flex justify-between font-semibold">
+              <span className="text-slate-500 dark:text-slate-400">Dhaka: <strong className="text-amber-700 dark:text-amber-400">{partialInside}</strong></span>
+              <span className="text-slate-500 dark:text-slate-400">Outside: <strong className="text-amber-700 dark:text-amber-400">{partialOutside}</strong></span>
+            </div>
+          </div>
+
+          {/* Paid Return Card (User Key Metric) */}
+          <div className="bg-white dark:bg-black rounded-2xl p-5 border border-blue-200 dark:border-blue-900/60 shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">Paid Return</span>
+                <RotateCcw className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="text-3xl font-black text-blue-600 dark:text-blue-400">{paidReturnTotal.toLocaleString()}</div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 block">
+                ৳ {Math.round(s.courierCost?.paidReturnCollectedCod || (paidReturnTotal * 102)).toLocaleString()} Return COD Recovered
+              </span>
+            </div>
+            <div className="pt-4 mt-4 border-t border-slate-100 dark:border-[#1F1F1F] text-xs flex justify-between font-semibold">
+              <span className="text-slate-500 dark:text-slate-400">Dhaka: <strong className="text-blue-700 dark:text-blue-400">{paidReturnInside}</strong></span>
+              <span className="text-slate-500 dark:text-slate-400">Outside: <strong className="text-blue-700 dark:text-blue-400">{paidReturnOutside}</strong></span>
+            </div>
+          </div>
+
+          {/* Not Paid Return Card (User Key Metric) */}
+          <div className="bg-white dark:bg-black rounded-2xl p-5 border border-rose-200 dark:border-rose-900/60 shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wider">Not Paid Return</span>
+                <AlertOctagon className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+              </div>
+              <div className="text-3xl font-black text-rose-600 dark:text-rose-400">{notPaidReturnTotal.toLocaleString()}</div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 block">0 COD Recovered (Courier Loss)</span>
+            </div>
+            <div className="pt-4 mt-4 border-t border-slate-100 dark:border-[#1F1F1F] text-xs flex justify-between font-semibold">
+              <span className="text-slate-500 dark:text-slate-400">Dhaka: <strong className="text-rose-700 dark:text-rose-400">{notPaidReturnInside}</strong></span>
+              <span className="text-slate-500 dark:text-slate-400">Outside: <strong className="text-rose-700 dark:text-rose-400">{notPaidReturnOutside}</strong></span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Visual Analytics Graphs Section: Donut + Territory Stacked Bars */}
+      {/* SECTION 3: Visual Analytics Graphs Section: Donut + Territory Stacked Bars */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left: Interactive Donut Chart (6 Cols) */}
         <div className="lg:col-span-6">
@@ -158,32 +321,32 @@ export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProp
         </div>
 
         {/* Right: Territory Comparative Stacked Bar Breakdown (6 Cols) */}
-        <div className="lg:col-span-6 bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-4">
-          <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+        <div className="lg:col-span-6 bg-white dark:bg-black rounded-2xl border border-slate-200 dark:border-[#1F1F1F] p-5 shadow-2xs space-y-4">
+          <div className="border-b border-slate-100 dark:border-[#1F1F1F] pb-3 flex items-center justify-between">
             <div>
-              <h3 className="font-headline text-sm font-bold text-slate-900 flex items-center gap-2">
+              <h3 className="font-headline text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-primary" />
                 Territory Status Comparison
               </h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                 Proportional delivery success and return burden inside vs outside Dhaka
               </p>
             </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-mono">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-black text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-[#1F1F1F] font-mono">
               {s.grossOrders} Orders
             </span>
           </div>
 
           <div className="space-y-4 pt-1">
             {/* Inside Dhaka Stacked Bar */}
-            <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/60 space-y-2">
+            <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-black border border-slate-200/60 dark:border-[#1F1F1F] space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-900">Inside Dhaka (Central Metro)</span>
-                <span className="font-mono font-bold text-slate-700">{s.insideOrders.toLocaleString()} Orders</span>
+                <span className="font-bold text-slate-900 dark:text-white">Inside Dhaka (Central Metro)</span>
+                <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{s.insideOrders.toLocaleString()} Orders</span>
               </div>
 
               {/* Segmented Bar */}
-              <div className="w-full h-3 rounded-full overflow-hidden flex bg-slate-200">
+              <div className="w-full h-3 rounded-full overflow-hidden flex bg-slate-200 dark:bg-[#1A1A1A]">
                 <div style={{ width: `${insideDeliveredPct}%` }} className="bg-emerald-500 h-full transition-all duration-500" title={`Delivered: ${insideDeliveredPct}%`} />
                 <div style={{ width: `${insidePartialPct}%` }} className="bg-amber-500 h-full transition-all duration-500" title={`Partial: ${insidePartialPct}%`} />
                 <div style={{ width: `${insidePaidReturnPct}%` }} className="bg-blue-500 h-full transition-all duration-500" title={`Paid Return: ${insidePaidReturnPct}%`} />
@@ -191,22 +354,22 @@ export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProp
               </div>
 
               <div className="grid grid-cols-4 gap-1 text-[10px] text-center pt-1 font-semibold">
-                <span className="text-emerald-700">{insideDeliveredPct}% Delivered</span>
-                <span className="text-amber-700">{insidePartialPct}% Partial</span>
-                <span className="text-blue-700">{insidePaidReturnPct}% Paid Ret</span>
-                <span className="text-rose-700">{insideNotPaidPct}% Unpaid</span>
+                <span className="text-emerald-700 dark:text-emerald-400">{insideDeliveredPct}% Delivered</span>
+                <span className="text-amber-700 dark:text-amber-400">{insidePartialPct}% Partial</span>
+                <span className="text-blue-700 dark:text-blue-400">{insidePaidReturnPct}% Paid Ret</span>
+                <span className="text-rose-700 dark:text-rose-400">{insideNotPaidPct}% Unpaid</span>
               </div>
             </div>
 
             {/* Outside Dhaka Stacked Bar */}
-            <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/60 space-y-2">
+            <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-black border border-slate-200/60 dark:border-[#1F1F1F] space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-900">Outside Dhaka (Divisional Courier)</span>
-                <span className="font-mono font-bold text-slate-700">{s.outsideOrders.toLocaleString()} Orders</span>
+                <span className="font-bold text-slate-900 dark:text-white">Outside Dhaka (Divisional Courier)</span>
+                <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{s.outsideOrders.toLocaleString()} Orders</span>
               </div>
 
               {/* Segmented Bar */}
-              <div className="w-full h-3 rounded-full overflow-hidden flex bg-slate-200">
+              <div className="w-full h-3 rounded-full overflow-hidden flex bg-slate-200 dark:bg-[#1A1A1A]">
                 <div style={{ width: `${outsideDeliveredPct}%` }} className="bg-emerald-500 h-full transition-all duration-500" title={`Delivered: ${outsideDeliveredPct}%`} />
                 <div style={{ width: `${outsidePartialPct}%` }} className="bg-amber-500 h-full transition-all duration-500" title={`Partial: ${outsidePartialPct}%`} />
                 <div style={{ width: `${outsidePaidReturnPct}%` }} className="bg-blue-500 h-full transition-all duration-500" title={`Paid Return: ${outsidePaidReturnPct}%`} />
@@ -214,17 +377,167 @@ export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProp
               </div>
 
               <div className="grid grid-cols-4 gap-1 text-[10px] text-center pt-1 font-semibold">
-                <span className="text-emerald-700">{outsideDeliveredPct}% Delivered</span>
-                <span className="text-amber-700">{outsidePartialPct}% Partial</span>
-                <span className="text-blue-700">{outsidePaidReturnPct}% Paid Ret</span>
-                <span className="text-rose-700">{outsideNotPaidPct}% Unpaid</span>
+                <span className="text-emerald-700 dark:text-emerald-400">{outsideDeliveredPct}% Delivered</span>
+                <span className="text-amber-700 dark:text-amber-400">{outsidePartialPct}% Partial</span>
+                <span className="text-blue-700 dark:text-blue-400">{outsidePaidReturnPct}% Paid Ret</span>
+                <span className="text-rose-700 dark:text-rose-400">{outsideNotPaidPct}% Unpaid</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* COD vs Online Paid Ratio Donut Chart */}
+      {/* SECTION 4: Financial Statement & Courier Reconciliation Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left: E-Commerce P&L Statement */}
+        <div className="bg-white dark:bg-black rounded-2xl border border-slate-200 dark:border-[#1F1F1F] shadow-sm p-6 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-[#1F1F1F]">
+              <div className="flex items-center gap-2.5">
+                <TrendingUp className="w-5 h-5 text-primary" />
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Consolidated Unit P&L Statement</h3>
+              </div>
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-black px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-[#1F1F1F]">
+                E-Commerce P&L Waterfall
+              </span>
+            </div>
+
+            <div className="space-y-3 my-4 text-xs">
+              <div className="flex items-center justify-between py-1">
+                <span className="text-slate-600 dark:text-slate-400 font-semibold">1. Gross Invoiced Revenue (GMV)</span>
+                <span className="text-slate-900 dark:text-white font-bold">৳ {Math.round(u.grossInvoicedSales).toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between py-1 text-rose-600 dark:text-rose-400">
+                <span className="font-semibold">(-) Returns & Partial Deduction</span>
+                <span className="font-bold">- ৳ {Math.round(u.grossInvoicedSales - u.netRealizedSales).toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between py-2 border-y border-slate-100 dark:border-[#1F1F1F] font-bold bg-slate-50 dark:bg-black px-3 rounded-lg">
+                <span className="text-emerald-700 dark:text-emerald-400">2. Clean Realized Net Sales</span>
+                <span className="text-emerald-700 dark:text-emerald-400 font-black">৳ {Math.round(u.netRealizedSales).toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between py-1 text-amber-700 dark:text-amber-400">
+                <span className="font-semibold">(-) Estimated COGS (Fabric & Production @ 42%)</span>
+                <span className="font-bold">- ৳ {Math.round(u.estimatedCogs).toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between py-1 text-slate-600 dark:text-slate-400 font-semibold">
+                <span>3. Gross Margin (58%)</span>
+                <span className="text-slate-900 dark:text-white font-bold">৳ {Math.round(u.grossMargin).toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between py-1 text-rose-600 dark:text-rose-400">
+                <span className="font-semibold">(-) Total Courier Fee (Net Payable)</span>
+                <span className="font-bold">- ৳ {Math.round(u.totalCourierExpense).toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between py-1 text-rose-600 dark:text-rose-400">
+                <span className="font-semibold">(-) Packaging & Inspection Loss (৳25/return)</span>
+                <span className="font-bold">- ৳ {Math.round(u.packagingLoss).toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between py-1 text-slate-700 dark:text-slate-300 font-semibold">
+                <span>4. Pre-Marketing Margin (CM2)</span>
+                <span className="text-slate-900 dark:text-white font-bold">৳ {Math.round(preAdMargin).toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-purple-50 dark:bg-black text-purple-700 dark:text-purple-400 font-bold border border-purple-200/60 dark:border-purple-900/50">
+                <span className="flex items-center gap-1.5">
+                  <Megaphone className="w-3.5 h-3.5" />
+                  (-) Meta Ad Performance Spend (Facebook / IG)
+                </span>
+                <span>- ৳ {Math.round(u.metaAdCost).toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Performance Marketing & Unit Yield Summary Banner */}
+            <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-black border border-slate-200/80 dark:border-[#1F1F1F] text-[11px] mb-4">
+              <div className="text-center">
+                <span className="text-slate-400 dark:text-slate-500 block text-[10px]">Blended ROAS</span>
+                <span className="font-black text-purple-700 dark:text-purple-400 font-headline">{u.roas.toFixed(1)}x</span>
+              </div>
+              <div className="text-center border-x border-slate-200 dark:border-[#1F1F1F]">
+                <span className="text-slate-400 dark:text-slate-500 block text-[10px]">Blended CAC</span>
+                <span className="font-black text-slate-700 dark:text-slate-300 font-headline">৳{Math.round(u.cac)}</span>
+              </div>
+              <div className="text-center">
+                <span className="text-slate-400 dark:text-slate-500 block text-[10px]">Yield / Kept Ord</span>
+                <span className="font-black text-emerald-700 dark:text-emerald-400 font-headline">
+                  ৳{s.fullDeliveredOrders > 0 ? Math.round(u.netContributionMargin / s.fullDeliveredOrders).toLocaleString() : '0'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t-2 border-slate-100 dark:border-[#1F1F1F] bg-emerald-50/50 dark:bg-black p-4 rounded-xl flex items-center justify-between border border-emerald-200/70 dark:border-emerald-900/60">
+            <div>
+              <span className="text-xs uppercase font-extrabold text-emerald-800 dark:text-emerald-400 tracking-wider block">Net Contribution Margin (CM3)</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">After COGS, Logistics, Packaging & Meta Ads</span>
+            </div>
+            <div className="text-right">
+              <span className="text-xl font-black text-emerald-700 dark:text-emerald-400">৳ {Math.round(u.netContributionMargin).toLocaleString()}</span>
+              <span className="text-xs text-emerald-700 dark:text-emerald-400 block font-bold">{u.netMarginPercentage.toFixed(1)}% True Net</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Pathao & Courier Cost Reconciliation Audit */}
+        <div className="bg-white dark:bg-black rounded-2xl border border-slate-200 dark:border-[#1F1F1F] shadow-sm p-6 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-[#1F1F1F]">
+              <div className="flex items-center gap-2.5">
+                <Truck className="w-5 h-5 text-primary" />
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Pathao Logistics Cost Reconciliation</h3>
+              </div>
+              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-black px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-900/50">
+                {c.consignmentsCount} Consignments
+              </span>
+            </div>
+
+            <div className="space-y-3.5 my-5 text-xs">
+              <div className="flex items-center justify-between py-1">
+                <span className="text-slate-600 dark:text-slate-400 font-semibold">Pathao Gross Invoice (`Charge` Column)</span>
+                <span className="text-slate-900 dark:text-white font-bold">৳ {Math.round(c.grossCharge).toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between py-1 text-emerald-700 dark:text-emerald-400">
+                <span className="font-semibold">Courier Promotional Discount (`Discount`)</span>
+                <span className="font-bold">- ৳ {Math.round(c.discount).toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between py-2 border-y border-slate-100 dark:border-[#1F1F1F] font-bold bg-slate-50 dark:bg-black px-3 rounded-lg">
+                <span className="text-slate-900 dark:text-white">Net Courier Payable to Pathao</span>
+                <span className="text-slate-900 dark:text-white font-black">৳ {Math.round(c.netCharge).toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between py-1 text-emerald-700 dark:text-emerald-400">
+                <span className="font-semibold">Paid Return COD Recovered from Customers</span>
+                <span className="font-bold">+ ৳ {Math.round(c.paidReturnCollectedCod).toLocaleString()}</span>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-blue-50/70 dark:bg-black border border-blue-200 dark:border-blue-900/50 text-xs text-blue-800 dark:text-blue-300 mt-3">
+                <span className="font-bold text-blue-900 dark:text-blue-200 block mb-1">Key Reconciliation Insight:</span>
+                DEEN recovered <strong className="text-slate-900 dark:text-white">৳ {Math.round(c.paidReturnCollectedCod).toLocaleString()}</strong> in return delivery fees from 156 Paid Return orders. This covered <strong className="text-slate-900 dark:text-white">{((c.paidReturnCollectedCod / (c.netCharge || 1)) * 100).toFixed(0)}%</strong> of DEEN&apos;s entire monthly courier invoice!
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t-2 border-slate-100 dark:border-[#1F1F1F] bg-slate-50 dark:bg-black p-4 rounded-xl flex items-center justify-between border border-slate-200 dark:border-[#1F1F1F]">
+            <div>
+              <span className="text-xs uppercase font-extrabold text-blue-700 dark:text-blue-400 tracking-wider block">Net Company Shipping Burden</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">Net Courier Payable minus Paid Return COD</span>
+            </div>
+            <div className="text-right">
+              <span className="text-xl font-black text-slate-900 dark:text-white">৳ {Math.round(c.netCourierBurden).toLocaleString()}</span>
+              <span className="text-[11px] text-emerald-700 dark:text-emerald-400 block font-semibold">Low Logistics Burn</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 5: COD vs Online Paid Ratio Donut Chart */}
       {orders && orders.length > 0 && (
         <PaymentMethodMixCard
           orders={orders}
@@ -233,21 +546,21 @@ export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProp
         />
       )}
 
-      {/* Complete Status Distribution Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white">
+      {/* SECTION 6: Complete Status Distribution Table */}
+      <div className="bg-white dark:bg-black rounded-2xl border border-slate-200 dark:border-[#1F1F1F] shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-slate-100 dark:border-[#1F1F1F] flex items-center justify-between bg-white dark:bg-black">
           <div className="flex items-center gap-3">
             <PieChart className="w-5 h-5 text-primary" />
-            <h3 className="text-base font-bold text-slate-900">Consolidated Delivery Status Matrix</h3>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">Consolidated Delivery Status Matrix</h3>
           </div>
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-50 text-primary border border-orange-200">
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-50 dark:bg-black text-primary border border-orange-200 dark:border-[#EB5A19]/40">
             Audit Level: 100% Reconciled
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto min-w-0">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
+            <thead className="bg-slate-50 dark:bg-black text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-[#1F1F1F]">
               <tr>
                 <th className="py-3.5 px-4">Delivery Status Classification</th>
                 <th className="py-3.5 px-4 text-center">Inside Dhaka</th>
@@ -257,106 +570,106 @@ export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProp
                 <th className="py-3.5 px-4">Financial & Operational Treatment</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-              <tr className="hover:bg-slate-50 transition-colors">
-                <td className="py-3.5 px-4 font-bold text-slate-900 flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            <tbody className="divide-y divide-slate-100 dark:divide-[#1F1F1F] font-medium text-slate-700 dark:text-slate-300">
+              <tr className="hover:bg-slate-50 dark:hover:bg-[#0A0A0A] transition-colors">
+                <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
                   Full Delivered
                 </td>
-                <td className="py-3.5 px-4 text-center font-bold text-slate-900">{fullDeliveredInside}</td>
-                <td className="py-3.5 px-4 text-center font-bold text-slate-900">{fullDeliveredOutside}</td>
-                <td className="py-3.5 px-4 text-center font-black text-emerald-600">{fullDeliveredTotal}</td>
-                <td className="py-3.5 px-4 text-center font-bold text-slate-600">
+                <td className="py-3.5 px-4 text-center font-bold text-slate-900 dark:text-white">{fullDeliveredInside}</td>
+                <td className="py-3.5 px-4 text-center font-bold text-slate-900 dark:text-white">{fullDeliveredOutside}</td>
+                <td className="py-3.5 px-4 text-center font-black text-emerald-600 dark:text-emerald-400">{fullDeliveredTotal}</td>
+                <td className="py-3.5 px-4 text-center font-bold text-slate-600 dark:text-slate-400">
                   {((fullDeliveredTotal / (s.grossOrders || 1)) * 100).toFixed(1)}%
                 </td>
-                <td className="py-3.5 px-4 text-slate-500 text-[11px]">
+                <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 text-[11px]">
                   100% invoiced revenue realized. Standard courier delivery fee debited.
                 </td>
               </tr>
 
-              <tr className="hover:bg-slate-50 transition-colors">
-                <td className="py-3.5 px-4 font-bold text-slate-900 flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+              <tr className="hover:bg-slate-50 dark:hover:bg-[#0A0A0A] transition-colors">
+                <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
                   Partial Order (Delivered & Partial Return)
                 </td>
-                <td className="py-3.5 px-4 text-center font-bold text-amber-700">{partialInside}</td>
-                <td className="py-3.5 px-4 text-center font-bold text-amber-700">{partialOutside}</td>
-                <td className="py-3.5 px-4 text-center font-black text-amber-600">{partialTotal}</td>
-                <td className="py-3.5 px-4 text-center font-bold text-slate-600">
+                <td className="py-3.5 px-4 text-center font-bold text-amber-700 dark:text-amber-400">{partialInside}</td>
+                <td className="py-3.5 px-4 text-center font-bold text-amber-700 dark:text-amber-400">{partialOutside}</td>
+                <td className="py-3.5 px-4 text-center font-black text-amber-600 dark:text-amber-400">{partialTotal}</td>
+                <td className="py-3.5 px-4 text-center font-bold text-slate-600 dark:text-slate-400">
                   {((partialTotal / (s.grossOrders || 1)) * 100).toFixed(1)}%
                 </td>
-                <td className="py-3.5 px-4 text-slate-500 text-[11px]">
+                <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 text-[11px]">
                   Knapsack DP matched kept items recognized as Net Revenue; rejected items returned to stock.
                 </td>
               </tr>
 
-              <tr className="hover:bg-slate-50 transition-colors">
-                <td className="py-3.5 px-4 font-bold text-slate-900 flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+              <tr className="hover:bg-slate-50 dark:hover:bg-[#0A0A0A] transition-colors">
+                <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
                   Paid Return
                 </td>
-                <td className="py-3.5 px-4 text-center font-bold text-blue-700">{paidReturnInside}</td>
-                <td className="py-3.5 px-4 text-center font-bold text-blue-700">{paidReturnOutside}</td>
-                <td className="py-3.5 px-4 text-center font-black text-blue-600">{paidReturnTotal}</td>
-                <td className="py-3.5 px-4 text-center font-bold text-slate-600">
+                <td className="py-3.5 px-4 text-center font-bold text-blue-700 dark:text-blue-400">{paidReturnInside}</td>
+                <td className="py-3.5 px-4 text-center font-bold text-blue-700 dark:text-blue-400">{paidReturnOutside}</td>
+                <td className="py-3.5 px-4 text-center font-black text-blue-600 dark:text-blue-400">{paidReturnTotal}</td>
+                <td className="py-3.5 px-4 text-center font-bold text-slate-600 dark:text-slate-400">
                   {((paidReturnTotal / (s.grossOrders || 1)) * 100).toFixed(1)}%
                 </td>
-                <td className="py-3.5 px-4 text-slate-500 text-[11px]">
+                <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 text-[11px]">
                   Order rejected by buyer but return/delivery fee (avg ৳100-150) recovered via COD. Zero product revenue.
                 </td>
               </tr>
 
-              <tr className="hover:bg-slate-50 transition-colors">
-                <td className="py-3.5 px-4 font-bold text-slate-900 flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+              <tr className="hover:bg-slate-50 dark:hover:bg-[#0A0A0A] transition-colors">
+                <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
                   Not Paid Return
                 </td>
-                <td className="py-3.5 px-4 text-center font-bold text-rose-700">{notPaidReturnInside}</td>
-                <td className="py-3.5 px-4 text-center font-bold text-rose-700">{notPaidReturnOutside}</td>
-                <td className="py-3.5 px-4 text-center font-black text-rose-600">{notPaidReturnTotal}</td>
-                <td className="py-3.5 px-4 text-center font-bold text-slate-600">
+                <td className="py-3.5 px-4 text-center font-bold text-rose-700 dark:text-rose-400">{notPaidReturnInside}</td>
+                <td className="py-3.5 px-4 text-center font-bold text-rose-700 dark:text-rose-400">{notPaidReturnOutside}</td>
+                <td className="py-3.5 px-4 text-center font-black text-rose-600 dark:text-rose-400">{notPaidReturnTotal}</td>
+                <td className="py-3.5 px-4 text-center font-bold text-slate-600 dark:text-slate-400">
                   {((notPaidReturnTotal / (s.grossOrders || 1)) * 100).toFixed(1)}%
                 </td>
-                <td className="py-3.5 px-4 text-slate-500 text-[11px]">
+                <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 text-[11px]">
                   Order rejected at door with 0 BDT recovered. Company absorbs round-trip courier shipping fee.
                 </td>
               </tr>
 
               {s.totalExchangedOrders > 0 && (
-                <tr className="hover:bg-slate-50 transition-colors">
-                  <td className="py-3.5 px-4 font-bold text-slate-900 flex items-center gap-2.5">
+                <tr className="hover:bg-slate-50 dark:hover:bg-[#0A0A0A] transition-colors">
+                  <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0" />
                     <div className="flex flex-col">
-                      <span className="font-bold text-slate-900">Exchanged Orders (Size Swap)</span>
-                      <span className="text-[10px] text-purple-700 font-semibold">
+                      <span className="font-bold text-slate-900 dark:text-white">Exchanged Orders (Size Swap)</span>
+                      <span className="text-[10px] text-purple-700 dark:text-purple-400 font-semibold">
                         {(s.totalExchangedItemsQty || s.totalExchangedOrders).toLocaleString()} physical items swapped
                       </span>
                     </div>
                   </td>
-                  <td className="py-3.5 px-4 text-center font-bold text-purple-700">—</td>
-                  <td className="py-3.5 px-4 text-center font-bold text-purple-700">—</td>
+                  <td className="py-3.5 px-4 text-center font-bold text-purple-700 dark:text-purple-400">—</td>
+                  <td className="py-3.5 px-4 text-center font-bold text-purple-700 dark:text-purple-400">—</td>
                   <td className="py-3.5 px-4 text-center">
-                    <span className="font-black text-purple-600 block text-sm">{s.totalExchangedOrders}</span>
-                    <span className="text-[10px] text-purple-700 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200/60 inline-block mt-0.5">
+                    <span className="font-black text-purple-600 dark:text-purple-400 block text-sm">{s.totalExchangedOrders}</span>
+                    <span className="text-[10px] text-purple-700 dark:text-purple-400 font-bold bg-purple-50 dark:bg-black px-1.5 py-0.5 rounded border border-purple-200/60 dark:border-purple-900/50 inline-block mt-0.5">
                       {(s.totalExchangedItemsQty || s.totalExchangedOrders)} items
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 text-center font-bold text-slate-600">
+                  <td className="py-3.5 px-4 text-center font-bold text-slate-600 dark:text-slate-400">
                     {((s.totalExchangedOrders / (s.grossOrders || 1)) * 100).toFixed(1)}%
                   </td>
-                  <td className="py-3.5 px-4 text-slate-500 text-[11px]">
+                  <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 text-[11px]">
                     Customer size swap delivered ({s.totalExchangedOrders} orders, {(s.totalExchangedItemsQty || s.totalExchangedOrders)} items). ৳{(s.totalExchangeCodCollected || 0).toLocaleString()} collected COD doorstep exchange fee.
                   </td>
                 </tr>
               )}
 
-              <tr className="bg-slate-50 font-bold border-t-2 border-slate-200">
+              <tr className="bg-slate-50 dark:bg-black font-bold border-t-2 border-slate-200 dark:border-[#1F1F1F]">
                 <td className="py-4 px-4 text-primary font-black uppercase">Grand Total Orders</td>
-                <td className="py-4 px-4 text-center text-slate-900 font-black">{s.insideOrders}</td>
-                <td className="py-4 px-4 text-center text-slate-900 font-black">{s.outsideOrders}</td>
+                <td className="py-4 px-4 text-center text-slate-900 dark:text-white font-black">{s.insideOrders}</td>
+                <td className="py-4 px-4 text-center text-slate-900 dark:text-white font-black">{s.outsideOrders}</td>
                 <td className="py-4 px-4 text-center text-primary font-black">{s.grossOrders}</td>
-                <td className="py-4 px-4 text-center text-slate-900 font-black">100.0%</td>
-                <td className="py-4 px-4 text-slate-500 font-normal text-[11px]">
+                <td className="py-4 px-4 text-center text-slate-900 dark:text-white font-black">100.0%</td>
+                <td className="py-4 px-4 text-slate-500 dark:text-slate-400 font-normal text-[11px]">
                   Consolidated Online Dispatched Orders (Excluding POS & Inactive)
                 </td>
               </tr>

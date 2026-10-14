@@ -128,12 +128,12 @@ describe('Adversarial & Empirical Challenge: Milestone M1 (Multi-Device Navigati
   // SECTION 3: ACTIVE TAB HIGHLIGHTING & STATE / COOKIE SYNCHRONIZATION
   // =========================================================================
   describe('3. Active Tab Highlighting & State/Cookie Synchronization', () => {
-    it('3.1 MobileBottomNav: Exactly defines 4 primary tabs (Overview, Orders, Returns, Sync) + More trigger', () => {
+    it('3.1 MobileBottomNav: Exactly defines 4 primary tabs (Overview, Territory, Ad Analytics, Status Matrix) + More trigger', () => {
       expect(mobileNavCode).toContain("activeTab === 'tabExecutive'");
-      expect(mobileNavCode).toContain("activeTab === 'tabOrders'");
-      expect(mobileNavCode).toContain("activeTab === 'tabItemReturns'");
-      expect(mobileNavCode).toContain("activeTab === 'tabSettings'");
-      expect(mobileNavCode).toContain("const primaryTabIds = ['tabExecutive', 'tabOrders', 'tabItemReturns', 'tabSettings'];");
+      expect(mobileNavCode).toContain("activeTab === 'tabTerritory'");
+      expect(mobileNavCode).toContain("activeTab === 'tabMarketingAnalytics'");
+      expect(mobileNavCode).toContain("activeTab === 'tabStatus'");
+      expect(mobileNavCode).toContain("const primaryTabIds = ['tabExecutive', 'tabTerritory', 'tabMarketingAnalytics', 'tabStatus'];");
       expect(mobileNavCode).toContain("const isExtendedModuleActive = !primaryTabIds.includes(activeTab);");
     });
 
