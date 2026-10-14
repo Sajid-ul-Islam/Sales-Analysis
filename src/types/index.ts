@@ -100,8 +100,11 @@ export interface UnitEconomics {
   grossMargin: number;
   totalCourierExpense: number;
   packagingLoss: number; // ৳25 per return order
-  netContributionMargin: number;
+  metaAdCost: number; // Total Meta (Facebook & Instagram) performance marketing spend
+  netContributionMargin: number; // Bottom-line cash yield after COGS, Courier, Packaging & Meta Ads
   netMarginPercentage: number;
+  roas: number; // Blended Return on Ad Spend (Realized Net Sales / Meta Ad Spend)
+  cac: number; // Blended Customer Acquisition Cost per delivered order
 }
 
 export interface SummaryAnalytics {
@@ -148,6 +151,13 @@ export interface SummaryAnalytics {
   totalExchangeCourierExpense: number;
   pathaoDeliveryCount?: number;
   pathaoMatchedOrdersCount?: number;
+}
+
+export interface SummaryMetrics extends SummaryAnalytics {
+  totalOrderValue?: number;
+  deliveredOrdersCount?: number;
+  totalOrders?: number;
+  totalCourierLoss?: number;
 }
 
 export interface PathaoDeliveryRow {

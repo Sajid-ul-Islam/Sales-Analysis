@@ -22,6 +22,7 @@ export interface IngestionOptions {
   packagingCost?: number;
   cogsPercent?: number;
   exactTolerance?: number;
+  metaAdCost?: number;
 }
 
 export interface ReconciliationResult {
@@ -223,6 +224,7 @@ export function runReconciliationEngine(
   const outsideFee = options.outsideDeliveryFee !== undefined ? options.outsideDeliveryFee : 90;
   const packagingFee = options.packagingCost !== undefined ? options.packagingCost : 25;
   const exactTol = options.exactTolerance !== undefined ? options.exactTolerance : 2.0;
+  const metaAdCost = options.metaAdCost !== undefined ? options.metaAdCost : 150000;
 
   interface PathaoDeliveryEntry {
     rawMerchantId: string;
@@ -1183,12 +1185,15 @@ export function runReconciliationEngine(
     netCourierCostAfterDeliveryFee: finalCourierNet - customerDeliveryFeeCollected
   };
 
-  // Unit Economics: Dynamic COGS %, Courier, and Packaging Loss
+  // Unit Economics: Dynamic COGS %, Courier, Packaging Loss, and Meta Performance Ads
   const estimatedCogs = netDeliveredRevenue * cogsRate;
   const grossMargin = netDeliveredRevenue - estimatedCogs;
   const packagingLoss = (fullReturnedOrders + partialOrders) * packagingFee; // unboxing depreciation
-  const netContributionMargin = grossMargin - courierCost.netCharge - packagingLoss + courierCost.paidReturnCollectedCod;
+  const preAdContributionMargin = grossMargin - courierCost.netCharge - packagingLoss + courierCost.paidReturnCollectedCod;
+  const netContributionMargin = preAdContributionMargin - metaAdCost;
   const netMarginPercentage = netDeliveredRevenue > 0 ? (netContributionMargin / netDeliveredRevenue) * 100 : 0;
+  const roas = metaAdCost > 0 ? netDeliveredRevenue / metaAdCost : 0;
+  const cac = fullDeliveredOrders > 0 ? metaAdCost / fullDeliveredOrders : 0;
 
   const unitEconomics: UnitEconomics = {
     grossInvoicedSales: grossRevenue,
@@ -1197,8 +1202,11 @@ export function runReconciliationEngine(
     grossMargin,
     totalCourierExpense: courierCost.netCharge,
     packagingLoss,
+    metaAdCost,
     netContributionMargin,
-    netMarginPercentage
+    netMarginPercentage,
+    roas,
+    cac
   };
 
   // Assemble Exchanged Orders List and Cross-check against Order Ledger

@@ -12,7 +12,8 @@ import {
   CheckCircle2,
   FileSpreadsheet,
   Cloud,
-  Settings
+  Settings,
+  Menu
 } from 'lucide-react';
 import { DateScope, DateScopeCounts } from '@/lib/dateFilter';
 
@@ -30,6 +31,7 @@ export interface HeaderProps {
   onDateScopeChange?: (scope: DateScope) => void;
   dateScopeCounts?: DateScopeCounts;
   dateScopeSubLabel?: string;
+  onToggleMobileMenu?: () => void;
 }
 
 export function Header({
@@ -45,7 +47,8 @@ export function Header({
   activeDateScope,
   onDateScopeChange,
   dateScopeCounts,
-  dateScopeSubLabel
+  dateScopeSubLabel,
+  onToggleMobileMenu
 }: HeaderProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const searchRef = React.useRef<HTMLInputElement>(null);
@@ -70,17 +73,28 @@ export function Header({
   }, []);
 
   return (
-    <header className="sticky top-0 h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6 shrink-0 z-20 shadow-xs">
-      {/* Search Input Bar with ⌘K shortcut */}
-      <div className="flex items-center gap-4 flex-1 max-w-md">
-        <div className="relative w-full">
+    <header className="sticky top-0 h-16 border-b border-slate-200 bg-white flex items-center justify-between px-3 sm:px-6 shrink-0 z-20 shadow-xs">
+      {/* Search Input Bar with Mobile Menu Toggle & ⌘K shortcut */}
+      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 mr-2 sm:mr-4">
+        {onToggleMobileMenu && (
+          <button
+            type="button"
+            onClick={onToggleMobileMenu}
+            className="lg:hidden p-2 text-slate-600 hover:text-navy-deep hover:bg-slate-100 rounded-lg transition-colors shrink-0"
+            aria-label="Toggle navigation menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
+        <div className="relative w-full max-w-xs sm:max-w-md">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
+            ref={searchRef}
             type="text"
             value={searchTerm}
             onChange={handleSearchChange}
-            placeholder="Search orders, SKU code, manifest ID, or customer..."
-            className="w-full pl-9 pr-12 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white text-xs border border-slate-200 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-800"
+            placeholder="Search order, SKU, phone, customer..."
+            className="w-full pl-9 pr-8 sm:pr-12 py-1.5 sm:py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white text-xs border border-slate-200 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-800"
           />
           <kbd className="hidden sm:inline-block absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 bg-white border border-slate-200 rounded shadow-2xs">
             ⌘K
@@ -89,7 +103,7 @@ export function Header({
       </div>
 
       {/* Header Tools & Indicators */}
-      <div className="flex items-center gap-2.5 sm:gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
         {/* Distinct Data Source Switcher: Uploaded Spreadsheets vs WooCommerce & Pathao API */}
         <div className="flex items-center p-1 bg-slate-100/90 rounded-xl border border-slate-200 shadow-2xs">
           <button
@@ -182,10 +196,12 @@ export function Header({
         <button
           onClick={onExport}
           disabled={!hasData}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-hover disabled:opacity-40 text-white font-headline text-xs font-bold shadow-sm shadow-primary/20 transition-all active:scale-95"
+          className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-hover disabled:opacity-40 text-white font-headline text-xs font-bold shadow-sm shadow-primary/20 transition-all active:scale-95"
+          title="Export Reconciled Dataset to Excel (.xlsx)"
         >
           <Download className="w-3.5 h-3.5" />
-          <span>Export .XLSX</span>
+          <span className="hidden sm:inline">Export .XLSX</span>
+          <span className="sm:hidden">Export</span>
         </button>
 
         {/* Settings & Custom Themes Button */}
@@ -199,19 +215,18 @@ export function Header({
           </button>
         )}
 
-        {/* User Account Pill with Actual Deen Logo */}
+        {/* User Account Avatar */}
         <div className="flex items-center pl-2 border-l border-slate-200">
-          <div
+          <button
+            type="button"
             onClick={onOpenSettings}
-            className="w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-2xs ring-1 ring-slate-200 aspect-square cursor-pointer hover:ring-primary transition-all"
-            title="Settings & Account"
+            className="relative w-8 h-8 rounded-full bg-slate-900 hover:bg-primary text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs ring-1 ring-slate-200 hover:ring-primary/40 transition-all cursor-pointer group"
+            title="Account & System Settings"
+            aria-label="Account & System Settings"
           >
-            <img
-              src="/deencommerce_logo.jpg"
-              alt="DEEN Commerce"
-              className="w-full h-full object-cover"
-            />
-          </div>
+            <span className="font-headline tracking-tight text-[11px] group-hover:scale-105 transition-transform">AD</span>
+            <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+          </button>
         </div>
       </div>
     </header>

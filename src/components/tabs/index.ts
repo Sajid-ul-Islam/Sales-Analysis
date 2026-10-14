@@ -1,4 +1,5 @@
 export { ExecutiveOverviewTab } from './ExecutiveOverviewTab';
+export { MarketingAnalyticsTab } from './MarketingAnalyticsTab';
 export { CourierMismatchTab } from './CourierMismatchTab';
 export { TerritoryTab } from './TerritoryTab';
 export { StatusMatrixTab } from './StatusMatrixTab';

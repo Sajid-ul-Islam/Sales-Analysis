@@ -14,6 +14,7 @@ export interface AppSettings {
   packagingCost: number;
   cogsPercent: number;
   exactTolerance: number;
+  metaAdCost: number;
   excludeAugust: boolean;
   excludePOS: boolean;
 
@@ -49,6 +50,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   packagingCost: 25,
   cogsPercent: 42,
   exactTolerance: 2,
+  metaAdCost: 150000,
   excludeAugust: true,
   excludePOS: true,
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import {
   Sidebar,
@@ -20,6 +20,7 @@ import {
   ExchangedOrdersTab,
   OutletDispatchTab,
   OutletSalesTab,
+  MarketingAnalyticsTab,
   SettingsTab
 } from '@/components';
 import { runReconciliationEngine, ReconciliationResult } from '@/lib/reconciliationEngine';
@@ -28,7 +29,19 @@ import { loadSavedThemeSettings, applyThemeToDocument } from '@/lib/themeManager
 import { loadAppSettings } from '@/lib/settingsStore';
 import { DateScope, filterOrdersByDateScope } from '@/lib/dateFilter';
 import { RawOrderRow } from '@/types';
-import { RefreshCw, AlertCircle, CheckCircle2, UploadCloud } from 'lucide-react';
+import { RefreshCw, AlertCircle, CheckCircle2, UploadCloud, Database } from 'lucide-react';
+import {
+  getCookie,
+  setCookie,
+  DEEN_COOKIE_KEYS,
+  getOrCreateSessionId
+} from '@/lib/cookieManager';
+import {
+  setCacheItem,
+  getCacheItem,
+  removeCacheItem,
+  DEEN_CACHE_KEYS
+} from '@/lib/cacheManager';
 
 export type DataSourceMode = 'UPLOAD' | 'API';
 
@@ -50,15 +63,42 @@ export default function DashboardPage() {
   const [returnFile, setReturnFile] = useState<File | null>(null);
   const [partialFile, setPartialFile] = useState<File | null>(null);
   const [exchangeFile, setExchangeFile] = useState<File | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleKpiCardClick = (target: string, statusFilter?: string, territoryFilter?: string) => {
     setLedgerStatusFilter(statusFilter || 'ALL');
     setLedgerTerritoryFilter(territoryFilter || 'ALL');
     setActiveTab(target);
+    setCookie(DEEN_COOKIE_KEYS.ACTIVE_TAB, target, { days: 30 });
     const tabEl = document.getElementById('mainTabSection');
     if (tabEl) {
       tabEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+  };
+
+  const handleSelectTab = (target: string) => {
+    setActiveTab(target);
+    setCookie(DEEN_COOKIE_KEYS.ACTIVE_TAB, target, { days: 30 });
+  };
+
+  const handleDateScopeChange = (range: DateScope) => {
+    setDateScope(range);
+    setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, range, { days: 30 });
+  };
+
+  const handleToggleExcludeAugust = (val: boolean) => {
+    setExcludeAugust(val);
+    setCookie(DEEN_COOKIE_KEYS.EXCLUDE_AUGUST, String(val), { days: 30 });
+  };
+
+  const handleToggleExcludePOS = (val: boolean) => {
+    setExcludePOS(val);
+    setCookie(DEEN_COOKIE_KEYS.EXCLUDE_POS, String(val), { days: 30 });
+  };
+
+  const handleResetBaseline = () => {
+    removeCacheItem(DEEN_CACHE_KEYS.ACTIVE_DATASET);
+    loadPreloadedSeptemberData(true);
   };
 
   const [rawOrders, setRawOrders] = useState<RawOrderRow[]>([]);
@@ -96,6 +136,7 @@ export default function DashboardPage() {
   const [packagingCost, setPackagingCost] = useState<number>(25);
   const [cogsPercent, setCogsPercent] = useState<number>(42);
   const [exactTolerance, setExactTolerance] = useState<number>(2);
+  const [metaAdCost, setMetaAdCost] = useState<number>(150000);
 
   // Helper to re-run reconciliation engine whenever raw data or filter toggles change
   const computeReconciliation = useCallback((
@@ -110,7 +151,8 @@ export default function DashboardPage() {
     customOutsideFee?: number,
     customPackagingCost?: number,
     customCogsPercent?: number,
-    customExactTolerance?: number
+    customExactTolerance?: number,
+    customMetaAdCost?: number
   ) => {
     if (!orders.length) {
       if (rawOrders.length > 0) {
@@ -122,7 +164,8 @@ export default function DashboardPage() {
             outsideDeliveryFee: customOutsideFee !== undefined ? customOutsideFee : outsideDeliveryFee,
             packagingCost: customPackagingCost !== undefined ? customPackagingCost : packagingCost,
             cogsPercent: customCogsPercent !== undefined ? customCogsPercent : cogsPercent,
-            exactTolerance: customExactTolerance !== undefined ? customExactTolerance : exactTolerance
+            exactTolerance: customExactTolerance !== undefined ? customExactTolerance : exactTolerance,
+            metaAdCost: customMetaAdCost !== undefined ? customMetaAdCost : metaAdCost
           }, exchanges, pathaoDelivery);
           setResult(res);
         } catch {}
@@ -137,19 +180,51 @@ export default function DashboardPage() {
         outsideDeliveryFee: customOutsideFee !== undefined ? customOutsideFee : outsideDeliveryFee,
         packagingCost: customPackagingCost !== undefined ? customPackagingCost : packagingCost,
         cogsPercent: customCogsPercent !== undefined ? customCogsPercent : cogsPercent,
-        exactTolerance: customExactTolerance !== undefined ? customExactTolerance : exactTolerance
+        exactTolerance: customExactTolerance !== undefined ? customExactTolerance : exactTolerance,
+        metaAdCost: customMetaAdCost !== undefined ? customMetaAdCost : metaAdCost
       }, exchanges, pathaoDelivery);
       setResult(res);
     } catch (err: any) {
       console.error('Reconciliation execution error:', err);
       setStatusMessage(`Engine error: ${err.message}`);
     }
-  }, [insideDeliveryFee, outsideDeliveryFee, packagingCost, cogsPercent, exactTolerance]);
+  }, [insideDeliveryFee, outsideDeliveryFee, packagingCost, cogsPercent, exactTolerance, metaAdCost]);
 
-  // Fetch pre-loaded September workspace dataset from local API
-  const loadPreloadedSeptemberData = useCallback(async () => {
+  // Fetch pre-loaded September workspace dataset from local API or local cache
+  const loadPreloadedSeptemberData = useCallback(async (forceBypassCache = false) => {
     setIsProcessing(true);
     setStatusMessage('Loading September workspace Excel datasets...');
+
+    // 1. Instant recovery from local cache unless hard refresh is requested
+    if (!forceBypassCache) {
+      const cached = getCacheItem<DatasetSnapshot>(DEEN_CACHE_KEYS.ACTIVE_DATASET);
+      if (cached && cached.orders && cached.orders.length > 0) {
+        setUploadedDataset(cached);
+        setDataSourceMode('UPLOAD');
+        setRawOrders(cached.orders || []);
+        setRawPathaoDelivery(cached.pathaoDelivery || []);
+        setRawReturns(cached.returns || []);
+        setRawPartials(cached.partials || []);
+        setRawExchanges(cached.exchanges || []);
+        setDataSourceName(cached.sourceName || '📁 September Baseline (Cached)');
+        computeReconciliation(
+          cached.orders || [],
+          cached.returns || [],
+          cached.partials || [],
+          excludeAugust,
+          excludePOS,
+          cached.exchanges || [],
+          cached.pathaoDelivery || []
+        );
+        const pathaoInfo = (cached.pathaoDelivery || []).length ? `, ${cached.pathaoDelivery.length} Pathao delivery records` : '';
+        setStatusMessage(`⚡ Restored from Local Cache: ${cached.orders.length.toLocaleString()} orders${pathaoInfo}, ${cached.returns.length} returns, ${cached.partials.length} partials.`);
+        setIsProcessing(false);
+        setInitialLoading(false);
+        return;
+      }
+    }
+
+    // 2. Fetch baseline from local API and cache in browser memory
     try {
       const res = await fetch('/api/sample-data');
       const data = await res.json();
@@ -164,6 +239,10 @@ export default function DashboardPage() {
         };
         setUploadedDataset(snapshot);
         setDataSourceMode('UPLOAD');
+
+        // Persist to local cache with 7-day TTL
+        setCacheItem(DEEN_CACHE_KEYS.ACTIVE_DATASET, snapshot, { ttlMs: 7 * 24 * 3600 * 1000, tag: 'dataset' });
+        setCacheItem(DEEN_CACHE_KEYS.SAMPLE_BASELINE, snapshot, { tag: 'dataset' });
 
         setRawOrders(data.orders || []);
         setRawPathaoDelivery(data.pathaoDelivery || []);
@@ -181,7 +260,7 @@ export default function DashboardPage() {
           data.pathaoDelivery || []
         );
         const pathaoInfo = data.pathaoDeliveryCount ? `, ${data.pathaoDeliveryCount} Pathao delivery records` : '';
-        setStatusMessage(`Loaded baseline: ${data.ordersCount} orders${pathaoInfo}, ${data.returnsCount} returns, ${data.partialsCount} partials, ${data.exchangesCount || (data.exchanges || []).length} exchanges.`);
+        setStatusMessage(`Loaded and cached baseline: ${data.ordersCount} orders${pathaoInfo}, ${data.returnsCount} returns, ${data.partialsCount} partials, ${data.exchangesCount || (data.exchanges || []).length} exchanges.`);
       } else {
         setDataSourceName('Ready for File Upload');
         setStatusMessage('Ready for file upload: drop store orders and Pathao delivery log into the dropzones below.');
@@ -195,8 +274,30 @@ export default function DashboardPage() {
     }
   }, [excludeAugust, excludePOS, computeReconciliation]);
 
-  // Initial mount: load saved theme and preloaded workspace data
+  // Initial mount: load saved theme, settings, session cookies, and workspace data
   useEffect(() => {
+
+    // 1. Initialize anonymous session ID and record session visit
+    getOrCreateSessionId();
+    setCookie(DEEN_COOKIE_KEYS.LAST_VISIT, new Date().toISOString(), { days: 90 });
+
+    // 2. Restore active tab, date scope, and toggles from cookies
+    const savedTab = getCookie(DEEN_COOKIE_KEYS.ACTIVE_TAB);
+    if (savedTab) setActiveTab(savedTab);
+
+    const savedScope = getCookie(DEEN_COOKIE_KEYS.DATE_SCOPE) as DateScope | null;
+    if (savedScope) setDateScope(savedScope);
+
+    const savedExcludeAug = getCookie(DEEN_COOKIE_KEYS.EXCLUDE_AUGUST);
+    if (savedExcludeAug !== null) setExcludeAugust(savedExcludeAug === 'true');
+
+    const savedExcludePos = getCookie(DEEN_COOKIE_KEYS.EXCLUDE_POS);
+    if (savedExcludePos !== null) setExcludePOS(savedExcludePos === 'true');
+
+    const savedSourceMode = getCookie(DEEN_COOKIE_KEYS.SOURCE_MODE) as DataSourceMode | null;
+    if (savedSourceMode) setDataSourceMode(savedSourceMode);
+
+    // 3. Load theme & settings
     const savedTheme = loadSavedThemeSettings();
     applyThemeToDocument(savedTheme);
 
@@ -207,10 +308,12 @@ export default function DashboardPage() {
       if (savedSettings.packagingCost !== undefined) setPackagingCost(savedSettings.packagingCost);
       if (savedSettings.cogsPercent !== undefined) setCogsPercent(savedSettings.cogsPercent);
       if (savedSettings.exactTolerance !== undefined) setExactTolerance(savedSettings.exactTolerance);
+      if (savedSettings.metaAdCost !== undefined) setMetaAdCost(savedSettings.metaAdCost);
     }
 
     loadPreloadedSeptemberData();
-  }, [loadPreloadedSeptemberData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Re-run computation when raw data, date filter scope, or business rule toggles change
   useEffect(() => {
@@ -401,6 +504,10 @@ export default function DashboardPage() {
       };
       setUploadedDataset(uploadedSnapshot);
       setDataSourceMode('UPLOAD');
+      setCookie(DEEN_COOKIE_KEYS.SOURCE_MODE, 'UPLOAD', { days: 30 });
+
+      // Cache uploaded dataset in browser memory for instant recovery
+      setCacheItem(DEEN_CACHE_KEYS.ACTIVE_DATASET, uploadedSnapshot, { ttlMs: 7 * 24 * 3600 * 1000, tag: 'dataset' });
 
       setRawOrders(ordersToUse);
       setRawPathaoDelivery(parsedPathaoDelivery);
@@ -422,6 +529,7 @@ export default function DashboardPage() {
 
   const handleLiveSyncData = (type: 'orders' | 'returns', rows: RawOrderRow[]) => {
     setDataSourceMode('API');
+    setCookie(DEEN_COOKIE_KEYS.SOURCE_MODE, 'API', { days: 30 });
     const updatedOrders = type === 'orders' ? rows : (cloudApiDataset?.orders || rawOrders);
     const updatedReturns = type === 'returns' ? rows : (cloudApiDataset?.returns || rawReturns);
     const updatedDelivery = cloudApiDataset?.pathaoDelivery || rawPathaoDelivery;
@@ -439,6 +547,14 @@ export default function DashboardPage() {
     };
 
     setCloudApiDataset(snapshot);
+    // Cache live cloud dataset and individual API responses
+    setCacheItem(DEEN_CACHE_KEYS.ACTIVE_DATASET, snapshot, { ttlMs: 24 * 3600 * 1000, tag: 'dataset' });
+    if (type === 'orders') {
+      setCacheItem(DEEN_CACHE_KEYS.WC_SYNC, rows, { ttlMs: 3600 * 1000, tag: 'api' });
+    } else {
+      setCacheItem(DEEN_CACHE_KEYS.PATHAO_SYNC, rows, { ttlMs: 3600 * 1000, tag: 'api' });
+    }
+
     setRawOrders(updatedOrders);
     setRawReturns(updatedReturns);
     setDataSourceName(sourceLabel);
@@ -449,6 +565,7 @@ export default function DashboardPage() {
   // Distinct Switcher between Uploaded Spreadsheets and Live WooCommerce & Pathao API
   const handleSwitchDataSource = (mode: DataSourceMode) => {
     setDataSourceMode(mode);
+    setCookie(DEEN_COOKIE_KEYS.SOURCE_MODE, mode, { days: 30 });
     if (mode === 'UPLOAD') {
       if (uploadedDataset && uploadedDataset.orders.length > 0) {
         setRawOrders(uploadedDataset.orders);
@@ -522,11 +639,13 @@ export default function DashboardPage() {
       {/* Branded Sidebar */}
       <Sidebar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleSelectTab}
         returnCount={result ? result.returnedItems.length : 0}
         mismatchCount={result ? result.courierMismatches.filter(m => m.severity === 'CRITICAL' || m.severity === 'WARNING').length : 0}
         exchangeCount={result ? result.exchangedOrders.length : rawExchanges.length}
         activeSourceMode={dataSourceMode}
+        mobileOpen={mobileMenuOpen}
+        onCloseMobile={() => setMobileMenuOpen(false)}
       />
 
       {/* Main Content Area */}
@@ -537,20 +656,21 @@ export default function DashboardPage() {
         <Header
           onExport={handleExport}
           hasData={result !== null}
-          onResetBaseline={loadPreloadedSeptemberData}
+          onResetBaseline={handleResetBaseline}
           dataSourceName={dataSourceName}
           activeSourceMode={dataSourceMode}
           onSwitchSourceMode={handleSwitchDataSource}
           hasCloudData={cloudApiDataset !== null && cloudApiDataset.orders.length > 0}
-          onOpenSettings={() => setActiveTab('tabSettings')}
+          onOpenSettings={() => handleSelectTab('tabSettings')}
           activeDateScope={dateScope}
-          onDateScopeChange={setDateScope}
+          onDateScopeChange={handleDateScopeChange}
           dateScopeCounts={dateFilterResult.counts}
           dateScopeSubLabel={dateFilterResult.subLabel}
+          onToggleMobileMenu={() => setMobileMenuOpen(prev => !prev)}
         />
 
         <main
-          className="p-6 space-y-6 max-w-7xl mx-auto w-full transition-colors duration-200"
+          className="px-3.5 py-4 sm:px-6 sm:py-6 space-y-5 max-w-[1920px] mx-auto w-full transition-colors duration-200"
           style={{ backgroundColor: 'var(--bg-surface, #FFFFFF)' }}
         >
           {/* Status Alert Banner */}
@@ -570,12 +690,12 @@ export default function DashboardPage() {
           )}
 
           {/* Cloud API Integration (WooCommerce + Pathao) - SHOWN ONLY ON EXECUTIVE OVERVIEW OR INITIAL STATE */}
-          {dataSourceMode === 'API' && activeTab !== 'tabSettings' && (!result || activeTab === 'tabExecutive') && (
+          {dataSourceMode === 'API' && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && (!result || activeTab === 'tabExecutive') && (
             <CloudSyncBar onDataSynced={handleLiveSyncData} />
           )}
 
           {/* Spreadsheet Upload Dropzones - SHOWN ONLY ON EXECUTIVE OVERVIEW OR INITIAL STATE */}
-          {dataSourceMode === 'UPLOAD' && activeTab !== 'tabSettings' && (!result || activeTab === 'tabExecutive') && (
+          {dataSourceMode === 'UPLOAD' && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && (!result || activeTab === 'tabExecutive') && (
             <FileDropzone
               orderFiles={orderFiles}
               setOrderFiles={setOrderFiles}
@@ -588,11 +708,11 @@ export default function DashboardPage() {
               exchangeFile={exchangeFile}
               setExchangeFile={setExchangeFile}
               excludeAugust={excludeAugust}
-              setExcludeAugust={setExcludeAugust}
+              setExcludeAugust={handleToggleExcludeAugust}
               excludePOS={excludePOS}
-              setExcludePOS={setExcludePOS}
+              setExcludePOS={handleToggleExcludePOS}
               onProcess={handleProcessUploadedFiles}
-              onLoadPreloadedData={loadPreloadedSeptemberData}
+              onLoadPreloadedData={handleResetBaseline}
               isProcessing={isProcessing}
               rawOrdersCount={rawOrders.length}
               dataSourceName={dataSourceName}
@@ -609,14 +729,23 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* GA4 & Meta Marketing Intelligence Tab */}
+          {activeTab === 'tabMarketingAnalytics' && (
+            <MarketingAnalyticsTab
+              summary={result?.summary}
+              onSelectOrder={() => setActiveTab('tabOrders')}
+              configuredMetaCost={metaAdCost}
+            />
+          )}
+
           {/* System Settings & Custom Themes Tab */}
           {activeTab === 'tabSettings' && (
             <SettingsTab
               excludeAugust={excludeAugust}
-              setExcludeAugust={setExcludeAugust}
+              setExcludeAugust={handleToggleExcludeAugust}
               excludePOS={excludePOS}
-              setExcludePOS={setExcludePOS}
-              onResetBaseline={loadPreloadedSeptemberData}
+              setExcludePOS={handleToggleExcludePOS}
+              onResetBaseline={handleResetBaseline}
               onDataSynced={handleLiveSyncData}
               insideDeliveryFee={insideDeliveryFee}
               setInsideDeliveryFee={setInsideDeliveryFee}
@@ -628,6 +757,8 @@ export default function DashboardPage() {
               setCogsPercent={setCogsPercent}
               exactTolerance={exactTolerance}
               setExactTolerance={setExactTolerance}
+              metaAdCost={metaAdCost}
+              setMetaAdCost={setMetaAdCost}
               onRefreshReconciliation={() => {
                 computeReconciliation(
                   rawOrders,
@@ -641,14 +772,15 @@ export default function DashboardPage() {
                   outsideDeliveryFee,
                   packagingCost,
                   cogsPercent,
-                  exactTolerance
+                  exactTolerance,
+                  metaAdCost
                 );
               }}
             />
           )}
 
-          {/* Dashboard Body when data is loaded and not in settings */}
-          {result && !initialLoading && activeTab !== 'tabSettings' && (
+          {/* Dashboard Body when data is loaded and not in settings or marketing */}
+          {result && !initialLoading && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && (
             <div className="space-y-6">
               {/* Executive KPI Overview (8 Cards + Hero) - Only shown on Executive Overview */}
               {activeTab === 'tabExecutive' && (
@@ -777,7 +909,7 @@ export default function DashboardPage() {
           )}
 
           {/* Empty State Guide Card when no files or data loaded yet */}
-          {!result && !initialLoading && activeTab !== 'tabSettings' && (
+          {!result && !initialLoading && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && (
             <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-10 text-center flex flex-col items-center justify-center max-w-2xl mx-auto shadow-sm my-6">
               <div className="w-14 h-14 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-primary mb-4 shadow-sm">
                 <UploadCloud className="w-7 h-7" />

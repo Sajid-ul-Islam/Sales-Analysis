@@ -34,6 +34,8 @@ export function CloudSyncBar({ onDataSynced }: CloudSyncBarProps) {
 
   const [pathaoStatus, setPathaoStatus] = useState<any>(null);
   const [wcStatus, setWcStatus] = useState<any>(null);
+  const [ga4Status, setGa4Status] = useState<any>(null);
+  const [metaStatus, setMetaStatus] = useState<any>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const checkStatus = async () => {
@@ -43,6 +45,8 @@ export function CloudSyncBar({ onDataSynced }: CloudSyncBarProps) {
       const data = await res.json();
       setPathaoStatus(data.pathao);
       setWcStatus(data.woocommerce);
+      setGa4Status(data.ga4);
+      setMetaStatus(data.meta);
     } catch (err: any) {
       console.error('Failed to check API status:', err);
     } finally {
@@ -205,14 +209,26 @@ export function CloudSyncBar({ onDataSynced }: CloudSyncBarProps) {
             <Cloud className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-headline text-sm font-bold text-slate-900">Cloud Sync (WooCommerce & Pathao)</h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-headline text-sm font-bold text-slate-900">Cloud Sync & Omnichannel Hub</h3>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-mono font-semibold">
                 Live REST APIs
               </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                GA4 Live Stream
+              </span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-semibold flex items-center gap-1 ${
+                metaStatus?.connected
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-amber-50 text-amber-700 border-amber-200'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${metaStatus?.connected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                {metaStatus?.connected ? 'Meta Connected' : 'Meta Benchmark'}
+              </span>
             </div>
             <p className="text-[11px] text-slate-500">
-              Sync orders and courier delivery manifests directly from <code className="text-primary font-semibold">deencommerce.com</code> & <code className="text-emerald-600 font-semibold">api-hermes.pathao.com</code>
+              Sync orders, returns, and marketing metrics directly from <code className="text-primary font-semibold">deencommerce.com</code>, <code className="text-emerald-600 font-semibold">Pathao</code>, and <code className="text-indigo-600 font-semibold">Google Analytics 4</code>
             </p>
           </div>
         </div>

@@ -27,7 +27,13 @@ import {
   History,
   FileText,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Cookie,
+  HardDrive,
+  Info,
+  BarChart3,
+  Activity,
+  Share2
 } from 'lucide-react';
 import {
   THEME_PRESETS,
@@ -48,6 +54,22 @@ import {
   saveAppSettings,
   logAuditAction
 } from '@/lib/settingsStore';
+import {
+  getCookieDetails,
+  deleteCookie,
+  clearAllDeenCookies,
+  CookieDetail
+} from '@/lib/cookieManager';
+import {
+  getAllCacheEntries,
+  removeCacheItem,
+  clearAllDeenCache,
+  getStorageEstimate,
+  exportEntireWorkspaceStorageJSON,
+  importWorkspaceStorageJSON,
+  CacheEntrySummary,
+  StorageEstimateResult
+} from '@/lib/cacheManager';
 import { RawOrderRow } from '@/types';
 
 interface SettingsTabProps {
@@ -68,6 +90,8 @@ interface SettingsTabProps {
   setCogsPercent?: (val: number) => void;
   exactTolerance?: number;
   setExactTolerance?: (val: number) => void;
+  metaAdCost?: number;
+  setMetaAdCost?: (val: number) => void;
 }
 
 export function SettingsTab({
@@ -87,7 +111,9 @@ export function SettingsTab({
   cogsPercent: propCogsPercent,
   setCogsPercent: propSetCogsPercent,
   exactTolerance: propExactTolerance,
-  setExactTolerance: propSetExactTolerance
+  setExactTolerance: propSetExactTolerance,
+  metaAdCost: propMetaAdCost,
+  setMetaAdCost: propSetMetaAdCost
 }: SettingsTabProps) {
   // Theme state
   const [themeSettings, setThemeSettings] = useState<CustomThemeSettings>(DEFAULT_THEME_SETTINGS);
@@ -100,6 +126,7 @@ export function SettingsTab({
   const [packagingCost, setLocalPackagingCost] = useState<number>(propPackagingCost ?? 25);
   const [cogsPercent, setLocalCogsPercent] = useState<number>(propCogsPercent ?? 42);
   const [exactTolerance, setLocalExactTolerance] = useState<number>(propExactTolerance ?? 2);
+  const [metaAdCost, setLocalMetaAdCost] = useState<number>(propMetaAdCost ?? 150000);
 
   // Keep local and prop in sync
   const setInsideDeliveryFee = (val: number) => {
@@ -122,6 +149,10 @@ export function SettingsTab({
     setLocalExactTolerance(val);
     propSetExactTolerance?.(val);
   };
+  const setMetaAdCost = (val: number) => {
+    setLocalMetaAdCost(val);
+    propSetMetaAdCost?.(val);
+  };
 
   // Cloud API sync state
   const [loadingStatus, setLoadingStatus] = useState(false);
@@ -133,6 +164,8 @@ export function SettingsTab({
   const [orderStatus, setOrderStatus] = useState('any');
   const [pathaoStatus, setPathaoStatus] = useState<any>(null);
   const [wcStatus, setWcStatus] = useState<any>(null);
+  const [ga4Status, setGa4Status] = useState<any>(null);
+  const [metaStatus, setMetaStatus] = useState<any>(null);
   const [apiMessage, setApiMessage] = useState<string | null>(null);
 
   // Advanced Credential Management State
@@ -144,6 +177,24 @@ export function SettingsTab({
   const [pathaoClientSecret, setPathaoClientSecret] = useState('');
   const [pathaoUsername, setPathaoUsername] = useState('');
   const [auditLogs, setAuditLogs] = useState<{ timestamp: string; action: string; details?: string }[]>([]);
+
+  // Cache & Cookie Operations State
+  const [cacheEntries, setCacheEntries] = useState<CacheEntrySummary[]>([]);
+  const [cookieDetails, setCookieDetails] = useState<CookieDetail[]>([]);
+  const [storageEstimate, setStorageEstimate] = useState<StorageEstimateResult | null>(null);
+  const [activeStorageTab, setActiveStorageTab] = useState<'cache' | 'cookies' | 'audit'>('cache');
+  const [isRefreshingStorage, setIsRefreshingStorage] = useState(false);
+
+  const refreshStorageData = React.useCallback(() => {
+    setIsRefreshingStorage(true);
+    try {
+      setCacheEntries(getAllCacheEntries());
+      setCookieDetails(getCookieDetails());
+      setStorageEstimate(getStorageEstimate());
+    } finally {
+      setTimeout(() => setIsRefreshingStorage(false), 300);
+    }
+  }, []);
 
   // Load saved settings on mount
   useEffect(() => {
@@ -158,6 +209,7 @@ export function SettingsTab({
       if (appSettings.packagingCost !== undefined) setLocalPackagingCost(appSettings.packagingCost);
       if (appSettings.cogsPercent !== undefined) setLocalCogsPercent(appSettings.cogsPercent);
       if (appSettings.exactTolerance !== undefined) setLocalExactTolerance(appSettings.exactTolerance);
+      if (appSettings.metaAdCost !== undefined) setLocalMetaAdCost(appSettings.metaAdCost);
       if (appSettings.wcStoreUrl) setWcStoreUrl(appSettings.wcStoreUrl);
       if (appSettings.wcConsumerKey) setWcConsumerKey(appSettings.wcConsumerKey);
       if (appSettings.wcConsumerSecret) setWcConsumerSecret(appSettings.wcConsumerSecret);
@@ -171,11 +223,78 @@ export function SettingsTab({
     }
 
     checkApiStatus();
-  }, []);
+    refreshStorageData();
+  }, [refreshStorageData]);
 
   const showToast = (msg: string) => {
     setSaveToast(msg);
     setTimeout(() => setSaveToast(null), 3000);
+  };
+
+  const handlePurgeCacheItem = (key: string, name: string) => {
+    removeCacheItem(key);
+    refreshStorageData();
+    logAuditAction('Cache Purged', `Purged cache item: ${name} (${key})`);
+    showToast(`Purged "${name}" from local cache.`);
+  };
+
+  const handleDeleteCookieItem = (name: string) => {
+    deleteCookie(name);
+    refreshStorageData();
+    logAuditAction('Cookie Deleted', `Deleted cookie: ${name}`);
+    showToast(`Deleted cookie "${name}".`);
+  };
+
+  const handlePurgeAllCache = () => {
+    const cleared = clearAllDeenCache(true);
+    refreshStorageData();
+    logAuditAction('All Cache Purged', `Purged ${cleared} workspace cache items.`);
+    showToast(`Successfully purged ${cleared} cache items.`);
+  };
+
+  const handleClearAllCookies = () => {
+    const cleared = clearAllDeenCookies();
+    refreshStorageData();
+    logAuditAction('All Cookies Cleared', `Cleared ${cleared} DEEN session cookies.`);
+    showToast(`Cleared ${cleared} DEEN session cookies.`);
+  };
+
+  const handleExportFullStorage = () => {
+    const jsonStr = exportEntireWorkspaceStorageJSON();
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `deen_workspace_storage_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    logAuditAction('Storage Exported', 'Exported complete workspace storage & cache JSON.');
+    showToast('Exported complete storage & cache snapshot.');
+  };
+
+  const handleImportStorage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const text = evt.target?.result as string;
+        const res = importWorkspaceStorageJSON(text);
+        if (res.success) {
+          refreshStorageData();
+          logAuditAction('Storage Imported', `Restored ${res.importedKeys} items from backup.`);
+          showToast(`Successfully restored ${res.importedKeys} storage items.`);
+        } else {
+          showToast(`Import failed: ${res.error || 'Invalid file format'}`);
+        }
+      } catch (err: any) {
+        showToast(`Import failed: ${err.message}`);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   const persistCurrentSettings = (overrides?: Partial<AppSettings>) => {
@@ -192,6 +311,7 @@ export function SettingsTab({
       packagingCost,
       cogsPercent,
       exactTolerance,
+      metaAdCost,
       excludeAugust,
       excludePOS,
       wcStoreUrl,
@@ -288,10 +408,11 @@ export function SettingsTab({
       packagingCost,
       cogsPercent,
       exactTolerance,
+      metaAdCost,
       excludeAugust,
       excludePOS
     });
-    logAuditAction('Math Model Updated', `Inside: ৳${insideDeliveryFee}, Outside: ৳${outsideDeliveryFee}, COGS: ${cogsPercent}%, Tolerance: ৳${exactTolerance}`);
+    logAuditAction('Math Model Updated', `Inside: ৳${insideDeliveryFee}, Outside: ৳${outsideDeliveryFee}, COGS: ${cogsPercent}%, Meta Ads: ৳${metaAdCost}`);
     if (onRefreshReconciliation) {
       onRefreshReconciliation();
     }
@@ -321,6 +442,8 @@ export function SettingsTab({
       const data = await res.json();
       setPathaoStatus(data.pathao);
       setWcStatus(data.woocommerce);
+      setGa4Status(data.ga4);
+      setMetaStatus(data.meta);
     } catch (e: any) {
       console.error('Failed to verify API connectivity:', e);
     } finally {
@@ -403,6 +526,7 @@ export function SettingsTab({
         packagingCost,
         cogsPercent,
         exactTolerance,
+        metaAdCost,
         excludeAugust,
         excludePOS
       },
@@ -437,6 +561,7 @@ export function SettingsTab({
           if (parsed.parameters.packagingCost !== undefined) setPackagingCost(parsed.parameters.packagingCost);
           if (parsed.parameters.cogsPercent !== undefined) setCogsPercent(parsed.parameters.cogsPercent);
           if (parsed.parameters.exactTolerance !== undefined) setExactTolerance(parsed.parameters.exactTolerance);
+          if (parsed.parameters.metaAdCost !== undefined) setMetaAdCost(parsed.parameters.metaAdCost);
           if (parsed.parameters.excludeAugust !== undefined) setExcludeAugust(parsed.parameters.excludeAugust);
           if (parsed.parameters.excludePOS !== undefined) setExcludePOS(parsed.parameters.excludePOS);
         }
@@ -467,7 +592,7 @@ export function SettingsTab({
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12">
+    <div className="space-y-6 sm:space-y-8 max-w-[1920px] mx-auto pb-12">
       {/* Toast Notification */}
       {saveToast && (
         <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2.5 text-xs font-semibold animate-in fade-in slide-in-from-bottom-3 duration-200">
@@ -819,6 +944,22 @@ export function SettingsTab({
                   </div>
                   <span className="text-[10px] text-slate-400 block mt-1">Allowed rounding margin for subset match</span>
                 </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                    Meta Ad Performance Spend (৳)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">৳</span>
+                    <input
+                      type="number"
+                      value={metaAdCost}
+                      onChange={(e) => setMetaAdCost(Number(e.target.value))}
+                      className="w-full pl-7 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-slate-900"
+                    />
+                  </div>
+                  <span className="text-[10px] text-slate-400 block mt-1">Facebook & Instagram campaign ad spend</span>
+                </div>
               </div>
 
               {/* Filter Toggles */}
@@ -1076,6 +1217,76 @@ export function SettingsTab({
                   <span>Sync</span>
                 </button>
               </div>
+
+              {/* Google Analytics 4 Status Card */}
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0">
+                    <Activity className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">Google Analytics 4 (GA4)</h4>
+                    <span className="text-[11px] text-slate-500 font-mono block">
+                      Property #{ga4Status?.propertyId || '314841375'}
+                    </span>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        ga4Status?.connected ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${ga4Status?.connected ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                        {ga4Status?.connected ? `Connected (${ga4Status?.realtimeUsers ?? 125} active users)` : 'Checking Connectivity...'}
+                      </span>
+                      <span className="text-[10px] text-slate-400">OAuth2 Service Account</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={checkApiStatus}
+                  disabled={loadingStatus}
+                  className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-emerald-700 border border-emerald-200 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs active:scale-95 disabled:opacity-50"
+                  title="Test GA4 Live Connection"
+                >
+                  <RefreshCw className={`w-3 h-3 ${loadingStatus ? 'animate-spin' : ''}`} />
+                  <span>Test</span>
+                </button>
+              </div>
+
+              {/* Meta Pixel & Marketing Status Card */}
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-primary shrink-0">
+                    <Share2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">Meta Pixel & Marketing API</h4>
+                    <span className="text-[11px] text-slate-500 font-mono block">
+                      Pixel #{metaStatus?.pixelId || '2547021025592489'} • Account {metaStatus?.adAccountId || 'act_3397888253858911'}
+                    </span>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        metaStatus?.connected
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${metaStatus?.connected ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                        {metaStatus?.connected ? 'Live Connected' : 'Benchmark Mode (Token Expired)'}
+                      </span>
+                      <span className="text-[10px] text-slate-400">Graph API v19.0</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={checkApiStatus}
+                  disabled={loadingStatus}
+                  className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-primary border border-orange-200 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs active:scale-95 disabled:opacity-50"
+                  title="Test Meta Connection"
+                >
+                  <RefreshCw className={`w-3 h-3 ${loadingStatus ? 'animate-spin' : ''}`} />
+                  <span>Test</span>
+                </button>
+              </div>
             </div>
 
             {/* Date Range & Ingestion Scope */}
@@ -1130,120 +1341,422 @@ export function SettingsTab({
         </div>
 
         {/* ======================================================== */}
-        {/* SECTION 4: DATA MANAGEMENT & AUDIT LOG VIEWER            */}
+        {/* SECTION 4: LOCAL CACHE & COOKIE OPERATIONS CENTER        */}
         {/* ======================================================== */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6 lg:col-span-2">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          {/* Section Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
             <div className="flex items-center gap-2.5">
-              <Database className="w-5 h-5 text-primary" />
+              <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-primary shadow-2xs">
+                <HardDrive className="w-5 h-5" />
+              </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-900 font-headline">Data Management & Cache Operations</h3>
-                <span className="text-[11px] text-slate-500 block">Manage workspace sample baseline, order overrides, and local memory</span>
+                <h3 className="text-sm font-bold text-slate-900 font-headline flex items-center gap-2">
+                  <span>Local Cache & Cookie Operations Center</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Offline First
+                  </span>
+                </h3>
+                <span className="text-[11px] text-slate-500 block">
+                  Inspect browser quota, manage TTL dataset caches, and control active session cookies
+                </span>
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
-              <div>
-                <h4 className="text-xs font-bold text-slate-900">Reload September Baseline</h4>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Resets the engine to the verified 1,026 clean orders September dataset.
-                </p>
-              </div>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
               <button
-                onClick={() => {
-                  if (onResetBaseline) onResetBaseline();
-                  logAuditAction('Baseline Reset', 'Reloaded clean 1,026 September orders baseline.');
-                  showToast('Reloaded verified September baseline dataset.');
-                }}
-                className="mt-4 px-3 py-1.5 rounded-lg bg-white hover:bg-orange-50 text-primary border border-orange-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs"
+                onClick={refreshStorageData}
+                disabled={isRefreshingStorage}
+                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                title="Scan and calculate current browser storage usage"
               >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Reset Baseline</span>
-              </button>
-            </div>
-
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
-              <div>
-                <h4 className="text-xs font-bold text-slate-900">Purge Order Overrides</h4>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Clears all manual status overrides and notes saved in your browser storage.
-                </p>
-              </div>
-              <button
-                onClick={handleClearLocalOverrides}
-                className="mt-4 px-3 py-1.5 rounded-lg bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Purge Overrides</span>
-              </button>
-            </div>
-
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
-              <div>
-                <h4 className="text-xs font-bold text-slate-900">Diagnostics Export</h4>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Downloads active reconciliation parameters, themes, and API connectivity metrics.
-                </p>
-              </div>
-              <button
-                onClick={handleExportDiagnostics}
-                className="mt-4 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Download JSON</span>
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingStorage ? 'animate-spin text-primary' : ''}`} />
+                <span>Refresh Metrics</span>
               </button>
             </div>
           </div>
 
-          {/* Activity Audit Log Table */}
-          <div className="mt-6 pt-5 border-t border-slate-100 space-y-3">
-            <div className="flex items-center justify-between">
+          {/* Real-Time Storage Health & Quota Overview */}
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
               <div className="flex items-center gap-2">
-                <History className="w-4 h-4 text-slate-600" />
-                <h4 className="text-xs font-bold text-slate-900">System Activity Audit Log</h4>
+                <span className="font-bold text-slate-800">Browser Storage Consumption:</span>
+                <span className="font-mono text-slate-600 font-semibold">
+                  {storageEstimate?.formattedDeenCache || '0 B'} used of ~5.0 MB quota ({storageEstimate?.percentUsed || 0}%)
+                </span>
               </div>
-              <span className="text-[10px] text-slate-400">Timestamped ledger of settings & sync modifications</span>
+              <div className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${
+                  storageEstimate?.health === 'healthy' ? 'bg-emerald-500' : storageEstimate?.health === 'moderate' ? 'bg-amber-500' : 'bg-rose-500'
+                }`}></span>
+                <span className={`text-[11px] font-bold uppercase tracking-wider ${
+                  storageEstimate?.health === 'healthy' ? 'text-emerald-700' : storageEstimate?.health === 'moderate' ? 'text-amber-700' : 'text-rose-700'
+                }`}>
+                  Storage {storageEstimate?.health || 'healthy'}
+                </span>
+              </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 overflow-x-auto min-w-0 bg-white">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  <tr>
-                    <th className="py-2.5 px-3">Timestamp</th>
-                    <th className="py-2.5 px-3">Action Event</th>
-                    <th className="py-2.5 px-3">Operational Details</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-sans">
-                  {auditLogs && auditLogs.length > 0 ? (
-                    auditLogs.slice(0, 10).map((log, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="py-2 px-3 text-[11px] text-slate-500 font-mono whitespace-nowrap">
-                          {new Date(log.timestamp).toLocaleString()}
-                        </td>
-                        <td className="py-2 px-3 font-semibold text-slate-800 whitespace-nowrap">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-700 border border-slate-200">
-                            {log.action}
-                          </span>
-                        </td>
-                        <td className="py-2 px-3 text-[11px] text-slate-600">
-                          {log.details || '—'}
+            {/* Visual Storage Quota Bar */}
+            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden flex shadow-inner">
+              <div
+                className={`h-full transition-all duration-500 ${
+                  storageEstimate?.health === 'healthy' ? 'bg-emerald-500' : storageEstimate?.health === 'moderate' ? 'bg-amber-500' : 'bg-rose-500'
+                }`}
+                style={{ width: `${Math.max(2, storageEstimate?.percentUsed || 0)}%` }}
+              ></div>
+            </div>
+
+            {/* Metric Pills */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div className="bg-white p-3 rounded-lg border border-slate-200/90 shadow-2xs flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">LocalStorage Cache</span>
+                  <span className="text-sm font-black text-navy-deep font-headline">{storageEstimate?.formattedDeenCache || '0 B'}</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-primary border border-orange-200">
+                  {cacheEntries.length} items
+                </span>
+              </div>
+
+              <div className="bg-white p-3 rounded-lg border border-slate-200/90 shadow-2xs flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Cookie Storage</span>
+                  <span className="text-sm font-black text-navy-deep font-headline">{storageEstimate?.formattedCookieBytes || '0 B'}</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                  {cookieDetails.length} cookies
+                </span>
+              </div>
+
+              <div className="bg-white p-3 rounded-lg border border-slate-200/90 shadow-2xs flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Available Free Quota</span>
+                  <span className="text-sm font-black text-emerald-700 font-headline">
+                    ~{(Math.max(0, 5 - ((storageEstimate?.totalStorageBytes || 0) / (1024 * 1024)))).toFixed(2)} MB Free
+                  </span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Fast IO
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Sub-Tab Navigation Bar */}
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 w-fit flex-wrap">
+            <button
+              onClick={() => setActiveStorageTab('cache')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeStorageTab === 'cache'
+                  ? 'bg-white text-navy-deep shadow-2xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+            >
+              <HardDrive className="w-3.5 h-3.5 text-primary" />
+              <span>Local Cache Inventory</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-orange-100 text-primary font-bold">
+                {cacheEntries.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveStorageTab('cookies')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeStorageTab === 'cookies'
+                  ? 'bg-white text-navy-deep shadow-2xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+            >
+              <Cookie className="w-3.5 h-3.5 text-blue-600" />
+              <span>Cookie Inspector</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-blue-100 text-blue-700 font-bold">
+                {cookieDetails.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveStorageTab('audit')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeStorageTab === 'audit'
+                  ? 'bg-white text-navy-deep shadow-2xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+            >
+              <History className="w-3.5 h-3.5 text-slate-600" />
+              <span>System Activity Audit Log</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-slate-200 text-slate-700 font-bold">
+                {auditLogs.length}
+              </span>
+            </button>
+          </div>
+
+          {/* TAB 1: LOCAL CACHE INVENTORY */}
+          {activeStorageTab === 'cache' && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-slate-200 overflow-x-auto min-w-0 bg-white">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    <tr>
+                      <th className="py-2.5 px-3">Cache Entry & Key</th>
+                      <th className="py-2.5 px-3">Category Tag</th>
+                      <th className="py-2.5 px-3">Payload Size</th>
+                      <th className="py-2.5 px-3">Last Modified</th>
+                      <th className="py-2.5 px-3">TTL & Expiration</th>
+                      <th className="py-2.5 px-3 text-right">Purge Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-sans">
+                    {cacheEntries && cacheEntries.length > 0 ? (
+                      cacheEntries.map((entry) => (
+                        <tr key={entry.key} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="py-2.5 px-3">
+                            <div className="font-bold text-slate-900">{entry.name}</div>
+                            <span className="text-[10px] text-slate-400 font-mono block mt-0.5">{entry.key}</span>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                              entry.tag === 'dataset' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                              entry.tag === 'reconciliation' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                              entry.tag === 'api' ? 'bg-purple-50 text-purple-700 border border-purple-200' :
+                              'bg-amber-50 text-amber-700 border border-amber-200'
+                            }`}>
+                              {entry.tag}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 font-mono font-bold text-slate-700 whitespace-nowrap">
+                            {entry.formattedSize}
+                            {entry.itemCount !== undefined && (
+                              <span className="text-[10px] text-slate-400 font-sans font-medium block">
+                                {entry.itemCount.toLocaleString()} records
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-600 whitespace-nowrap">
+                            {entry.formattedAge}
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                              entry.isExpired
+                                ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                                : entry.ttlMs > 0
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-slate-100 text-slate-600 border border-slate-200'
+                            }`}>
+                              {entry.expiryStatus}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-right">
+                            <button
+                              onClick={() => handlePurgeCacheItem(entry.key, entry.name)}
+                              className="px-2.5 py-1 rounded-lg bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-slate-200 hover:border-rose-200 text-xs font-bold transition-all inline-flex items-center gap-1 active:scale-95 shadow-2xs"
+                              title={`Evict ${entry.name} from localStorage`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Purge</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-xs text-slate-400">
+                          No DEEN cache entries found in local storage.
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={3} className="py-4 text-center text-xs text-slate-400">
-                        No activity recorded in this session.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Cache Action Toolbar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={handlePurgeAllCache}
+                    className="px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
+                    title="Purge all cached datasets & API payloads (preserves appearance parameters)"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Purge Working Cache</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (onResetBaseline) onResetBaseline();
+                      logAuditAction('Baseline Reset', 'Reloaded clean 1,026 September orders baseline.');
+                      showToast('Reloaded verified September baseline dataset.');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-white hover:bg-orange-50 text-primary border border-orange-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Reload Clean Baseline</span>
+                  </button>
+
+                  <button
+                    onClick={handleClearLocalOverrides}
+                    className="px-3 py-1.5 rounded-xl bg-white hover:bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Purge Overrides</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <label className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95">
+                    <Upload className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Import Storage JSON</span>
+                    <input type="file" accept=".json" onChange={handleImportStorage} className="hidden" />
+                  </label>
+
+                  <button
+                    onClick={handleExportFullStorage}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs active:scale-95"
+                    title="Export complete storage, cache, and cookies as backup"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export Full Storage JSON</span>
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* TAB 2: COOKIE INSPECTOR & MANAGEMENT */}
+          {activeStorageTab === 'cookies' && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-slate-200 overflow-x-auto min-w-0 bg-white">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    <tr>
+                      <th className="py-2.5 px-3">Cookie Identifier</th>
+                      <th className="py-2.5 px-3">Current Value</th>
+                      <th className="py-2.5 px-3">Operational Purpose</th>
+                      <th className="py-2.5 px-3">Size</th>
+                      <th className="py-2.5 px-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-sans">
+                    {cookieDetails && cookieDetails.length > 0 ? (
+                      cookieDetails.map((cookie) => (
+                        <tr key={cookie.name} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="py-2.5 px-3">
+                            <div className="flex items-center gap-1.5">
+                              <Cookie className={`w-3.5 h-3.5 ${cookie.isDeenCookie ? 'text-primary' : 'text-slate-400'}`} />
+                              <span className="font-mono font-bold text-slate-900">{cookie.name}</span>
+                            </div>
+                            {cookie.isDeenCookie && (
+                              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200 mt-1 inline-block">
+                                DEEN Managed
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <div className="flex items-center gap-1.5 max-w-xs">
+                              <span className="font-mono text-[11px] text-slate-700 bg-slate-100 px-2 py-0.5 rounded truncate">
+                                {cookie.value}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(cookie.value);
+                                  showToast(`Copied value of "${cookie.name}".`);
+                                }}
+                                className="text-slate-400 hover:text-slate-700 p-1"
+                                title="Copy cookie value"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-600 text-[11px] max-w-sm">
+                            {cookie.description}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                            {cookie.sizeBytes} B
+                          </td>
+                          <td className="py-2.5 px-3 text-right">
+                            <button
+                              onClick={() => handleDeleteCookieItem(cookie.name)}
+                              className="px-2.5 py-1 rounded-lg bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-slate-200 hover:border-rose-200 text-xs font-bold transition-all inline-flex items-center gap-1 active:scale-95 shadow-2xs"
+                              title={`Delete cookie "${cookie.name}"`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Delete</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-xs text-slate-400">
+                          No active cookies found in this browser origin.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Cookie Action Toolbar */}
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <button
+                  onClick={handleClearAllCookies}
+                  className="px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
+                  title="Purge all DEEN application session and preference cookies"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Clear All DEEN Cookies</span>
+                </button>
+
+                <div className="text-[11px] text-slate-400 flex items-center gap-1">
+                  <Info className="w-3.5 h-3.5" />
+                  <span>Cookies use SameSite=Lax and are path-scoped to current origin</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: SYSTEM ACTIVITY AUDIT LOG */}
+          {activeStorageTab === 'audit' && (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-slate-200 overflow-x-auto min-w-0 bg-white">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    <tr>
+                      <th className="py-2.5 px-3">Timestamp</th>
+                      <th className="py-2.5 px-3">Action Event</th>
+                      <th className="py-2.5 px-3">Operational Details</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-sans">
+                    {auditLogs && auditLogs.length > 0 ? (
+                      auditLogs.slice(0, 15).map((log, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="py-2 px-3 text-[11px] text-slate-500 font-mono whitespace-nowrap">
+                            {new Date(log.timestamp).toLocaleString()}
+                          </td>
+                          <td className="py-2 px-3 font-semibold text-slate-800 whitespace-nowrap">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-700 border border-slate-200">
+                              {log.action}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-[11px] text-slate-600">
+                            {log.details || '—'}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={3} className="py-6 text-center text-xs text-slate-400">
+                          No activity recorded in this session.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>

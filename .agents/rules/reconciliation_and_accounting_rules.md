@@ -68,5 +68,16 @@ $$\text{Net Courier Burden} = \text{Pathao Gross Charges} - \text{Paid Return Co
 ### 4.4 Packaging Sunk Loss
 * Fixed sunk cost of **৳25** per returned or partial order (poly bags, flyer packaging, garment re-tagging, inspection labor).
 
-### 4.5 Net Contribution Margin
-$$\text{Net Contribution Margin} = \text{Gross Product Margin} - \text{Net Courier Burden} - \text{Packaging Loss}$$
+### 4.5 Meta Performance Marketing Ad Spend
+* Performance marketing acquisition budget deployed across Facebook and Instagram ads.
+* **Blended ROAS (Return on Ad Spend)**:
+  $$\text{ROAS} = \frac{\text{Clean Realized Net Sales}}{\text{Meta Ad Spend}}$$
+* **Blended CAC (Customer Acquisition Cost per Kept Order)**:
+  $$\text{CAC} = \frac{\text{Meta Ad Spend}}{\text{Full Delivered Orders}}$$
+
+### 4.6 Net Contribution Margin (CM3)
+* **Pre-Marketing Contribution Margin (CM2)**:
+  $$\text{CM2} = \text{Gross Product Margin} - \text{Net Courier Burden} - \text{Packaging Loss}$$
+* **True Net Operating Contribution Margin (CM3)**:
+  $$\text{Net Contribution Margin (CM3)} = \text{CM2} - \text{Meta Ad Spend}$$
+  $$\text{Net Margin Percentage} = \frac{\text{Net Contribution Margin}}{\text{Clean Realized Net Sales}} \times 100$$

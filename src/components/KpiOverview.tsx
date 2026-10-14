@@ -109,7 +109,7 @@ export function KpiOverview({
           <div className="w-2.5 h-7 bg-primary rounded-full shrink-0"></div>
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="font-headline text-xl sm:text-2xl font-black text-navy-deep tracking-tight">
+              <h1 className="font-headline text-lg sm:text-2xl font-black text-navy-deep tracking-tight">
                 Sales & Operations Dashboard
               </h1>
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
@@ -122,7 +122,7 @@ export function KpiOverview({
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Unit reconciliation, return leakages, and net revenue realization.
+              Unit reconciliation, return leakages, and revenue realization.
             </p>
           </div>
         </div>
@@ -198,11 +198,11 @@ export function KpiOverview({
               <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center text-primary">
                 <ShoppingBag className="w-4 h-4" />
               </div>
-              <span className="text-xs font-bold text-navy-deep">Gross Dispatched</span>
+              <span className="text-xs font-bold text-navy-deep">Dispatched</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-50 text-primary">
-                100% Pipeline
+                Pipeline
               </span>
               <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-primary transition-colors" />
             </div>
@@ -217,14 +217,14 @@ export function KpiOverview({
             </div>
             <div className="text-xs font-semibold text-slate-500 mt-1 flex items-center gap-1.5">
               <span className="font-bold text-navy-deep">৳ {grossSalesAmount.toLocaleString()}</span>
-              <span className="text-slate-400">• Gross Sales</span>
+              <span className="text-slate-400">• Gross</span>
             </div>
           </div>
 
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500 font-medium">Pipeline Volume</span>
+            <span className="text-slate-500 font-medium">Total Flow</span>
             <span className="font-bold text-primary px-2 py-0.5 rounded-md bg-orange-50 border border-orange-200/60 shadow-2xs">
-              {(s.totalGrossItems || s.grossOrders).toLocaleString()} items
+              {(s.totalGrossItems || s.grossOrders).toLocaleString()} pcs
             </span>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary"></div>
@@ -241,7 +241,7 @@ export function KpiOverview({
               <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
                 <PackageCheck className="w-4 h-4" />
               </div>
-              <span className="text-xs font-bold text-navy-deep">Net Delivered</span>
+              <span className="text-xs font-bold text-navy-deep">Delivered</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">
@@ -260,14 +260,14 @@ export function KpiOverview({
             </div>
             <div className="text-xs font-semibold text-emerald-700/90 mt-1 flex items-center gap-1.5">
               <span className="font-bold text-emerald-700">৳ {deliveredSalesAmount.toLocaleString()}</span>
-              <span className="text-slate-400">• Delivered Sales</span>
+              <span className="text-slate-400">• Net Sales</span>
             </div>
           </div>
 
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500 font-medium">Customer Kept</span>
+            <span className="text-slate-500 font-medium">Kept Items</span>
             <span className="font-bold text-emerald-700 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200/60 shadow-2xs">
-              {s.totalItemsDelivered.toLocaleString()} items
+              {s.totalItemsDelivered.toLocaleString()} pcs
             </span>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500"></div>
@@ -284,7 +284,7 @@ export function KpiOverview({
               <div className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600">
                 <RotateCcw className="w-4 h-4" />
               </div>
-              <span className="text-xs font-bold text-navy-deep">Total Returned</span>
+              <span className="text-xs font-bold text-navy-deep">Returns</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-600">
@@ -350,39 +350,27 @@ export function KpiOverview({
                         </div>
                       </div>
 
-                      {/* Number Rendering with Donut Chart (Numbers Only with Color Indicators) */}
-                      <div className="flex flex-col text-xs font-black leading-tight">
-                        <span className="text-emerald-700 flex items-center gap-1.5" title={`${paidCount} Paid (Delivery Fee Recovered)`}>
+                      {/* Number Rendering with Donut Chart with Semantic Labels */}
+                      <div className="flex flex-col text-[11px] font-black leading-tight">
+                        <span className="text-emerald-700 flex items-center gap-1" title={`${paidCount} Paid (Delivery Fee Recovered)`}>
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                          {paidCount}
+                          <span>{paidCount}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold">Paid</span>
                         </span>
-                        <span className="text-rose-600 flex items-center gap-1.5 mt-0.5" title={`${unpaidCount} Unpaid (Brand Loss)`}>
+                        <span className="text-rose-600 flex items-center gap-1 mt-1" title={`${unpaidCount} Unpaid (Brand Loss)`}>
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
-                          {unpaidCount}
+                          <span>{unpaidCount}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold">Unpaid</span>
                         </span>
                       </div>
                     </div>
                   </div>
-
-                  {/* Horizontal Split Bar (Emerald Paid vs Rose Unpaid) */}
-                  <div className="w-full bg-rose-200 rounded-full h-1.5 mt-2.5 overflow-hidden flex" title={`${paidCount} Paid (${paidPct}%) • ${unpaidCount} Unpaid (${unpaidPct}%)`}>
-                    <div
-                      className="bg-emerald-500 h-full transition-all duration-500"
-                      style={{ width: `${paidPct}%` }}
-                      title={`${paidCount} Paid (${paidPct}%)`}
-                    ></div>
-                    <div
-                      className="bg-rose-500 h-full transition-all duration-500"
-                      style={{ width: `${unpaidPct}%` }}
-                      title={`${unpaidCount} Unpaid (${unpaidPct}%)`}
-                    ></div>
-                  </div>
                 </div>
 
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="text-slate-500 font-medium">Return Volume</span>
+                  <span className="text-slate-500 font-medium">RTO Items</span>
                   <span className="font-bold text-rose-600 px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200/60 shadow-2xs">
-                    {s.totalReturnedQty.toLocaleString()} items
+                    {s.totalReturnedQty.toLocaleString()} pcs
                   </span>
                 </div>
               </>
@@ -402,7 +390,7 @@ export function KpiOverview({
               <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
                 <Split className="w-4 h-4" />
               </div>
-              <span className="text-xs font-bold text-navy-deep">Partial Orders</span>
+              <span className="text-xs font-bold text-navy-deep">Partials</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-600">
@@ -468,39 +456,27 @@ export function KpiOverview({
                         </div>
                       </div>
 
-                      {/* Number Rendering with Donut Chart (Numbers Only with Color Indicators) */}
-                      <div className="flex flex-col text-xs font-black leading-tight">
-                        <span className="text-emerald-700 flex items-center gap-1.5" title={`${partialKept} Kept Items`}>
+                      {/* Number Rendering with Donut Chart with Semantic Labels */}
+                      <div className="flex flex-col text-[11px] font-black leading-tight">
+                        <span className="text-emerald-700 flex items-center gap-1" title={`${partialKept} Kept Items`}>
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                          {partialKept}
+                          <span>{partialKept}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold">Kept</span>
                         </span>
-                        <span className="text-rose-600 flex items-center gap-1.5 mt-0.5" title={`${partialRet} Returned Items`}>
+                        <span className="text-rose-600 flex items-center gap-1 mt-1" title={`${partialRet} Returned Items`}>
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
-                          {partialRet}
+                          <span>{partialRet}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold">Ret</span>
                         </span>
                       </div>
                     </div>
                   </div>
-
-                  {/* Horizontal Split Bar (Emerald Kept vs Rose Returned) */}
-                  <div className="w-full bg-rose-200 rounded-full h-1.5 mt-2.5 overflow-hidden flex" title={`${partialKept} Kept (${keptPct}%) • ${partialRet} Returned (${retPct}%)`}>
-                    <div
-                      className="bg-emerald-500 h-full transition-all duration-500"
-                      style={{ width: `${keptPct}%` }}
-                      title={`${partialKept} Kept (${keptPct}%)`}
-                    ></div>
-                    <div
-                      className="bg-rose-500 h-full transition-all duration-500"
-                      style={{ width: `${retPct}%` }}
-                      title={`${partialRet} Returned (${retPct}%)`}
-                    ></div>
-                  </div>
                 </div>
 
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="text-slate-500 font-medium">Split Volume</span>
+                  <span className="text-slate-500 font-medium">Split Items</span>
                   <span className="font-bold text-amber-700 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/60 shadow-2xs">
-                    {partialTotal.toLocaleString()} items
+                    {partialTotal.toLocaleString()} pcs
                   </span>
                 </div>
               </>
@@ -520,7 +496,7 @@ export function KpiOverview({
               <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600">
                 <RefreshCw className="w-4 h-4" />
               </div>
-              <span className="text-xs font-bold text-navy-deep">Exchange Orders</span>
+              <span className="text-xs font-bold text-navy-deep">Exchanges</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700">
@@ -591,32 +567,20 @@ export function KpiOverview({
                         </div>
                       </div>
 
-                      {/* Number Rendering with Donut Chart (Numbers Only with Color Indicators) */}
-                      <div className="flex flex-col text-xs font-black leading-tight">
-                        <span className="text-emerald-700 flex items-center gap-1.5" title={`৳ ${exchangeCollected.toLocaleString()} Collected from Customer`}>
+                      {/* Number Rendering with Donut Chart with Semantic Labels */}
+                      <div className="flex flex-col text-[11px] font-black leading-tight">
+                        <span className="text-emerald-700 flex items-center gap-1" title={`৳ ${exchangeCollected.toLocaleString()} Collected from Customer`}>
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                          {exchangeCollected.toLocaleString()}
+                          <span>৳{exchangeCollected.toLocaleString()}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold">COD</span>
                         </span>
-                        <span className="text-rose-600 flex items-center gap-1.5 mt-0.5" title={`৳ ${exchangePathaoCharge.toLocaleString()} Charged by Pathao Courier`}>
+                        <span className="text-rose-600 flex items-center gap-1 mt-1" title={`৳ ${exchangePathaoCharge.toLocaleString()} Charged by Pathao Courier`}>
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
-                          {exchangePathaoCharge.toLocaleString()}
+                          <span>৳{exchangePathaoCharge.toLocaleString()}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold">Cost</span>
                         </span>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Horizontal Split Bar (Emerald Collected vs Rose Pathao Charged) */}
-                  <div className="w-full bg-rose-200 rounded-full h-1.5 mt-2.5 overflow-hidden flex" title={`৳ ${exchangeCollected.toLocaleString()} Collected (${collectPct}%) • ৳ ${exchangePathaoCharge.toLocaleString()} Pathao Charged (${chargePct}%)`}>
-                    <div
-                      className="bg-emerald-500 h-full transition-all duration-500"
-                      style={{ width: `${collectPct}%` }}
-                      title={`৳ ${exchangeCollected.toLocaleString()} Collected (${collectPct}%)`}
-                    ></div>
-                    <div
-                      className="bg-rose-500 h-full transition-all duration-500"
-                      style={{ width: `${chargePct}%` }}
-                      title={`৳ ${exchangePathaoCharge.toLocaleString()} Pathao Charged (${chargePct}%)`}
-                    ></div>
                   </div>
                 </div>
               </>
@@ -624,9 +588,9 @@ export function KpiOverview({
           })()}
 
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500 font-medium">Re-shipment Swaps</span>
+            <span className="text-slate-500 font-medium">Swap Items</span>
             <span className="font-bold text-purple-700 px-2 py-0.5 rounded-md bg-purple-50 border border-purple-200/60 shadow-2xs">
-              {(s.totalExchangedItemsQty || s.totalExchangedOrders || 0).toLocaleString()} items
+              {(s.totalExchangedItemsQty || s.totalExchangedOrders || 0).toLocaleString()} pcs
             </span>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-purple-500"></div>
@@ -634,34 +598,34 @@ export function KpiOverview({
       </div>
 
       {/* 4. FORMULA VERIFICATION & TOTAL RETURNED RECONCILIATION BAR */}
-      <div className="p-3.5 rounded-xl bg-gradient-to-r from-slate-50 via-white to-slate-50 border border-slate-200/90 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+      <div className="p-3 sm:p-3.5 rounded-xl bg-gradient-to-r from-slate-50 via-white to-slate-50 border border-slate-200/90 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2.5 flex-wrap">
           <div className="w-7 h-7 rounded-lg bg-orange-100/80 text-primary flex items-center justify-center shrink-0">
             <Layers className="w-4 h-4" />
           </div>
           <span className="font-bold text-primary text-[11px] uppercase tracking-wider shrink-0">
-            Formula Verification:
+            SKU Balance:
           </span>
           <div className="flex items-center gap-1.5 flex-wrap text-slate-700">
             <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 font-bold border border-rose-200/60">
               {(s.regularReturnedQty || s.fullReturnedOrders).toLocaleString()} pcs
             </span>
-            <span className="text-slate-400 font-medium text-[11px]">Regular RTO</span>
+            <span className="text-slate-400 font-medium text-[11px]">RTO</span>
             <span className="text-slate-400 font-bold">+</span>
             <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 font-bold border border-amber-200/60">
               {(s.partialReturnedQty || s.partialOrders).toLocaleString()} pcs
             </span>
-            <span className="text-slate-400 font-medium text-[11px]">Partially Returned Products</span>
+            <span className="text-slate-400 font-medium text-[11px]">Partials</span>
             <span className="text-slate-400 font-bold">=</span>
             <span className="px-2 py-0.5 rounded bg-primary text-white font-bold shadow-2xs">
-              {(s.totalReturnedQty || ((s.regularReturnedQty || s.fullReturnedOrders) + (s.partialReturnedQty || s.partialOrders))).toLocaleString()} Total Returned Units
+              {(s.totalReturnedQty || ((s.regularReturnedQty || s.fullReturnedOrders) + (s.partialReturnedQty || s.partialOrders))).toLocaleString()} Total Returns
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-500 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 shrink-0">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          <span>100% SKU Flow Balanced:</span>
+          <span>SKU Flow:</span>
           <span className="font-bold text-navy-deep">
             {s.totalItemsDelivered.toLocaleString()} Kept + {s.totalReturnedQty.toLocaleString()} Ret = {(s.totalGrossItems || s.grossOrders).toLocaleString()} Units
           </span>
@@ -670,15 +634,15 @@ export function KpiOverview({
 
       {/* 5. EXECUTIVE FINANCIALS, LOGISTICS & TERRITORY METRICS (Consolidated 4-Card Grid) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 1. Realized Net Revenue with Realization Rate & Return Leakage */}
+        {/* 1. Realized Net Revenue with Realization Rate & Return Leakage Donut */}
         <div
           onClick={() => onKpiClick?.('tabExecutive')}
           className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-emerald-300 hover:shadow-md transition-all cursor-pointer"
           title="Click to view Executive Performance Breakdown"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-              Total Realized Revenue
+              Realized Revenue
             </span>
             <div className="flex items-center gap-1.5">
               <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
@@ -688,51 +652,95 @@ export function KpiOverview({
             </div>
           </div>
 
-          <div className="my-2">
-            <div className="flex items-baseline justify-between gap-2">
-              <div className="text-2xl font-black text-navy-deep font-headline">
-                ৳ {Math.round(s.netDeliveredRevenue).toLocaleString()}
+          {(() => {
+            const deliveredRev = Math.round(s.netDeliveredRevenue);
+            const leakageRev = Math.round(s.grossRevenue - s.netDeliveredRevenue);
+            const totalPipelineRev = Math.round(s.grossRevenue) || 1;
+            const realizationPct = Math.min(100, Math.max(0, Math.round((deliveredRev / totalPipelineRev) * 100)));
+            const leakagePct = 100 - realizationPct;
+            const strokeDash = `${realizationPct} ${leakagePct}`;
+
+            return (
+              <div className="my-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-2xl font-black text-navy-deep font-headline">
+                      ৳ {deliveredRev.toLocaleString()}
+                    </div>
+                    <div className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap">
+                      <span>Avg ৳{s.fullDeliveredOrders > 0 ? Math.round(deliveredRev / s.fullDeliveredOrders).toLocaleString() : '2,000'}</span>
+                      <span className="text-[10px] text-slate-400">/ kept</span>
+                    </div>
+                  </div>
+
+                  {/* Donut Chart with Numbers directly attached */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* SVG Donut Chart */}
+                    <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Revenue Realization: ৳${deliveredRev.toLocaleString()} Realized (${realizationPct}%) • ৳${leakageRev.toLocaleString()} Loss (${leakagePct}%)`}>
+                      <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
+                        {/* Return Leakage Track (Rose) */}
+                        <path
+                          className="text-rose-200"
+                          stroke="currentColor"
+                          strokeWidth="4.5"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                        {/* Realized Cash Segment (Emerald) */}
+                        <path
+                          className="text-emerald-500 transition-all duration-500 ease-out"
+                          stroke="currentColor"
+                          strokeWidth="4.5"
+                          strokeDasharray={strokeDash}
+                          strokeLinecap="round"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
+                          {realizationPct}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Number Rendering with Donut Chart with Semantic Labels */}
+                    <div className="flex flex-col text-[11px] font-black leading-tight">
+                      <span className="text-emerald-700 flex items-center gap-1" title={`৳ ${deliveredRev.toLocaleString()} Realized Cash`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                        <span>৳{deliveredRev >= 1000000 ? `${(deliveredRev / 1000000).toFixed(2)}M` : `${Math.round(deliveredRev / 1000)}k`}</span>
+                        <span className="text-[9px] text-slate-400 font-semibold">Realized</span>
+                      </span>
+                      <span className="text-rose-600 flex items-center gap-1 mt-1" title={`৳ ${leakageRev.toLocaleString()} Return Leakage Loss`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                        <span>৳{leakageRev >= 1000000 ? `${(leakageRev / 1000000).toFixed(2)}M` : `${Math.round(leakageRev / 1000)}k`}</span>
+                        <span className="text-[9px] text-slate-400 font-semibold">Loss</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              {/* Realization Rate Pill */}
-              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/70 shrink-0">
-                {Math.round((s.netDeliveredRevenue / (s.grossRevenue || 1)) * 100)}% Realized
-              </span>
-            </div>
-
-            {/* Mini Cash Realization Bar (Delivered vs Return Leakage) */}
-            <div className="w-full bg-rose-100/80 rounded-full h-1.5 mt-2 overflow-hidden flex" title={`${Math.round((s.netDeliveredRevenue / (s.grossRevenue || 1)) * 100)}% Realized vs Return Leakage`}>
-              <div
-                className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, Math.round((s.netDeliveredRevenue / (s.grossRevenue || 1)) * 100))}%` }}
-              ></div>
-            </div>
-
-            <div className="text-xs font-semibold text-slate-500 mt-1.5 flex items-center justify-between">
-              <span>Avg ৳{s.fullDeliveredOrders > 0 ? Math.round(s.netDeliveredRevenue / s.fullDeliveredOrders).toLocaleString() : '2,000'} / kept ord</span>
-              <span className="text-rose-600 text-[11px] font-bold">
-                -৳ {Math.round(s.grossRevenue - s.netDeliveredRevenue).toLocaleString()} loss
-              </span>
-            </div>
-          </div>
+            );
+          })()}
 
           <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">
-              Pipeline: ৳ {Math.round(s.grossRevenue).toLocaleString()}
+              Gross: ৳ {Math.round(s.grossRevenue).toLocaleString()}
             </span>
             <span className="text-[10px] text-slate-400 group-hover:text-emerald-700 font-medium transition-colors">
-              View Executive →
+              Details →
             </span>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500"></div>
         </div>
 
-        {/* 2. Net Contribution Margin with Waterfall Stacked Bar & Unit Profit */}
+        {/* 2. Net Contribution Margin with Donut Chart & Unit Profit */}
         <div
           onClick={() => onKpiClick?.('tabUnitEconomics')}
           className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-amber-300 hover:shadow-md transition-all cursor-pointer"
           title="Click to view Unit Economics & Sales Calculation"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
               Contribution Margin
             </span>
@@ -744,47 +752,82 @@ export function KpiOverview({
             </div>
           </div>
 
-          <div className="my-2">
-            <div className="flex items-baseline justify-between gap-2">
-              <div className="text-2xl font-black text-amber-600 font-headline">
-                {s.unitEconomics.netMarginPercentage.toFixed(1)}%
+          {(() => {
+            const netMarginAmount = Math.round(s.unitEconomics.netContributionMargin);
+            const marginPct = Math.min(100, Math.max(0, Math.round(s.unitEconomics.netMarginPercentage)));
+            const costPct = 100 - marginPct;
+            const strokeDash = `${marginPct} ${costPct}`;
+            const roasVal = s.unitEconomics.roas ? s.unitEconomics.roas.toFixed(1) : '0.0';
+
+            return (
+              <div className="my-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-2xl font-black text-amber-600 font-headline">
+                      ৳ {netMarginAmount.toLocaleString()}
+                    </div>
+                    <div className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap">
+                      <span className="text-emerald-700 font-bold">
+                        ৳ {s.fullDeliveredOrders > 0 ? Math.round(netMarginAmount / s.fullDeliveredOrders).toLocaleString() : '700'}
+                      </span>
+                      <span className="text-[10px] text-slate-400">/ kept</span>
+                    </div>
+                  </div>
+
+                  {/* Donut Chart with Numbers directly attached */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* SVG Donut Chart */}
+                    <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Margin Yield: ${marginPct}% Net Profit • ${costPct}% COGS, Logistics & Ads`}>
+                      <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
+                        {/* Cost Track (Amber) */}
+                        <path
+                          className="text-amber-100"
+                          stroke="currentColor"
+                          strokeWidth="4.5"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                        {/* Net Margin Segment (Emerald) */}
+                        <path
+                          className="text-emerald-500 transition-all duration-500 ease-out"
+                          stroke="currentColor"
+                          strokeWidth="4.5"
+                          strokeDasharray={strokeDash}
+                          strokeLinecap="round"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
+                          {marginPct}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Number Rendering with Donut Chart with Semantic Labels */}
+                    <div className="flex flex-col text-[11px] font-black leading-tight">
+                      <span className="text-emerald-700 flex items-center gap-1" title={`৳ ${netMarginAmount.toLocaleString()} Net Cash Yield`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                        <span>৳{netMarginAmount >= 1000000 ? `${(netMarginAmount / 1000000).toFixed(2)}M` : `${Math.round(netMarginAmount / 1000)}k`}</span>
+                        <span className="text-[9px] text-slate-400 font-semibold">Net</span>
+                      </span>
+                      <span className="text-purple-700 flex items-center gap-1 mt-1" title={`${roasVal}x Return on Ad Spend`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0"></span>
+                        <span>{roasVal}x</span>
+                        <span className="text-[9px] text-slate-400 font-semibold">ROAS</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <span className="text-[11px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/70 shrink-0">
-                ৳ {Math.round(s.unitEconomics.netContributionMargin).toLocaleString()} Net
-              </span>
-            </div>
-
-            {/* Horizontal Stacked Margin Bar: Profit (Emerald), COGS (Amber), Courier & Pack (Blue) */}
-            <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden flex" title={`${Math.round(s.unitEconomics.netMarginPercentage)}% Profit • 42% COGS • 11% Shipping & Pack`}>
-              <div
-                className="bg-emerald-500 h-full transition-all duration-500"
-                style={{ width: `${Math.min(100, Math.max(10, Math.round(s.unitEconomics.netMarginPercentage)))}%` }}
-                title="Net Profit"
-              ></div>
-              <div
-                className="bg-amber-400 h-full transition-all duration-500"
-                style={{ width: '42%' }}
-                title="42% COGS"
-              ></div>
-              <div
-                className="bg-blue-400 h-full transition-all duration-500"
-                style={{ width: '11%' }}
-                title="Logistics & Packaging"
-              ></div>
-            </div>
-
-            <div className="text-xs font-semibold text-slate-500 mt-1.5 flex items-center justify-between">
-              <span className="text-emerald-700 font-bold">
-                ৳ {s.fullDeliveredOrders > 0 ? Math.round(s.unitEconomics.netContributionMargin / s.fullDeliveredOrders).toLocaleString() : '700'} / kept ord
-              </span>
-              <span className="text-[10px] text-slate-400 font-medium">42% COGS Model</span>
-            </div>
-          </div>
+            );
+          })()}
 
           <div className="text-[10px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
-            <span>After COGS & Logistics</span>
+            <span>After COGS, Courier & Ads</span>
             <span className="text-[10px] text-slate-400 group-hover:text-amber-700 font-medium transition-colors">
-              Unit Economics →
+              Details →
             </span>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500"></div>
@@ -798,7 +841,7 @@ export function KpiOverview({
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-              Pathao Courier Cost
+              Courier Cost
             </span>
             <div className="flex items-center gap-1.5">
               <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
@@ -826,7 +869,7 @@ export function KpiOverview({
                       </div>
                       <div className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap" title={`Dhaka (৳50): ${s.courierCost.collectedInsideCount} • Outside (৳90): ${s.courierCost.collectedOutsideCount}`}>
                         <span className="font-bold text-slate-700">৳ {netCost.toLocaleString()}</span>
-                        <span className="text-[10px] text-slate-400">net cost</span>
+                        <span className="text-[10px] text-slate-400">net fee</span>
                       </div>
                     </div>
 
@@ -861,38 +904,26 @@ export function KpiOverview({
                         </div>
                       </div>
 
-                      {/* Number Rendering with Donut Chart (Numbers Only with Color Indicators) */}
-                      <div className="flex flex-col text-xs font-black leading-tight">
-                        <span className="text-emerald-700 flex items-center gap-1.5" title={`+৳ ${feeCollected.toLocaleString()} Delivery Fee Collected from Customers`}>
+                      {/* Number Rendering with Donut Chart with Semantic Labels */}
+                      <div className="flex flex-col text-[11px] font-black leading-tight">
+                        <span className="text-emerald-700 flex items-center gap-1" title={`+৳ ${feeCollected.toLocaleString()} Delivery Fee Collected from Customers`}>
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                          {feeCollected.toLocaleString()}
+                          <span>৳{feeCollected.toLocaleString()}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold">Fee</span>
                         </span>
-                        <span className="text-rose-600 flex items-center gap-1.5 mt-0.5" title={`৳ ${netCharge.toLocaleString()} Total Pathao Courier Charge`}>
+                        <span className="text-rose-600 flex items-center gap-1 mt-1" title={`৳ ${netCharge.toLocaleString()} Total Pathao Courier Charge`}>
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
-                          {netCharge.toLocaleString()}
+                          <span>৳{netCharge.toLocaleString()}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold">Bill</span>
                         </span>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Horizontal Split Bar (Emerald Recovered vs Rose Net Cost) */}
-                  <div className="w-full bg-rose-200 rounded-full h-1.5 mt-2.5 overflow-hidden flex" title={`${recoveryPct}% Recovered (Emerald) • ${remainingPct}% Net Cost (Rose)`}>
-                    <div
-                      className="bg-emerald-500 h-full transition-all duration-500"
-                      style={{ width: `${recoveryPct}%` }}
-                      title={`৳ ${feeCollected.toLocaleString()} Collected (${recoveryPct}%)`}
-                    ></div>
-                    <div
-                      className="bg-rose-500 h-full transition-all duration-500"
-                      style={{ width: `${remainingPct}%` }}
-                      title={`৳ ${netCost.toLocaleString()} Net Cost (${remainingPct}%)`}
-                    ></div>
                   </div>
                 </div>
 
                 <div className="text-[10px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
                   <span title={`Fee: ${s.courierCost.collectedInsideCount} Dhaka (৳50) • ${s.courierCost.collectedOutsideCount} Outside (৳90)`}>
-                    Fee: {s.courierCost.collectedInsideCount} Dhaka • {s.courierCost.collectedOutsideCount} Out
+                    Dhaka: {s.courierCost.collectedInsideCount} • Out: {s.courierCost.collectedOutsideCount}
                   </span>
                   <span className="text-emerald-700 font-bold px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200/60">
                     {recoveryPct}% recovered
@@ -912,7 +943,7 @@ export function KpiOverview({
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-              Territory Ratio
+              Territory
             </span>
             <div className="flex items-center gap-1.5">
               <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
@@ -931,62 +962,64 @@ export function KpiOverview({
 
             return (
               <>
-                <div className="my-2 flex items-center justify-between gap-3">
+                <div className="my-2 flex items-center justify-between gap-2">
                   <div>
                     <div className="text-2xl font-black text-navy-deep font-headline">
                       {ratioInt} : 1
                     </div>
                     <div className="text-xs font-semibold text-slate-500 mt-0.5">
-                      {Math.round(s.outsideOrders).toLocaleString()} Outside vs {Math.round(s.insideOrders).toLocaleString()} Inside
+                      {Math.round(s.outsideOrders).toLocaleString()} Out vs {Math.round(s.insideOrders).toLocaleString()} In
                     </div>
                   </div>
 
-                  {/* SVG Donut Chart */}
-                  <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
-                    <svg className="w-12 h-12 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="48" height="48">
-                      {/* Inside Dhaka Track */}
-                      <path
-                        className="text-slate-100"
-                        stroke="currentColor"
-                        strokeWidth="4.5"
-                        fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                      {/* Outside Dhaka Segment */}
-                      <path
-                        className="text-indigo-600 transition-all duration-500 ease-out"
-                        stroke="currentColor"
-                        strokeWidth="4.5"
-                        strokeDasharray={strokeDash}
-                        strokeLinecap="round"
-                        fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-[10px] font-black text-indigo-700 font-headline">
-                        {outsidePct}%
+                  {/* SVG Donut Chart with Semantic Labels */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Territory Split: ${Math.round(s.outsideOrders)} Outside (${outsidePct}%) • ${Math.round(s.insideOrders)} Inside (${insidePct}%)`}>
+                      <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
+                        {/* Inside Dhaka Track */}
+                        <path
+                          className="text-amber-200"
+                          stroke="currentColor"
+                          strokeWidth="4.5"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                        {/* Outside Dhaka Segment */}
+                        <path
+                          className="text-indigo-600 transition-all duration-500 ease-out"
+                          stroke="currentColor"
+                          strokeWidth="4.5"
+                          strokeDasharray={strokeDash}
+                          strokeLinecap="round"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="text-[10px] font-black text-indigo-700 font-headline leading-none">
+                          {outsidePct}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Number Rendering with Semantic Labels */}
+                    <div className="flex flex-col text-[11px] font-black leading-tight">
+                      <span className="text-indigo-700 flex items-center gap-1" title={`${Math.round(s.outsideOrders).toLocaleString()} Outside Dhaka`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 shrink-0"></span>
+                        <span>{Math.round(s.outsideOrders).toLocaleString()}</span>
+                        <span className="text-[9px] text-slate-400 font-semibold">Out</span>
+                      </span>
+                      <span className="text-amber-700 flex items-center gap-1 mt-1" title={`${Math.round(s.insideOrders).toLocaleString()} Inside Dhaka`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"></span>
+                        <span>{Math.round(s.insideOrders).toLocaleString()}</span>
+                        <span className="text-[9px] text-slate-400 font-semibold">In</span>
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Horizontal Territory Split Bar (Indigo Outside vs Amber Inside) */}
-                <div className="w-full bg-amber-100 rounded-full h-1.5 mt-2 overflow-hidden flex" title={`${outsidePct}% Outside Dhaka • ${insidePct}% Inside Dhaka`}>
-                  <div
-                    className="bg-indigo-600 h-full transition-all duration-500"
-                    style={{ width: `${outsidePct}%` }}
-                    title={`${Math.round(s.outsideOrders).toLocaleString()} Outside Dhaka (${outsidePct}%)`}
-                  ></div>
-                  <div
-                    className="bg-amber-400 h-full transition-all duration-500"
-                    style={{ width: `${insidePct}%` }}
-                    title={`${Math.round(s.insideOrders).toLocaleString()} Inside Dhaka (${insidePct}%)`}
-                  ></div>
-                </div>
-
                 <div className="text-[10px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
-                  <span>Outside Share: <strong className="text-indigo-700">{outsidePct}%</strong></span>
+                  <span>Outside: <strong className="text-indigo-700">{outsidePct}%</strong></span>
                   <span className="text-slate-400 font-medium">Inside: {insidePct}%</span>
                 </div>
               </>

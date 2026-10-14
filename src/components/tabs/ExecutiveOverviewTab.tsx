@@ -14,6 +14,7 @@ import {
   Download
 } from 'lucide-react';
 import { exportPerformanceReport } from '@/lib/excelExport';
+import { ComparativeBarChart } from '@/components/charts';
 
 interface ExecutiveOverviewTabProps {
   summary: SummaryAnalytics;
@@ -326,6 +327,27 @@ export function ExecutiveOverviewTab({ summary, orders = [], skuList = [] }: Exe
                     </select>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Visual Category Retention Comparison Bar Chart */}
+            {viewMode === 'CATEGORY' && categories.length > 0 && (
+              <div className="p-5 border-b border-slate-100">
+                <ComparativeBarChart
+                  items={categories.slice(0, 5).map((c) => ({
+                    id: c.name,
+                    name: `${c.icon} ${c.name}`,
+                    primaryValue: c.returns,
+                    secondaryValue: c.net,
+                    badgeText: `${c.retention}% Retained`,
+                    subText: `৳${c.revenue.toLocaleString()}`,
+                  }))}
+                  title="Apparel Category Dispatch vs Net Retained Units"
+                  subtitle="Compare net delivered volume against returned items across top DEEN collections"
+                  primaryLabel="Returned Units"
+                  secondaryLabel="Retained Units"
+                  formatValue={(v) => `${v.toLocaleString()} pcs`}
+                />
               </div>
             )}
 

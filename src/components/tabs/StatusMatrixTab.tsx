@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { SummaryAnalytics } from '@/types';
-import { PieChart, CheckCircle2, Split, RotateCcw, AlertOctagon } from 'lucide-react';
+import { PieChart, CheckCircle2, Split, RotateCcw, AlertOctagon, MapPin } from 'lucide-react';
+import { InteractiveDonutChart } from '@/components/charts';
 
 interface StatusMatrixTabProps {
   summary: SummaryAnalytics;
@@ -24,6 +25,29 @@ export function StatusMatrixTab({ summary: s }: StatusMatrixTabProps) {
   const fullDeliveredTotal = s.fullDeliveredOrders;
   const fullDeliveredInside = Math.max(0, s.insideOrders - s.insideReturns - s.insidePartials);
   const fullDeliveredOutside = Math.max(0, s.outsideOrders - s.outsideReturns - s.outsidePartials);
+
+  const statusSlices = [
+    { id: 'delivered', label: 'Full Delivered', value: fullDeliveredTotal, color: '#10B981', subLabel: '100% Parcel Accepted' },
+    { id: 'partial', label: 'Partial Orders', value: partialTotal, color: '#F59E0B', subLabel: 'Delivered & Kept Items' },
+    { id: 'paid_return', label: 'Paid Return', value: paidReturnTotal, color: '#3B82F6', subLabel: 'Return Fee COD Recovered' },
+    { id: 'not_paid_return', label: 'Not Paid Return', value: notPaidReturnTotal, color: '#F43F5E', subLabel: '0 COD Recovered (Loss)' },
+    ...(s.totalExchangedOrders > 0
+      ? [{ id: 'exchanged', label: 'Exchanged Orders', value: s.totalExchangedOrders, color: '#8B5CF6', subLabel: 'Doorstep Size Swapped' }]
+      : []),
+  ];
+
+  const insideTotal = s.insideOrders || 1;
+  const outsideTotal = s.outsideOrders || 1;
+
+  const insideDeliveredPct = Math.round((fullDeliveredInside / insideTotal) * 100);
+  const insidePartialPct = Math.round((partialInside / insideTotal) * 100);
+  const insidePaidReturnPct = Math.round((paidReturnInside / insideTotal) * 100);
+  const insideNotPaidPct = Math.max(0, 100 - insideDeliveredPct - insidePartialPct - insidePaidReturnPct);
+
+  const outsideDeliveredPct = Math.round((fullDeliveredOutside / outsideTotal) * 100);
+  const outsidePartialPct = Math.round((partialOutside / outsideTotal) * 100);
+  const outsidePaidReturnPct = Math.round((paidReturnOutside / outsideTotal) * 100);
+  const outsideNotPaidPct = Math.max(0, 100 - outsideDeliveredPct - outsidePartialPct - outsidePaidReturnPct);
 
   return (
     <div className="space-y-6">
@@ -90,6 +114,86 @@ export function StatusMatrixTab({ summary: s }: StatusMatrixTabProps) {
           <div className="pt-4 mt-4 border-t border-slate-100 text-xs flex justify-between font-semibold">
             <span className="text-slate-500">Dhaka: <strong className="text-rose-700">{notPaidReturnInside}</strong></span>
             <span className="text-slate-500">Outside: <strong className="text-rose-700">{notPaidReturnOutside}</strong></span>
+          </div>
+        </div>
+      </div>
+
+      {/* Visual Analytics Graphs Section: Donut + Territory Stacked Bars */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left: Interactive Donut Chart (6 Cols) */}
+        <div className="lg:col-span-6">
+          <InteractiveDonutChart
+            slices={statusSlices}
+            title="Consolidated Status Share"
+            subtitle="Overall distribution across fulfilled, partial, paid return and unrecovered return parcels"
+            centerTotalLabel="Dispatched"
+            size={160}
+          />
+        </div>
+
+        {/* Right: Territory Comparative Stacked Bar Breakdown (6 Cols) */}
+        <div className="lg:col-span-6 bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-4">
+          <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+            <div>
+              <h3 className="font-headline text-sm font-bold text-slate-900 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-primary" />
+                Territory Status Comparison
+              </h3>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Proportional delivery success and return burden inside vs outside Dhaka
+              </p>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-mono">
+              {s.grossOrders} Orders
+            </span>
+          </div>
+
+          <div className="space-y-4 pt-1">
+            {/* Inside Dhaka Stacked Bar */}
+            <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/60 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-900">Inside Dhaka (Central Metro)</span>
+                <span className="font-mono font-bold text-slate-700">{s.insideOrders.toLocaleString()} Orders</span>
+              </div>
+
+              {/* Segmented Bar */}
+              <div className="w-full h-3 rounded-full overflow-hidden flex bg-slate-200">
+                <div style={{ width: `${insideDeliveredPct}%` }} className="bg-emerald-500 h-full transition-all duration-500" title={`Delivered: ${insideDeliveredPct}%`} />
+                <div style={{ width: `${insidePartialPct}%` }} className="bg-amber-500 h-full transition-all duration-500" title={`Partial: ${insidePartialPct}%`} />
+                <div style={{ width: `${insidePaidReturnPct}%` }} className="bg-blue-500 h-full transition-all duration-500" title={`Paid Return: ${insidePaidReturnPct}%`} />
+                <div style={{ width: `${insideNotPaidPct}%` }} className="bg-rose-500 h-full transition-all duration-500" title={`Unpaid: ${insideNotPaidPct}%`} />
+              </div>
+
+              <div className="grid grid-cols-4 gap-1 text-[10px] text-center pt-1 font-semibold">
+                <span className="text-emerald-700">{insideDeliveredPct}% Delivered</span>
+                <span className="text-amber-700">{insidePartialPct}% Partial</span>
+                <span className="text-blue-700">{insidePaidReturnPct}% Paid Ret</span>
+                <span className="text-rose-700">{insideNotPaidPct}% Unpaid</span>
+              </div>
+            </div>
+
+            {/* Outside Dhaka Stacked Bar */}
+            <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/60 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-900">Outside Dhaka (Divisional Courier)</span>
+                <span className="font-mono font-bold text-slate-700">{s.outsideOrders.toLocaleString()} Orders</span>
+              </div>
+
+              {/* Segmented Bar */}
+              <div className="w-full h-3 rounded-full overflow-hidden flex bg-slate-200">
+                <div style={{ width: `${outsideDeliveredPct}%` }} className="bg-emerald-500 h-full transition-all duration-500" title={`Delivered: ${outsideDeliveredPct}%`} />
+                <div style={{ width: `${outsidePartialPct}%` }} className="bg-amber-500 h-full transition-all duration-500" title={`Partial: ${outsidePartialPct}%`} />
+                <div style={{ width: `${outsidePaidReturnPct}%` }} className="bg-blue-500 h-full transition-all duration-500" title={`Paid Return: ${outsidePaidReturnPct}%`} />
+                <div style={{ width: `${outsideNotPaidPct}%` }} className="bg-rose-500 h-full transition-all duration-500" title={`Unpaid: ${outsideNotPaidPct}%`} />
+              </div>
+
+              <div className="grid grid-cols-4 gap-1 text-[10px] text-center pt-1 font-semibold">
+                <span className="text-emerald-700">{outsideDeliveredPct}% Delivered</span>
+                <span className="text-amber-700">{outsidePartialPct}% Partial</span>
+                <span className="text-blue-700">{outsidePaidReturnPct}% Paid Ret</span>
+                <span className="text-rose-700">{outsideNotPaidPct}% Unpaid</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
