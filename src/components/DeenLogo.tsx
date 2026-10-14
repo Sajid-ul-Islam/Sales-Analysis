@@ -37,7 +37,7 @@ export function DeenLogo({
             DEEN COMMERCE
           </span>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
-            Enterprise Recon
+            Sales & Growth
           </span>
         </div>
       )}

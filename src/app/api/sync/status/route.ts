@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSecretsConfig } from '@/lib/secrets';
+import { getSecretsWithOverrides } from '@/lib/secrets';
 import { getPathaoToken, getPathaoStores } from '@/lib/pathaoClient';
 import { testWooCommerceConnection } from '@/lib/woocommerceClient';
 import { testGA4Connection } from '@/lib/ga4Client';
@@ -7,8 +7,8 @@ import { testMetaConnection } from '@/lib/metaClient';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
-  const secrets = getSecretsConfig();
+async function resolveStatus(overrides?: any) {
+  const secrets = getSecretsWithOverrides(overrides);
 
   // Test Pathao
   let pathaoStatus = {
@@ -21,9 +21,9 @@ export async function GET() {
   };
 
   try {
-    const token = await getPathaoToken();
+    const token = await getPathaoToken(overrides?.pathao);
     if (token) {
-      const stores = await getPathaoStores();
+      const stores = await getPathaoStores(overrides?.pathao);
       pathaoStatus.connected = true;
       pathaoStatus.storesCount = stores.length;
       pathaoStatus.stores = stores.map((s: any) => ({
@@ -47,7 +47,7 @@ export async function GET() {
   };
 
   try {
-    const wcTest = await testWooCommerceConnection();
+    const wcTest = await testWooCommerceConnection(overrides?.woocommerce);
     wcStatus = {
       configured: !!(secrets.woocommerce.consumer_key && secrets.woocommerce.consumer_secret),
       connected: wcTest.success,
@@ -68,7 +68,11 @@ export async function GET() {
       message: err?.message || 'GA4 connection test failed',
       latencyMs: 0,
     })),
-    testMetaConnection().catch((err: any) => ({
+    testMetaConnection({
+      overrideToken: overrides?.meta?.access_token,
+      overridePixelId: overrides?.meta?.pixel_id,
+      overrideAdAccountId: overrides?.meta?.ad_account_id,
+    }).catch((err: any) => ({
       connected: false,
       pixelId: secrets.meta.pixel_id || '',
       adAccountId: secrets.meta.ad_account_id || '',
@@ -78,10 +82,21 @@ export async function GET() {
     })),
   ]);
 
-  return NextResponse.json({
+  return {
     pathao: pathaoStatus,
     woocommerce: wcStatus,
     ga4: ga4Status,
     meta: metaStatus,
-  });
+  };
+}
+
+export async function GET() {
+  const status = await resolveStatus();
+  return NextResponse.json(status);
+}
+
+export async function POST(req: Request) {
+  const body = await req.json().catch(() => ({}));
+  const status = await resolveStatus(body);
+  return NextResponse.json(status);
 }

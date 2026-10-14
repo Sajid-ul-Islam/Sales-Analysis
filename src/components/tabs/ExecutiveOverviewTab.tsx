@@ -14,7 +14,7 @@ import {
   Download
 } from 'lucide-react';
 import { exportPerformanceReport } from '@/lib/excelExport';
-import { ComparativeBarChart } from '@/components/charts';
+import { ComparativeBarChart, PaymentMethodMixCard } from '@/components/charts';
 
 interface ExecutiveOverviewTabProps {
   summary: SummaryAnalytics;
@@ -58,7 +58,7 @@ export function ExecutiveOverviewTab({ summary, orders = [], skuList = [] }: Exe
   const categories = useMemo(() => {
     if (skuList && skuList.length > 0) {
       const groups: Record<string, { dispatched: number; returns: number; net: number; revenue: number; icon: string; sub: string }> = {
-        'Jeans (Denim Core)': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👖', sub: 'Signature Selvedge, Slim & Regular Fit Jeans' },
+        'Jeans': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👖', sub: 'Signature Selvedge, Slim & Regular Fit Jeans' },
         'Casual & Formal Shirts': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👔', sub: 'Full Sleeve, Half Sleeve, Cuban Collar & Formal Shirts' },
         'Polo Shirts': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👕', sub: 'Classic Pique, Solid & Knitted Polos' },
         'T-Shirts': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👕', sub: 'Solid, Printed & Heavyweight GSM Tees' },
@@ -99,8 +99,8 @@ export function ExecutiveOverviewTab({ summary, orders = [], skuList = [] }: Exe
 
     return [
       {
-        name: 'Jeans (Denim Core)',
-        sub: 'Signature Selvedge & Regular Fit Jeans',
+        name: 'Jeans',
+        sub: 'Slim & Regular Fit Jeans',
         icon: '👖',
         dispatched: jeansDispatched,
         returns: jeansReturns,
@@ -297,7 +297,7 @@ export function ExecutiveOverviewTab({ summary, orders = [], skuList = [] }: Exe
                       className="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 font-semibold focus:outline-none focus:border-primary"
                     >
                       <option value="ALL">All Categories ({masterSkuItems.length} Master SKUs)</option>
-                      <option value="Jeans (Denim Core)">Jeans (Denim Core)</option>
+                      <option value="Jeans">Jeans</option>
                       <option value="Casual & Formal Shirts">Casual & Formal Shirts</option>
                       <option value="Polo Shirts">Polo Shirts</option>
                       <option value="T-Shirts">T-Shirts</option>
@@ -330,11 +330,11 @@ export function ExecutiveOverviewTab({ summary, orders = [], skuList = [] }: Exe
               </div>
             )}
 
-            {/* Visual Category Retention Comparison Bar Chart */}
+            {/* Visual Category Retention Comparison Perpendicular Bar Chart */}
             {viewMode === 'CATEGORY' && categories.length > 0 && (
               <div className="p-5 border-b border-slate-100">
                 <ComparativeBarChart
-                  items={categories.slice(0, 5).map((c) => ({
+                  items={categories.slice(0, 8).map((c) => ({
                     id: c.name,
                     name: `${c.icon} ${c.name}`,
                     primaryValue: c.returns,
@@ -343,10 +343,12 @@ export function ExecutiveOverviewTab({ summary, orders = [], skuList = [] }: Exe
                     subText: `৳${c.revenue.toLocaleString()}`,
                   }))}
                   title="Apparel Category Dispatch vs Net Retained Units"
-                  subtitle="Compare net delivered volume against returned items across top DEEN collections"
+                  subtitle="Perpendicular column comparison of net delivered volume against returned items across DEEN collections"
                   primaryLabel="Returned Units"
                   secondaryLabel="Retained Units"
                   formatValue={(v) => `${v.toLocaleString()} pcs`}
+                  orientation="vertical"
+                  allowToggleOrientation={true}
                 />
               </div>
             )}
@@ -554,6 +556,15 @@ export function ExecutiveOverviewTab({ summary, orders = [], skuList = [] }: Exe
             )}
           </div>
         </div>
+
+        {/* Payment Method COD vs Online Paid Ratio Donut Chart */}
+        {orders && orders.length > 0 && (
+          <PaymentMethodMixCard
+            orders={orders}
+            title="Payment Settlement Ratio: COD vs Online Paid"
+            subtitle="Interactive ratio analysis of Cash on Delivery volume versus digital prepaid settlements (bKash, SSLCommerz, Cards & Bank)"
+          />
+        )}
 
         {/* Supporting Widgets (Placed below table in clean 2-column grid) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

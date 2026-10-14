@@ -71,6 +71,8 @@ import {
   StorageEstimateResult
 } from '@/lib/cacheManager';
 import { RawOrderRow } from '@/types';
+import { loadBYOKConfig, BYOKConfig } from '@/lib/byok';
+import { BYOKModal } from '@/components/ai/BYOKModal';
 
 interface SettingsTabProps {
   excludeAugust: boolean;
@@ -184,6 +186,21 @@ export function SettingsTab({
   const [storageEstimate, setStorageEstimate] = useState<StorageEstimateResult | null>(null);
   const [activeStorageTab, setActiveStorageTab] = useState<'cache' | 'cookies' | 'audit'>('cache');
   const [isRefreshingStorage, setIsRefreshingStorage] = useState(false);
+
+  // BYOK State
+  const [byokConfig, setByokConfig] = useState<BYOKConfig>(() => loadBYOKConfig());
+  const [isBYOKModalOpen, setIsBYOKModalOpen] = useState(false);
+
+  // Listen for BYOK updates
+  useEffect(() => {
+    const handleBYOKUpdate = (e: any) => {
+      if (e.detail) {
+        setByokConfig(e.detail);
+      }
+    };
+    window.addEventListener('deen_byok_updated', handleBYOKUpdate);
+    return () => window.removeEventListener('deen_byok_updated', handleBYOKUpdate);
+  }, []);
 
   const refreshStorageData = React.useCallback(() => {
     setIsRefreshingStorage(true);
@@ -431,14 +448,52 @@ export function SettingsTab({
     });
     logAuditAction('API Credentials Updated', 'Updated WooCommerce and Pathao credentials.');
     showToast('API credentials saved securely in local storage.');
-    checkApiStatus();
+    checkApiStatus({
+      woocommerce: wcConsumerKey ? {
+        store_url: wcStoreUrl,
+        consumer_key: wcConsumerKey,
+        consumer_secret: wcConsumerSecret
+      } : undefined,
+      pathao: pathaoClientId ? {
+        base_url: 'https://api-hermes.pathao.com',
+        client_id: pathaoClientId,
+        client_secret: pathaoClientSecret,
+        username: pathaoUsername
+      } : undefined
+    });
   };
 
   // API Status Check
-  const checkApiStatus = async () => {
+  const checkApiStatus = async (customCreds?: any) => {
     setLoadingStatus(true);
     try {
-      const res = await fetch('/api/sync/status');
+      const payload: any = customCreds || {};
+      if (!customCreds) {
+        if (wcConsumerKey) {
+          payload.woocommerce = {
+            store_url: wcStoreUrl,
+            consumer_key: wcConsumerKey,
+            consumer_secret: wcConsumerSecret
+          };
+        }
+        if (pathaoClientId) {
+          payload.pathao = {
+            base_url: 'https://api-hermes.pathao.com',
+            client_id: pathaoClientId,
+            client_secret: pathaoClientSecret,
+            username: pathaoUsername
+          };
+        }
+      }
+
+      const res = Object.keys(payload).length > 0
+        ? await fetch('/api/sync/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+        : await fetch('/api/sync/status');
+
       const data = await res.json();
       setPathaoStatus(data.pathao);
       setWcStatus(data.woocommerce);
@@ -459,7 +514,18 @@ export function SettingsTab({
       const res = await fetch('/api/sync/woocommerce', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ startDate, endDate, status: orderStatus, perPage: 100, maxPages: 5 })
+        body: JSON.stringify({
+          startDate,
+          endDate,
+          status: orderStatus,
+          perPage: 100,
+          maxPages: 3,
+          credentials: wcConsumerKey ? {
+            store_url: wcStoreUrl,
+            consumer_key: wcConsumerKey,
+            consumer_secret: wcConsumerSecret
+          } : undefined
+        })
       });
       const data = await res.json();
       if (data.success && data.orders && data.orders.length > 0) {
@@ -484,7 +550,17 @@ export function SettingsTab({
       const res = await fetch('/api/sync/pathao', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ startDate, endDate, limit: 50 })
+        body: JSON.stringify({
+          startDate,
+          endDate,
+          limit: 35,
+          credentials: pathaoClientId ? {
+            base_url: 'https://api-hermes.pathao.com',
+            client_id: pathaoClientId,
+            client_secret: pathaoClientSecret,
+            username: pathaoUsername
+          } : undefined
+        })
       });
       const data = await res.json();
       if (data.success && data.orders && data.orders.length > 0) {
@@ -1287,6 +1363,59 @@ export function SettingsTab({
                   <span>Test</span>
                 </button>
               </div>
+
+              {/* AI Copilot & After-Sales Engine (BYOK) Status Card */}
+              <div className="p-4 rounded-xl border border-indigo-200/90 bg-gradient-to-r from-indigo-50/50 via-purple-50/30 to-white flex items-start justify-between md:col-span-2 shadow-2xs">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600 shrink-0 shadow-2xs">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-bold text-slate-900 font-headline">
+                        AI Intelligence Engine & Bring Your Own Key (BYOK)
+                      </h4>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-700">
+                        Multi-Provider Auto-Detect
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-500 block mt-0.5">
+                      Powers After-Sales QA Diagnosis, Courier Financial Dispute Claims, and Chronic Buyer Protection
+                    </span>
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          byokConfig.isActive
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-slate-100 text-slate-600 border border-slate-200'
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            byokConfig.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                          }`}
+                        />
+                        {byokConfig.isActive
+                          ? `Connected: ${byokConfig.provider.toUpperCase()} (${byokConfig.model})`
+                          : 'Offline Heuristic Fallback (Connect Free Gemini Key)'}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {byokConfig.isActive ? 'Local Browser Vault' : 'No Credit Card Needed'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setIsBYOKModalOpen(true)}
+                    className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs active:scale-95"
+                  >
+                    <Key className="w-3.5 h-3.5" />
+                    <span>{byokConfig.isActive ? 'Manage BYOK' : 'Connect API Key'}</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Date Range & Ingestion Scope */}
@@ -1760,6 +1889,16 @@ export function SettingsTab({
         </div>
 
       </div>
+
+      {/* Bring Your Own Key (BYOK) Modal */}
+      <BYOKModal
+        isOpen={isBYOKModalOpen}
+        onClose={() => setIsBYOKModalOpen(false)}
+        onSaved={(cfg) => {
+          setByokConfig(cfg);
+          showToast(`BYOK API key configured: ${cfg.provider.toUpperCase()} (${cfg.model})`);
+        }}
+      />
     </div>
   );
 }

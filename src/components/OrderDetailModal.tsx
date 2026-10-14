@@ -23,6 +23,7 @@ import {
   removeManualOverride,
   ManualOverride
 } from '@/lib/overrideStore';
+import { FulfillmentBadge, StatusBadge } from '@/components/common';
 
 interface OrderDetailModalProps {
   orderId: string | null;
@@ -115,35 +116,19 @@ export function OrderDetailModal({
                 <h2 className="font-headline font-black text-xl text-navy-deep">
                   Order #{primary.orderId}
                 </h2>
-                {/* Branch Split Indicators */}
-                {hasCumilla && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
-                    Cumilla (c)
-                  </span>
-                )}
-                {hasWari && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-300">
-                    Wari (w)
-                  </span>
-                )}
-                {hasSylhet && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-50 text-cyan-800 border border-cyan-300">
-                    Sylhet (s)
-                  </span>
-                )}
-                {hasMirpur && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-800 border border-purple-300">
-                    Mirpur POS (m)
-                  </span>
-                )}
+                {/* Standardized Branch & Status Indicators */}
+                {hasCumilla && <FulfillmentBadge location="Cumilla Branch" suffix="c" size="sm" />}
+                {hasWari && <FulfillmentBadge location="Wari Branch" suffix="w" size="sm" />}
+                {hasSylhet && <FulfillmentBadge location="Sylhet Branch" suffix="s" size="sm" />}
+                {hasMirpur && <FulfillmentBadge location="Mirpur Outlet POS" suffix="m" size="sm" />}
                 {!hasCumilla && !hasWari && !hasSylhet && !hasMirpur && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                    Online Store (Central Warehouse)
-                  </span>
+                  <FulfillmentBadge location="Online Store (Central Warehouse)" size="sm" />
                 )}
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  {primary.orderDeliveryStatus || primary.orderCategory}
-                </span>
+                <StatusBadge
+                  status={primary.orderDeliveryStatus || primary.orderCategory}
+                  isPaidReturn={primary.isPaidReturn}
+                  size="sm"
+                />
               </div>
               <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
                 <span>{primary.orderDate ? new Date(primary.orderDate).toLocaleDateString() : 'N/A'}</span>
@@ -262,19 +247,7 @@ export function OrderDetailModal({
 
                         <td className="py-3 px-3 text-center">
                           <div className="flex flex-col items-center gap-1">
-                            <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                                effectiveStatus === 'Delivered'
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                  : effectiveStatus === 'Returned'
-                                  ? 'bg-rose-50 text-rose-800 border-rose-300'
-                                  : effectiveStatus === 'Exchange'
-                                  ? 'bg-purple-50 text-purple-800 border-purple-300'
-                                  : 'bg-amber-50 text-amber-800 border-amber-300'
-                              }`}
-                            >
-                              {effectiveStatus}
-                            </span>
+                            <StatusBadge status={effectiveStatus} isPaidReturn={it.isPaidReturn} size="sm" />
                             {isOverridden && (
                               <span className="text-[9px] font-bold text-primary flex items-center gap-0.5">
                                 <AlertCircle className="w-2.5 h-2.5" /> Manual Override

@@ -68,6 +68,36 @@ export function normalizeGa4PropertyId(propId: string): string {
 }
 
 /**
+ * Attempts to parse a full GCP Service Account JSON string or base64 encoded string.
+ */
+function parseServiceAccountJson(rawJson: string): Partial<SecretsConfig['gcp_service_account']> | null {
+  if (!rawJson) return null;
+  try {
+    let clean = rawJson.trim();
+    if (!clean.startsWith('{')) {
+      try {
+        const decoded = Buffer.from(clean, 'base64').toString('utf-8').trim();
+        if (decoded.startsWith('{')) clean = decoded;
+      } catch {
+        // Not base64
+      }
+    }
+    const parsed = JSON.parse(clean);
+    return {
+      project_id: parsed.project_id || '',
+      client_email: parsed.client_email || '',
+      private_key: normalizePrivateKey(parsed.private_key || ''),
+      private_key_id: parsed.private_key_id || '',
+      client_id: parsed.client_id || '',
+      auth_uri: parsed.auth_uri || 'https://accounts.google.com/o/oauth2/auth',
+      token_uri: parsed.token_uri || 'https://oauth2.googleapis.com/token',
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Parses environment variables and secrets.toml into a structured config object.
  */
 export function getSecretsConfig(): SecretsConfig {
@@ -95,6 +125,14 @@ export function getSecretsConfig(): SecretsConfig {
       // ignore
     }
   }
+
+  // Check for whole GCP JSON service account in single environment variable
+  const rawGcpJson =
+    process.env.GCP_SERVICE_ACCOUNT_JSON ||
+    process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON ||
+    process.env.GCP_CREDENTIALS ||
+    '';
+  const parsedGcpJson = parseServiceAccountJson(rawGcpJson);
 
   // 2. Initialize config from environment variables (.env.local, .env, or Vercel)
   const config: SecretsConfig = {
@@ -152,13 +190,13 @@ export function getSecretsConfig(): SecretsConfig {
     },
     gcp_service_account: {
       type: process.env.GCP_TYPE || 'service_account',
-      project_id: process.env.GCP_PROJECT_ID || '',
-      private_key_id: process.env.GCP_PRIVATE_KEY_ID || '',
-      private_key: normalizePrivateKey(process.env.GCP_PRIVATE_KEY || ''),
-      client_email: process.env.GCP_CLIENT_EMAIL || '',
-      client_id: process.env.GCP_CLIENT_ID || '',
-      auth_uri: process.env.GCP_AUTH_URI || 'https://accounts.google.com/o/oauth2/auth',
-      token_uri: process.env.GCP_TOKEN_URI || 'https://oauth2.googleapis.com/token',
+      project_id: parsedGcpJson?.project_id || process.env.GCP_PROJECT_ID || '',
+      private_key_id: parsedGcpJson?.private_key_id || process.env.GCP_PRIVATE_KEY_ID || '',
+      private_key: parsedGcpJson?.private_key || normalizePrivateKey(process.env.GCP_PRIVATE_KEY || ''),
+      client_email: parsedGcpJson?.client_email || process.env.GCP_CLIENT_EMAIL || '',
+      client_id: parsedGcpJson?.client_id || process.env.GCP_CLIENT_ID || '',
+      auth_uri: parsedGcpJson?.auth_uri || process.env.GCP_AUTH_URI || 'https://accounts.google.com/o/oauth2/auth',
+      token_uri: parsedGcpJson?.token_uri || process.env.GCP_TOKEN_URI || 'https://oauth2.googleapis.com/token',
       auth_provider_x509_cert_url: process.env.GCP_AUTH_PROVIDER_CERT_URL || 'https://www.googleapis.com/oauth2/v1/certs',
       client_x509_cert_url: process.env.GCP_CLIENT_CERT_URL || '',
       universe_domain: process.env.GCP_UNIVERSE_DOMAIN || 'googleapis.com',
@@ -262,4 +300,46 @@ export function getSecretsConfig(): SecretsConfig {
   }
 
   return config;
+}
+
+/**
+ * Returns the effective secrets configuration by merging server environment defaults
+ * with optional dynamic client overrides (e.g. from Settings tab or request payload).
+ */
+export function getSecretsWithOverrides(overrides?: {
+  woocommerce?: Partial<SecretsConfig['woocommerce']>;
+  pathao?: Partial<SecretsConfig['pathao']>;
+  ga4?: Partial<SecretsConfig['ga4']>;
+  meta?: Partial<SecretsConfig['meta']>;
+}): SecretsConfig {
+  const base = getSecretsConfig();
+  if (!overrides) return base;
+
+  return {
+    ...base,
+    woocommerce: {
+      ...base.woocommerce,
+      ...(overrides.woocommerce?.store_url ? { store_url: overrides.woocommerce.store_url } : {}),
+      ...(overrides.woocommerce?.consumer_key ? { consumer_key: overrides.woocommerce.consumer_key } : {}),
+      ...(overrides.woocommerce?.consumer_secret ? { consumer_secret: overrides.woocommerce.consumer_secret } : {}),
+    },
+    pathao: {
+      ...base.pathao,
+      ...(overrides.pathao?.base_url ? { base_url: overrides.pathao.base_url } : {}),
+      ...(overrides.pathao?.client_id ? { client_id: overrides.pathao.client_id } : {}),
+      ...(overrides.pathao?.client_secret ? { client_secret: overrides.pathao.client_secret } : {}),
+      ...(overrides.pathao?.username ? { username: overrides.pathao.username } : {}),
+      ...(overrides.pathao?.password ? { password: overrides.pathao.password } : {}),
+    },
+    ga4: {
+      ...base.ga4,
+      ...(overrides.ga4?.property_id ? { property_id: normalizeGa4PropertyId(overrides.ga4.property_id) } : {}),
+    },
+    meta: {
+      ...base.meta,
+      ...(overrides.meta?.pixel_id ? { pixel_id: overrides.meta.pixel_id } : {}),
+      ...(overrides.meta?.ad_account_id ? { ad_account_id: overrides.meta.ad_account_id } : {}),
+      ...(overrides.meta?.access_token ? { access_token: overrides.meta.access_token } : {}),
+    },
+  };
 }

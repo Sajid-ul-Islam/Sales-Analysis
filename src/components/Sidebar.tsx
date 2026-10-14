@@ -49,19 +49,19 @@ export function Sidebar({
 }: SidebarProps) {
   const navItems = [
     { id: 'tabExecutive', label: 'Executive', icon: LayoutDashboard },
-    { id: 'tabMarketingAnalytics', label: 'Ad Analytics', icon: BarChart3, highlight: true },
-    { id: 'tabOutletDispatch', label: 'Outlet Dispatch', icon: Store, highlight: true },
-    { id: 'tabOutletSales', label: 'Outlet Sales', icon: ShoppingBag, highlight: true },
-    { id: 'tabCourierMismatch', label: 'Courier Audit', icon: Truck, countBadge: mismatchCount, highlight: true },
+    { id: 'tabMarketingAnalytics', label: 'Ad Analytics', icon: BarChart3 },
+    { id: 'tabOutletDispatch', label: 'Outlet Dispatch', icon: Store },
+    { id: 'tabOutletSales', label: 'Outlet Sales', icon: ShoppingBag },
+    { id: 'tabCourierMismatch', label: 'Courier Audit', icon: Truck, countBadge: mismatchCount },
     { id: 'tabTerritory', label: 'Territory', icon: MapPin },
     { id: 'tabStatus', label: 'Status Matrix', icon: GitCompare },
     { id: 'tabOrders', label: 'Orders Ledger', icon: ListOrdered },
     { id: 'tabSku', label: 'SKU Flow', icon: Shirt },
     { id: 'tabItemReturns', label: 'Returned Items', icon: RotateCcw, countBadge: returnCount },
-    { id: 'tabExchanges', label: 'Exchanges', icon: ArrowRightLeft, countBadge: exchangeCount, highlight: true },
-    { id: 'tabCustomerRisk', label: 'Customer Risk', icon: ShieldAlert, highlight: true },
-    { id: 'tabUnitEconomics', label: 'Unit Economics', icon: Calculator, highlight: true },
-    { id: 'tabSettings', label: 'Settings & Themes', icon: Settings, highlight: true },
+    { id: 'tabExchanges', label: 'Exchanges', icon: ArrowRightLeft, countBadge: exchangeCount },
+    { id: 'tabCustomerRisk', label: 'Customer Risk', icon: ShieldAlert },
+    { id: 'tabUnitEconomics', label: 'Unit Economics', icon: Calculator },
+    { id: 'tabSettings', label: 'Settings & Themes', icon: Settings },
   ];
 
   const handleItemClick = (id: string) => {
@@ -73,14 +73,14 @@ export function Sidebar({
 
   const renderSidebarBody = (isMobile = false) => (
     <>
-      <div className="flex flex-col min-h-0">
+      <div className="flex flex-col min-h-0 flex-1 overflow-hidden">
         {/* Brand Header */}
         <div className="h-16 px-5 border-b border-slate-100 flex items-center justify-between shrink-0">
           <DeenLogo size="md" />
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              v2.6
+              v2.2
             </span>
             {isMobile && onCloseMobile && (
               <button
@@ -144,8 +144,6 @@ export function Sidebar({
                     className={`w-4 h-4 shrink-0 transition-colors ${
                       isActive
                         ? 'text-primary'
-                        : item.highlight
-                        ? 'text-amber-500'
                         : 'text-slate-400 group-hover:text-slate-600'
                     }`}
                   />

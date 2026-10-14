@@ -403,7 +403,7 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
 
                       {/* Unit Price */}
                       <td className="py-3 px-3 text-right font-mono text-slate-700">
-                        ৳{s.unitPrice ? s.unitPrice.toLocaleString() : '—'}
+                        ৳ {s.unitPrice ? s.unitPrice.toLocaleString() : '—'}
                       </td>
 
                       {/* Gross Dispatched */}

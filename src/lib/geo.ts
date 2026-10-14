@@ -220,25 +220,223 @@ export function detectDivision(
   return 'Dhaka';
 }
 
+export interface DistrictMetric {
+  name: string;
+  division: BangladeshDivision;
+  dispatchedOrders: number;
+  deliveredOrders: number;
+  partialOrders: number;
+  returnedOrders: number;
+  exchangeOrders: number;
+  netRevenue: number;
+  grossRevenue: number;
+  returnRate: number;
+  aov: number;
+}
+
+const CANONICAL_DISTRICTS: Record<string, { name: string; division: BangladeshDivision }> = {
+  'dhaka': { name: 'Dhaka Metro', division: 'Dhaka' },
+  'ঢাকা': { name: 'Dhaka Metro', division: 'Dhaka' },
+  'dhaka city': { name: 'Dhaka Metro', division: 'Dhaka' },
+  'ঢাকা সিটি': { name: 'Dhaka Metro', division: 'Dhaka' },
+  'gazipur': { name: 'Gazipur', division: 'Dhaka' },
+  'গাজীপুর': { name: 'Gazipur', division: 'Dhaka' },
+  'narayanganj': { name: 'Narayanganj', division: 'Dhaka' },
+  'narayangonj': { name: 'Narayanganj', division: 'Dhaka' },
+  'নারায়ণগঞ্জ': { name: 'Narayanganj', division: 'Dhaka' },
+  'tangail': { name: 'Tangail', division: 'Dhaka' },
+  'টাঙ্গাইল': { name: 'Tangail', division: 'Dhaka' },
+  'kishoreganj': { name: 'Kishoreganj', division: 'Dhaka' },
+  'kishorgonj': { name: 'Kishoreganj', division: 'Dhaka' },
+  'কিশোরগঞ্জ': { name: 'Kishoreganj', division: 'Dhaka' },
+  'narsingdi': { name: 'Narsingdi', division: 'Dhaka' },
+  'নরসিংদী': { name: 'Narsingdi', division: 'Dhaka' },
+  'manikganj': { name: 'Manikganj', division: 'Dhaka' },
+  'manikgonj': { name: 'Manikganj', division: 'Dhaka' },
+  'মানিকগঞ্জ': { name: 'Manikganj', division: 'Dhaka' },
+  'munshiganj': { name: 'Munshiganj', division: 'Dhaka' },
+  'munshigonj': { name: 'Munshiganj', division: 'Dhaka' },
+  'মুন্সীগঞ্জ': { name: 'Munshiganj', division: 'Dhaka' },
+  'মুন্সিগঞ্জ': { name: 'Munshiganj', division: 'Dhaka' },
+  'faridpur': { name: 'Faridpur', division: 'Dhaka' },
+  'ফরিদপুর': { name: 'Faridpur', division: 'Dhaka' },
+  'gopalganj': { name: 'Gopalganj', division: 'Dhaka' },
+  'গোপালগঞ্জ': { name: 'Gopalganj', division: 'Dhaka' },
+  'madaripur': { name: 'Madaripur', division: 'Dhaka' },
+  'মাদারীপুর': { name: 'Madaripur', division: 'Dhaka' },
+  'rajbari': { name: 'Rajbari', division: 'Dhaka' },
+  'রাজবাড়ী': { name: 'Rajbari', division: 'Dhaka' },
+  'রাজবাড়ী': { name: 'Rajbari', division: 'Dhaka' },
+  'shariatpur': { name: 'Shariatpur', division: 'Dhaka' },
+  'শরীয়তপুর': { name: 'Shariatpur', division: 'Dhaka' },
+
+  // Chattogram Division
+  'chattogram': { name: 'Chattogram', division: 'Chattogram' },
+  'chittagong': { name: 'Chattogram', division: 'Chattogram' },
+  'চট্টগ্রাম': { name: 'Chattogram', division: 'Chattogram' },
+  'cox’s bazar': { name: "Cox's Bazar", division: 'Chattogram' },
+  'coxs bazar': { name: "Cox's Bazar", division: 'Chattogram' },
+  "cox's bazar": { name: "Cox's Bazar", division: 'Chattogram' },
+  'কক্সবাজার': { name: "Cox's Bazar", division: 'Chattogram' },
+  'cumilla': { name: 'Cumilla', division: 'Chattogram' },
+  'comilla': { name: 'Cumilla', division: 'Chattogram' },
+  'কুমিল্লা': { name: 'Cumilla', division: 'Chattogram' },
+  'feni': { name: 'Feni', division: 'Chattogram' },
+  'ফেনী': { name: 'Feni', division: 'Chattogram' },
+  'brahmanbaria': { name: 'Brahmanbaria', division: 'Chattogram' },
+  'ব্রাহ্মণবাড়িয়া': { name: 'Brahmanbaria', division: 'Chattogram' },
+  'noakhali': { name: 'Noakhali', division: 'Chattogram' },
+  'নোয়াখালী': { name: 'Noakhali', division: 'Chattogram' },
+  'chandpur': { name: 'Chandpur', division: 'Chattogram' },
+  'চাঁদপুর': { name: 'Chandpur', division: 'Chattogram' },
+  'lakshmipur': { name: 'Lakshmipur', division: 'Chattogram' },
+  'লক্ষ্মীপুর': { name: 'Lakshmipur', division: 'Chattogram' },
+  'khagrachhari': { name: 'Khagrachhari', division: 'Chattogram' },
+  'খাগড়াছড়ি': { name: 'Khagrachhari', division: 'Chattogram' },
+  'rangamati': { name: 'Rangamati', division: 'Chattogram' },
+  'রাঙ্গামাটি': { name: 'Rangamati', division: 'Chattogram' },
+  'bandarban': { name: 'Bandarban', division: 'Chattogram' },
+  'বান্দরবান': { name: 'Bandarban', division: 'Chattogram' },
+
+  // Rajshahi Division
+  'rajshahi': { name: 'Rajshahi', division: 'Rajshahi' },
+  'রাজশাহী': { name: 'Rajshahi', division: 'Rajshahi' },
+  'bogura': { name: 'Bogura', division: 'Rajshahi' },
+  'bogra': { name: 'Bogura', division: 'Rajshahi' },
+  'বগুড়া': { name: 'Bogura', division: 'Rajshahi' },
+  'pabna': { name: 'Pabna', division: 'Rajshahi' },
+  'পাবনা': { name: 'Pabna', division: 'Rajshahi' },
+  'sirajganj': { name: 'Sirajganj', division: 'Rajshahi' },
+  'সিরাজগঞ্জ': { name: 'Sirajganj', division: 'Rajshahi' },
+  'naogaon': { name: 'Naogaon', division: 'Rajshahi' },
+  'নওগাঁ': { name: 'Naogaon', division: 'Rajshahi' },
+  'natore': { name: 'Natore', division: 'Rajshahi' },
+  'নাটোর': { name: 'Natore', division: 'Rajshahi' },
+  'joypurhat': { name: 'Joypurhat', division: 'Rajshahi' },
+  'জয়পুরহাট': { name: 'Joypurhat', division: 'Rajshahi' },
+  'chapainawabganj': { name: 'Chapainawabganj', division: 'Rajshahi' },
+  'নবাবগঞ্জ': { name: 'Chapainawabganj', division: 'Rajshahi' },
+
+  // Khulna Division
+  'khulna': { name: 'Khulna', division: 'Khulna' },
+  'খুলনা': { name: 'Khulna', division: 'Khulna' },
+  'jashore': { name: 'Jashore', division: 'Khulna' },
+  'jessore': { name: 'Jashore', division: 'Khulna' },
+  'যশোর': { name: 'Jashore', division: 'Khulna' },
+  'satkhira': { name: 'Satkhira', division: 'Khulna' },
+  'সাতক্ষীরা': { name: 'Satkhira', division: 'Khulna' },
+  'bagerhat': { name: 'Bagerhat', division: 'Khulna' },
+  'বাগেরহাট': { name: 'Bagerhat', division: 'Khulna' },
+  'kushtia': { name: 'Kushtia', division: 'Khulna' },
+  'কুষ্টিয়া': { name: 'Kushtia', division: 'Khulna' },
+  'chuadanga': { name: 'Chuadanga', division: 'Khulna' },
+  'চুয়াডাঙ্গা': { name: 'Chuadanga', division: 'Khulna' },
+  'meherpur': { name: 'Meherpur', division: 'Khulna' },
+  'মেহেরপুর': { name: 'Meherpur', division: 'Khulna' },
+  'jhenaidah': { name: 'Jhenaidah', division: 'Khulna' },
+  'ঝিনাইদহ': { name: 'Jhenaidah', division: 'Khulna' },
+  'magura': { name: 'Magura', division: 'Khulna' },
+  'মাগুরা': { name: 'Magura', division: 'Khulna' },
+  'narail': { name: 'Narail', division: 'Khulna' },
+  'নড়াইল': { name: 'Narail', division: 'Khulna' },
+
+  // Barishal Division
+  'barishal': { name: 'Barishal', division: 'Barishal' },
+  'barisal': { name: 'Barishal', division: 'Barishal' },
+  'বরিশাল': { name: 'Barishal', division: 'Barishal' },
+  'bhola': { name: 'Bhola', division: 'Barishal' },
+  'ভোলা': { name: 'Bhola', division: 'Barishal' },
+  'patuakhali': { name: 'Patuakhali', division: 'Barishal' },
+  'পটুয়াখালী': { name: 'Patuakhali', division: 'Barishal' },
+  'pirojpur': { name: 'Pirojpur', division: 'Barishal' },
+  'পিরোজপুর': { name: 'Pirojpur', division: 'Barishal' },
+  'jhalokati': { name: 'Jhalokati', division: 'Barishal' },
+  'ঝালকাঠি': { name: 'Jhalokati', division: 'Barishal' },
+  'barguna': { name: 'Barguna', division: 'Barishal' },
+  'বরগুনা': { name: 'Barguna', division: 'Barishal' },
+
+  // Sylhet Division
+  'sylhet': { name: 'Sylhet', division: 'Sylhet' },
+  'সিলেট': { name: 'Sylhet', division: 'Sylhet' },
+  'moulvibazar': { name: 'Moulvibazar', division: 'Sylhet' },
+  'মৌলভীবাজার': { name: 'Moulvibazar', division: 'Sylhet' },
+  'habiganj': { name: 'Habiganj', division: 'Sylhet' },
+  'হবিগঞ্জ': { name: 'Habiganj', division: 'Sylhet' },
+  'sunamganj': { name: 'Sunamganj', division: 'Sylhet' },
+  'সুনামগঞ্জ': { name: 'Sunamganj', division: 'Sylhet' },
+
+  // Rangpur Division
+  'rangpur': { name: 'Rangpur', division: 'Rangpur' },
+  'রংপুর': { name: 'Rangpur', division: 'Rangpur' },
+  'dinajpur': { name: 'Dinajpur', division: 'Rangpur' },
+  'দিনাজপুর': { name: 'Dinajpur', division: 'Rangpur' },
+  'kurigram': { name: 'Kurigram', division: 'Rangpur' },
+  'কুড়িগ্রাম': { name: 'Kurigram', division: 'Rangpur' },
+  'gaibandha': { name: 'Gaibandha', division: 'Rangpur' },
+  'গাইবান্ধা': { name: 'Gaibandha', division: 'Rangpur' },
+  'nilphamari': { name: 'Nilphamari', division: 'Rangpur' },
+  'নীলফামারী': { name: 'Nilphamari', division: 'Rangpur' },
+  'panchagarh': { name: 'Panchagarh', division: 'Rangpur' },
+  'পঞ্চগড়': { name: 'Panchagarh', division: 'Rangpur' },
+  'thakurgaon': { name: 'Thakurgaon', division: 'Rangpur' },
+  'ঠাকুরগাঁও': { name: 'Thakurgaon', division: 'Rangpur' },
+  'lalmonirhat': { name: 'Lalmonirhat', division: 'Rangpur' },
+  'লালমনিরহাট': { name: 'Lalmonirhat', division: 'Rangpur' },
+
+  // Mymensingh Division
+  'mymensingh': { name: 'Mymensingh', division: 'Mymensingh' },
+  'ময়মনসিংহ': { name: 'Mymensingh', division: 'Mymensingh' },
+  'jamalpur': { name: 'Jamalpur', division: 'Mymensingh' },
+  'জামালপুর': { name: 'Jamalpur', division: 'Mymensingh' },
+  'netrokona': { name: 'Netrokona', division: 'Mymensingh' },
+  'নেত্রকোণা': { name: 'Netrokona', division: 'Mymensingh' },
+  'নেত্রকোনা': { name: 'Netrokona', division: 'Mymensingh' },
+  'sherpur': { name: 'Sherpur', division: 'Mymensingh' },
+  'শেরপুর': { name: 'Sherpur', division: 'Mymensingh' }
+};
+
 /**
- * Detects destination district name from city or address.
+ * Detects destination district name from city, address, or customer note.
  */
-export function detectDistrictName(city?: string | null, address?: string | null): string {
-  const cleanCity = String(city || '').trim();
-  if (cleanCity && cleanCity.length > 2 && !/^\d+$/.test(cleanCity) && !cleanCity.toLowerCase().includes('outside')) {
-    return cleanCity;
+export function detectDistrictName(city?: string | null, address?: string | null, note?: string | null): string {
+  const combined = `${city || ''} ${address || ''} ${note || ''}`.toLowerCase();
+
+  // 1. Direct canonical check
+  for (const [key, match] of Object.entries(CANONICAL_DISTRICTS)) {
+    if (combined.includes(key)) {
+      return match.name;
+    }
   }
-  const cleanAddr = String(address || '').trim().toLowerCase();
+
+  // 2. Fallback to clean city or outside dictionary
+  const cleanCity = String(city || '')
+    .trim()
+    .replace(/\s+sadar$/i, '')
+    .replace(/ sadar$/i, '')
+    .replace(/^sadar$/i, '')
+    .replace(/^সদর$/i, '');
+
+  if (
+    cleanCity &&
+    cleanCity.length > 2 &&
+    !/^\d+$/.test(cleanCity) &&
+    !cleanCity.toLowerCase().includes('outside') &&
+    cleanCity.toLowerCase() !== 'sadar'
+  ) {
+    return cleanCity.charAt(0).toUpperCase() + cleanCity.slice(1);
+  }
+
   for (const term of GEO_DICT.outside_en) {
-    if (term.length > 3 && cleanAddr.includes(term)) {
+    if (term.length > 3 && combined.includes(term)) {
       return term.charAt(0).toUpperCase() + term.slice(1);
     }
   }
-  return cleanCity || 'Dhaka Metro';
+
+  return 'Dhaka Metro';
 }
 
 /**
- * Aggregates complete division-level sales, dispatch, and return metrics across Bangladesh.
+ * Aggregates complete division-level and district-level metrics across Bangladesh.
  */
 export function aggregateDivisionMetrics(orders: ReconciledOrderRow[]): {
   divisions: DivisionMetric[];
@@ -253,6 +451,7 @@ export function aggregateDivisionMetrics(orders: ReconciledOrderRow[]): {
     nationalReturnRate: number;
   };
   topNationwideDistricts: { name: string; division: string; count: number; revenue: number }[];
+  allDistricts: DistrictMetric[];
 } {
   // 1. Group items by unique Order ID
   const orderGroups = new Map<string, ReconciledOrderRow[]>();
@@ -296,7 +495,18 @@ export function aggregateDivisionMetrics(orders: ReconciledOrderRow[]): {
   let totalNetRevenue = 0;
   let totalGrossRevenue = 0;
 
-  const nationwideDistrictsMap = new Map<string, { division: string; count: number; revenue: number }>();
+  interface DistrictTracker {
+    division: BangladeshDivision;
+    dispatchedOrders: number;
+    deliveredOrders: number;
+    partialOrders: number;
+    returnedOrders: number;
+    exchangeOrders: number;
+    netRevenue: number;
+    grossRevenue: number;
+  }
+
+  const nationwideDistrictsMap = new Map<string, DistrictTracker>();
 
   // 3. Process each unique order
   orderGroups.forEach((items) => {
@@ -322,22 +532,27 @@ export function aggregateDivisionMetrics(orders: ReconciledOrderRow[]): {
     totalGrossRevenue += orderAmount;
     totalNetRevenue += netRevenue;
 
-    if (primary.orderCategory === 'DELIVERED') {
+    const isDelivered = primary.orderCategory === 'DELIVERED';
+    const isReturned = primary.orderCategory === 'FULL_RETURN';
+    const isPartial = primary.orderCategory === 'PARTIAL';
+    const isExchange = primary.orderCategory === 'EXCHANGE';
+
+    if (isDelivered) {
       stats.deliveredOrders++;
       totalDelivered++;
-    } else if (primary.orderCategory === 'FULL_RETURN') {
+    } else if (isReturned) {
       stats.returnedOrders++;
       totalReturned++;
-    } else if (primary.orderCategory === 'PARTIAL') {
+    } else if (isPartial) {
       stats.partialOrders++;
       totalPartial++;
-    } else if (primary.orderCategory === 'EXCHANGE') {
+    } else if (isExchange) {
       stats.exchangeOrders++;
       totalExchange++;
     }
 
     // District accumulation
-    const districtName = detectDistrictName(primary.city, primary.rawNote);
+    const districtName = detectDistrictName(primary.city, primary.rawNote, primary.rawNote);
     if (!stats.districtsMap.has(districtName)) {
       stats.districtsMap.set(districtName, { count: 0, revenue: 0 });
     }
@@ -347,11 +562,25 @@ export function aggregateDivisionMetrics(orders: ReconciledOrderRow[]): {
 
     // Nationwide district accumulation
     if (!nationwideDistrictsMap.has(districtName)) {
-      nationwideDistrictsMap.set(districtName, { division: divName, count: 0, revenue: 0 });
+      nationwideDistrictsMap.set(districtName, {
+        division: divName,
+        dispatchedOrders: 0,
+        deliveredOrders: 0,
+        partialOrders: 0,
+        returnedOrders: 0,
+        exchangeOrders: 0,
+        netRevenue: 0,
+        grossRevenue: 0
+      });
     }
     const nEntry = nationwideDistrictsMap.get(districtName)!;
-    nEntry.count++;
-    nEntry.revenue += netRevenue;
+    nEntry.dispatchedOrders++;
+    nEntry.grossRevenue += orderAmount;
+    nEntry.netRevenue += netRevenue;
+    if (isDelivered) nEntry.deliveredOrders++;
+    else if (isReturned) nEntry.returnedOrders++;
+    else if (isPartial) nEntry.partialOrders++;
+    else if (isExchange) nEntry.exchangeOrders++;
   });
 
   // 4. Compile division metrics list
@@ -406,11 +635,36 @@ export function aggregateDivisionMetrics(orders: ReconciledOrderRow[]): {
     };
   });
 
-  // 5. Compile top nationwide districts
-  const topNationwideDistricts = Array.from(nationwideDistrictsMap.entries())
-    .map(([name, data]) => ({ name, division: data.division, count: data.count, revenue: Math.round(data.revenue) }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
+  // 5. Compile all districts nationwide with metrics
+  const allDistricts: DistrictMetric[] = Array.from(nationwideDistrictsMap.entries())
+    .map(([name, data]) => {
+      const returnRate = data.dispatchedOrders > 0
+        ? ((data.returnedOrders + data.partialOrders) / data.dispatchedOrders) * 100
+        : 0;
+      const aov = (data.deliveredOrders + data.partialOrders) > 0
+        ? data.netRevenue / (data.deliveredOrders + data.partialOrders)
+        : (data.dispatchedOrders > 0 ? data.grossRevenue / data.dispatchedOrders : 0);
+
+      return {
+        name,
+        division: data.division,
+        dispatchedOrders: data.dispatchedOrders,
+        deliveredOrders: data.deliveredOrders,
+        partialOrders: data.partialOrders,
+        returnedOrders: data.returnedOrders,
+        exchangeOrders: data.exchangeOrders,
+        netRevenue: Math.round(data.netRevenue),
+        grossRevenue: Math.round(data.grossRevenue),
+        returnRate: Math.round(returnRate * 10) / 10,
+        aov: Math.round(aov)
+      };
+    })
+    .sort((a, b) => b.dispatchedOrders - a.dispatchedOrders);
+
+  // 6. Compile top nationwide districts summary
+  const topNationwideDistricts = allDistricts
+    .slice(0, 10)
+    .map(d => ({ name: d.name, division: d.division, count: d.dispatchedOrders, revenue: d.netRevenue }));
 
   const nationalReturnRate = totalDispatched > 0
     ? ((totalReturned + totalPartial) / totalDispatched) * 100
@@ -428,6 +682,7 @@ export function aggregateDivisionMetrics(orders: ReconciledOrderRow[]): {
       grossRevenue: Math.round(totalGrossRevenue),
       nationalReturnRate: Math.round(nationalReturnRate * 10) / 10
     },
-    topNationwideDistricts
+    topNationwideDistricts,
+    allDistricts
   };
 }

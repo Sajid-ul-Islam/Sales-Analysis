@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { CustomerRiskProfile } from '@/types';
 import { ShieldAlert, ShieldCheck, AlertTriangle, Search, CheckCircle2 } from 'lucide-react';
+import { AICustomerLossCard } from '@/components/after-sales/AICustomerLossCard';
 
 interface CustomerRiskTabProps {
   profiles: CustomerRiskProfile[];
@@ -98,6 +99,9 @@ export function CustomerRiskTab({ profiles }: CustomerRiskTabProps) {
         </div>
       </div>
 
+      {/* AI Reverse Logistics Loss & Chronic Returner Audit */}
+      <AICustomerLossCard profiles={profiles} />
+
       {/* Filter and Search Bar */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
         <div className="flex items-center gap-3 w-full md:w-auto flex-1">
@@ -108,7 +112,7 @@ export function CustomerRiskTab({ profiles }: CustomerRiskTabProps) {
               placeholder="Search phone number or customer name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
             />
           </div>
 
@@ -116,7 +120,7 @@ export function CustomerRiskTab({ profiles }: CustomerRiskTabProps) {
             <select
               value={riskFilter}
               onChange={(e) => setRiskFilter(e.target.value as any)}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-primary focus:bg-white"
+              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
             >
               <option value="ALL">All Risk Tiers</option>
               <option value="HIGH_RISK">High Risk Tiers Only</option>
@@ -127,7 +131,7 @@ export function CustomerRiskTab({ profiles }: CustomerRiskTabProps) {
             <select
               value={minOrdersFilter}
               onChange={(e) => setMinOrdersFilter(Number(e.target.value))}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-primary focus:bg-white"
+              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
             >
               <option value="1">All Orders (≥ 1)</option>
               <option value="2">Repeat Buyers Only (≥ 2 orders)</option>

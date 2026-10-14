@@ -81,7 +81,7 @@ export async function GET() {
     let pathaoDelivery = pathaoPath ? parseExcelFile(pathaoPath) : [];
 
     // Vercel / Cloud Resilient Fallback:
-    // If files are absent on disk (e.g. Vercel serverless environment where Sample Docs is gitignored),
+    // If individual files are absent on disk (e.g. Vercel serverless environment where Sample Docs is gitignored),
     // fallback directly to the bundled, precompiled baseline dataset to guarantee 100% data availability.
     const fallback = (baselineData || {}) as {
       orders?: any[];
@@ -91,24 +91,28 @@ export async function GET() {
       pathaoDelivery?: any[];
     };
 
-    const isFallbackUsed = orders.length === 0;
-    if (isFallbackUsed) {
-      orders = fallback.orders || [];
-      returns = fallback.returns || [];
-      partials = fallback.partials || [];
-      exchanges = fallback.exchanges || [];
-      pathaoDelivery = fallback.pathaoDelivery || [];
-    }
+    const ordersFromFallback = orders.length === 0;
+    const returnsFromFallback = returns.length === 0;
+    const partialsFromFallback = partials.length === 0;
+    const exchangesFromFallback = exchanges.length === 0;
+    const pathaoFromFallback = pathaoDelivery.length === 0;
 
-    console.log(`[API /api/sample-data] Loaded ${orders.length} orders, ${returns.length} returns, ${partials.length} partials, ${exchanges.length} exchanges, ${pathaoDelivery.length} pathao records (Fallback: ${isFallbackUsed})`);
+    if (ordersFromFallback) orders = fallback.orders || [];
+    if (returnsFromFallback) returns = fallback.returns || [];
+    if (partialsFromFallback) partials = fallback.partials || [];
+    if (exchangesFromFallback) exchanges = fallback.exchanges || [];
+    if (pathaoFromFallback) pathaoDelivery = fallback.pathaoDelivery || [];
+
+    const isAnyFallbackUsed = ordersFromFallback || returnsFromFallback || partialsFromFallback || exchangesFromFallback || pathaoFromFallback;
+    console.log(`[API /api/sample-data] Loaded ${orders.length} orders, ${returns.length} returns, ${partials.length} partials, ${exchanges.length} exchanges, ${pathaoDelivery.length} pathao records (Any Fallback: ${isAnyFallbackUsed})`);
 
     return NextResponse.json({
       success: true,
-      ordersPath: ordersPath ? path.basename(ordersPath) : (isFallbackUsed ? 'baselineSample.json (Bundled)' : null),
-      returnsPath: returnsPath ? path.basename(returnsPath) : (isFallbackUsed ? 'baselineSample.json (Bundled)' : null),
-      partialsPath: partialsPath ? path.basename(partialsPath) : (isFallbackUsed ? 'baselineSample.json (Bundled)' : null),
-      exchangesPath: exchangesPath ? path.basename(exchangesPath) : (isFallbackUsed ? 'baselineSample.json (Bundled)' : null),
-      pathaoDeliveryPath: pathaoPath ? path.basename(pathaoPath) : (isFallbackUsed ? 'baselineSample.json (Bundled)' : null),
+      ordersPath: ordersPath ? path.basename(ordersPath) : (ordersFromFallback ? 'baselineSample.json (Bundled)' : null),
+      returnsPath: returnsPath ? path.basename(returnsPath) : (returnsFromFallback ? 'baselineSample.json (Bundled)' : null),
+      partialsPath: partialsPath ? path.basename(partialsPath) : (partialsFromFallback ? 'baselineSample.json (Bundled)' : null),
+      exchangesPath: exchangesPath ? path.basename(exchangesPath) : (exchangesFromFallback ? 'baselineSample.json (Bundled)' : null),
+      pathaoDeliveryPath: pathaoPath ? path.basename(pathaoPath) : (pathaoFromFallback ? 'baselineSample.json (Bundled)' : null),
       ordersCount: orders.length,
       returnsCount: returns.length,
       partialsCount: partials.length,

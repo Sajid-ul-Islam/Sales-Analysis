@@ -5,6 +5,7 @@ import { ReconciledOrderRow } from '@/types';
 import { Search, ChevronLeft, ChevronRight, Eye, AlertCircle } from 'lucide-react';
 import { OrderDetailModal } from '@/components/OrderDetailModal';
 import { getManualOverrides, ManualOverride } from '@/lib/overrideStore';
+import { FulfillmentBadge, StatusBadge } from '@/components/common';
 
 interface OrdersLedgerTabProps {
   orders: ReconciledOrderRow[];
@@ -284,31 +285,7 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                             {o.orderId}
                             <Eye className="w-3 h-3 text-slate-400 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                           </span>
-                          {o.fulfillmentLocation === 'Cumilla Branch' && (
-                            <span className="text-[10px] bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded font-mono border border-teal-200" title="Fulfilled from Cumilla Branch">
-                              Cumilla (c)
-                            </span>
-                          )}
-                          {o.fulfillmentLocation === 'Wari Branch' && (
-                            <span className="text-[10px] bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded font-mono border border-purple-200" title="Fulfilled from Wari Branch">
-                              Wari (w)
-                            </span>
-                          )}
-                          {o.fulfillmentLocation === 'Sylhet Branch' && (
-                            <span className="text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-mono border border-indigo-200" title="Fulfilled from Sylhet Branch">
-                              Sylhet (s)
-                            </span>
-                          )}
-                          {(o.fulfillmentLocation === 'Mirpur Outlet POS' || o.fulfillmentLocation === 'Mirpur Outlet' || o.branchSuffix === 'm') && (
-                            <span className="text-[10px] bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded font-mono border border-purple-200" title="Fulfilled from Mirpur Outlet POS">
-                              Mirpur POS (m)
-                            </span>
-                          )}
-                          {(!o.fulfillmentLocation || o.fulfillmentLocation === 'Online Store (Central Warehouse)' || o.fulfillmentLocation === 'Warehouse (Mirpur)') && !['c', 'w', 's', 'm'].includes(o.branchSuffix || '') && (
-                            <span className="text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-mono border border-indigo-200" title="Dispatched from Central Warehouse (Online Store)">
-                              Online Store
-                            </span>
-                          )}
+                          <FulfillmentBadge location={o.fulfillmentLocation} suffix={o.branchSuffix} size="sm" />
                           {o.hasSplitSuffix && (
                             <span className="text-[10px] bg-amber-50 text-amber-700 px-1 py-0.5 rounded font-mono border border-amber-200">
                               split
@@ -323,69 +300,21 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                             Primary
                           </span>
                         ) : (
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-50 text-slate-400 border border-slate-100">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200/60">
                             Line Item
                           </span>
                         )}
                       </td>
 
                       <td className="py-3 px-3.5 whitespace-nowrap">
-                        {orderStatusLabel === 'Delivered' && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                            Delivered
-                          </span>
-                        )}
-                        {orderStatusLabel === 'Partial' && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-                            Partial
-                          </span>
-                        )}
-                        {orderStatusLabel === 'Exchange' && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-700 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200">
-                            Exchange
-                          </span>
-                        )}
-                        {orderStatusLabel === 'Paid Return' && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200">
-                            Paid Return
-                          </span>
-                        )}
-                        {orderStatusLabel === 'Not Paid Return' && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200">
-                            Not Paid Return
-                          </span>
-                        )}
-                        {orderStatusLabel === 'Dispute' && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-300">
-                            Dispute
-                          </span>
-                        )}
+                        <StatusBadge status={orderStatusLabel} isPaidReturn={o.isPaidReturn} size="sm" />
                       </td>
 
                       <td className="py-3 px-3.5 whitespace-nowrap">
                         <div className="flex items-center gap-1">
-                          {itemStatusLabel === 'Delivered' && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50/70 px-2 py-0.5 rounded border border-emerald-200">
-                              Delivered
-                            </span>
-                          )}
-                          {itemStatusLabel === 'Returned' && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 bg-rose-50/70 px-2 py-0.5 rounded border border-rose-200">
-                              Returned
-                            </span>
-                          )}
-                          {itemStatusLabel === 'Exchange' && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-700 bg-sky-50/70 px-2 py-0.5 rounded border border-sky-200">
-                              Exchange
-                            </span>
-                          )}
-                          {itemStatusLabel === 'Dispute' && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-800 bg-amber-50/70 px-2 py-0.5 rounded border border-amber-300">
-                              Dispute
-                            </span>
-                          )}
+                          <StatusBadge status={itemStatusLabel} isPaidReturn={o.isPaidReturn} size="sm" showIcon={false} />
                           {isOverridden && (
-                            <span className="text-[9px] px-1 py-0.2 rounded bg-primary text-white font-bold" title="Manually overridden">
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary text-white font-bold" title="Manually overridden">
                               Override
                             </span>
                           )}

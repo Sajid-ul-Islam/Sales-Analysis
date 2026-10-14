@@ -77,12 +77,17 @@ export function normalizeAdAccountId(id: string): string {
 /**
  * Tests live Meta Graph API connection for Pixel and Ad Account
  */
-export async function testMetaConnection(overrideToken?: string): Promise<MetaConnectionStatus> {
+export async function testMetaConnection(optionsOrToken?: string | {
+  overrideToken?: string;
+  overridePixelId?: string;
+  overrideAdAccountId?: string;
+}): Promise<MetaConnectionStatus> {
   const startTime = Date.now();
+  const options = typeof optionsOrToken === 'string' ? { overrideToken: optionsOrToken } : (optionsOrToken || {});
   const secrets = getSecretsConfig();
-  const pixelId = secrets.meta.pixel_id || '2547021025592489';
-  const adAccountId = normalizeAdAccountId(secrets.meta.ad_account_id || 'act_3397888253858911');
-  const token = overrideToken || secrets.meta.access_token;
+  const pixelId = options.overridePixelId || secrets.meta.pixel_id || '2547021025592489';
+  const adAccountId = normalizeAdAccountId(options.overrideAdAccountId || secrets.meta.ad_account_id || 'act_3397888253858911');
+  const token = options.overrideToken || secrets.meta.access_token;
 
   if (!token) {
     return {
@@ -90,8 +95,8 @@ export async function testMetaConnection(overrideToken?: string): Promise<MetaCo
       pixelId,
       adAccountId,
       isTokenExpired: false,
-      message: 'Meta Access Token is not configured in .env.local or secrets.toml.',
-      instructions: 'Add your Meta System User or Marketing API token to META_ACCESS_TOKEN.',
+      message: 'Meta Access Token is not configured in Vercel environment variables or Settings.',
+      instructions: 'Add your Meta System User or Marketing API token to META_ACCESS_TOKEN or input in Settings.',
       latencyMs: Date.now() - startTime,
     };
   }

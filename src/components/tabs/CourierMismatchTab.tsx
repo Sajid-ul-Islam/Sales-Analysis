@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { CourierMismatchRecord } from '@/types';
+import { AICourierDisputeCard } from '@/components/after-sales/AICourierDisputeCard';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -183,6 +184,9 @@ export function CourierMismatchTab({
         </div>
       </div>
 
+      {/* AI Courier Dispute Dossier & Financial Audit */}
+      <AICourierDisputeCard mismatches={mismatches} />
+
       {/* Filter and Search Bar */}
       <div className="bg-white rounded-xl p-3.5 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
         {/* Filter Pills */}
@@ -237,7 +241,7 @@ export function CourierMismatchTab({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search Order ID, Consignment, Phone..."
-            className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:bg-white focus:border-primary text-slate-800 placeholder-slate-400 transition-all"
+            className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white focus:border-primary text-slate-800 placeholder-slate-400 transition-all"
           />
         </div>
       </div>

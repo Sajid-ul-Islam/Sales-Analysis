@@ -7,7 +7,8 @@ export const maxDuration = 60; // Allow up to 60s for multi-page order fetches o
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const test = await testWooCommerceConnection();
+    const credentials = body.credentials || undefined;
+    const test = await testWooCommerceConnection(credentials);
 
     if (!test.success) {
       return NextResponse.json({
@@ -24,7 +25,8 @@ export async function POST(req: Request) {
       after: body.after,
       before: body.before,
       fetchAllPages: body.fetchAllPages !== undefined ? body.fetchAllPages : true,
-      maxPages: body.maxPages || 5,
+      maxPages: body.maxPages || 3,
+      credentials,
     });
 
     const formattedRows = formatWooCommerceToOrderRows(rawOrders);

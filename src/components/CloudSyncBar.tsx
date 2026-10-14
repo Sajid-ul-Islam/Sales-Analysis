@@ -14,12 +14,14 @@ import {
   Layers
 } from 'lucide-react';
 import { RawOrderRow } from '@/types';
+import { loadAppSettings } from '@/lib/settingsStore';
 
 export interface CloudSyncBarProps {
   onDataSynced: (type: 'orders' | 'returns', rows: RawOrderRow[]) => void;
+  activeOrders?: RawOrderRow[];
 }
 
-export function CloudSyncBar({ onDataSynced }: CloudSyncBarProps) {
+export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState(false);
   const [syncingPathao, setSyncingPathao] = useState(false);
@@ -38,10 +40,40 @@ export function CloudSyncBar({ onDataSynced }: CloudSyncBarProps) {
   const [metaStatus, setMetaStatus] = useState<any>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  const getClientCredentials = () => {
+    if (typeof window === 'undefined') return { wc: undefined, pathao: undefined };
+    const s = loadAppSettings();
+    return {
+      wc: s.wcConsumerKey ? {
+        store_url: s.wcStoreUrl,
+        consumer_key: s.wcConsumerKey,
+        consumer_secret: s.wcConsumerSecret
+      } : undefined,
+      pathao: s.pathaoClientId ? {
+        base_url: s.pathaoBaseUrl,
+        client_id: s.pathaoClientId,
+        client_secret: s.pathaoClientSecret,
+        username: s.pathaoUsername
+      } : undefined
+    };
+  };
+
   const checkStatus = async () => {
     setLoadingStatus(true);
     try {
-      const res = await fetch('/api/sync/status');
+      const creds = getClientCredentials();
+      const payload: any = {};
+      if (creds.wc) payload.woocommerce = creds.wc;
+      if (creds.pathao) payload.pathao = creds.pathao;
+
+      const res = Object.keys(payload).length > 0
+        ? await fetch('/api/sync/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+        : await fetch('/api/sync/status');
+
       const data = await res.json();
       setPathaoStatus(data.pathao);
       setWcStatus(data.woocommerce);
@@ -91,13 +123,16 @@ export function CloudSyncBar({ onDataSynced }: CloudSyncBarProps) {
     setSyncingPathao(true);
     setMessage(`Connecting to Pathao Hermes API (${startDate} to ${endDate})...`);
     try {
+      const creds = getClientCredentials();
       const res = await fetch('/api/sync/pathao', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           startDate,
           endDate,
-          limit: 50
+          limit: 35,
+          activeOrders: activeOrders?.slice(0, 100),
+          credentials: creds.pathao,
         }),
       });
       const data = await res.json();
@@ -119,6 +154,7 @@ export function CloudSyncBar({ onDataSynced }: CloudSyncBarProps) {
     setSyncingWc(true);
     setMessage(`Connecting to WooCommerce (${startDate} to ${endDate}, status: ${orderStatus})...`);
     try {
+      const creds = getClientCredentials();
       const res = await fetch('/api/sync/woocommerce', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -128,7 +164,8 @@ export function CloudSyncBar({ onDataSynced }: CloudSyncBarProps) {
           status: orderStatus,
           perPage: 100,
           fetchAllPages: true,
-          maxPages: 5
+          maxPages: 3,
+          credentials: creds.wc,
         }),
       });
       const data = await res.json();
@@ -150,6 +187,7 @@ export function CloudSyncBar({ onDataSynced }: CloudSyncBarProps) {
     setSyncingBoth(true);
     setMessage(`Running consolidated cloud sync for WooCommerce & Pathao (${startDate} to ${endDate})...`);
     try {
+      const creds = getClientCredentials();
       const wcPromise = fetch('/api/sync/woocommerce', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -159,7 +197,8 @@ export function CloudSyncBar({ onDataSynced }: CloudSyncBarProps) {
           status: orderStatus,
           perPage: 100,
           fetchAllPages: true,
-          maxPages: 5
+          maxPages: 3,
+          credentials: creds.wc,
         }),
       }).then(r => r.json());
 
@@ -169,7 +208,9 @@ export function CloudSyncBar({ onDataSynced }: CloudSyncBarProps) {
         body: JSON.stringify({
           startDate,
           endDate,
-          limit: 50
+          limit: 35,
+          activeOrders: activeOrders?.slice(0, 100),
+          credentials: creds.pathao,
         }),
       }).then(r => r.json());
 

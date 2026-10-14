@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import * as XLSX from 'xlsx';
 import { batchFetchPathaoOrders, formatPathaoToReturnRows } from '@/lib/pathaoClient';
+import baselineData from '@/data/baselineSample.json';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Allow up to 60s for batch Pathao consignment requests on Vercel
@@ -10,10 +11,30 @@ export const maxDuration = 60; // Allow up to 60s for batch Pathao consignment r
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
+    const credentials = body.credentials || undefined;
     let consignmentIds: string[] = body.consignmentIds || [];
-    const limit = body.limit || 20;
+    const limit = Math.min(body.limit || 25, 40);
 
-    // If no consignment IDs provided, extract from returen.xlsx (local development fallback)
+    // 1. If active orders or tracking list supplied in body, harvest from them
+    if (consignmentIds.length === 0 && Array.isArray(body.activeOrders) && body.activeOrders.length > 0) {
+      for (const row of body.activeOrders) {
+        const cid = row.consignmentId || row.trackingId || row.consignment_id || row['Consignment ID'];
+        if (cid) consignmentIds.push(String(cid).trim());
+      }
+    }
+
+    // 2. Fallback to bundled baseline dataset tracking IDs (guaranteed to work on Vercel)
+    if (consignmentIds.length === 0 && baselineData) {
+      const b = baselineData as any;
+      const combined = [...(b.pathaoDelivery || []), ...(b.returns || [])];
+      for (const r of combined) {
+        const cid = r['Consignment ID'] || r.consignmentId || r.consignment_id || r['Tracking ID'];
+        if (cid) consignmentIds.push(String(cid).trim());
+        if (consignmentIds.length >= limit * 2) break;
+      }
+    }
+
+    // 3. If still empty, check returen.xlsx on local disk (local dev fallback)
     if (consignmentIds.length === 0) {
       try {
         const returnsPath = path.join(process.cwd(), 'returen.xlsx');
@@ -45,7 +66,7 @@ export async function POST(req: Request) {
       });
     }
 
-    const fetchedData = await batchFetchPathaoOrders(consignmentIds, 5);
+    const fetchedData = await batchFetchPathaoOrders(consignmentIds, 4, credentials);
 
     let filteredData = fetchedData;
     if (body.startDate || body.endDate) {

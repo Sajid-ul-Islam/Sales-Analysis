@@ -1,4 +1,4 @@
-import { getSecretsConfig } from './secrets';
+import { getSecretsConfig, getSecretsWithOverrides } from './secrets';
 import { RawOrderRow } from '@/types';
 
 export interface WcFetchOptions {
@@ -9,17 +9,23 @@ export interface WcFetchOptions {
   before?: string;
 }
 
-export async function testWooCommerceConnection(): Promise<{
+export interface WcCredentials {
+  store_url?: string;
+  consumer_key?: string;
+  consumer_secret?: string;
+}
+
+export async function testWooCommerceConnection(credentials?: WcCredentials): Promise<{
   success: boolean;
   status: number;
   message: string;
 }> {
-  const { woocommerce: wc } = getSecretsConfig();
+  const { woocommerce: wc } = getSecretsWithOverrides({ woocommerce: credentials });
   if (!wc.store_url || !wc.consumer_key || !wc.consumer_secret) {
     return {
       success: false,
       status: 400,
-      message: 'WooCommerce credentials not configured in .env.local or environment variables',
+      message: 'WooCommerce credentials not configured in Vercel environment variables or Settings.',
     };
   }
 
@@ -28,12 +34,17 @@ export async function testWooCommerceConnection(): Promise<{
   )}&consumer_secret=${encodeURIComponent(wc.consumer_secret)}&per_page=1`;
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 9000);
+
     const res = await fetch(url, {
+      signal: controller.signal,
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/1.0',
+        'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
       },
     });
+    clearTimeout(timeoutId);
 
     if (res.ok) {
       return {
@@ -53,12 +64,28 @@ export async function testWooCommerceConnection(): Promise<{
       };
     }
 
+    if (res.status === 403) {
+      return {
+        success: false,
+        status: 403,
+        message:
+          'WooCommerce 403 (Forbidden): Request blocked by WordPress firewall, Wordfence, or Cloudflare Bot Fight Mode. Whitelist Vercel serverless traffic or test with WordPress Application Passwords.',
+      };
+    }
+
     return {
       success: false,
       status: res.status,
       message: errJson.message || `WooCommerce HTTP error ${res.status}`,
     };
   } catch (err: any) {
+    if (err.name === 'AbortError') {
+      return {
+        success: false,
+        status: 504,
+        message: 'WooCommerce connection timed out after 9 seconds. The store server may be slow or blocking serverless requests.',
+      };
+    }
     return {
       success: false,
       status: 500,
@@ -75,12 +102,13 @@ export interface WcFetchOptions {
   before?: string;
   fetchAllPages?: boolean;
   maxPages?: number;
+  credentials?: WcCredentials;
 }
 
 export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Promise<any[]> {
-  const { woocommerce: wc } = getSecretsConfig();
+  const { woocommerce: wc } = getSecretsWithOverrides({ woocommerce: options.credentials });
   const perPage = options.perPage || 100;
-  const maxPages = options.maxPages || 5;
+  const maxPages = options.maxPages || 3;
   let currentPage = options.page || 1;
   let allOrders: any[] = [];
 
@@ -95,12 +123,17 @@ export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Prom
     if (options.after) url.searchParams.set('after', options.after);
     if (options.before) url.searchParams.set('before', options.before);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 9500);
+
     const res = await fetch(url.toString(), {
+      signal: controller.signal,
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/1.0',
+        'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
       },
     });
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));

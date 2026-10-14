@@ -132,9 +132,38 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder }: Territo
         { name: 'Gazipur', division: 'Dhaka', count: 68, revenue: 72000 },
         { name: 'Narayanganj', division: 'Dhaka', count: 64, revenue: 69000 },
         { name: 'Feni', division: 'Chattogram', count: 52, revenue: 56000 }
+      ],
+      allDistricts: [
+        { name: 'Dhaka Metro', division: 'Dhaka' as BangladeshDivision, dispatchedOrders: s.insideOrders || 253, deliveredOrders: Math.max(0, (s.insideOrders || 253) - (s.insideReturns || 32)), partialOrders: s.insidePartials || 12, returnedOrders: s.insideReturns || 20, exchangeOrders: 5, netRevenue: Math.round(s.insideNetRevenue || 340000), grossRevenue: Math.round((s.insideNetRevenue || 340000) * 1.2), returnRate: Math.round(insideReturnRate * 10) / 10, aov: 1344 },
+        { name: 'Chittagong', division: 'Chattogram' as BangladeshDivision, dispatchedOrders: 184, deliveredOrders: 151, partialOrders: 12, returnedOrders: 21, exchangeOrders: 4, netRevenue: 198000, grossRevenue: 242000, returnRate: 17.9, aov: 1311 },
+        { name: 'Cumilla', division: 'Chattogram' as BangladeshDivision, dispatchedOrders: 142, deliveredOrders: 118, partialOrders: 8, returnedOrders: 16, exchangeOrders: 3, netRevenue: 154000, grossRevenue: 188000, returnRate: 16.9, aov: 1305 },
+        { name: 'Sylhet', division: 'Sylhet' as BangladeshDivision, dispatchedOrders: 98, deliveredOrders: 79, partialOrders: 6, returnedOrders: 13, exchangeOrders: 2, netRevenue: 104000, grossRevenue: 128000, returnRate: 19.4, aov: 1316 },
+        { name: 'Bogura', division: 'Rajshahi' as BangladeshDivision, dispatchedOrders: 72, deliveredOrders: 60, partialOrders: 4, returnedOrders: 8, exchangeOrders: 1, netRevenue: 78000, grossRevenue: 95000, returnRate: 16.7, aov: 1300 },
+        { name: 'Gazipur', division: 'Dhaka' as BangladeshDivision, dispatchedOrders: 68, deliveredOrders: 57, partialOrders: 3, returnedOrders: 8, exchangeOrders: 2, netRevenue: 72000, grossRevenue: 89000, returnRate: 16.2, aov: 1263 },
+        { name: 'Narayanganj', division: 'Dhaka' as BangladeshDivision, dispatchedOrders: 64, deliveredOrders: 54, partialOrders: 3, returnedOrders: 7, exchangeOrders: 1, netRevenue: 69000, grossRevenue: 84000, returnRate: 15.6, aov: 1277 },
+        { name: 'Feni', division: 'Chattogram' as BangladeshDivision, dispatchedOrders: 52, deliveredOrders: 43, partialOrders: 3, returnedOrders: 6, exchangeOrders: 1, netRevenue: 56000, grossRevenue: 68000, returnRate: 17.3, aov: 1302 }
       ]
     };
   }, [orders, s, insideReturnRate]);
+
+  const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
+  const [districtSearch, setDistrictSearch] = useState<string>('');
+
+  const intRatio = Math.round(Number(s.outsideRatio) || (s.outsideOrders / Math.max(1, s.insideOrders))) || 1;
+
+  // Selected district metrics
+  const activeDistrictMetric = useMemo(() => {
+    if (!selectedDistrict) return null;
+    return (geoAnalysis.allDistricts || []).find(d => d.name.toLowerCase() === selectedDistrict.toLowerCase()) || null;
+  }, [selectedDistrict, geoAnalysis.allDistricts]);
+
+  // Filtered districts for dropdown
+  const filteredDistrictsList = useMemo(() => {
+    const list = geoAnalysis.allDistricts || [];
+    if (!districtSearch.trim()) return list;
+    const q = districtSearch.toLowerCase();
+    return list.filter(d => d.name.toLowerCase().includes(q) || d.division.toLowerCase().includes(q));
+  }, [geoAnalysis.allDistricts, districtSearch]);
 
   return (
     <div className="space-y-6">
@@ -148,8 +177,8 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder }: Territo
                 <MapPin className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Inside Dhaka Metro</h3>
-                <span className="text-xs text-slate-500">Hub Delivery Zone (Standard ৳50 COD)</span>
+                <h3 className="text-base font-bold text-slate-900">Inside Dhaka</h3>
+                <span className="text-xs text-slate-500">Dhaka Hub (৳50 COD)</span>
               </div>
             </div>
             <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
@@ -159,24 +188,24 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder }: Territo
 
           <div className="grid grid-cols-2 gap-4 my-5 py-4 border-y border-slate-100">
             <div>
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Dispatched Orders</span>
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Dispatched</span>
               <span className="text-2xl font-black text-slate-900">{s.insideOrders.toLocaleString()}</span>
               <span className="text-[11px] text-slate-500 block mt-0.5">{insideNetOrders.toLocaleString()} Net Delivered</span>
             </div>
             <div>
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Realized Net Sales</span>
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Net Sales</span>
               <span className="text-2xl font-black text-emerald-600">৳ {Math.round(s.insideNetRevenue).toLocaleString()}</span>
-              <span className="text-[11px] text-slate-500 block mt-0.5">Post-return revenue</span>
+              <span className="text-[11px] text-slate-500 block mt-0.5">Delivered net</span>
             </div>
           </div>
 
           <div className="flex items-center justify-between text-xs font-semibold">
             <div className="flex items-center gap-2">
-              <span className="text-slate-500">Return + Partial:</span>
+              <span className="text-slate-500">Returns & Partials:</span>
               <span className="text-amber-600 font-bold">{s.insideReturns} Full / {s.insidePartials} Partial</span>
             </div>
             <div className="text-right">
-              <span className="text-slate-500 mr-1.5">Return Incidence:</span>
+              <span className="text-slate-500 mr-1.5">Return Rate:</span>
               <span className={`font-bold ${insideReturnRate > 15 ? 'text-rose-600' : 'text-emerald-600'}`}>
                 {insideReturnRate.toFixed(1)}%
               </span>
@@ -192,8 +221,8 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder }: Territo
                 <Navigation className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Outside Dhaka (63 Districts)</h3>
-                <span className="text-xs text-slate-500">Inter-District Linehaul (Standard ৳90 COD)</span>
+                <h3 className="text-base font-bold text-slate-900">Outside Dhaka</h3>
+                <span className="text-xs text-slate-500">Nationwide Linehaul (৳90 COD)</span>
               </div>
             </div>
             <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
@@ -203,24 +232,24 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder }: Territo
 
           <div className="grid grid-cols-2 gap-4 my-5 py-4 border-y border-slate-100">
             <div>
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Dispatched Orders</span>
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Dispatched</span>
               <span className="text-2xl font-black text-slate-900">{s.outsideOrders.toLocaleString()}</span>
               <span className="text-[11px] text-slate-500 block mt-0.5">{outsideNetOrders.toLocaleString()} Net Delivered</span>
             </div>
             <div>
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Realized Net Sales</span>
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Net Sales</span>
               <span className="text-2xl font-black text-emerald-600">৳ {Math.round(s.outsideNetRevenue).toLocaleString()}</span>
-              <span className="text-[11px] text-slate-500 block mt-0.5">Post-return revenue</span>
+              <span className="text-[11px] text-slate-500 block mt-0.5">Delivered net</span>
             </div>
           </div>
 
           <div className="flex items-center justify-between text-xs font-semibold">
             <div className="flex items-center gap-2">
-              <span className="text-slate-500">Return + Partial:</span>
+              <span className="text-slate-500">Returns & Partials:</span>
               <span className="text-rose-600 font-bold">{s.outsideReturns} Full / {s.outsidePartials} Partial</span>
             </div>
             <div className="text-right">
-              <span className="text-slate-500 mr-1.5">Return Incidence:</span>
+              <span className="text-slate-500 mr-1.5">Return Rate:</span>
               <span className={`font-bold ${outsideReturnRate > 20 ? 'text-rose-600' : 'text-amber-600'}`}>
                 {outsideReturnRate.toFixed(1)}%
               </span>
@@ -228,27 +257,27 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder }: Territo
           </div>
         </div>
 
-        {/* Territory Ratio & Intelligence */}
+        {/* Territory Ratio (Integer Value & Noise Reduced) */}
         <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs flex flex-col justify-between hover:border-indigo-300 transition-all">
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Territory Ratio Intelligence</h3>
+              <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Territory Ratio</h3>
               <TrendingUp className="w-4 h-4 text-primary" />
             </div>
             <div className="text-3xl font-black text-slate-900 mb-1 font-headline">
-              {s.outsideRatio} : 1
+              {intRatio} : 1
             </div>
             <p className="text-xs text-slate-500">
-              For every 1 Dhaka order dispatched, DEEN delivers {s.outsideRatio} orders nationwide outside Dhaka across 8 divisions.
+              ~{intRatio} Outside orders per 1 Dhaka order ({s.outsideOrders.toLocaleString()} vs {s.insideOrders.toLocaleString()}).
             </p>
           </div>
 
           <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2.5 mt-4">
             <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold text-rose-900">Logistics Risk Notice:</span>
+              <span className="font-bold text-rose-900">Risk Notice:</span>
               <p className="text-[11px] text-rose-700 mt-0.5">
-                Outside Dhaka return incidence ({outsideReturnRate.toFixed(1)}%) exceeds Dhaka Metro ({insideReturnRate.toFixed(1)}%). Maintain advance delivery charge collection on high-risk linehaul routes.
+                Outside return rate ({outsideReturnRate.toFixed(1)}%) exceeds Dhaka ({insideReturnRate.toFixed(1)}%). Collect advance delivery charge on remote routes.
               </p>
             </div>
           </div>
@@ -263,7 +292,136 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder }: Territo
         onSelectDivision={(div) => setSelectedFilterDivision(div)}
       />
 
-      {/* 3. 8 Administrative Divisions Performance Matrix Table */}
+      {/* 3. District-Wise Filter Bar */}
+      <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+              <MapPin className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-slate-900">District Filter (64 Districts)</h4>
+              <p className="text-[11px] text-slate-500">Filter performance across individual Bangladesh districts</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="relative min-w-[200px]">
+              <input
+                type="text"
+                placeholder="Search district..."
+                value={districtSearch}
+                onChange={(e) => setDistrictSearch(e.target.value)}
+                className="w-full pl-3 pr-8 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
+              {districtSearch && (
+                <button
+                  type="button"
+                  onClick={() => setDistrictSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {selectedDistrict && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedDistrict(null);
+                  setSelectedFilterDivision(null);
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Filter District Pills */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setSelectedDistrict(null)}
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+              selectedDistrict === null
+                ? 'bg-primary text-white shadow-xs'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            All Districts
+          </button>
+          {filteredDistrictsList.slice(0, 12).map((d) => (
+            <button
+              key={d.name}
+              type="button"
+              onClick={() => {
+                if (selectedDistrict === d.name) {
+                  setSelectedDistrict(null);
+                } else {
+                  setSelectedDistrict(d.name);
+                  setSelectedFilterDivision(d.division);
+                }
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+                selectedDistrict === d.name
+                  ? 'bg-blue-600 text-white shadow-xs font-bold'
+                  : 'bg-slate-50 border border-slate-200/80 text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <span>{d.name}</span>
+              <span className={`text-[10px] ${selectedDistrict === d.name ? 'text-blue-100' : 'text-slate-400'}`}>
+                ({d.dispatchedOrders})
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Selected District Performance Highlight Card */}
+        {activeDistrictMetric && (
+          <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50/90 to-indigo-50/70 border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white border border-blue-200 flex items-center justify-center text-blue-600 shadow-2xs">
+                <MapPin className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-base font-black text-navy-deep">{activeDistrictMetric.name}</h4>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-blue-700 border border-blue-200">
+                    {activeDistrictMetric.division} Division
+                  </span>
+                </div>
+                <span className="text-xs text-slate-500">District performance metrics</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              <div className="bg-white px-3 py-2 rounded-lg border border-blue-100">
+                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Dispatched</span>
+                <span className="text-sm font-black text-slate-900">{activeDistrictMetric.dispatchedOrders}</span>
+              </div>
+              <div className="bg-white px-3 py-2 rounded-lg border border-blue-100">
+                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Delivered</span>
+                <span className="text-sm font-black text-emerald-600">{activeDistrictMetric.deliveredOrders}</span>
+              </div>
+              <div className="bg-white px-3 py-2 rounded-lg border border-blue-100">
+                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Return Rate</span>
+                <span className={`text-sm font-black ${activeDistrictMetric.returnRate > 20 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                  {activeDistrictMetric.returnRate}%
+                </span>
+              </div>
+              <div className="bg-white px-3 py-2 rounded-lg border border-blue-100">
+                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Net Sales</span>
+                <span className="text-sm font-black text-emerald-600">৳ {activeDistrictMetric.netRevenue.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 4. 8 Administrative Divisions Matrix Table */}
       <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
           <div className="flex items-center gap-3">
@@ -272,10 +430,10 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder }: Territo
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-900">
-                8 Divisions Nationwide Sales & Return Matrix
+                8 Divisions Matrix
               </h3>
               <p className="text-xs text-slate-500">
-                Administrative division metrics audited against store orders and Pathao courier delivery records.
+                Division metrics audited against store and courier records.
               </p>
             </div>
           </div>

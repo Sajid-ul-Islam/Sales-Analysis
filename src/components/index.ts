@@ -6,3 +6,4 @@ export { KpiOverview } from './KpiOverview';
 export { DateRangeSelector } from './DateRangeSelector';
 export { WeekComparisonModal } from './WeekComparisonModal';
 export * from './tabs';
+export * from './common';

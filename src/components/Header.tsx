@@ -13,7 +13,8 @@ import {
   FileSpreadsheet,
   Cloud,
   Settings,
-  Menu
+  Menu,
+  Sparkles
 } from 'lucide-react';
 import { DateScope, DateScopeCounts, CustomDateRange } from '@/lib/dateFilter';
 import { DateRangeSelector } from './DateRangeSelector';
@@ -28,6 +29,7 @@ export interface HeaderProps {
   onSwitchSourceMode?: (mode: 'UPLOAD' | 'API') => void;
   hasCloudData?: boolean;
   onOpenSettings?: () => void;
+  onToggleCopilot?: () => void;
   activeDateScope?: DateScope;
   customDateRange?: CustomDateRange;
   onDateScopeChange?: (scope: DateScope, customRange?: CustomDateRange) => void;
@@ -50,6 +52,7 @@ export function Header({
   onSwitchSourceMode,
   hasCloudData = false,
   onOpenSettings,
+  onToggleCopilot,
   activeDateScope,
   customDateRange,
   onDateScopeChange,
@@ -168,8 +171,6 @@ export function Header({
           />
         )}
 
-        <div className="h-4 w-px bg-slate-200 mx-0.5 hidden lg:block"></div>
-
         <div className="h-4 w-px bg-slate-200 mx-0.5 hidden sm:block"></div>
 
         {/* Reset Baseline Action */}
@@ -195,6 +196,18 @@ export function Header({
           <span className="hidden sm:inline">Export .XLSX</span>
           <span className="sm:hidden">Export</span>
         </button>
+
+        {/* AI Copilot Button */}
+        {onToggleCopilot && (
+          <button
+            onClick={onToggleCopilot}
+            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-headline text-xs font-bold shadow-sm shadow-indigo-500/20 transition-all active:scale-95 group"
+            title="Open DEEN AI Copilot"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-blue-200 group-hover:rotate-12 transition-transform" />
+            <span className="hidden sm:inline">AI Copilot</span>
+          </button>
+        )}
 
         {/* Settings & Custom Themes Button */}
         {onOpenSettings && (

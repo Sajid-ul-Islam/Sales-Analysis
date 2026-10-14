@@ -24,7 +24,14 @@ import {
   SettingsTab,
   WeekComparisonModal
 } from '@/components';
-import { runReconciliationEngine, ReconciliationResult } from '@/lib/reconciliationEngine';
+import { CopilotDrawer } from '@/components/ai/CopilotDrawer';
+import {
+  runReconciliationEngine,
+  ReconciliationResult,
+  extractReturnsFromPathaoDelivery,
+  extractPartialsFromPathaoDelivery,
+  extractExchangesFromPathaoDelivery
+} from '@/lib/reconciliationEngine';
 import { exportReconciledExcel } from '@/lib/excelExport';
 import { loadSavedThemeSettings, applyThemeToDocument } from '@/lib/themeManager';
 import { loadAppSettings } from '@/lib/settingsStore';
@@ -152,6 +159,7 @@ export default function DashboardPage() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const [result, setResult] = useState<ReconciliationResult | null>(null);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
 
   // Financial & Mathematical Model Parameters (Loaded from AppSettings)
   const [insideDeliveryFee, setInsideDeliveryFee] = useState<number>(50);
@@ -518,18 +526,27 @@ export default function DashboardPage() {
       if (targetReturnFile) {
         const wb = await readFileWorkbook(targetReturnFile);
         parsedReturns = extractManifestRows(wb);
+      } else if (targetPathaoDeliveryFile && parsedPathaoDelivery.length > 0) {
+        // Primary Courier Truth: Automatically extract returns directly from Pathao Delivery Data CSV/Excel!
+        parsedReturns = extractReturnsFromPathaoDelivery(parsedPathaoDelivery);
       }
 
       let parsedPartials: RawOrderRow[] = rawPartials;
       if (targetPartialFile) {
         const wb = await readFileWorkbook(targetPartialFile);
         parsedPartials = extractManifestRows(wb);
+      } else if (targetPathaoDeliveryFile && parsedPathaoDelivery.length > 0) {
+        // Automatically extract partial deliveries from Pathao Delivery Data CSV/Excel!
+        parsedPartials = extractPartialsFromPathaoDelivery(parsedPathaoDelivery);
       }
 
       let parsedExchanges: RawOrderRow[] = rawExchanges;
       if (targetExchangeFile) {
         const wb = await readFileWorkbook(targetExchangeFile);
         parsedExchanges = extractManifestRows(wb);
+      } else if (targetPathaoDeliveryFile && parsedPathaoDelivery.length > 0) {
+        // Automatically extract size exchanges from Pathao Delivery Data CSV/Excel!
+        parsedExchanges = extractExchangesFromPathaoDelivery(parsedPathaoDelivery);
       }
 
       const ordersToUse = combinedOrders.length > 0 ? combinedOrders : rawOrders;
@@ -706,6 +723,7 @@ export default function DashboardPage() {
           onSwitchSourceMode={handleSwitchDataSource}
           hasCloudData={cloudApiDataset !== null && cloudApiDataset.orders.length > 0}
           onOpenSettings={() => handleSelectTab('tabSettings')}
+          onToggleCopilot={() => setIsCopilotOpen(prev => !prev)}
           activeDateScope={dateScope}
           customDateRange={customDateRange}
           onDateScopeChange={handleDateScopeChange}
@@ -740,7 +758,7 @@ export default function DashboardPage() {
 
           {/* Cloud API Integration (WooCommerce + Pathao) - SHOWN ONLY ON EXECUTIVE OVERVIEW OR INITIAL STATE */}
           {dataSourceMode === 'API' && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && (!result || activeTab === 'tabExecutive') && (
-            <CloudSyncBar onDataSynced={handleLiveSyncData} />
+            <CloudSyncBar onDataSynced={handleLiveSyncData} activeOrders={rawOrders} />
           )}
 
           {/* Spreadsheet Upload Dropzones - SHOWN ONLY ON EXECUTIVE OVERVIEW OR INITIAL STATE */}
@@ -934,7 +952,7 @@ export default function DashboardPage() {
                   />
                 )}
                 {activeTab === 'tabStatus' && (
-                  <StatusMatrixTab summary={result.summary} />
+                  <StatusMatrixTab summary={result.summary} orders={result.reconciledOrders} />
                 )}
                 {activeTab === 'tabOrders' && (
                   <OrdersLedgerTab
@@ -979,23 +997,23 @@ export default function DashboardPage() {
                 Ready to Reconcile Your Store Orders
               </h3>
               <p className="text-xs text-slate-500 max-w-md mb-6 leading-relaxed">
-                Drag & drop your store order files, courier return manifests, and partial settlement sheets into the 3 dropzones above, or sync directly from WooCommerce & Pathao in the Cloud toolbar.
+                Drag & drop your store order files and Pathao delivery manifests into the dropzones above, or sync live data directly from WooCommerce & Pathao in the Cloud toolbar.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full text-left">
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-[10px] font-bold text-primary uppercase block">1. Orders</span>
+                  <span className="text-[10px] font-bold text-primary uppercase block">1. Store Orders</span>
                   <span className="text-xs font-bold text-slate-800 block mt-0.5">Dispatched Orders</span>
-                  <span className="text-[10px] text-slate-500">WooCommerce / Shopify (.xlsx)</span>
+                  <span className="text-[10px] text-slate-500">WooCommerce / Excel (.xlsx)</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-indigo-50/50 border border-indigo-100">
+                  <span className="text-[10px] font-bold text-indigo-700 uppercase block">2. Primary Truth</span>
+                  <span className="text-xs font-bold text-slate-800 block mt-0.5">Pathao Delivery Data</span>
+                  <span className="text-[10px] text-slate-500">Auto-detects returns & partials (.csv)</span>
                 </div>
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-[10px] font-bold text-blue-600 uppercase block">2. Returns</span>
-                  <span className="text-xs font-bold text-slate-800 block mt-0.5">Return Manifest</span>
-                  <span className="text-[10px] text-slate-500">Pathao / Steadfast (.xlsx)</span>
-                </div>
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-[10px] font-bold text-amber-600 uppercase block">3. Partials</span>
-                  <span className="text-xs font-bold text-slate-800 block mt-0.5">Partial Orders</span>
-                  <span className="text-[10px] text-slate-500">Split & partial records (.xlsx)</span>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase block">3. Separate Manifests</span>
+                  <span className="text-xs font-bold text-slate-800 block mt-0.5">Optional Overrides</span>
+                  <span className="text-[10px] text-slate-500">Manual returns & exchange files</span>
                 </div>
               </div>
             </div>
@@ -1012,6 +1030,15 @@ export default function DashboardPage() {
           activeScope={dateScope}
           activeCustomRange={customDateRange}
         />
+
+        {/* AI Executive Copilot Drawer */}
+        {result?.summary && (
+          <CopilotDrawer
+            isOpen={isCopilotOpen}
+            onClose={() => setIsCopilotOpen(false)}
+            summary={result.summary}
+          />
+        )}
       </div>
     </div>
   );

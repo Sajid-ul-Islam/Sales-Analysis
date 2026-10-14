@@ -172,7 +172,7 @@ export function classifyProductCategory(itemName: string, sku: string): string {
 
   // 1. Denim Core (Jeans, Denim Pants)
   if (n.includes('jean') || (n.includes('denim') && !n.includes('jacket') && !n.includes('shirt')) || s.startsWith('101-')) {
-    return 'Jeans (Denim Core)';
+    return 'Jeans';
   }
 
   // 2. Casual & Formal Shirts (102- is exclusively Deen Shirts, e.g. Cuban Collar, Half Shirt, Formal Shirt)
@@ -211,6 +211,102 @@ export function classifyProductCategory(itemName: string, sku: string): string {
   return 'Apparel & Accessories';
 }
 
+/**
+ * Extracts return records directly from Pathao Delivery Data (CSV/Excel).
+ * Eliminates dependency on separate returen.xlsx files.
+ */
+export function extractReturnsFromPathaoDelivery(pathaoDeliveryRows: RawOrderRow[]): RawOrderRow[] {
+  if (!pathaoDeliveryRows || pathaoDeliveryRows.length === 0) return [];
+  const returnRows: RawOrderRow[] = [];
+  for (const r of pathaoDeliveryRows) {
+    const rawStatus = String(findCol(r, ['orderstatus', 'deliverystatus', 'status']) || '').trim();
+    const statusLower = rawStatus.toLowerCase();
+    const isReturn =
+      statusLower.includes('return') ||
+      statusLower.includes('returned') ||
+      statusLower.includes('pickup cancel') ||
+      statusLower.includes('pickup failed') ||
+      statusLower.includes('lost');
+
+    if (isReturn) {
+      returnRows.push({
+        'Consignment ID': findCol(r, ['orderconsignmentid', 'consignmentid', 'trackingcode']) || '',
+        'Order ID': findCol(r, ['merchantorderid', 'orderid', 'merchantid', 'oid', 'invoiceno']) || '',
+        'Delivery Status': rawStatus,
+        'Status': rawStatus,
+        'Type': statusLower.includes('paid return') ? 'Paid Return' : 'Return',
+        'COD Amount': findCol(r, ['collectedamount', 'collected']) || 0,
+        'Charge': findCol(r, ['totalfee', 'fee', 'charge']) || 0,
+        'Discount': 0,
+        'Phone': findCol(r, ['recipientphone', 'phone', 'contact']) || '',
+        'Recipient Name': findCol(r, ['recipientname', 'name', 'customername']) || '',
+        'Address': findCol(r, ['recipientaddress', 'address']) || '',
+        'Store': findCol(r, ['storename', 'store']) || '',
+        'Status Updated On': findCol(r, ['orderstatusupdatedat', 'ordercreatedat', 'created_at']) || '',
+        ...r
+      });
+    }
+  }
+  return returnRows;
+}
+
+/**
+ * Extracts partial delivery records directly from Pathao Delivery Data.
+ */
+export function extractPartialsFromPathaoDelivery(pathaoDeliveryRows: RawOrderRow[]): RawOrderRow[] {
+  if (!pathaoDeliveryRows || pathaoDeliveryRows.length === 0) return [];
+  const partialRows: RawOrderRow[] = [];
+  for (const r of pathaoDeliveryRows) {
+    const rawStatus = String(findCol(r, ['orderstatus', 'deliverystatus', 'status']) || '').trim();
+    if (rawStatus.toLowerCase().includes('partial')) {
+      partialRows.push({
+        'Order ID': findCol(r, ['merchantorderid', 'orderid', 'merchantid', 'oid', 'invoiceno']) || '',
+        'Consignment ID': findCol(r, ['orderconsignmentid', 'consignmentid', 'trackingcode']) || '',
+        'Status': rawStatus,
+        'Delivery Status': rawStatus,
+        'Collected Amount': findCol(r, ['collectedamount', 'collected']) || 0,
+        'Phone': findCol(r, ['recipientphone', 'phone', 'contact']) || '',
+        ...r
+      });
+    }
+  }
+  return partialRows;
+}
+
+/**
+ * Extracts exchange records directly from Pathao Delivery Data.
+ */
+export function extractExchangesFromPathaoDelivery(pathaoDeliveryRows: RawOrderRow[]): RawOrderRow[] {
+  if (!pathaoDeliveryRows || pathaoDeliveryRows.length === 0) return [];
+  const exchangeRows: RawOrderRow[] = [];
+  for (const r of pathaoDeliveryRows) {
+    const rawStatus = String(findCol(r, ['orderstatus', 'deliverystatus', 'status']) || '').trim();
+    const orderType = String(findCol(r, ['ordertype', 'type']) || '').trim();
+    const rawOid = String(findCol(r, ['merchantorderid', 'orderid', 'merchantid', 'oid', 'invoiceno']) || '').trim();
+    const isExchange =
+      rawStatus.toLowerCase().includes('exchange') ||
+      orderType.toLowerCase().includes('exchange') ||
+      rawOid.toUpperCase().startsWith('D-') ||
+      rawOid.toUpperCase().startsWith('DD-') ||
+      rawOid.toUpperCase().startsWith('EXCH-');
+
+    if (isExchange) {
+      exchangeRows.push({
+        'Order ID': rawOid,
+        'Consignment ID': findCol(r, ['orderconsignmentid', 'consignmentid', 'trackingcode']) || '',
+        'Delivery Status': rawStatus || 'Exchange',
+        'Status': rawStatus || 'Exchange',
+        'Type': orderType || 'Exchange',
+        'COD Amount': findCol(r, ['collectedamount', 'collected']) || 0,
+        'Charge': findCol(r, ['totalfee', 'fee', 'charge']) || 0,
+        'Phone': findCol(r, ['recipientphone', 'phone', 'contact']) || '',
+        ...r
+      });
+    }
+  }
+  return exchangeRows;
+}
+
 export function runReconciliationEngine(
   orderRows: RawOrderRow[],
   returnRows: RawOrderRow[],
@@ -225,6 +321,19 @@ export function runReconciliationEngine(
   const packagingFee = options.packagingCost !== undefined ? options.packagingCost : 25;
   const exactTol = options.exactTolerance !== undefined ? options.exactTolerance : 2.0;
   const metaAdCost = options.metaAdCost !== undefined ? options.metaAdCost : 150000;
+
+  // Primary Courier Truth: If separate manifest files are absent, auto-synthesize from Pathao Delivery Data
+  const effectiveReturnRows = (returnRows && returnRows.length > 0)
+    ? returnRows
+    : extractReturnsFromPathaoDelivery(pathaoDeliveryRows);
+
+  const effectivePartialRows = (partialRows && partialRows.length > 0)
+    ? partialRows
+    : extractPartialsFromPathaoDelivery(pathaoDeliveryRows);
+
+  const effectiveExchangeRows = (exchangeRows && exchangeRows.length > 0)
+    ? exchangeRows
+    : extractExchangesFromPathaoDelivery(pathaoDeliveryRows);
 
   interface PathaoDeliveryEntry {
     rawMerchantId: string;
@@ -340,7 +449,7 @@ export function runReconciliationEngine(
   let returnConsignmentsCount = 0;
   let paidReturnCollectedCod = 0;
 
-  for (const r of returnRows) {
+  for (const r of effectiveReturnRows) {
     const rawOid = findCol(r, ['orderid', 'order_id', 'oid', 'consignmentid', 'trackingcode']);
     const status = findCol(r, ['deliverystatus', 'delivery_status', 'status']) || 'Returned';
     const cod = parseFloat(findCol(r, ['codamount', 'cod', 'amount']) || '0') || 0;
@@ -394,7 +503,7 @@ export function runReconciliationEngine(
   const partialMap = new Map<string, { cod: number | null; status: string; consignment: string; rawId: string; charge: number; phone: string }>();
   const partialPhoneMap = new Map<string, { cod: number | null; status: string; consignment: string; rawId: string; charge: number; phone: string }>();
 
-  for (const r of partialRows) {
+  for (const r of effectivePartialRows) {
     const rawOid = findCol(r, ['orderid', 'order_id', 'oid', 'consignmentid']);
     const cod = parseFloat(findCol(r, ['codamount', 'cod', 'amount']) || '0') || 0;
     const status = String(findCol(r, ['deliverystatus', 'status']) || 'Partial Delivery');
@@ -447,7 +556,7 @@ export function runReconciliationEngine(
   let totalExchangeCodCollected = 0;
   let totalExchangeCourierExpense = 0;
 
-  for (const r of exchangeRows) {
+  for (const r of effectiveExchangeRows) {
     const rawOid = String(findCol(r, ['orderid', 'order_id', 'oid', 'consignmentid']) || '').trim();
     const cons = String(findCol(r, ['consignmentid', 'consignment', 'trackingcode']) || '').trim();
     const recipient = String(findCol(r, ['recipientname', 'name', 'customername']) || '').trim();
@@ -731,7 +840,7 @@ export function runReconciliationEngine(
       const lineOrderAmount = parseFloat(findCol(r, ['ordertotalamount', 'total']) || '0') || (rawQty * itemCost);
       const customerName = String(findCol(r, ['fullname', 'firstname', 'customername', 'name']) || 'Valued Customer').trim();
       const phone = group.phone || cleanPhoneNumber(findCol(r, ['phone', 'contact']));
-      const paymentMethod = String(findCol(r, ['paymentmethod', 'payment']) || 'Cash on delivery').trim();
+      const paymentMethod = String(findCol(r, ['paymentmethodtitle', 'paymentmethod', 'payment', 'paymenttitle', 'method', 'paymenttype']) || 'Cash on delivery').trim();
 
       if (orderDeliveryCategory === 'FULL_RETURN') {
         const displayDeliveryStatus = hasAnyPaidParcel ? 'Paid Return (Full)' : 'Returned (Non-Paid Return)';
@@ -1215,7 +1324,7 @@ export function runReconciliationEngine(
   const exchangedOrders: ExchangedOrderRow[] = [];
   const seenExchangeKeys = new Set<string>();
 
-  for (const r of exchangeRows) {
+  for (const r of effectiveExchangeRows) {
     const rawOid = String(findCol(r, ['orderid', 'order_id', 'oid', 'consignmentid']) || '').trim();
     const cons = String(findCol(r, ['consignmentid', 'consignment', 'trackingcode']) || '').trim();
     const recipient = String(findCol(r, ['recipientname', 'name', 'customername']) || '').trim();

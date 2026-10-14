@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { ReturnedItemRow } from '@/types';
 import { RotateCcw, Search, Layers, Split, Tag } from 'lucide-react';
+import { AIReturnDiagnosisCard } from '@/components/after-sales/AIReturnDiagnosisCard';
 
 interface ItemReturnsTabProps {
   returnedItems: ReturnedItemRow[];
@@ -130,6 +131,9 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
         </div>
       </div>
 
+      {/* AI Return Root Cause Diagnosis */}
+      <AIReturnDiagnosisCard returnedItems={returnedItems} />
+
       {/* Search and Filters Bar */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
         <div className="flex items-center gap-3 w-full md:w-auto flex-1">
@@ -140,7 +144,7 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
               placeholder="Search by Order ID, Phone, SKU, Item..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
             />
           </div>
 
@@ -148,7 +152,7 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value as any)}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-primary focus:bg-white"
+              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
             >
               <option value="ALL">All Return Types</option>
               <option value="PAID">Paid Returns (Full)</option>
@@ -160,7 +164,7 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
             <select
               value={territoryFilter}
               onChange={(e) => setTerritoryFilter(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-primary focus:bg-white"
+              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
             >
               <option value="ALL">All Territories</option>
               <option value="Inside Dhaka">Inside Dhaka</option>

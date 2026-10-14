@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { ExchangedOrderRow, SummaryAnalytics } from '@/types';
+import { StatusBadge } from '@/components/common';
 import {
   RefreshCw,
   Search,
@@ -218,7 +219,7 @@ export function ExchangedOrdersTab({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search by Order ID (15598), D-15598, Consignment, Phone, Name..."
-            className="w-full pl-9 pr-3.5 py-1.5 text-xs bg-slate-50 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-slate-400"
+            className="w-full pl-9 pr-3.5 py-1.5 text-xs bg-slate-50 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-slate-400 transition-all text-slate-800"
           />
         </div>
 
@@ -353,24 +354,22 @@ export function ExchangedOrdersTab({
 
                     {/* Delivery Status */}
                     <td className="py-3 px-3 text-center">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                        {order.deliveryStatus}
-                      </span>
+                      <StatusBadge status={order.deliveryStatus} size="sm" />
                     </td>
 
                     {/* Exchange COD */}
                     <td className="py-3 px-3 text-right font-mono font-bold text-slate-900">
-                      ৳{order.codAmount.toLocaleString()}
+                      ৳ {order.codAmount.toLocaleString()}
                     </td>
 
                     {/* Courier Fee */}
                     <td className="py-3 px-3 text-right font-mono text-slate-700">
                       <div className="text-xs font-semibold">
-                        ৳{Math.max(0, order.courierCharge - order.discount).toLocaleString()}
+                        ৳ {Math.max(0, order.courierCharge - order.discount).toLocaleString()}
                       </div>
                       {order.discount > 0 && (
                         <div className="text-[10px] text-emerald-600">
-                          -৳{order.discount} disc
+                          -৳ {order.discount} disc
                         </div>
                       )}
                     </td>

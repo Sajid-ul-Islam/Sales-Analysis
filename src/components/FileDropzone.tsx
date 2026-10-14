@@ -164,8 +164,8 @@ export function FileDropzone({
             Upload Store Spreadsheets & Courier Manifests
           </h2>
           <p className="text-xs text-slate-500">
-            <span className="font-bold text-indigo-700">Tier 1:</span> Pathao Master Delivery Report is checked first for live status.
-            <span className="font-bold text-slate-700 ml-1.5">Tier 2:</span> Separate return, partial, and exchange files are checked as fallback.
+            <span className="font-bold text-indigo-700">Primary Truth:</span> Pathao Delivery Data contains all delivery statuses (Delivered, Returns, Partials, Exchanges).
+            <span className="font-bold text-slate-700 ml-1.5">Optional Fallback:</span> Separate return, partial, and exchange files are only needed if overriding courier records.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -317,7 +317,7 @@ export function FileDropzone({
           }`}
         >
           <div className="absolute -top-2.5 right-2 px-2 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-extrabold tracking-wider uppercase shadow-2xs">
-            1st Priority Check
+            Primary Truth
           </div>
           <input
             type="file"
@@ -339,7 +339,7 @@ export function FileDropzone({
             2. Pathao Delivery Data
           </span>
           <p className="text-[11px] text-slate-500 max-w-xs mb-2.5 pointer-events-none">
-            {dragActivePathao ? 'Release to upload Pathao report!' : 'Master delivery log (.csv / .xlsx)'}
+            {dragActivePathao ? 'Release to upload Pathao report!' : 'All-in-one manifest (.csv / .xlsx). Auto-extracts returns & partials.'}
           </p>
           <button
             type="button"
@@ -373,7 +373,7 @@ export function FileDropzone({
             </div>
           )}
           <span className="mt-2 text-[10px] font-bold text-indigo-600 uppercase tracking-wide pointer-events-none">
-            {pathaoDeliveryFile ? 'Active (Checked 1st)' : '0 files attached'}
+            {pathaoDeliveryFile ? 'Active (All Statuses Covered)' : '0 files attached'}
           </span>
         </div>
 
@@ -401,7 +401,7 @@ export function FileDropzone({
           }`}
         >
           <div className="absolute -top-2.5 right-2 px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-600 text-[8px] font-bold tracking-wider uppercase">
-            Fallback
+            Optional Fallback
           </div>
           <input
             type="file"
@@ -420,10 +420,10 @@ export function FileDropzone({
             <FileCheck2 className="w-4.5 h-4.5 text-rose-600" />
           </div>
           <span className="font-headline text-xs font-bold text-slate-900 mb-0.5 pointer-events-none">
-            3. Return Manifest
+            3. Separate Returns (Optional)
           </span>
           <p className="text-[11px] text-slate-500 max-w-xs mb-2.5 pointer-events-none">
-            {dragActive2 ? 'Release to upload returns!' : 'Courier returns log (returen.xlsx)'}
+            {dragActive2 ? 'Release to upload returns!' : 'Optional return manifest (.xlsx / .csv)'}
           </p>
           <button
             type="button"
