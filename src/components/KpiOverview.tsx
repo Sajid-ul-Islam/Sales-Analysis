@@ -1092,6 +1092,98 @@ export function KpiOverview({
           })()}
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-500"></div>
         </div>
+
+        {/* 5. Payment Settlement Ratio: COD vs Online Paid with Donut Chart */}
+        <div
+          onClick={() => {
+            if (onKpiClick) {
+              onKpiClick('tabExecutive');
+            }
+            const el = document.getElementById('paymentMethodMixSection');
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }}
+          className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-orange-300 hover:shadow-md transition-all cursor-pointer"
+          title="Click to view Payment Settlement Analysis (COD vs Online Paid)"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+              Payment Ratio
+            </span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600">
+                <CreditCard className="w-4 h-4" />
+              </div>
+              <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-orange-600 transition-colors" />
+            </div>
+          </div>
+
+          <div className="my-2 flex items-center justify-between gap-2">
+            <div>
+              <div className="text-2xl font-black text-navy-deep font-headline">
+                {paymentMetrics.ratioFormatted}
+              </div>
+              <div className="text-xs font-semibold text-slate-500 mt-0.5">
+                {paymentMetrics.codOrders.toLocaleString()} COD vs {paymentMetrics.onlineOrders.toLocaleString()} Paid
+              </div>
+            </div>
+
+            {/* SVG Donut Chart with Semantic Labels */}
+            <div className="flex items-center gap-2 shrink-0">
+              <div
+                className="relative w-11 h-11 flex items-center justify-center shrink-0"
+                title={`Payment Settlement: ${paymentMetrics.codOrders.toLocaleString()} COD (${paymentMetrics.codPct}%) • ${paymentMetrics.onlineOrders.toLocaleString()} Online Paid (${paymentMetrics.onlinePct}%)`}
+              >
+                <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
+                  {/* Online Paid Track */}
+                  <path
+                    className="text-sky-200"
+                    stroke="currentColor"
+                    strokeWidth="4.5"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  {/* COD Segment */}
+                  <path
+                    className="text-orange-500 transition-all duration-500 ease-out"
+                    stroke="currentColor"
+                    strokeWidth="4.5"
+                    strokeDasharray={`${paymentMetrics.codPct} ${100 - paymentMetrics.codPct}`}
+                    strokeLinecap="round"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="text-[10px] font-black text-orange-600 font-headline leading-none">
+                    {paymentMetrics.codPct}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Number Rendering with Semantic Labels */}
+              <div className="flex flex-col text-[11px] font-black leading-tight">
+                <span className="text-orange-600 flex items-center gap-1" title={`${paymentMetrics.codOrders.toLocaleString()} COD Orders`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0"></span>
+                  <span>{paymentMetrics.codOrders.toLocaleString()}</span>
+                  <span className="text-[9px] text-slate-400 font-semibold">COD</span>
+                </span>
+                <span className="text-sky-600 flex items-center gap-1 mt-1" title={`${paymentMetrics.onlineOrders.toLocaleString()} Online Prepaid Orders`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0"></span>
+                  <span>{paymentMetrics.onlineOrders.toLocaleString()}</span>
+                  <span className="text-[9px] text-slate-400 font-semibold">Paid</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-[10px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
+            <span>COD: <strong className="text-orange-600">{paymentMetrics.codPct}%</strong></span>
+            <span className="text-slate-400 font-medium">Online: <strong className="text-sky-600 font-bold">{paymentMetrics.onlinePct}%</strong></span>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-orange-500"></div>
+        </div>
       </div>
     </div>
   );

@@ -860,6 +860,7 @@ export default function DashboardPage() {
               {activeTab === 'tabExecutive' && (
                 <KpiOverview
                   summary={result.summary}
+                  orders={result.reconciledOrders}
                   activeSourceMode={dataSourceMode}
                   dataSourceName={dataSourceName}
                   onSwitchSourceMode={handleSwitchDataSource}

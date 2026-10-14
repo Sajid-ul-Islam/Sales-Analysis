@@ -559,11 +559,13 @@ export function ExecutiveOverviewTab({ summary, orders = [], skuList = [] }: Exe
 
         {/* Payment Method COD vs Online Paid Ratio Donut Chart */}
         {orders && orders.length > 0 && (
-          <PaymentMethodMixCard
-            orders={orders}
-            title="Payment Settlement Ratio: COD vs Online Paid"
-            subtitle="Interactive ratio analysis of Cash on Delivery volume versus digital prepaid settlements (bKash, SSLCommerz, Cards & Bank)"
-          />
+          <div id="paymentMethodMixSection">
+            <PaymentMethodMixCard
+              orders={orders}
+              title="Payment Settlement Ratio: COD vs Online Paid"
+              subtitle="Interactive ratio analysis of Cash on Delivery volume versus digital prepaid settlements (bKash, SSLCommerz, Cards & Bank)"
+            />
+          </div>
         )}
 
         {/* Supporting Widgets (Placed below table in clean 2-column grid) */}
