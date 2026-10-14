@@ -75,7 +75,7 @@ export function KpiOverview({
         codPct: 76,
         onlinePct: 24,
         ratioInt: 3,
-        ratioFormatted: '3.2 : 1',
+        ratioFormatted: '3 : 1',
         codRevenue: Math.round(s.grossRevenue * 0.76),
         onlineRevenue: Math.round(s.grossRevenue * 0.24),
       };
@@ -125,7 +125,7 @@ export function KpiOverview({
     const codPct = Math.round((codCount / totalOrders) * 100);
     const onlinePct = 100 - codPct;
     const ratioInt = Math.max(1, Math.round(codCount / (onlineCount || 1)));
-    const ratioFormatted = onlineCount > 0 ? `${(codCount / onlineCount).toFixed(1)} : 1` : `${codCount} : 0`;
+    const ratioFormatted = `${ratioInt} : 1`;
 
     return {
       codOrders: codCount,
@@ -1095,17 +1095,9 @@ export function KpiOverview({
 
         {/* 5. Payment Settlement Ratio: COD vs Online Paid with Donut Chart */}
         <div
-          onClick={() => {
-            if (onKpiClick) {
-              onKpiClick('tabExecutive');
-            }
-            const el = document.getElementById('paymentMethodMixSection');
-            if (el) {
-              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }}
+          onClick={() => onKpiClick?.('tabStatus')}
           className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-orange-300 hover:shadow-md transition-all cursor-pointer"
-          title="Click to view Payment Settlement Analysis (COD vs Online Paid)"
+          title="Click to view Status Matrix & Payment Breakdown"
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">

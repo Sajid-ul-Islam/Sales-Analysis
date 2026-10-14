@@ -1272,7 +1272,7 @@ export function runReconciliationEngine(
   const returnRate = grossOrders > 0 ? ((fullReturnedOrders + partialOrders) / grossOrders) * 100 : 0;
   const fullReturnRate = grossOrders > 0 ? (fullReturnedOrders / grossOrders) * 100 : 0;
   const partialRate = grossOrders > 0 ? (partialOrders / grossOrders) * 100 : 0;
-  const ratio = insideOrders > 0 ? (outsideOrders / insideOrders).toFixed(2) : '0';
+  const ratio = insideOrders > 0 ? Math.round(outsideOrders / insideOrders).toString() : '0';
 
   // Courier Charges: prioritize Pathao Master Delivery log if provided, otherwise fallback to returen.xlsx manifest
   const finalCourierGross = pathaoTotalFee > 0 ? pathaoTotalFee : (totalCourierCharge > 0 ? totalCourierCharge : 29705.14);

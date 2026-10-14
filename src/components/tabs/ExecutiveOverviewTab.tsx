@@ -14,7 +14,7 @@ import {
   Download
 } from 'lucide-react';
 import { exportPerformanceReport } from '@/lib/excelExport';
-import { ComparativeBarChart, PaymentMethodMixCard } from '@/components/charts';
+import { ComparativeBarChart } from '@/components/charts';
 
 interface ExecutiveOverviewTabProps {
   summary: SummaryAnalytics;
@@ -556,17 +556,6 @@ export function ExecutiveOverviewTab({ summary, orders = [], skuList = [] }: Exe
             )}
           </div>
         </div>
-
-        {/* Payment Method COD vs Online Paid Ratio Donut Chart */}
-        {orders && orders.length > 0 && (
-          <div id="paymentMethodMixSection">
-            <PaymentMethodMixCard
-              orders={orders}
-              title="Payment Settlement Ratio: COD vs Online Paid"
-              subtitle="Interactive ratio analysis of Cash on Delivery volume versus digital prepaid settlements (bKash, SSLCommerz, Cards & Bank)"
-            />
-          </div>
-        )}
 
         {/* Supporting Widgets (Placed below table in clean 2-column grid) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

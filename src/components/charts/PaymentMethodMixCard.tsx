@@ -122,8 +122,8 @@ export function PaymentMethodMixCard({
     const codReturnRate = codCount > 0 ? (codReturns / codCount) * 100 : 0;
     const onlineReturnRate = onlineCount > 0 ? (onlineReturns / onlineCount) * 100 : 0;
 
-    // Approximate ratio e.g. "3.2 : 1"
-    const ratioMultiplier = onlineCount > 0 ? (codCount / onlineCount).toFixed(1) : codCount > 0 ? '∞' : '1.0';
+    // Strict integer ratio e.g. "3 : 1" or "28 : 1"
+    const ratioMultiplier = onlineCount > 0 ? Math.round(codCount / onlineCount).toString() : codCount > 0 ? `${codCount}` : '1';
 
     return {
       totalOrderCount,
