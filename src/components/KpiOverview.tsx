@@ -381,31 +381,48 @@ export function KpiOverview({
                       </div>
                     </div>
 
-                    {/* SVG Donut Chart */}
-                    <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Return Split: ${paidCount} Paid (${paidPct}%) • ${unpaidCount} Unpaid (${unpaidPct}%)`}>
-                      <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
-                        {/* Unpaid Track (Rose) */}
-                        <path
-                          className="text-rose-200"
-                          stroke="currentColor"
-                          strokeWidth="4.5"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                        {/* Paid Segment (Emerald) */}
-                        <path
-                          className="text-emerald-500 transition-all duration-500 ease-out"
-                          stroke="currentColor"
-                          strokeWidth="4.5"
-                          strokeDasharray={strokeDash}
-                          strokeLinecap="round"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
-                          {paidPct}%
+                    {/* Donut Chart with Numbers directly attached */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* SVG Donut Chart */}
+                      <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Return Split: ${paidCount} Paid (${paidPct}%) • ${unpaidCount} Unpaid (${unpaidPct}%)`}>
+                        <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
+                          {/* Unpaid Track (Rose) */}
+                          <path
+                            className="text-rose-200"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                          {/* Paid Segment (Emerald) */}
+                          <path
+                            className="text-emerald-500 transition-all duration-500 ease-out"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            strokeDasharray={strokeDash}
+                            strokeLinecap="round"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
+                            {paidPct}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Number Rendering with Donut Chart with Semantic Labels */}
+                      <div className="flex flex-col text-[11px] font-black leading-tight">
+                        <span className="text-emerald-700 flex items-center gap-1" title={`${paidCount} Paid (Delivery Fee Recovered)`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                          <span>{paidCount}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold">Paid</span>
+                        </span>
+                        <span className="text-rose-600 flex items-center gap-1 mt-1" title={`${unpaidCount} Unpaid (Brand Loss)`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                          <span>{unpaidCount}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold">Unpaid</span>
                         </span>
                       </div>
                     </div>
@@ -469,31 +486,48 @@ export function KpiOverview({
                       </div>
                     </div>
 
-                    {/* SVG Donut Chart */}
-                    <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Partial Split: ${partialKept} Kept (${keptPct}%) • ${partialRet} Returned (${retPct}%)`}>
-                      <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
-                        {/* Returned Track (Rose) */}
-                        <path
-                          className="text-rose-200"
-                          stroke="currentColor"
-                          strokeWidth="4.5"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                        {/* Kept Segment (Emerald) */}
-                        <path
-                          className="text-emerald-500 transition-all duration-500 ease-out"
-                          stroke="currentColor"
-                          strokeWidth="4.5"
-                          strokeDasharray={strokeDash}
-                          strokeLinecap="round"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
-                          {keptPct}%
+                    {/* Donut Chart with Numbers directly attached */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* SVG Donut Chart */}
+                      <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Partial Split: ${partialKept} Kept (${keptPct}%) • ${partialRet} Returned (${retPct}%)`}>
+                        <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
+                          {/* Returned Track (Rose) */}
+                          <path
+                            className="text-rose-200"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                          {/* Kept Segment (Emerald) */}
+                          <path
+                            className="text-emerald-500 transition-all duration-500 ease-out"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            strokeDasharray={strokeDash}
+                            strokeLinecap="round"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
+                            {keptPct}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Number Rendering with Donut Chart with Semantic Labels */}
+                      <div className="flex flex-col text-[11px] font-black leading-tight">
+                        <span className="text-emerald-700 flex items-center gap-1" title={`${partialKept} Kept Items`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                          <span>{partialKept}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold">Kept</span>
+                        </span>
+                        <span className="text-rose-600 flex items-center gap-1 mt-1" title={`${partialRet} Returned Items`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                          <span>{partialRet}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold">Ret</span>
                         </span>
                       </div>
                     </div>
@@ -562,31 +596,48 @@ export function KpiOverview({
                       </div>
                     </div>
 
-                    {/* SVG Donut Chart */}
-                    <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Exchange Split: ৳ ${exchangeCollected.toLocaleString()} Collected (${collectPct}%) • ৳ ${exchangePathaoCharge.toLocaleString()} Pathao Charged (${chargePct}%)`}>
-                      <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
-                        {/* Pathao Charged Track (Rose) */}
-                        <path
-                          className="text-rose-200"
-                          stroke="currentColor"
-                          strokeWidth="4.5"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                        {/* Our Collection Segment (Emerald) */}
-                        <path
-                          className="text-emerald-500 transition-all duration-500 ease-out"
-                          stroke="currentColor"
-                          strokeWidth="4.5"
-                          strokeDasharray={strokeDash}
-                          strokeLinecap="round"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
-                          {collectPct}%
+                    {/* Donut Chart with Numbers directly attached */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* SVG Donut Chart */}
+                      <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Exchange Split: ৳ ${exchangeCollected.toLocaleString()} Collected (${collectPct}%) • ৳ ${exchangePathaoCharge.toLocaleString()} Pathao Charged (${chargePct}%)`}>
+                        <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
+                          {/* Pathao Charged Track (Rose) */}
+                          <path
+                            className="text-rose-200"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                          {/* Our Collection Segment (Emerald) */}
+                          <path
+                            className="text-emerald-500 transition-all duration-500 ease-out"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            strokeDasharray={strokeDash}
+                            strokeLinecap="round"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
+                            {collectPct}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Number Rendering with Donut Chart with Semantic Labels */}
+                      <div className="flex flex-col text-[11px] font-black leading-tight">
+                        <span className="text-emerald-700 flex items-center gap-1" title={`৳ ${exchangeCollected.toLocaleString()} Collected from Customer`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                          <span>৳{exchangeCollected.toLocaleString()}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold">COD</span>
+                        </span>
+                        <span className="text-rose-600 flex items-center gap-1 mt-1" title={`৳ ${exchangePathaoCharge.toLocaleString()} Charged by Pathao Courier`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                          <span>৳{exchangePathaoCharge.toLocaleString()}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold">Cost</span>
                         </span>
                       </div>
                     </div>
@@ -682,31 +733,48 @@ export function KpiOverview({
                     </div>
                   </div>
 
-                  {/* SVG Donut Chart */}
-                  <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Revenue Realization: ৳${deliveredRev.toLocaleString()} Realized (${realizationPct}%) • ৳${leakageRev.toLocaleString()} Loss (${leakagePct}%)`}>
-                    <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
-                      {/* Return Leakage Track (Rose) */}
-                      <path
-                        className="text-rose-200"
-                        stroke="currentColor"
-                        strokeWidth="4.5"
-                        fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                      {/* Realized Cash Segment (Emerald) */}
-                      <path
-                        className="text-emerald-500 transition-all duration-500 ease-out"
-                        stroke="currentColor"
-                        strokeWidth="4.5"
-                        strokeDasharray={strokeDash}
-                        strokeLinecap="round"
-                        fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
-                        {realizationPct}%
+                  {/* Donut Chart with Numbers directly attached */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* SVG Donut Chart */}
+                    <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Revenue Realization: ৳${deliveredRev.toLocaleString()} Realized (${realizationPct}%) • ৳${leakageRev.toLocaleString()} Loss (${leakagePct}%)`}>
+                      <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
+                        {/* Return Leakage Track (Rose) */}
+                        <path
+                          className="text-rose-200"
+                          stroke="currentColor"
+                          strokeWidth="4.5"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                        {/* Realized Cash Segment (Emerald) */}
+                        <path
+                          className="text-emerald-500 transition-all duration-500 ease-out"
+                          stroke="currentColor"
+                          strokeWidth="4.5"
+                          strokeDasharray={strokeDash}
+                          strokeLinecap="round"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
+                          {realizationPct}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Number Rendering with Donut Chart with Semantic Labels */}
+                    <div className="flex flex-col text-[11px] font-black leading-tight">
+                      <span className="text-emerald-700 flex items-center gap-1" title={`৳ ${deliveredRev.toLocaleString()} Realized Cash`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                        <span>৳{deliveredRev >= 1000000 ? `${(deliveredRev / 1000000).toFixed(2)}M` : `${Math.round(deliveredRev / 1000)}k`}</span>
+                        <span className="text-[9px] text-slate-400 font-semibold">Realized</span>
+                      </span>
+                      <span className="text-rose-600 flex items-center gap-1 mt-1" title={`৳ ${leakageRev.toLocaleString()} Return Leakage Loss`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                        <span>৳{leakageRev >= 1000000 ? `${(leakageRev / 1000000).toFixed(2)}M` : `${Math.round(leakageRev / 1000)}k`}</span>
+                        <span className="text-[9px] text-slate-400 font-semibold">Loss</span>
                       </span>
                     </div>
                   </div>
@@ -766,31 +834,48 @@ export function KpiOverview({
                     </div>
                   </div>
 
-                  {/* SVG Donut Chart */}
-                  <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Margin Yield: ${marginPct}% Net Profit • ${costPct}% COGS, Logistics & Ads`}>
-                    <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
-                      {/* Cost Track (Amber) */}
-                      <path
-                        className="text-amber-100"
-                        stroke="currentColor"
-                        strokeWidth="4.5"
-                        fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                      {/* Net Margin Segment (Emerald) */}
-                      <path
-                        className="text-emerald-500 transition-all duration-500 ease-out"
-                        stroke="currentColor"
-                        strokeWidth="4.5"
-                        strokeDasharray={strokeDash}
-                        strokeLinecap="round"
-                        fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
-                        {marginPct}%
+                  {/* Donut Chart with Numbers directly attached */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* SVG Donut Chart */}
+                    <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Margin Yield: ${marginPct}% Net Profit • ${costPct}% COGS, Logistics & Ads`}>
+                      <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
+                        {/* Cost Track (Amber) */}
+                        <path
+                          className="text-amber-100"
+                          stroke="currentColor"
+                          strokeWidth="4.5"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                        {/* Net Margin Segment (Emerald) */}
+                        <path
+                          className="text-emerald-500 transition-all duration-500 ease-out"
+                          stroke="currentColor"
+                          strokeWidth="4.5"
+                          strokeDasharray={strokeDash}
+                          strokeLinecap="round"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
+                          {marginPct}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Number Rendering with Donut Chart with Semantic Labels */}
+                    <div className="flex flex-col text-[11px] font-black leading-tight">
+                      <span className="text-emerald-700 flex items-center gap-1" title={`৳ ${netMarginAmount.toLocaleString()} Net Cash Yield`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                        <span>৳{netMarginAmount >= 1000000 ? `${(netMarginAmount / 1000000).toFixed(2)}M` : `${Math.round(netMarginAmount / 1000)}k`}</span>
+                        <span className="text-[9px] text-slate-400 font-semibold">Net</span>
+                      </span>
+                      <span className="text-purple-700 flex items-center gap-1 mt-1" title={`${roasVal}x Return on Ad Spend`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0"></span>
+                        <span>{roasVal}x</span>
+                        <span className="text-[9px] text-slate-400 font-semibold">ROAS</span>
                       </span>
                     </div>
                   </div>
@@ -848,31 +933,48 @@ export function KpiOverview({
                       </div>
                     </div>
 
-                    {/* SVG Donut Chart */}
-                    <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Courier Fee Recovery: ৳ ${feeCollected.toLocaleString()} Collected (${recoveryPct}%) of ৳ ${netCharge.toLocaleString()} Courier Cost`}>
-                      <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
-                        {/* Unrecovered Track (Rose) */}
-                        <path
-                          className="text-rose-200"
-                          stroke="currentColor"
-                          strokeWidth="4.5"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                        {/* Collected Segment (Emerald) */}
-                        <path
-                          className="text-emerald-500 transition-all duration-500 ease-out"
-                          stroke="currentColor"
-                          strokeWidth="4.5"
-                          strokeDasharray={strokeDash}
-                          strokeLinecap="round"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
-                          {recoveryPct}%
+                    {/* Donut Chart with Numbers directly attached */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* SVG Donut Chart */}
+                      <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Courier Fee Recovery: ৳ ${feeCollected.toLocaleString()} Collected (${recoveryPct}%) of ৳ ${netCharge.toLocaleString()} Courier Cost`}>
+                        <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
+                          {/* Unrecovered Track (Rose) */}
+                          <path
+                            className="text-rose-200"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                          {/* Collected Segment (Emerald) */}
+                          <path
+                            className="text-emerald-500 transition-all duration-500 ease-out"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            strokeDasharray={strokeDash}
+                            strokeLinecap="round"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
+                            {recoveryPct}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Number Rendering with Donut Chart with Semantic Labels */}
+                      <div className="flex flex-col text-[11px] font-black leading-tight">
+                        <span className="text-emerald-700 flex items-center gap-1" title={`+৳ ${feeCollected.toLocaleString()} Delivery Fee Collected from Customers`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                          <span>৳{feeCollected.toLocaleString()}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold">Fee</span>
+                        </span>
+                        <span className="text-rose-600 flex items-center gap-1 mt-1" title={`৳ ${netCharge.toLocaleString()} Total Pathao Courier Charge`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                          <span>৳{netCharge.toLocaleString()}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold">Bill</span>
                         </span>
                       </div>
                     </div>
@@ -926,35 +1028,51 @@ export function KpiOverview({
                       {ratioInt} : 1
                     </div>
                     <div className="text-xs font-semibold text-slate-500 mt-0.5">
-                      {Math.round(s.outsideOrders).toLocaleString()} Out vs {Math.round(s.insideOrders).toLocaleString()} In
+                      Outside vs Inside
                     </div>
                   </div>
 
-                  {/* SVG Donut Chart */}
-                  <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Territory Split: ${Math.round(s.outsideOrders)} Outside (${outsidePct}%) • ${Math.round(s.insideOrders)} Inside (${insidePct}%)`}>
-                    <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
-                      {/* Inside Dhaka Track */}
-                      <path
-                        className="text-amber-200"
-                        stroke="currentColor"
-                        strokeWidth="4.5"
-                        fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                      {/* Outside Dhaka Segment */}
-                      <path
-                        className="text-indigo-600 transition-all duration-500 ease-out"
-                        stroke="currentColor"
-                        strokeWidth="4.5"
-                        strokeDasharray={strokeDash}
-                        strokeLinecap="round"
-                        fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <span className="text-[10px] font-black text-indigo-700 font-headline leading-none">
-                        {outsidePct}%
+                  {/* SVG Donut Chart with Semantic Labels */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Territory Split: ${Math.round(s.outsideOrders)} Outside (${outsidePct}%) • ${Math.round(s.insideOrders)} Inside (${insidePct}%)`}>
+                      <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
+                        {/* Inside Dhaka Track */}
+                        <path
+                          className="text-amber-200"
+                          stroke="currentColor"
+                          strokeWidth="4.5"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                        {/* Outside Dhaka Segment */}
+                        <path
+                          className="text-indigo-600 transition-all duration-500 ease-out"
+                          stroke="currentColor"
+                          strokeWidth="4.5"
+                          strokeDasharray={strokeDash}
+                          strokeLinecap="round"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="text-[10px] font-black text-indigo-700 font-headline leading-none">
+                          {outsidePct}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Number Rendering with Semantic Labels */}
+                    <div className="flex flex-col text-[11px] font-black leading-tight">
+                      <span className="text-indigo-700 flex items-center gap-1" title={`${Math.round(s.outsideOrders).toLocaleString()} Outside Dhaka`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 shrink-0"></span>
+                        <span>{Math.round(s.outsideOrders).toLocaleString()}</span>
+                        <span className="text-[9px] text-slate-400 font-semibold">Out</span>
+                      </span>
+                      <span className="text-amber-700 flex items-center gap-1 mt-1" title={`${Math.round(s.insideOrders).toLocaleString()} Inside Dhaka`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"></span>
+                        <span>{Math.round(s.insideOrders).toLocaleString()}</span>
+                        <span className="text-[9px] text-slate-400 font-semibold">In</span>
                       </span>
                     </div>
                   </div>
@@ -994,38 +1112,54 @@ export function KpiOverview({
                 {paymentMetrics.ratioFormatted}
               </div>
               <div className="text-xs font-semibold text-slate-500 mt-0.5">
-                {paymentMetrics.codOrders.toLocaleString()} COD vs {paymentMetrics.onlineOrders.toLocaleString()} Paid
+                COD vs Online Paid
               </div>
             </div>
 
-            {/* SVG Donut Chart */}
-            <div
-              className="relative w-11 h-11 flex items-center justify-center shrink-0"
-              title={`Payment Settlement: ${paymentMetrics.codOrders.toLocaleString()} COD (${paymentMetrics.codPct}%) • ${paymentMetrics.onlineOrders.toLocaleString()} Online Paid (${paymentMetrics.onlinePct}%)`}
-            >
-              <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
-                {/* Online Paid Track */}
-                <path
-                  className="text-sky-200"
-                  stroke="currentColor"
-                  strokeWidth="4.5"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-                {/* COD Segment */}
-                <path
-                  className="text-orange-500 transition-all duration-500 ease-out"
-                  stroke="currentColor"
-                  strokeWidth="4.5"
-                  strokeDasharray={`${paymentMetrics.codPct} ${100 - paymentMetrics.codPct}`}
-                  strokeLinecap="round"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <span className="text-[10px] font-black text-orange-600 font-headline leading-none">
-                  {paymentMetrics.codPct}%
+            {/* SVG Donut Chart with Semantic Labels */}
+            <div className="flex items-center gap-2 shrink-0">
+              <div
+                className="relative w-11 h-11 flex items-center justify-center shrink-0"
+                title={`Payment Settlement: ${paymentMetrics.codOrders.toLocaleString()} COD (${paymentMetrics.codPct}%) • ${paymentMetrics.onlineOrders.toLocaleString()} Online Paid (${paymentMetrics.onlinePct}%)`}
+              >
+                <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
+                  {/* Online Paid Track */}
+                  <path
+                    className="text-sky-200"
+                    stroke="currentColor"
+                    strokeWidth="4.5"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  {/* COD Segment */}
+                  <path
+                    className="text-orange-500 transition-all duration-500 ease-out"
+                    stroke="currentColor"
+                    strokeWidth="4.5"
+                    strokeDasharray={`${paymentMetrics.codPct} ${100 - paymentMetrics.codPct}`}
+                    strokeLinecap="round"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="text-[10px] font-black text-orange-600 font-headline leading-none">
+                    {paymentMetrics.codPct}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Number Rendering with Semantic Labels */}
+              <div className="flex flex-col text-[11px] font-black leading-tight">
+                <span className="text-orange-600 flex items-center gap-1" title={`${paymentMetrics.codOrders.toLocaleString()} COD Orders`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0"></span>
+                  <span>{paymentMetrics.codOrders.toLocaleString()}</span>
+                  <span className="text-[9px] text-slate-400 font-semibold">COD</span>
+                </span>
+                <span className="text-sky-600 flex items-center gap-1 mt-1" title={`${paymentMetrics.onlineOrders.toLocaleString()} Online Prepaid Orders`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0"></span>
+                  <span>{paymentMetrics.onlineOrders.toLocaleString()}</span>
+                  <span className="text-[9px] text-slate-400 font-semibold">Paid</span>
                 </span>
               </div>
             </div>
