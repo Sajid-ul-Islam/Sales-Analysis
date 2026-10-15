@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { ReturnedItemRow } from '@/types';
-import { RotateCcw, Search, Layers, Split, Tag } from 'lucide-react';
+import { RotateCcw, Search, Layers, Split, Tag, ArrowUpRight } from 'lucide-react';
 import { AIReturnDiagnosisCard } from '@/components/after-sales/AIReturnDiagnosisCard';
 
 interface ItemReturnsTabProps {
@@ -55,79 +55,142 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* 4 Executive KPI Cards for Item Returns */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 4 Executive KPI Cards for Item Returns (Interactive Drilldowns) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-4.5 xl:gap-5">
         {/* Card 1: Total Returned Quantity (Combined) */}
-        <div className="bg-gradient-to-br from-white to-rose-50/40 rounded-2xl p-5 border border-rose-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-black text-rose-800 uppercase tracking-wider">Total Returned Quantity</span>
-            <RotateCcw className="w-5 h-5 text-rose-600" />
+        <div
+          onClick={() => setTypeFilter('ALL')}
+          className={`bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+            typeFilter === 'ALL'
+              ? 'border-rose-500 ring-2 ring-rose-500/20 shadow-sm bg-rose-50/20'
+              : 'border-slate-200/90 shadow-xs hover:border-rose-300'
+          }`}
+          title="Click to view all returned units"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-black text-rose-800 uppercase tracking-wider">Total Returned Quantity</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <RotateCcw className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className={`w-4 h-4 transition-all ${typeFilter === 'ALL' ? 'text-rose-600' : 'text-slate-300 group-hover:text-rose-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
+            </div>
           </div>
           <div className="my-3">
-            <div className="text-3xl font-black text-slate-900">
+            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-slate-900 font-headline tracking-tight">
               {Math.round(totalUnits).toLocaleString()} <span className="text-sm font-bold text-rose-600">units</span>
             </div>
             <span className="text-xs text-slate-600 font-medium block mt-1">
               <strong className="text-slate-800">{Math.round(fullUnits).toLocaleString()}</strong> Regular + <strong className="text-amber-700">{Math.round(partialUnits).toLocaleString()}</strong> Partial Qty
             </span>
           </div>
-          <span className="text-[11px] text-rose-700 font-semibold pt-2 border-t border-rose-100 flex items-center justify-between">
+          <div className="text-[11px] text-rose-700 font-semibold pt-3 border-t border-rose-100 flex items-center justify-between">
             <span>Combined Total Qty</span>
-            <span className="bg-rose-100 px-1.5 py-0.5 rounded text-[10px]">Regular + Partial</span>
-          </span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeFilter === 'ALL' ? 'bg-rose-200 text-rose-800' : 'bg-rose-100 text-rose-700'}`}>
+              {typeFilter === 'ALL' ? 'Active' : 'All Qty'}
+            </span>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-rose-500"></div>
         </div>
 
         {/* Card 2: Total Returned Orders */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Returned Orders</span>
-            <Layers className="w-5 h-5 text-indigo-600" />
+        <div
+          onClick={() => setTypeFilter('FULL')}
+          className={`bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+            typeFilter === 'FULL'
+              ? 'border-indigo-600 ring-2 ring-indigo-600/20 shadow-sm'
+              : 'border-slate-200/90 shadow-xs hover:border-indigo-300'
+          }`}
+          title="Click to filter by 100% Returned-to-Origin (RTO) orders"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Returned Orders</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <Layers className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className={`w-4 h-4 transition-all ${typeFilter === 'FULL' ? 'text-indigo-600' : 'text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
+            </div>
           </div>
           <div className="my-3">
-            <div className="text-3xl font-black text-slate-900">
+            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-slate-900 font-headline tracking-tight">
               {fullOrdersCount.toLocaleString()} <span className="text-sm font-semibold text-slate-500">orders</span>
             </div>
             <span className="text-xs text-slate-500 block mt-1 font-medium">
-              {fullCount.toLocaleString()} Product Line Items ({Math.round(fullUnits).toLocaleString()} Qty)
+              {fullCount.toLocaleString()} Line Items ({Math.round(fullUnits).toLocaleString()} Qty)
             </span>
           </div>
-          <span className="text-[11px] text-slate-400 pt-2 border-t border-slate-100">
-            100% Returned-to-Origin (RTO)
-          </span>
+          <div className="text-[11px] text-slate-400 pt-3 border-t border-slate-100 flex items-center justify-between">
+            <span>100% RTO Parcels</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeFilter === 'FULL' ? 'bg-indigo-100 text-indigo-800' : 'text-slate-400'}`}>
+              {typeFilter === 'FULL' ? 'Active Filter' : 'Full RTO'}
+            </span>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-500"></div>
         </div>
 
         {/* Card 3: Total Partial Products */}
-        <div className="bg-white rounded-2xl p-5 border border-amber-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Total Partial Products</span>
-            <Split className="w-5 h-5 text-amber-600" />
+        <div
+          onClick={() => setTypeFilter('PARTIAL')}
+          className={`bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+            typeFilter === 'PARTIAL'
+              ? 'border-amber-500 ring-2 ring-amber-500/20 shadow-sm bg-amber-50/20'
+              : 'border-slate-200/90 shadow-xs hover:border-amber-300'
+          }`}
+          title="Click to filter by Rejected Items from Partial Deliveries"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Total Partial Products</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <Split className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className={`w-4 h-4 transition-all ${typeFilter === 'PARTIAL' ? 'text-amber-600' : 'text-slate-300 group-hover:text-amber-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
+            </div>
           </div>
           <div className="my-3">
-            <div className="text-3xl font-black text-amber-600">
+            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-amber-600 font-headline tracking-tight">
               {partialCount.toLocaleString()} <span className="text-sm font-bold text-amber-700">products</span>
             </div>
             <span className="text-xs text-slate-600 block mt-1 font-medium">
               Across {partialOrdersCount.toLocaleString()} Orders ({Math.round(partialUnits).toLocaleString()} Qty rejected)
             </span>
           </div>
-          <span className="text-[11px] text-amber-700 pt-2 border-t border-amber-100 font-semibold">
-            Rejected Items from Partial Deliveries
-          </span>
+          <div className="text-[11px] text-amber-700 pt-3 border-t border-amber-100 flex items-center justify-between font-semibold">
+            <span>Rejected Item Splits</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeFilter === 'PARTIAL' ? 'bg-amber-200 text-amber-800' : 'bg-amber-100 text-amber-700'}`}>
+              {typeFilter === 'PARTIAL' ? 'Active Filter' : 'Partials'}
+            </span>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500"></div>
         </div>
 
         {/* Card 4: Returned Merchandise Value */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Returned Inventory Value</span>
-            <Tag className="w-5 h-5 text-emerald-600" />
+        <div
+          onClick={() => setTypeFilter('ALL')}
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-xs hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all flex flex-col justify-between cursor-pointer relative overflow-hidden group"
+          title="Total displaced merchandise value"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Returned Inventory Value</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <Tag className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+            </div>
           </div>
           <div className="my-3">
-            <div className="text-3xl font-black text-slate-900">৳ {Math.round(totalValue).toLocaleString()}</div>
+            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-slate-900 font-headline tracking-tight">৳ {Math.round(totalValue).toLocaleString()}</div>
             <span className="text-xs text-slate-500 block mt-1">Displaced Retail Inventory Value</span>
           </div>
-          <span className="text-[11px] text-slate-400 pt-2 border-t border-slate-100">
-            Unrealized Gross Revenue
-          </span>
+          <div className="text-[11px] text-slate-400 pt-3 border-t border-slate-100 flex items-center justify-between">
+            <span>Unrealized Gross Revenue</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+              Merchandise
+            </span>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500"></div>
         </div>
       </div>
 

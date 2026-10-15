@@ -283,7 +283,7 @@ describe('DEEN Commerce Responsive Architecture Test Suite (Tiers 1 - 4)', () =>
 
       it('F8.5: static inspection of KpiOverview.tsx confirms responsive grid classes', () => {
         const content = readProjectFile('src/components/KpiOverview.tsx');
-        expect(content).toContain('grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5');
+        expect(content).toMatch(/grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5/);
       });
     });
 

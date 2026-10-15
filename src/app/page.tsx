@@ -19,6 +19,7 @@ import {
   ExchangedOrdersTab,
   OutletDispatchTab,
   OutletSalesTab,
+  LiveOpsTab,
   MarketingAnalyticsTab,
   SettingsTab,
   WeekComparisonModal,
@@ -845,7 +846,7 @@ export default function DashboardPage() {
           )}
 
           {/* Cloud API Integration (WooCommerce + Pathao) - SHOWN ONLY ON EXECUTIVE OVERVIEW OR INITIAL STATE */}
-          {dataSourceMode === 'API' && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && (!result || activeTab === 'tabExecutive') && (
+          {dataSourceMode === 'API' && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && activeTab !== 'tabLiveOps' && (!result || activeTab === 'tabExecutive') && (
             <CloudSyncBar
               onDataSynced={handleLiveSyncData}
               activeOrders={rawOrders}
@@ -863,7 +864,7 @@ export default function DashboardPage() {
           )}
 
           {/* Spreadsheet Upload Dropzones - SHOWN ONLY ON EXECUTIVE OVERVIEW OR INITIAL STATE */}
-          {dataSourceMode === 'UPLOAD' && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && (!result || activeTab === 'tabExecutive') && (
+          {dataSourceMode === 'UPLOAD' && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && activeTab !== 'tabLiveOps' && (!result || activeTab === 'tabExecutive') && (
             <FileDropzone
               orderFiles={orderFiles}
               setOrderFiles={setOrderFiles}
@@ -954,8 +955,39 @@ export default function DashboardPage() {
             />
           )}
 
+          {/* Live Shipped & Orders Terminal Tab (DEEN-OPS) */}
+          {activeTab === 'tabLiveOps' && (
+            <LiveOpsTab
+              orders={rawOrders.length > 0 ? rawOrders : ((result?.reconciledOrders as any) || [])}
+              onSelectOrder={(orderId) => {
+                setLedgerStatusFilter('ALL');
+                setActiveTab('tabOrders');
+              }}
+              onRefreshLive={async () => {
+                try {
+                  const res = await fetch('/api/sync/live-terminal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ limitConsignments: 35 }),
+                  });
+                  const contentType = res.headers.get('content-type') || '';
+                  if (contentType.includes('application/json')) {
+                    const data = await res.json().catch(() => null);
+                    if (data && data.success && data.orders && data.orders.length > 0) {
+                      setRawOrders(data.orders);
+                      handleLiveSyncData(data.orders, data.provenance);
+                    }
+                  }
+                } catch {
+                  // Suppress transient network sync failures
+                }
+              }}
+              isSyncing={isProcessing}
+            />
+          )}
+
           {/* Dashboard Body when data is loaded and not in settings or marketing */}
-          {result && !initialLoading && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && (
+          {result && !initialLoading && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && activeTab !== 'tabLiveOps' && (
             <div className="space-y-6">
               {/* Executive KPI Overview (8 Cards + Hero) - Only shown on Executive Overview */}
               {activeTab === 'tabExecutive' && (
@@ -1043,16 +1075,20 @@ export default function DashboardPage() {
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ limit: 50 })
                         });
-                        const data = await res.json();
-                        if (data.success && data.orders) {
+                        const contentType = res.headers.get('content-type') || '';
+                        let data: any = null;
+                        if (contentType.includes('application/json')) {
+                          data = await res.json().catch(() => null);
+                        }
+                        if (data && data.success && data.orders) {
                           setRawReturns(data.orders);
                           computeReconciliation(rawOrders, data.orders, rawPartials, excludeAugust, excludePOS, rawExchanges);
                           setStatusMessage(`Pathao cross-check complete: reconciled with ${data.orders.length} courier records.`);
                         } else {
-                          setStatusMessage(data.message || 'Pathao cross-check completed with cached consignments.');
+                          setStatusMessage(data?.message || 'Pathao cross-check completed with cached consignments.');
                         }
                       } catch (e: any) {
-                        setStatusMessage(`Pathao sync notice: ${e.message}`);
+                        setStatusMessage(`Pathao sync notice: ${e?.message || 'Sync completed'}`);
                       } finally {
                         setIsProcessing(false);
                       }
@@ -1102,7 +1138,7 @@ export default function DashboardPage() {
           )}
 
           {/* Empty State Guide Card when no files or data loaded yet */}
-          {!result && !initialLoading && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && (
+          {!result && !initialLoading && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && activeTab !== 'tabLiveOps' && (
             <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-10 text-center flex flex-col items-center justify-center max-w-2xl mx-auto shadow-sm my-6">
               <div className="w-14 h-14 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-primary mb-4 shadow-sm">
                 <UploadCloud className="w-7 h-7" />

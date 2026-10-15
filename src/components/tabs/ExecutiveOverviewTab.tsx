@@ -560,70 +560,70 @@ export function ExecutiveOverviewTab({ summary, orders = [], skuList = [] }: Exe
         {/* Supporting Widgets (Placed below table in clean 2-column grid) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Card: Operational Health & Fulfillment Rates */}
-          <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 p-5 flex flex-col gap-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                  <TrendingUp className="w-4 h-4" />
+          <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5 sm:p-5.5 xl:p-6 flex flex-col gap-4">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shadow-2xs">
+                  <TrendingUp className="w-4.5 h-4.5" />
                 </div>
                 <div>
-                  <h3 className="font-headline text-sm font-bold text-navy-deep">
+                  <h3 className="font-headline text-sm sm:text-base font-bold text-navy-deep">
                     Fulfillment Health
                   </h3>
-                  <p className="text-[11px] text-slate-400">Order completion and return benchmarks</p>
+                  <p className="text-xs text-slate-400">Order completion and return benchmarks</p>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-3 sm:gap-3.5">
               {/* Delivery Rate */}
-              <div className="p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/70 flex flex-col gap-1">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-emerald-50/60 border border-emerald-200/70 flex flex-col gap-1.5 shadow-2xs">
                 <span className="text-[10px] text-emerald-700 font-bold uppercase tracking-wider">
                   Net Delivery
                 </span>
-                <span className="font-headline text-lg font-black text-emerald-700">
+                <span className="font-headline text-xl sm:text-2xl font-black text-emerald-700">
                   {deliveryRate}%
                 </span>
-                <span className="text-[10px] text-slate-500">
+                <span className="text-xs text-slate-500 font-medium">
                   {s.fullDeliveredOrders.toLocaleString()} orders
                 </span>
               </div>
 
               {/* Full Return Rate */}
-              <div className="p-3 rounded-xl bg-rose-50/60 border border-rose-200/70 flex flex-col gap-1">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-rose-50/60 border border-rose-200/70 flex flex-col gap-1.5 shadow-2xs">
                 <span className="text-[10px] text-rose-700 font-bold uppercase tracking-wider">
                   Full Returns
                 </span>
-                <span className="font-headline text-lg font-black text-rose-600">
+                <span className="font-headline text-xl sm:text-2xl font-black text-rose-600">
                   {returnRate}%
                 </span>
-                <span className="text-[10px] text-slate-500">
+                <span className="text-xs text-slate-500 font-medium">
                   {s.fullReturnedOrders.toLocaleString()} orders
                 </span>
               </div>
 
               {/* Exchange Rate */}
-              <div className="p-3 rounded-xl bg-purple-50/60 border border-purple-200/70 flex flex-col gap-1">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-purple-50/60 border border-purple-200/70 flex flex-col gap-1.5 shadow-2xs">
                 <span className="text-[10px] text-purple-700 font-bold uppercase tracking-wider">
                   Exchanges
                 </span>
-                <span className="font-headline text-lg font-black text-purple-700">
+                <span className="font-headline text-xl sm:text-2xl font-black text-purple-700">
                   {exchangeRate}%
                 </span>
-                <span className="text-[10px] text-slate-500">
+                <span className="text-xs text-slate-500 font-medium">
                   {(s.totalExchangedOrders || 0).toLocaleString()} swaps
                 </span>
               </div>
 
               {/* Partial Rate */}
-              <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-200/70 flex flex-col gap-1">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-amber-50/60 border border-amber-200/70 flex flex-col gap-1.5 shadow-2xs">
                 <span className="text-[10px] text-amber-700 font-bold uppercase tracking-wider">
                   Partial Orders
                 </span>
-                <span className="font-headline text-lg font-black text-amber-600">
+                <span className="font-headline text-xl sm:text-2xl font-black text-amber-600">
                   {partialRate}%
                 </span>
-                <span className="text-[10px] text-slate-500">
+                <span className="text-xs text-slate-500 font-medium">
                   {s.partialOrders.toLocaleString()} split
                 </span>
               </div>
@@ -632,27 +632,30 @@ export function ExecutiveOverviewTab({ summary, orders = [], skuList = [] }: Exe
 
           {/* Card: Top Selling Master SKUs Highlights */}
           {topMasterSkus.length > 0 && (
-            <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 p-5 flex flex-col gap-3">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-orange-50 text-primary flex items-center justify-center font-bold">
-                    <PackageCheck className="w-4 h-4" />
+            <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5 sm:p-5.5 xl:p-6 flex flex-col gap-3.5">
+              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-orange-50 text-primary flex items-center justify-center font-bold shadow-2xs">
+                    <PackageCheck className="w-4.5 h-4.5" />
                   </div>
-                  <h3 className="font-headline text-sm font-bold text-navy-deep">
-                    Top Realized Master Styles
-                  </h3>
+                  <div>
+                    <h3 className="font-headline text-sm sm:text-base font-bold text-navy-deep">
+                      Top Realized Master Styles
+                    </h3>
+                    <p className="text-xs text-slate-400">By net realized revenue</p>
+                  </div>
                 </div>
-                <span className="text-[10px] font-bold text-slate-400">By Net Revenue</span>
+                <span className="text-[10px] font-bold text-primary px-2 py-0.5 rounded-full bg-primary/10">Ranked</span>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {topMasterSkus.map((sku, idx) => (
                   <div
                     key={sku.masterSku || idx}
-                    className="p-2.5 rounded-lg bg-slate-50/80 border border-slate-100 hover:border-slate-200 flex items-center justify-between transition-colors"
+                    className="p-3 rounded-xl bg-slate-50/80 border border-slate-100 hover:border-slate-200 flex items-center justify-between transition-colors shadow-2xs"
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 font-bold text-[10px] flex items-center justify-center shrink-0">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
                         {idx + 1}
                       </span>
                       <div className="min-w-0">

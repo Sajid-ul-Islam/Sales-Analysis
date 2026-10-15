@@ -16,7 +16,8 @@ import {
   MapPin,
   Package,
   Layers,
-  FileCheck2
+  FileCheck2,
+  ArrowUpRight
 } from 'lucide-react';
 
 interface ExchangedOrdersTabProps {
@@ -122,91 +123,186 @@ export function ExchangedOrdersTab({
         </button>
       </div>
 
-      {/* KPI Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+      {/* KPI Summary Cards (Interactive Drilldowns) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-4.5 xl:gap-5">
         {/* Card 1: Total Exchanges & Items Qty */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 text-xs">
-            <span className="font-medium">Total Exchanges</span>
-            <ArrowRightLeft className="w-4 h-4 text-purple-600" />
+        <div
+          onClick={() => setStatusFilter('ALL')}
+          className={`bg-white p-5 sm:p-5.5 xl:p-6 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+            statusFilter === 'ALL'
+              ? 'border-purple-600 ring-2 ring-purple-600/20 shadow-sm'
+              : 'border-slate-200/90 shadow-xs hover:border-purple-300'
+          }`}
+          title="Click to view all exchange orders"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total Exchanges</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <ArrowRightLeft className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className={`w-4 h-4 transition-all ${statusFilter === 'ALL' ? 'text-purple-600' : 'text-slate-300 group-hover:text-purple-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
+            </div>
           </div>
-          <div className="mt-2 flex items-baseline justify-between gap-1">
+          <div className="my-3 flex items-baseline justify-between gap-1">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl font-black text-navy-deep font-headline">
+              <span className="text-2xl sm:text-3xl xl:text-4xl font-black text-navy-deep font-headline tracking-tight">
                 {totalCount.toLocaleString()}
               </span>
               <span className="text-xs text-slate-500 font-semibold">orders</span>
             </div>
-            <div className="flex items-baseline gap-1 px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 border border-purple-200/60 shadow-2xs">
+            <div className="flex items-baseline gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-800 border border-purple-200/60 shadow-2xs">
               <span className="text-xs font-black font-headline">
                 {totalItemsQty.toLocaleString()}
               </span>
               <span className="text-[10px] font-bold">items</span>
             </div>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">{totalItemsQty.toLocaleString()} physical items in replacement manifest</p>
+          <div className="text-[11px] text-slate-500 pt-3 border-t border-slate-100 flex items-center justify-between">
+            <span className="truncate">{totalItemsQty.toLocaleString()} replacement items</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusFilter === 'ALL' ? 'bg-purple-100 text-purple-800' : 'text-slate-400'}`}>
+              {statusFilter === 'ALL' ? 'Active' : 'All'}
+            </span>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-purple-600"></div>
         </div>
 
         {/* Card 2: COD Collected */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 text-xs">
-            <span className="font-medium">COD Collected</span>
-            <DollarSign className="w-4 h-4 text-emerald-600" />
+        <div
+          onClick={() => setStatusFilter('ALL')}
+          className="bg-white p-5 sm:p-5.5 xl:p-6 rounded-2xl border border-slate-200/90 shadow-xs hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all flex flex-col justify-between cursor-pointer relative overflow-hidden group"
+          title="Doorstep fee collected from customers"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] text-emerald-600 uppercase font-bold tracking-wider">COD Collected</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <DollarSign className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+            </div>
           </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-emerald-600 font-headline">
+          <div className="my-3">
+            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-emerald-600 font-headline tracking-tight">
               ৳{totalCodCollected.toLocaleString()}
-            </span>
-            <span className="text-[10px] text-emerald-700 font-bold">Doorstep Fees</span>
+            </div>
+            <div className="text-xs font-semibold text-emerald-700 mt-1 flex items-center gap-1">
+              <span>Avg ৳{avgCod}</span>
+              <span className="text-[10px] text-slate-400 font-normal">/ exchange order</span>
+            </div>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">Average ৳{avgCod} per exchange order</p>
+          <div className="text-[11px] text-emerald-700 font-bold pt-3 border-t border-slate-100 flex items-center justify-between">
+            <span>Doorstep Recovery</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/60 text-emerald-700">
+              Recovered
+            </span>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500"></div>
         </div>
 
         {/* Card 3: Courier Net Expense */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 text-xs">
-            <span className="font-medium">Courier Cost</span>
-            <Truck className="w-4 h-4 text-blue-600" />
+        <div
+          onClick={() => setStatusFilter('ALL')}
+          className="bg-white p-5 sm:p-5.5 xl:p-6 rounded-2xl border border-slate-200/90 shadow-xs hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all flex flex-col justify-between cursor-pointer relative overflow-hidden group"
+          title="Courier charges incurred for replacement parcels"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] text-blue-600 uppercase font-bold tracking-wider">Courier Cost</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <Truck className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+            </div>
           </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900 font-headline">
+          <div className="my-3">
+            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-slate-900 font-headline tracking-tight">
               ৳{netCourierCost.toLocaleString()}
-            </span>
-            <span className="text-[10px] text-slate-500">Gross ৳{totalCharges.toLocaleString()}</span>
+            </div>
+            <div className="text-xs font-semibold text-slate-500 mt-1 flex items-center gap-1">
+              <span>Gross ৳{totalCharges.toLocaleString()}</span>
+              <span className="text-[10px] text-emerald-600 font-bold">(-৳{totalDiscounts.toLocaleString()} promo)</span>
+            </div>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">৳{totalDiscounts.toLocaleString()} courier promo discount</p>
+          <div className="text-[11px] text-slate-500 pt-3 border-t border-slate-100 flex items-center justify-between">
+            <span>After courier discount</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+              Logistics
+            </span>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-500"></div>
         </div>
 
         {/* Card 4: Matched in Order Ledger */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 text-xs">
-            <span className="font-medium">Ledger Matched</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+        <div
+          onClick={() => setStatusFilter('MATCHED')}
+          className={`bg-white p-5 sm:p-5.5 xl:p-6 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+            statusFilter === 'MATCHED'
+              ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm'
+              : 'border-slate-200/90 shadow-xs hover:border-emerald-300'
+          }`}
+          title="Click to filter by Matched in Order Ledger"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] text-emerald-600 uppercase font-bold tracking-wider">Ledger Matched</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <CheckCircle2 className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className={`w-4 h-4 transition-all ${statusFilter === 'MATCHED' ? 'text-emerald-600' : 'text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
+            </div>
           </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-emerald-600 font-headline">
+          <div className="my-3">
+            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-emerald-600 font-headline tracking-tight">
               {matchedCount}
-            </span>
-            <span className="text-[10px] text-slate-500">
-              ({totalCount > 0 ? ((matchedCount / totalCount) * 100).toFixed(0) : 0}%)
+            </div>
+            <div className="text-xs font-semibold text-slate-500 mt-1">
+              {totalCount > 0 ? ((matchedCount / totalCount) * 100).toFixed(0) : 0}% Reconciliation Match
+            </div>
+          </div>
+          <div className="text-[11px] text-emerald-700 font-bold pt-3 border-t border-slate-100 flex items-center justify-between">
+            <span>Linked to Order ID</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusFilter === 'MATCHED' ? 'bg-emerald-100 text-emerald-800' : 'text-emerald-600'}`}>
+              {statusFilter === 'MATCHED' ? 'Active Filter' : 'Verified'}
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">Linked via clean Order ID or phone</p>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500"></div>
         </div>
 
         {/* Card 5: COD Net Offset */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 text-xs">
-            <span className="font-medium">Courier Recovery</span>
-            <Package className="w-4 h-4 text-primary" />
+        <div
+          onClick={() => setStatusFilter('DELIVERED')}
+          className={`bg-white p-5 sm:p-5.5 xl:p-6 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+            statusFilter === 'DELIVERED'
+              ? 'border-primary ring-2 ring-primary/20 shadow-sm'
+              : 'border-slate-200/90 shadow-xs hover:border-primary/40'
+          }`}
+          title="Click to view Delivered replacements"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Courier Recovery</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-2xs group-hover:scale-105 transition-transform">
+                <Package className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className={`w-4 h-4 transition-all ${statusFilter === 'DELIVERED' ? 'text-primary' : 'text-slate-300 group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
+            </div>
           </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-primary font-headline">
+          <div className="my-3">
+            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-primary font-headline tracking-tight">
               {netCourierCost > 0 ? ((totalCodCollected / netCourierCost) * 100).toFixed(0) : 100}%
-            </span>
-            <span className="text-[10px] text-slate-500">Expense offset</span>
+            </div>
+            <div className="text-xs font-semibold text-slate-500 mt-1">
+              Expense Offset Rate
+            </div>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">Doorstep fee recovers delivery cost</p>
+          <div className="text-[11px] text-slate-500 pt-3 border-t border-slate-100 flex items-center justify-between">
+            <span>Doorstep fee vs expense</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusFilter === 'DELIVERED' ? 'bg-primary/10 text-primary' : 'text-slate-400'}`}>
+              {statusFilter === 'DELIVERED' ? 'Delivered' : 'Offset'}
+            </span>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary"></div>
         </div>
       </div>
 

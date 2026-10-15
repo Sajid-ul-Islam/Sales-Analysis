@@ -477,98 +477,98 @@ export function MarketingAnalyticsTab({
       </div>
 
       {/* Main 4 Metric Hero Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4.5 xl:gap-5">
         {/* Card 1: Active Users & Sessions */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs hover:shadow-xs transition-shadow">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-5.5 xl:p-6 shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all">
+          <div className="flex items-center justify-between mb-3.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-headline">
               Active Store Visitors
             </span>
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center">
-              <Users className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-indigo-50/90 border border-indigo-200/60 text-indigo-600 flex items-center justify-center shrink-0 shadow-2xs">
+              <Users className="w-4.5 h-4.5" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-headline text-2xl font-extrabold text-slate-900 tracking-tight">
+            <span className="font-headline text-2xl sm:text-[26px] font-extrabold text-slate-900 tracking-tight">
               {(ov?.activeUsers ?? 87113).toLocaleString()}
             </span>
             <span className="text-[11px] font-semibold text-emerald-600 flex items-center">
-              <ArrowUpRight className="w-3 h-3" />
+              <ArrowUpRight className="w-3.5 h-3.5" />
               Live
             </span>
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Sessions: <strong className="text-slate-800">{(ov?.sessions ?? 143069).toLocaleString()}</strong></span>
-            <span>Pages: <strong className="text-slate-800">{(ov?.screenPageViews ?? 418669).toLocaleString()}</strong></span>
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>Sessions: <strong className="text-slate-800 font-bold">{(ov?.sessions ?? 143069).toLocaleString()}</strong></span>
+            <span>Pages: <strong className="text-slate-800 font-bold">{(ov?.screenPageViews ?? 418669).toLocaleString()}</strong></span>
           </div>
         </div>
 
         {/* Card 2: Meta Ad Spend & Impressions */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs hover:shadow-xs transition-shadow">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-5.5 xl:p-6 shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all">
+          <div className="flex items-center justify-between mb-3.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-headline">
               Meta Paid Ad Spend
             </span>
-            <div className="w-8 h-8 rounded-lg bg-orange-50 border border-orange-100 text-primary flex items-center justify-center">
-              <DollarSign className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-orange-50/90 border border-orange-200/60 text-primary flex items-center justify-center shrink-0 shadow-2xs">
+              <DollarSign className="w-4.5 h-4.5" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-headline text-2xl font-extrabold text-slate-900 tracking-tight">
+            <span className="font-headline text-2xl sm:text-[26px] font-extrabold text-slate-900 tracking-tight">
               {formatBDT(metaAdSpend)}
             </span>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/60">
               {dateRange.toUpperCase()}
             </span>
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>CTR: <strong className="text-slate-800">{meta?.ctrPercent || 2.99}%</strong></span>
-            <span>CPC: <strong className="text-slate-800">{formatBDT(meta?.cpc || 7.55)}</strong></span>
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>CTR: <strong className="text-slate-800 font-bold">{meta?.ctrPercent || 2.99}%</strong></span>
+            <span>CPC: <strong className="text-slate-800 font-bold">{formatBDT(meta?.cpc || 7.55)}</strong></span>
           </div>
         </div>
 
         {/* Card 3: Online Conversion & Revenue */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs hover:shadow-xs transition-shadow">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-5.5 xl:p-6 shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all">
+          <div className="flex items-center justify-between mb-3.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-headline">
               Tracked Online Revenue
             </span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center">
-              <ShoppingBag className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-emerald-50/90 border border-emerald-200/60 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs">
+              <ShoppingBag className="w-4.5 h-4.5" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-headline text-2xl font-extrabold text-emerald-600 tracking-tight">
+            <span className="font-headline text-2xl sm:text-[26px] font-extrabold text-emerald-600 tracking-tight">
               {formatBDT(ov?.totalRevenue ?? 1905727)}
             </span>
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Orders: <strong className="text-slate-800">{(ov?.transactions ?? 1101).toLocaleString()}</strong></span>
-            <span>ARPU: <strong className="text-slate-800">{formatBDT(ov?.averageRevenuePerUser ?? 22)}</strong></span>
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>Orders: <strong className="text-slate-800 font-bold">{(ov?.transactions ?? 1101).toLocaleString()}</strong></span>
+            <span>ARPU: <strong className="text-slate-800 font-bold">{formatBDT(ov?.averageRevenuePerUser ?? 22)}</strong></span>
           </div>
         </div>
 
         {/* Card 4: Blended ROAS & Retention */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs hover:shadow-xs transition-shadow">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-5.5 xl:p-6 shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all">
+          <div className="flex items-center justify-between mb-3.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-headline">
               Blended Omnichannel ROAS
             </span>
-            <div className="w-8 h-8 rounded-lg bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center">
-              <Zap className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-purple-50/90 border border-purple-200/60 text-purple-600 flex items-center justify-center shrink-0 shadow-2xs">
+              <Zap className="w-4.5 h-4.5" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-headline text-2xl font-extrabold text-purple-700 tracking-tight">
+            <span className="font-headline text-2xl sm:text-[26px] font-extrabold text-purple-700 tracking-tight">
               {blendedRoas}x
             </span>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-800">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 border border-purple-200/60">
               Blended
             </span>
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Blended CAC: <strong className="text-slate-800">{formatBDT(blendedCac)}</strong></span>
-            <span>Purchases: <strong className="text-slate-800">{meta?.purchases || 1040}</strong></span>
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>Blended CAC: <strong className="text-slate-800 font-bold">{formatBDT(blendedCac)}</strong></span>
+            <span>Purchases: <strong className="text-slate-800 font-bold">{meta?.purchases || 1040}</strong></span>
           </div>
         </div>
       </div>

@@ -16,7 +16,8 @@ import {
   ExternalLink,
   Filter,
   Download,
-  ShieldAlert
+  ShieldAlert,
+  ArrowUpRight
 } from 'lucide-react';
 
 interface CourierMismatchTabProps {
@@ -96,91 +97,166 @@ export function CourierMismatchTab({
         )}
       </div>
 
-      {/* KPI Cards: Reconciled vs Divergences */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+      {/* KPI Cards: Reconciled vs Divergences (Interactive Drilldowns) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-4.5 xl:gap-5">
         {/* Card 1: Total Audited */}
-        <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
+        <div
+          onClick={() => setSelectedFilter('ALL')}
+          className={`bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+            selectedFilter === 'ALL'
+              ? 'border-primary ring-2 ring-primary/20 shadow-sm'
+              : 'border-slate-200/90 shadow-xs hover:border-slate-300'
+          }`}
+          title="Click to view all audited returns & manifests"
+        >
+          <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total Audited</span>
-            <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-slate-600">
-              <Filter className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shadow-2xs group-hover:scale-105 transition-transform">
+                <Filter className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className={`w-4 h-4 transition-all ${selectedFilter === 'ALL' ? 'text-primary' : 'text-slate-300 group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-2">
-            <div className="font-headline font-black text-2xl text-navy-deep">{totalAudited}</div>
-            <span className="text-[10px] text-slate-500">Returns & Partials Ingested</span>
+          <div className="my-3">
+            <div className="font-headline font-black text-2xl sm:text-3xl xl:text-4xl text-navy-deep tracking-tight">{totalAudited}</div>
+            <span className="text-xs font-semibold text-slate-500 mt-1 block">Returns & Partials Ingested</span>
           </div>
-          <div className="text-[10px] text-slate-400 pt-1.5 border-t border-slate-100">
-            From Uploaded Excel
+          <div className="text-[11px] text-slate-500 pt-3 border-t border-slate-100 flex items-center justify-between">
+            <span>From Uploaded Excel</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${selectedFilter === 'ALL' ? 'bg-primary/10 text-primary' : 'text-slate-400'}`}>
+              {selectedFilter === 'ALL' ? 'Active Filter' : 'Click to view'}
+            </span>
           </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-400"></div>
         </div>
 
         {/* Card 2: Reconciled Matches */}
-        <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
+        <div
+          onClick={() => setSelectedFilter('MATCH')}
+          className={`bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+            selectedFilter === 'MATCH'
+              ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm'
+              : 'border-slate-200/90 shadow-xs hover:border-emerald-300'
+          }`}
+          title="Click to filter by Reconciled OK orders"
+        >
+          <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] text-emerald-600 uppercase font-bold tracking-wider">Reconciled OK</span>
-            <div className="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center text-emerald-600">
-              <CheckCircle2 className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <CheckCircle2 className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className={`w-4 h-4 transition-all ${selectedFilter === 'MATCH' ? 'text-emerald-600' : 'text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-2">
-            <div className="font-headline font-black text-2xl text-emerald-600">{reconciledCount}</div>
-            <span className="text-[10px] text-slate-500">Confirmed by Pathao</span>
+          <div className="my-3">
+            <div className="font-headline font-black text-2xl sm:text-3xl xl:text-4xl text-emerald-600 tracking-tight">{reconciledCount}</div>
+            <span className="text-xs font-semibold text-slate-500 mt-1 block">Confirmed by Pathao</span>
           </div>
-          <div className="text-[10px] text-emerald-600 font-bold pt-1.5 border-t border-slate-100">
-            {totalAudited > 0 ? ((reconciledCount / totalAudited) * 100).toFixed(1) : 0}% Sync Rate
+          <div className="text-[11px] text-emerald-700 font-bold pt-3 border-t border-slate-100 flex items-center justify-between">
+            <span>{totalAudited > 0 ? ((reconciledCount / totalAudited) * 100).toFixed(1) : 0}% Sync Rate</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${selectedFilter === 'MATCH' ? 'bg-emerald-100 text-emerald-800' : 'text-emerald-600'}`}>
+              {selectedFilter === 'MATCH' ? 'Active Filter' : 'Verified'}
+            </span>
           </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500"></div>
         </div>
 
         {/* Card 3: Critical Status Mismatches */}
-        <div className="bg-white rounded-xl p-4 border border-rose-200 shadow-xs flex flex-col justify-between bg-rose-50/20">
-          <div className="flex items-center justify-between">
+        <div
+          onClick={() => setSelectedFilter('CRITICAL')}
+          className={`bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+            selectedFilter === 'CRITICAL'
+              ? 'border-rose-500 ring-2 ring-rose-500/20 shadow-sm bg-rose-50/30'
+              : 'border-rose-200/90 shadow-xs hover:border-rose-400 bg-rose-50/15'
+          }`}
+          title="Click to filter by Critical Status Mismatches"
+        >
+          <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] text-rose-600 uppercase font-bold tracking-wider">Critical Mismatches</span>
-            <div className="w-6 h-6 rounded-md bg-rose-50 flex items-center justify-center text-rose-600">
-              <XCircle className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <XCircle className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className={`w-4 h-4 transition-all ${selectedFilter === 'CRITICAL' ? 'text-rose-600' : 'text-slate-300 group-hover:text-rose-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-2">
-            <div className="font-headline font-black text-2xl text-rose-600">{criticalCount}</div>
-            <span className="text-[10px] text-slate-500">Excel Return vs Pathao Delivered</span>
+          <div className="my-3">
+            <div className="font-headline font-black text-2xl sm:text-3xl xl:text-4xl text-rose-600 tracking-tight">{criticalCount}</div>
+            <span className="text-xs font-semibold text-slate-500 mt-1 block">Return vs Courier Delivered</span>
           </div>
-          <div className="text-[10px] text-rose-600 font-bold pt-1.5 border-t border-rose-100">
-            Potential COD Revenue Loss
+          <div className="text-[11px] text-rose-600 font-bold pt-3 border-t border-rose-100 flex items-center justify-between">
+            <span>Potential COD Leakage</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${selectedFilter === 'CRITICAL' ? 'bg-rose-200 text-rose-800' : 'bg-rose-100 text-rose-700'}`}>
+              High Risk
+            </span>
           </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-rose-500"></div>
         </div>
 
         {/* Card 4: Missing in Pathao */}
-        <div className="bg-white rounded-xl p-4 border border-amber-200 shadow-xs flex flex-col justify-between bg-amber-50/20">
-          <div className="flex items-center justify-between">
+        <div
+          onClick={() => setSelectedFilter('MISSING')}
+          className={`bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+            selectedFilter === 'MISSING'
+              ? 'border-amber-500 ring-2 ring-amber-500/20 shadow-sm bg-amber-50/30'
+              : 'border-amber-200/90 shadow-xs hover:border-amber-400 bg-amber-50/15'
+          }`}
+          title="Click to filter by Missing Consignments"
+        >
+          <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] text-amber-600 uppercase font-bold tracking-wider">Missing in Courier</span>
-            <div className="w-6 h-6 rounded-md bg-amber-50 flex items-center justify-center text-amber-600">
-              <AlertTriangle className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <AlertTriangle className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className={`w-4 h-4 transition-all ${selectedFilter === 'MISSING' ? 'text-amber-600' : 'text-slate-300 group-hover:text-amber-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-2">
-            <div className="font-headline font-black text-2xl text-amber-600">{missingCount}</div>
-            <span className="text-[10px] text-slate-500">No Consignment in Manifest</span>
+          <div className="my-3">
+            <div className="font-headline font-black text-2xl sm:text-3xl xl:text-4xl text-amber-600 tracking-tight">{missingCount}</div>
+            <span className="text-xs font-semibold text-slate-500 mt-1 block">No Consignment in Manifest</span>
           </div>
-          <div className="text-[10px] text-amber-700 font-bold pt-1.5 border-t border-amber-100">
-            Check Steadfast/Paperfly
+          <div className="text-[11px] text-amber-700 font-bold pt-3 border-t border-amber-100 flex items-center justify-between">
+            <span>Check Alternate Couriers</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${selectedFilter === 'MISSING' ? 'bg-amber-200 text-amber-800' : 'bg-amber-100 text-amber-700'}`}>
+              Investigate
+            </span>
           </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500"></div>
         </div>
 
         {/* Card 5: Partial / Amount Warnings */}
-        <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
+        <div
+          onClick={() => setSelectedFilter('WARNING')}
+          className={`bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+            selectedFilter === 'WARNING'
+              ? 'border-indigo-500 ring-2 ring-indigo-500/20 shadow-sm'
+              : 'border-slate-200/90 shadow-xs hover:border-indigo-300'
+          }`}
+          title="Click to filter by RTS / Partial Warnings"
+        >
+          <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Other Warnings</span>
-            <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-slate-600">
-              <HelpCircle className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <HelpCircle className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className={`w-4 h-4 transition-all ${selectedFilter === 'WARNING' ? 'text-indigo-600' : 'text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-2">
-            <div className="font-headline font-black text-2xl text-navy-deep">{Math.max(0, warningCount - missingCount)}</div>
-            <span className="text-[10px] text-slate-500">Partial vs RTS Discrepancies</span>
+          <div className="my-3">
+            <div className="font-headline font-black text-2xl sm:text-3xl xl:text-4xl text-navy-deep tracking-tight">{Math.max(0, warningCount - missingCount)}</div>
+            <span className="text-xs font-semibold text-slate-500 mt-1 block">Partial vs RTS Discrepancies</span>
           </div>
-          <div className="text-[10px] text-slate-400 pt-1.5 border-t border-slate-100">
-            Requires Hub Verification
+          <div className="text-[11px] text-slate-500 pt-3 border-t border-slate-100 flex items-center justify-between">
+            <span>Requires Hub Verification</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${selectedFilter === 'WARNING' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-400'}`}>
+              Discrepancy
+            </span>
           </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-500"></div>
         </div>
       </div>
 

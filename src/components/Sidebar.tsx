@@ -18,7 +18,8 @@ import {
   ShoppingBag,
   BarChart3,
   X,
-  User
+  User,
+  Activity
 } from 'lucide-react';
 
 import { DeenLogo, DeenLogoMark } from './DeenLogo';
@@ -70,6 +71,7 @@ export function Sidebar({
       title: 'Core Operations',
       items: [
         { id: 'tabExecutive', label: 'Executive Overview', icon: LayoutDashboard },
+        { id: 'tabLiveOps', label: 'Live Orders Terminal', icon: Activity, highlight: true },
         { id: 'tabOrders', label: 'Orders Ledger', icon: ListOrdered },
         { id: 'tabItemReturns', label: 'Returned Items', icon: RotateCcw, countBadge: returnCount },
         { id: 'tabCourierMismatch', label: 'Courier Audit', icon: Truck, countBadge: mismatchCount, highlight: true },

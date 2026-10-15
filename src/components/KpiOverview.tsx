@@ -286,24 +286,26 @@ export function KpiOverview({
       </div>
 
       {/* 3. CORE EXECUTIVE ORDER & ITEM RECONCILIATION KPI CARDS (Interactive Funnel Flow) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-4.5 xl:gap-5">
         {/* 1. Gross Dispatched Orders & Items */}
         <div
           onClick={() => onKpiClick?.('tabOrders', 'ALL')}
-          className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-xs hover:border-orange-300 hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group cursor-pointer"
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-sm hover:border-orange-300 hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group cursor-pointer active:scale-[0.99]"
           title="Click to view all orders in Orders Ledger"
         >
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center text-primary">
-                <ShoppingBag className="w-4 h-4" />
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-primary group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+                <ShoppingBag className="w-4.5 h-4.5" />
               </div>
-              <span className="text-xs font-bold text-navy-deep">Dispatched</span>
+              <div className="min-w-0">
+                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block truncate">Dispatched</span>
+                <span className="text-[10px] text-orange-700 font-bold bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200/60 inline-block mt-0.5">
+                  Pipeline
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-50 text-primary">
-                Pipeline
-              </span>
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 onClick={(e) => {
@@ -315,7 +317,9 @@ export function KpiOverview({
               >
                 <Sparkles className="w-3.5 h-3.5" />
               </button>
-              <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-primary transition-colors" />
+              <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-primary group-hover:bg-orange-50 transition-all">
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </div>
             </div>
           </div>
 
@@ -472,32 +476,34 @@ export function KpiOverview({
             );
           })()}
 
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs" title={`SKU Flow: ${s.totalItemsDelivered.toLocaleString()} Kept + ${s.totalReturnedQty.toLocaleString()} Ret = ${(s.totalGrossItems || s.grossOrders).toLocaleString()} Units`}>
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs" title={`SKU Flow: ${s.totalItemsDelivered.toLocaleString()} Kept + ${s.totalReturnedQty.toLocaleString()} Ret = ${(s.totalGrossItems || s.grossOrders).toLocaleString()} Units`}>
             <span className="text-slate-500 font-medium">Total Flow</span>
             <span className="font-bold text-primary px-2 py-0.5 rounded-md bg-orange-50 border border-orange-200/60 shadow-2xs">
               {(s.totalGrossItems || s.grossOrders).toLocaleString()} pcs
             </span>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary"></div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-b-2xl"></div>
         </div>
 
         {/* 2. Net Delivered Orders & Items */}
         <div
           onClick={() => onKpiClick?.('tabOrders', 'DELIVERED')}
-          className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-xs hover:border-emerald-300 hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group cursor-pointer"
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-sm hover:border-emerald-300 hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group cursor-pointer active:scale-[0.99]"
           title="Click to view Delivered orders in Orders Ledger"
         >
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
-                <PackageCheck className="w-4 h-4" />
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+                <PackageCheck className="w-4.5 h-4.5" />
               </div>
-              <span className="text-xs font-bold text-navy-deep">Delivered</span>
+              <div className="min-w-0">
+                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block truncate">Delivered</span>
+                <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 inline-block mt-0.5">
+                  {deliverySuccessRate}% Kept
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">
-                {deliverySuccessRate}% Kept
-              </span>
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 onClick={(e) => {
@@ -509,7 +515,9 @@ export function KpiOverview({
               >
                 <Sparkles className="w-3.5 h-3.5" />
               </button>
-              <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-emerald-600 transition-colors" />
+              <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-emerald-600 group-hover:bg-emerald-50 transition-all">
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </div>
             </div>
           </div>
 
@@ -598,18 +606,18 @@ export function KpiOverview({
         {/* 3. Returned Orders & Items (with Paid vs Unpaid Return Split) */}
         <div
           onClick={() => onKpiClick?.('tabItemReturns')}
-          className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-xs hover:border-rose-300 hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group cursor-pointer"
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-xs hover:border-rose-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all flex flex-col justify-between relative overflow-hidden group cursor-pointer"
           title="Click to view Returned Items & RTO breakdown"
         >
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600">
-                <RotateCcw className="w-4 h-4" />
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <RotateCcw className="w-4.5 h-4.5" />
               </div>
               <span className="text-xs font-bold text-navy-deep">Returns</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-600">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200/60 text-rose-600">
                 {returnPercentage}% RTO
               </span>
               <button
@@ -623,7 +631,7 @@ export function KpiOverview({
               >
                 <Sparkles className="w-3.5 h-3.5" />
               </button>
-              <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-rose-600 transition-colors" />
+              <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-rose-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
           </div>
 
@@ -641,22 +649,22 @@ export function KpiOverview({
 
             return (
               <>
-                <div className="my-2">
-                  <div className="flex items-center justify-between gap-2">
+                <div className="my-3">
+                  <div className="flex items-center justify-between gap-3">
                     <div>
                       <div className="flex items-baseline gap-1.5">
-                        <span className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-rose-600">
+                        <span className="font-headline font-black text-2xl sm:text-3xl xl:text-4xl text-rose-600 tracking-tight">
                           {s.fullReturnedOrders.toLocaleString()}
                         </span>
                       </div>
-                      <div className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap">
+                      <div className="text-xs font-semibold text-slate-500 mt-1 flex items-center gap-1 whitespace-nowrap">
                         <span className="font-bold text-rose-600">৳ {totalReturnedAmount.toLocaleString()}</span>
                         <span className="text-[10px] text-slate-400">loss</span>
                       </div>
                     </div>
 
                     {/* Donut Chart with Numbers directly attached */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2.5 shrink-0">
                       {/* SVG Donut Chart */}
                       <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Return Split: ${paidCount} Paid (${paidPct}%) • ${unpaidCount} Unpaid (${unpaidPct}%)`}>
                         <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
@@ -703,15 +711,15 @@ export function KpiOverview({
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 flex flex-col gap-1 text-xs">
+                <div className="pt-3 border-t border-slate-100 flex flex-col gap-1.5 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500 font-medium">Total Returns</span>
-                    <span className="font-bold text-rose-600 px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200/60 shadow-2xs">
+                    <span className="font-bold text-rose-600 px-2.5 py-0.5 rounded-md bg-rose-50 border border-rose-200/60 shadow-2xs">
                       {totalRetQty.toLocaleString()} pcs
                     </span>
                   </div>
                   <div
-                    className="flex items-center justify-between text-[10px] px-1.5 py-0.5 rounded bg-slate-50 border border-slate-100 text-slate-600 font-medium"
+                    className="flex items-center justify-between text-[10px] px-2 py-0.5 rounded-md bg-slate-50 border border-slate-100 text-slate-600 font-medium"
                     title={`SKU Return Balance: ${rtoQty.toLocaleString()} pcs RTO + ${partialQty.toLocaleString()} pcs Partials = ${totalRetQty.toLocaleString()} pcs Total Returns`}
                   >
                     <span className="text-rose-600 font-bold">{rtoQty.toLocaleString()} RTO</span>
@@ -730,18 +738,18 @@ export function KpiOverview({
         {/* 4. Partial Orders & Items */}
         <div
           onClick={() => onKpiClick?.('tabOrders', 'PARTIAL')}
-          className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-xs hover:border-amber-300 hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group cursor-pointer"
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-xs hover:border-amber-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all flex flex-col justify-between relative overflow-hidden group cursor-pointer"
           title="Click to view Partial orders in Orders Ledger"
         >
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
-                <Split className="w-4 h-4" />
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <Split className="w-4.5 h-4.5" />
               </div>
               <span className="text-xs font-bold text-navy-deep">Partials</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-600">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200/60 text-amber-600">
                 {partialPercentage}% Split
               </span>
               <button
@@ -755,7 +763,7 @@ export function KpiOverview({
               >
                 <Sparkles className="w-3.5 h-3.5" />
               </button>
-              <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-amber-600 transition-colors" />
+              <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-amber-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
           </div>
 
@@ -769,22 +777,22 @@ export function KpiOverview({
 
             return (
               <>
-                <div className="my-2">
-                  <div className="flex items-center justify-between gap-2">
+                <div className="my-3">
+                  <div className="flex items-center justify-between gap-3">
                     <div>
                       <div className="flex items-baseline gap-1.5">
-                        <span className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-amber-600">
+                        <span className="font-headline font-black text-2xl sm:text-3xl xl:text-4xl text-amber-600 tracking-tight">
                           {s.partialOrders.toLocaleString()}
                         </span>
                       </div>
-                      <div className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap">
+                      <div className="text-xs font-semibold text-slate-500 mt-1 flex items-center gap-1 whitespace-nowrap">
                         <span className="font-bold text-rose-600">৳ {partialReturnedAmount.toLocaleString()}</span>
                         <span className="text-[10px] text-slate-400">loss</span>
                       </div>
                     </div>
 
                     {/* Donut Chart with Numbers directly attached */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2.5 shrink-0">
                       {/* SVG Donut Chart */}
                       <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Partial Split: ${partialKept} Kept (${keptPct}%) • ${partialRet} Returned (${retPct}%)`}>
                         <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
@@ -831,9 +839,9 @@ export function KpiOverview({
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                   <span className="text-slate-500 font-medium">Split Items</span>
-                  <span className="font-bold text-amber-700 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/60 shadow-2xs">
+                  <span className="font-bold text-amber-700 px-2.5 py-0.5 rounded-md bg-amber-50 border border-amber-200/60 shadow-2xs">
                     {partialTotal.toLocaleString()} pcs
                   </span>
                 </div>
@@ -846,18 +854,18 @@ export function KpiOverview({
         {/* 5. Exchange Orders & Items */}
         <div
           onClick={() => onKpiClick?.('tabExchanges')}
-          className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-xs hover:border-purple-300 hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group cursor-pointer"
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-xs hover:border-purple-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all flex flex-col justify-between relative overflow-hidden group cursor-pointer"
           title="Click to view Exchanged Orders log"
         >
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600">
-                <RefreshCw className="w-4 h-4" />
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <RefreshCw className="w-4.5 h-4.5" />
               </div>
               <span className="text-xs font-bold text-navy-deep">Exchanges</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 border border-purple-200/60 text-purple-700">
                 {exchangePercentage}% Swap
               </span>
               <button
@@ -871,7 +879,7 @@ export function KpiOverview({
               >
                 <Sparkles className="w-3.5 h-3.5" />
               </button>
-              <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-purple-600 transition-colors" />
+              <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-purple-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
           </div>
 
@@ -888,15 +896,15 @@ export function KpiOverview({
 
             return (
               <>
-                <div className="my-2">
-                  <div className="flex items-center justify-between gap-2">
+                <div className="my-3">
+                  <div className="flex items-center justify-between gap-3">
                     <div>
                       <div className="flex items-baseline gap-1.5">
-                        <span className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-purple-700">
+                        <span className="font-headline font-black text-2xl sm:text-3xl xl:text-4xl text-purple-700 tracking-tight">
                           {(s.totalExchangedOrders || 0).toLocaleString()}
                         </span>
                       </div>
-                      <div className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap">
+                      <div className="text-xs font-semibold text-slate-500 mt-1 flex items-center gap-1 whitespace-nowrap">
                         <span className={`font-bold ${netExchange >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {netExchange >= 0 ? `+৳ ${netExchange.toLocaleString()}` : `-৳ ${Math.abs(netExchange).toLocaleString()}`}
                         </span>
@@ -905,7 +913,7 @@ export function KpiOverview({
                     </div>
 
                     {/* Donut Chart with Numbers directly attached */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2.5 shrink-0">
                       {/* SVG Donut Chart */}
                       <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Exchange Split: ৳ ${exchangeCollected.toLocaleString()} Collected (${collectPct}%) • ৳ ${exchangePathaoCharge.toLocaleString()} Pathao Charged (${chargePct}%)`}>
                         <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
@@ -955,9 +963,9 @@ export function KpiOverview({
             );
           })()}
 
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
             <span className="text-slate-500 font-medium">Swap Items</span>
-            <span className="font-bold text-purple-700 px-2 py-0.5 rounded-md bg-purple-50 border border-purple-200/60 shadow-2xs">
+            <span className="font-bold text-purple-700 px-2.5 py-0.5 rounded-md bg-purple-50 border border-purple-200/60 shadow-2xs">
               {(s.totalExchangedItemsQty || s.totalExchangedOrders || 0).toLocaleString()} pcs
             </span>
           </div>
@@ -966,22 +974,22 @@ export function KpiOverview({
       </div>
 
       {/* 4. EXECUTIVE FINANCIALS, LOGISTICS, TERRITORY & PAYMENT RATIO METRICS (Consolidated 5-Card Grid) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-4.5 xl:gap-5">
         {/* 1. Realized Net Revenue with Realization Rate & Return Leakage Donut */}
         <div
           onClick={() => onKpiClick?.('tabExecutive')}
-          className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-emerald-300 hover:shadow-md transition-all cursor-pointer"
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all cursor-pointer"
           title="Click to view Executive Performance Breakdown"
         >
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
               Realized Revenue
             </span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
-                <CircleDollarSign className="w-4 h-4" />
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <CircleDollarSign className="w-4.5 h-4.5" />
               </div>
-              <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-emerald-600 transition-colors" />
+              <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
           </div>
 
@@ -994,20 +1002,20 @@ export function KpiOverview({
             const strokeDash = `${realizationPct} ${leakagePct}`;
 
             return (
-              <div className="my-2">
-                <div className="flex items-center justify-between gap-2">
+              <div className="my-3">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-2xl font-black text-navy-deep font-headline">
+                    <div className="text-2xl sm:text-3xl font-black text-navy-deep font-headline tracking-tight">
                       ৳ {deliveredRev.toLocaleString()}
                     </div>
-                    <div className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap">
+                    <div className="text-xs font-semibold text-slate-500 mt-1 flex items-center gap-1 whitespace-nowrap">
                       <span>Avg ৳{s.fullDeliveredOrders > 0 ? Math.round(deliveredRev / s.fullDeliveredOrders).toLocaleString() : '2,000'}</span>
                       <span className="text-[10px] text-slate-400">/ kept</span>
                     </div>
                   </div>
 
                   {/* Donut Chart with Numbers directly attached */}
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2.5 shrink-0">
                     {/* SVG Donut Chart */}
                     <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Revenue Realization: ৳${deliveredRev.toLocaleString()} Realized (${realizationPct}%) • ৳${leakageRev.toLocaleString()} Loss (${leakagePct}%)`}>
                       <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
@@ -1056,8 +1064,8 @@ export function KpiOverview({
             );
           })()}
 
-          <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">
+          <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 border border-emerald-200/60 text-emerald-700">
               Gross: ৳ {Math.round(s.grossRevenue).toLocaleString()}
             </span>
             <span className="text-[10px] text-slate-400 group-hover:text-emerald-700 font-medium transition-colors">
@@ -1070,18 +1078,18 @@ export function KpiOverview({
         {/* 2. Net Contribution Margin with Donut Chart & Unit Profit */}
         <div
           onClick={() => onKpiClick?.('tabUnitEconomics')}
-          className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-amber-300 hover:shadow-md transition-all cursor-pointer"
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-amber-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all cursor-pointer"
           title="Click to view Unit Economics & Sales Calculation"
         >
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
               Contribution Margin
             </span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
-                <Coins className="w-4 h-4" />
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <Coins className="w-4.5 h-4.5" />
               </div>
-              <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-amber-600 transition-colors" />
+              <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-amber-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
           </div>
 
@@ -1093,13 +1101,13 @@ export function KpiOverview({
             const roasVal = s.unitEconomics.roas ? s.unitEconomics.roas.toFixed(1) : '0.0';
 
             return (
-              <div className="my-2">
-                <div className="flex items-center justify-between gap-2">
+              <div className="my-3">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-2xl font-black text-amber-600 font-headline">
+                    <div className="text-2xl sm:text-3xl font-black text-amber-600 font-headline tracking-tight">
                       ৳ {netMarginAmount.toLocaleString()}
                     </div>
-                    <div className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap">
+                    <div className="text-xs font-semibold text-slate-500 mt-1 flex items-center gap-1 whitespace-nowrap">
                       <span className="text-emerald-700 font-bold">
                         ৳ {s.fullDeliveredOrders > 0 ? Math.round(netMarginAmount / s.fullDeliveredOrders).toLocaleString() : '700'}
                       </span>
@@ -1108,7 +1116,7 @@ export function KpiOverview({
                   </div>
 
                   {/* Donut Chart with Numbers directly attached */}
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2.5 shrink-0">
                     {/* SVG Donut Chart */}
                     <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Margin Yield: ${marginPct}% Net Profit • ${costPct}% COGS, Logistics & Ads`}>
                       <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
@@ -1157,7 +1165,7 @@ export function KpiOverview({
             );
           })()}
 
-          <div className="text-[10px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
+          <div className="text-[10px] text-slate-500 pt-3 border-t border-slate-100 flex items-center justify-between">
             <span>After COGS, Courier & Ads</span>
             <span className="text-[10px] text-slate-400 group-hover:text-amber-700 font-medium transition-colors">
               Details →
@@ -1169,18 +1177,18 @@ export function KpiOverview({
         {/* 3. Pathao Courier Cost & Fee Recovery */}
         <div
           onClick={() => onKpiClick?.('tabCourierMismatch')}
-          className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all cursor-pointer"
           title="Click to view Pathao Courier Audit & manifests"
         >
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
               Courier Cost
             </span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-                <Truck className="w-4 h-4" />
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <Truck className="w-4.5 h-4.5" />
               </div>
-              <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-blue-600 transition-colors" />
+              <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
           </div>
 
@@ -1194,20 +1202,20 @@ export function KpiOverview({
 
             return (
               <>
-                <div className="my-2">
-                  <div className="flex items-center justify-between gap-2">
+                <div className="my-3">
+                  <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-2xl font-black text-blue-700 font-headline">
+                      <div className="text-2xl sm:text-3xl font-black text-blue-700 font-headline tracking-tight">
                         ৳ {netCharge.toLocaleString()}
                       </div>
-                      <div className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap" title={`Dhaka (৳50): ${s.courierCost.collectedInsideCount} • Outside (৳90): ${s.courierCost.collectedOutsideCount}`}>
+                      <div className="text-xs font-semibold text-slate-500 mt-1 flex items-center gap-1 whitespace-nowrap" title={`Dhaka (৳50): ${s.courierCost.collectedInsideCount} • Outside (৳90): ${s.courierCost.collectedOutsideCount}`}>
                         <span className="font-bold text-slate-700">৳ {netCost.toLocaleString()}</span>
                         <span className="text-[10px] text-slate-400">net fee</span>
                       </div>
                     </div>
 
                     {/* Donut Chart with Numbers directly attached */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2.5 shrink-0">
                       {/* SVG Donut Chart */}
                       <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Courier Fee Recovery: ৳ ${feeCollected.toLocaleString()} Collected (${recoveryPct}%) of ৳ ${netCharge.toLocaleString()} Courier Cost`}>
                         <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
@@ -1254,11 +1262,11 @@ export function KpiOverview({
                   </div>
                 </div>
 
-                <div className="text-[10px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
+                <div className="text-[10px] text-slate-500 pt-3 border-t border-slate-100 flex items-center justify-between">
                   <span title={`Fee: ${s.courierCost.collectedInsideCount} Dhaka (৳50) • ${s.courierCost.collectedOutsideCount} Outside (৳90)`}>
                     Dhaka: {s.courierCost.collectedInsideCount} • Out: {s.courierCost.collectedOutsideCount}
                   </span>
-                  <span className="text-emerald-700 font-bold px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200/60">
+                  <span className="text-emerald-700 font-bold px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200/60">
                     {recoveryPct}% recovered
                   </span>
                 </div>
@@ -1271,18 +1279,18 @@ export function KpiOverview({
         {/* 4. Territory Outside vs Inside with Donut Chart and Integers */}
         <div
           onClick={() => onKpiClick?.('tabTerritory')}
-          className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer"
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-indigo-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all cursor-pointer"
           title="Click to view Territory Performance"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
               Territory
             </span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                <Compass className="w-4 h-4" />
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <Compass className="w-4.5 h-4.5" />
               </div>
-              <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-600 transition-colors" />
+              <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
           </div>
 
@@ -1295,18 +1303,18 @@ export function KpiOverview({
 
             return (
               <>
-                <div className="my-2 flex items-center justify-between gap-2">
+                <div className="my-3 flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-2xl font-black text-navy-deep font-headline">
+                    <div className="text-2xl sm:text-3xl font-black text-navy-deep font-headline tracking-tight">
                       {ratioInt} : 1
                     </div>
-                    <div className="text-xs font-semibold text-slate-500 mt-0.5">
+                    <div className="text-xs font-semibold text-slate-500 mt-1">
                       Outside vs Inside
                     </div>
                   </div>
 
                   {/* SVG Donut Chart with Semantic Labels */}
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2.5 shrink-0">
                     <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Territory Split: ${Math.round(s.outsideOrders)} Outside (${outsidePct}%) • ${Math.round(s.insideOrders)} Inside (${insidePct}%)`}>
                       <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
                         {/* Inside Dhaka Track */}
@@ -1351,9 +1359,9 @@ export function KpiOverview({
                   </div>
                 </div>
 
-                <div className="text-[10px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
-                  <span>Outside: <strong className="text-indigo-700">{outsidePct}%</strong></span>
-                  <span className="text-slate-400 font-medium">Inside: {insidePct}%</span>
+                <div className="text-[10px] text-slate-500 pt-3 border-t border-slate-100 flex items-center justify-between">
+                  <span>Outside: <strong className="text-indigo-700 font-bold">{outsidePct}%</strong></span>
+                  <span className="text-slate-400 font-medium">Inside: <strong className="text-amber-700 font-bold">{insidePct}%</strong></span>
                 </div>
               </>
             );
@@ -1364,33 +1372,33 @@ export function KpiOverview({
         {/* 5. Payment Settlement Ratio: COD vs Online Paid with Donut Chart */}
         <div
           onClick={() => onKpiClick?.('tabStatus')}
-          className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-orange-300 hover:shadow-md transition-all cursor-pointer"
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-orange-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all cursor-pointer"
           title="Click to view Status Matrix & Payment Breakdown"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
               Payment Ratio
             </span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600">
-                <CreditCard className="w-4 h-4" />
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <CreditCard className="w-4.5 h-4.5" />
               </div>
-              <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-orange-600 transition-colors" />
+              <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-orange-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
           </div>
 
-          <div className="my-2 flex items-center justify-between gap-2">
+          <div className="my-3 flex items-center justify-between gap-3">
             <div>
-              <div className="text-2xl font-black text-navy-deep font-headline">
+              <div className="text-2xl sm:text-3xl font-black text-navy-deep font-headline tracking-tight">
                 {paymentMetrics.ratioFormatted}
               </div>
-              <div className="text-xs font-semibold text-slate-500 mt-0.5">
+              <div className="text-xs font-semibold text-slate-500 mt-1">
                 COD vs Online Paid
               </div>
             </div>
 
             {/* SVG Donut Chart with Semantic Labels */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2.5 shrink-0">
               <div
                 className="relative w-11 h-11 flex items-center justify-center shrink-0"
                 title={`Payment Settlement: ${paymentMetrics.codOrders.toLocaleString()} COD (${paymentMetrics.codPct}%) • ${paymentMetrics.onlineOrders.toLocaleString()} Online Paid (${paymentMetrics.onlinePct}%)`}
@@ -1438,8 +1446,8 @@ export function KpiOverview({
             </div>
           </div>
 
-          <div className="text-[10px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
-            <span>COD: <strong className="text-orange-600">{paymentMetrics.codPct}%</strong></span>
+          <div className="text-[10px] text-slate-500 pt-3 border-t border-slate-100 flex items-center justify-between">
+            <span>COD: <strong className="text-orange-600 font-bold">{paymentMetrics.codPct}%</strong></span>
             <span className="text-slate-400 font-medium">Online: <strong className="text-sky-600 font-bold">{paymentMetrics.onlinePct}%</strong></span>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-orange-500"></div>

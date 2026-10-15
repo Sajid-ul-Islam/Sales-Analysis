@@ -24,7 +24,10 @@ import {
   Shirt,
   ArrowRightLeft,
   DollarSign,
-  Package
+  Package,
+  ArrowUpRight,
+  Sparkles,
+  Award
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -488,118 +491,274 @@ export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
         </div>
       </div>
 
-      {/* 5 High-Impact KPI Overview Cards (Strictly Parcel Counts) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* KPI 1: Gross Dispatched Parcels */}
-        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Gross Dispatched</span>
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-              <Truck className="w-4 h-4" />
+      {/* 5 High-Impact Interactive Outlet Dispatch KPI Overview Cards (Strictly Parcel Counts) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-4.5 xl:gap-5">
+        {/* KPI 1: Gross Dispatched Parcels (Interactive -> Reset & Parcel Summary) */}
+        <div
+          onClick={() => {
+            setSelectedOutletFilter('ALL');
+            setStatusFilter('ALL');
+            setActiveViewMode('MATRIX');
+          }}
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-sm hover:border-indigo-300 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          title="Click to reset filters and view full Outlet Matrix"
+        >
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+                <Truck className="w-4.5 h-4.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block truncate">Gross Dispatched</span>
+                <span className="text-[10px] text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200/60 inline-block mt-0.5">
+                  All Outlets Fleet
+                </span>
+              </div>
+            </div>
+            <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-all shrink-0">
+              <ArrowUpRight className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="my-2">
-            <div className="text-2xl font-black text-slate-900">
+
+          <div className="my-3 space-y-1.5">
+            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-slate-900 font-headline tracking-tight">
               {aggregateTotals.totalDispatchedParcels.toLocaleString()}
-              <span className="text-xs font-bold text-indigo-600 ml-1">Parcels</span>
+              <span className="text-xs font-bold text-slate-400 ml-1.5">Parcels</span>
             </div>
-            <div className="text-xs text-slate-500 mt-0.5">
-              From online hub & retail outlets
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5">
+              <span>Retail Value: <strong className="text-slate-800 font-semibold">৳ {aggregateTotals.totalDispatchedGmv.toLocaleString()}</strong></span>
+            </div>
+            {/* Split Distribution: Hub vs Branches */}
+            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+              <span>Hub: <strong className="text-slate-700 font-semibold">{aggregateTotals.totalDispatchedParcels - aggregateTotals.branchDispatchedParcels}</strong></span>
+              <span>Branches: <strong className="text-indigo-600 font-semibold">{aggregateTotals.branchDispatchedParcels}</strong></span>
             </div>
           </div>
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Retail Value:</span>
-            <span className="font-bold text-slate-700">৳ {aggregateTotals.totalDispatchedGmv.toLocaleString()}</span>
+
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Matrix Action:</span>
+            <span className="font-bold text-indigo-600 flex items-center gap-1 group-hover:underline">
+              <span>View Summary</span>
+              <span className="text-indigo-400 font-normal">→</span>
+            </span>
           </div>
         </div>
 
-        {/* KPI 2: Clean Delivered Parcels */}
-        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Delivered Parcels</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-              <PackageCheck className="w-4 h-4" />
+        {/* KPI 2: Clean Delivered Parcels (Interactive -> Filter Delivered Ledger) */}
+        <div
+          onClick={() => {
+            setStatusFilter('DELIVERED');
+            setActiveViewMode('LEDGER');
+            setCurrentPage(1);
+          }}
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-sm hover:border-emerald-300 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          title="Click to inspect all Delivered Parcels in Ledger"
+        >
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+                <PackageCheck className="w-4.5 h-4.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block truncate">Delivered Parcels</span>
+                <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 inline-block mt-0.5">
+                  {aggregateTotals.overallRetention.toFixed(1)}% Realized
+                </span>
+              </div>
+            </div>
+            <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-emerald-600 group-hover:bg-emerald-50 transition-all shrink-0">
+              <ArrowUpRight className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="my-2">
-            <div className="text-2xl font-black text-emerald-600">
+
+          <div className="my-3 space-y-1.5">
+            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-emerald-600 font-headline tracking-tight">
               {aggregateTotals.totalDeliveredParcels.toLocaleString()}
-              <span className="text-xs font-bold text-emerald-700 ml-1">Parcels</span>
+              <span className="text-xs font-bold text-slate-400 ml-1.5">Parcels</span>
             </div>
-            <div className="text-xs text-slate-500 mt-0.5">
-              Net Sales: <span className="font-bold text-emerald-700">৳ {aggregateTotals.totalDeliveredRevenue.toLocaleString()}</span>
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5">
+              <span>Net Sales: <strong className="text-slate-800 font-semibold">৳ {aggregateTotals.totalDeliveredRevenue.toLocaleString()}</strong></span>
+              <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">Success</span>
+            </div>
+            {/* Visual Retention Bar */}
+            <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.max(5, aggregateTotals.overallRetention))}%` }}
+              ></div>
             </div>
           </div>
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Retention Rate:</span>
-            <span className="font-bold text-emerald-700">{aggregateTotals.overallRetention.toFixed(1)}%</span>
+
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Retention Rate:</span>
+            <span className="font-bold text-emerald-700 flex items-center gap-1 group-hover:underline">
+              <span>Filter Delivered</span>
+              <span className="text-emerald-500 font-normal">→</span>
+            </span>
           </div>
         </div>
 
-        {/* KPI 3: Returned Parcels & Value Loss */}
-        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Returned Parcels</span>
-            <div className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
-              <RotateCcw className="w-4 h-4" />
+        {/* KPI 3: Returned Parcels & Value Loss (Interactive -> Filter Returned Ledger) */}
+        <div
+          onClick={() => {
+            setStatusFilter('RETURNED');
+            setActiveViewMode('LEDGER');
+            setCurrentPage(1);
+          }}
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-sm hover:border-rose-300 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          title="Click to audit Returned Parcels in Ledger"
+        >
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+                <RotateCcw className="w-4.5 h-4.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block truncate">Returned Parcels</span>
+                <span className="text-[10px] text-rose-700 font-bold bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200/60 inline-block mt-0.5">
+                  {aggregateTotals.overallReturnRate.toFixed(1)}% RTO Rate
+                </span>
+              </div>
+            </div>
+            <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-rose-600 group-hover:bg-rose-50 transition-all shrink-0">
+              <ArrowUpRight className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="my-2">
-            <div className="text-2xl font-black text-rose-600">
+
+          <div className="my-3 space-y-1.5">
+            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-rose-600 font-headline tracking-tight">
               {aggregateTotals.totalReturnedParcels.toLocaleString()}
-              <span className="text-xs font-bold text-rose-700 ml-1">Parcels</span>
+              <span className="text-xs font-bold text-slate-400 ml-1.5">Parcels</span>
             </div>
-            <div className="text-xs text-slate-500 mt-0.5">
-              Lost Retail Value: <span className="font-bold text-rose-700">৳ {aggregateTotals.totalReturnedLoss.toLocaleString()}</span>
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5">
+              <span>Lost Retail: <strong className="text-rose-700 font-semibold">৳ {aggregateTotals.totalReturnedLoss.toLocaleString()}</strong></span>
+              <span className="text-[10px] font-semibold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200/60">
+                {aggregateTotals.totalPaidReturns} Paid
+              </span>
+            </div>
+            {/* Visual Return Bar */}
+            <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+              <div
+                className="h-full bg-rose-500 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.max(5, aggregateTotals.overallReturnRate))}%` }}
+              ></div>
             </div>
           </div>
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Return Rate:</span>
-            <span className="font-bold text-rose-600">{aggregateTotals.overallReturnRate.toFixed(1)}%</span>
+
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Paid RTO Ratio:</span>
+            <span className="font-bold text-rose-700 flex items-center gap-1 group-hover:underline">
+              <span>Filter Returns</span>
+              <span className="text-rose-500 font-normal">→</span>
+            </span>
           </div>
         </div>
 
-        {/* KPI 4: Top Performing Retail Branch */}
-        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Top Retail Branch</span>
-            <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
-              <TrendingUp className="w-4 h-4" />
+        {/* KPI 4: Top Performing Retail Branch (Interactive -> Filter to Branch) */}
+        <div
+          onClick={() => {
+            if (aggregateTotals.topPerformer?.name) {
+              setSelectedOutletFilter(aggregateTotals.topPerformer.name);
+              setActiveViewMode('LEDGER');
+              setCurrentPage(1);
+            }
+          }}
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-sm hover:border-amber-300 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          title={aggregateTotals.topPerformer?.name ? `Click to filter parcels to ${aggregateTotals.topPerformer.name}` : 'Awaiting data'}
+        >
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+                <Award className="w-4.5 h-4.5 text-amber-600" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block truncate">Top Retail Branch</span>
+                <span className="text-[10px] text-amber-800 font-bold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60 inline-block mt-0.5">
+                  {aggregateTotals.topPerformer?.retentionRate ? `${aggregateTotals.topPerformer.retentionRate.toFixed(1)}% Retention` : 'Leader'}
+                </span>
+              </div>
+            </div>
+            <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-amber-600 group-hover:bg-amber-50 transition-all shrink-0">
+              <ArrowUpRight className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="my-2">
-            <div className="text-base font-black text-slate-900 truncate" title={aggregateTotals.topPerformer?.name}>
-              {aggregateTotals.topPerformer?.name}
+
+          <div className="my-3 space-y-1.5">
+            <div className="text-xl sm:text-2xl font-black text-slate-900 font-headline truncate" title={aggregateTotals.topPerformer?.name || 'All Outlets'}>
+              {aggregateTotals.topPerformer?.name || 'Retail Outlets'}
             </div>
-            <div className="text-xs text-slate-500 mt-0.5">
-              Retention: <span className="font-bold text-emerald-600">{aggregateTotals.topPerformer?.retentionRate.toFixed(1)}%</span>
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5">
+              <span>Sales: <strong className="text-slate-800 font-semibold">৳ {aggregateTotals.topPerformer?.deliveredRevenue ? aggregateTotals.topPerformer.deliveredRevenue.toLocaleString() : 0}</strong></span>
+              <span className="text-[11px] font-semibold text-slate-400">
+                {aggregateTotals.topPerformer?.dispatchedParcels || 0} parcels
+              </span>
+            </div>
+            {/* Visual Branch Retention Bar */}
+            <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+              <div
+                className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.max(5, aggregateTotals.topPerformer?.retentionRate || 0))}%` }}
+              ></div>
             </div>
           </div>
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Delivered Sales:</span>
-            <span className="font-bold text-slate-700">৳ {aggregateTotals.topPerformer?.deliveredRevenue.toLocaleString()}</span>
+
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Branch Action:</span>
+            <span className="font-bold text-amber-700 flex items-center gap-1 group-hover:underline">
+              <span>Filter Branch</span>
+              <span className="text-amber-500 font-normal">⚡</span>
+            </span>
           </div>
         </div>
 
-        {/* KPI 5: Retail Outlets Contribution */}
-        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Retail Outlets Share</span>
-            <div className="w-8 h-8 rounded-lg bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
-              <Building2 className="w-4 h-4" />
+        {/* KPI 5: Retail Outlets Contribution (Interactive -> Toggle Matrix/Ledger) */}
+        <div
+          onClick={() => {
+            setActiveViewMode(activeViewMode === 'MATRIX' ? 'LEDGER' : 'MATRIX');
+          }}
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-sm hover:border-sky-300 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          title="Click to toggle between Parcel Matrix and Detailed Ledger"
+        >
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+                <Building2 className="w-4.5 h-4.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block truncate">Retail Outlets Share</span>
+                <span className="text-[10px] text-sky-700 font-bold bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200/60 inline-block mt-0.5">
+                  {aggregateTotals.branchDispatchedParcels} Branch Parcels
+                </span>
+              </div>
+            </div>
+            <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-sky-600 group-hover:bg-sky-50 transition-all shrink-0">
+              <ArrowUpRight className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="my-2">
-            <div className="text-2xl font-black text-sky-600">
+
+          <div className="my-3 space-y-1.5">
+            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-sky-600 font-headline tracking-tight">
               {aggregateTotals.branchVolumeShare.toFixed(1)}%
             </div>
-            <div className="text-xs text-slate-500 mt-0.5">
-              <span className="font-bold text-slate-700">{aggregateTotals.branchDispatchedParcels}</span> parcels dispatched from retail outlets
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5">
+              <span>Realized: <strong className="text-slate-800 font-semibold">৳ {aggregateTotals.branchRealizedGmv.toLocaleString()}</strong></span>
+              <span className="text-[10px] font-semibold text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200/60">Branches</span>
+            </div>
+            {/* Visual Volume Share Bar */}
+            <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+              <div
+                className="h-full bg-sky-500 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.max(5, aggregateTotals.branchVolumeShare))}%` }}
+              ></div>
             </div>
           </div>
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Branch Realized:</span>
-            <span className="font-bold text-sky-700">৳ {aggregateTotals.branchRealizedGmv.toLocaleString()}</span>
+
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Store Network:</span>
+            <span className="font-bold text-sky-700 flex items-center gap-1 group-hover:underline">
+              <span>{activeViewMode === 'MATRIX' ? 'Switch to Ledger' : 'Switch to Matrix'}</span>
+              <span className="text-sky-500 font-normal">→</span>
+            </span>
           </div>
         </div>
       </div>

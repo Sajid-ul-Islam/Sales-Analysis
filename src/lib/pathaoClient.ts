@@ -55,10 +55,16 @@ export async function getPathaoToken(credentials?: PathaoCredentials): Promise<s
       });
 
       if (!res.ok) {
-        const errText = await res.text();
-        const err: any = new Error(`Pathao token generation failed (${res.status}): ${errText}`);
+        const errText = await res.text().catch(() => '');
+        const err: any = new Error(`Pathao token generation failed (${res.status}): ${errText.slice(0, 100)}`);
         err.status = res.status;
         throw err;
+      }
+
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await res.text().catch(() => '');
+        throw new Error(`Pathao token endpoint returned non-JSON response (${res.status}): ${text.slice(0, 80)}`);
       }
 
       return await res.json();
@@ -98,7 +104,12 @@ export async function getPathaoStores(credentials?: PathaoCredentials): Promise<
         throw err;
       }
 
-      const data = await res.json();
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        return [];
+      }
+
+      const data = await res.json().catch(() => null);
       return data?.data?.data || [];
     } finally {
       clearTimeout(timeoutId);
@@ -129,7 +140,12 @@ export async function getPathaoOrderDetails(consignmentId: string, credentials?:
           return null;
         }
 
-        const json = await res.json();
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          return null;
+        }
+
+        const json = await res.json().catch(() => null);
         return json?.data || null;
       } finally {
         clearTimeout(timeoutId);

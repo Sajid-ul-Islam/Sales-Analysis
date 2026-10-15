@@ -224,14 +224,22 @@ export function formatWooCommerceToOrderRows(orders: any[]): RawOrderRow[] {
     const trackingId = trackingMeta ? String(trackingMeta.value) : undefined;
     const shippingFee = (order.shipping_lines && order.shipping_lines[0]) ? parseFloat(order.shipping_lines[0].total) || 0 : 0;
 
+    const dateModified = order.date_modified || order.date_modified_gmt || dateCreated;
+    const email = order.billing?.email || '';
+    const address = [order.billing?.address_1, order.billing?.address_2].filter(Boolean).join(', ') || '';
+
     const lineItems = order.line_items || [];
     if (lineItems.length === 0) {
       rows.push({
         'Order ID': orderId,
         'orderId': orderId,
         'Order Date': dateCreated,
+        'Date Modified': dateModified,
+        'dateModified': dateModified,
         'Customer Name': customerName,
         'Phone': phone,
+        'Email': email,
+        'Address': address,
         'City': city,
         'State': state,
         'Item Cost': orderTotal,
@@ -259,8 +267,12 @@ export function formatWooCommerceToOrderRows(orders: any[]): RawOrderRow[] {
           'Order ID': orderId,
           'orderId': orderId,
           'Order Date': dateCreated,
+          'Date Modified': dateModified,
+          'dateModified': dateModified,
           'Customer Name': customerName,
           'Phone': phone,
+          'Email': email,
+          'Address': address,
           'City': city,
           'State': state,
           'SKU': item.sku || '',

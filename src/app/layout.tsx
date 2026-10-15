@@ -153,6 +153,10 @@ const tailwindConfigScript = `
       darkMode: "class",
       theme: {
         extend: {
+          spacing: {
+            '4.5': '1.125rem',
+            '5.5': '1.375rem',
+          },
           colors: {
             deepBlack: {
               DEFAULT: "#000000",

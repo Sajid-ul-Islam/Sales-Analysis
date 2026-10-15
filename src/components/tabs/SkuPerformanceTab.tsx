@@ -15,7 +15,8 @@ import {
   Tag,
   Filter,
   DollarSign,
-  Eye
+  Eye,
+  ArrowUpRight
 } from 'lucide-react';
 
 interface SkuPerformanceTabProps {
@@ -161,100 +162,189 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
         </button>
       </div>
 
-      {/* SKU Executive Summary Cards (5 Cards) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+      {/* SKU Executive Summary Cards (Interactive Drilldowns) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-4.5 xl:gap-5">
         {/* Card 1: Top Revenue SKU */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 text-xs">
-            <span className="font-medium">Top Revenue SKU</span>
-            <TrendingUp className="w-4 h-4 text-emerald-600" />
+        <div
+          onClick={() => {
+            setSortBy('deliveredRevenue');
+            if (topRevenueSku) setSearchTerm(topRevenueSku.sku);
+          }}
+          className={`bg-white p-5 sm:p-5.5 xl:p-6 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+            sortBy === 'deliveredRevenue'
+              ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm'
+              : 'border-slate-200/90 shadow-xs hover:border-emerald-300'
+          }`}
+          title="Click to sort by Top Revenue and view this SKU"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Top Revenue SKU</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <TrendingUp className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className={`w-4 h-4 transition-all ${sortBy === 'deliveredRevenue' ? 'text-emerald-600' : 'text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
+            </div>
           </div>
-          <div className="mt-2">
-            <div className="text-base font-black text-emerald-600 font-mono truncate" title={topRevenueSku?.sku}>
+          <div className="my-3">
+            <div className="text-base sm:text-lg font-black text-emerald-600 font-mono truncate" title={topRevenueSku?.sku}>
               {topRevenueSku?.sku || 'N/A'}
             </div>
-            <div className="text-[11px] text-slate-600 truncate mt-0.5" title={topRevenueSku?.itemName}>
+            <div className="text-xs text-slate-600 truncate mt-1" title={topRevenueSku?.itemName}>
               {topRevenueSku?.itemName || '—'}
             </div>
           </div>
-          <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">{topRevenueSku?.deliveredQty || 0} units</span>
-            <span className="font-bold text-emerald-600">৳ {Math.round(topRevenueSku?.deliveredRevenue || 0).toLocaleString()}</span>
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
+            <span className="text-slate-500 font-medium">{topRevenueSku?.deliveredQty || 0} units kept</span>
+            <span className="font-bold text-emerald-600 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200/60 shadow-2xs">
+              ৳ {Math.round(topRevenueSku?.deliveredRevenue || 0).toLocaleString()}
+            </span>
           </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500"></div>
         </div>
 
         {/* Card 2: Highest Return SKU */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 text-xs">
-            <span className="font-medium">Highest Returns</span>
-            <RotateCcw className="w-4 h-4 text-rose-600" />
+        <div
+          onClick={() => {
+            setSortBy('returnedQty');
+            if (topReturnedSku) setSearchTerm(topReturnedSku.sku);
+          }}
+          className={`bg-white p-5 sm:p-5.5 xl:p-6 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+            sortBy === 'returnedQty'
+              ? 'border-rose-500 ring-2 ring-rose-500/20 shadow-sm'
+              : 'border-slate-200/90 shadow-xs hover:border-rose-300'
+          }`}
+          title="Click to sort by Return Volume and view this SKU"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Highest Returns</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <RotateCcw className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className={`w-4 h-4 transition-all ${sortBy === 'returnedQty' ? 'text-rose-600' : 'text-slate-300 group-hover:text-rose-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
+            </div>
           </div>
-          <div className="mt-2">
-            <div className="text-base font-black text-rose-600 font-mono truncate" title={topReturnedSku?.sku}>
+          <div className="my-3">
+            <div className="text-base sm:text-lg font-black text-rose-600 font-mono truncate" title={topReturnedSku?.sku}>
               {topReturnedSku?.sku || 'N/A'}
             </div>
-            <div className="text-[11px] text-slate-600 truncate mt-0.5" title={topReturnedSku?.itemName}>
+            <div className="text-xs text-slate-600 truncate mt-1" title={topReturnedSku?.itemName}>
               {topReturnedSku?.itemName || '—'}
             </div>
           </div>
-          <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">{topReturnedSku?.returnedQty || 0} ret</span>
-            <span className="font-bold text-rose-600">{(topReturnedSku?.returnRate || 0).toFixed(1)}% rate</span>
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
+            <span className="text-slate-500 font-medium">{topReturnedSku?.returnedQty || 0} returned</span>
+            <span className="font-bold text-rose-600 px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200/60 shadow-2xs">
+              {(topReturnedSku?.returnRate || 0).toFixed(1)}% rate
+            </span>
           </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-rose-500"></div>
         </div>
 
         {/* Card 3: Total Return Value Loss */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 text-xs">
-            <span className="font-medium">Return Revenue Loss</span>
-            <TrendingDown className="w-4 h-4 text-rose-600" />
+        <div
+          onClick={() => setSortBy('totalLoss')}
+          className={`bg-white p-5 sm:p-5.5 xl:p-6 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+            sortBy === 'totalLoss'
+              ? 'border-rose-500 ring-2 ring-rose-500/20 shadow-sm'
+              : 'border-slate-200/90 shadow-xs hover:border-rose-300'
+          }`}
+          title="Click to sort catalog by highest Return Financial Loss"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Return Revenue Loss</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <TrendingDown className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className={`w-4 h-4 transition-all ${sortBy === 'totalLoss' ? 'text-rose-600' : 'text-slate-300 group-hover:text-rose-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
+            </div>
           </div>
-          <div className="mt-2">
-            <div className="text-2xl font-black text-slate-900 font-headline">
+          <div className="my-3">
+            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-rose-600 font-headline tracking-tight">
               ৳ {Math.round(totalReturnLoss).toLocaleString()}
             </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Value of uncollected returned items</p>
+            <p className="text-xs text-slate-500 mt-1">Value of uncollected returned items</p>
           </div>
-          <div className="mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
-            Across {skuList.length} catalog styles
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Across {skuList.length} catalog styles</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${sortBy === 'totalLoss' ? 'bg-rose-100 text-rose-800' : 'text-slate-400'}`}>
+              {sortBy === 'totalLoss' ? 'Sorted' : 'Impact'}
+            </span>
           </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-rose-500"></div>
         </div>
 
         {/* Card 4: Total Units Audited */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 text-xs">
-            <span className="font-medium">Total Units Audited</span>
-            <PackageCheck className="w-4 h-4 text-blue-600" />
+        <div
+          onClick={() => setSortBy('grossQty')}
+          className={`bg-white p-5 sm:p-5.5 xl:p-6 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+            sortBy === 'grossQty'
+              ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-sm'
+              : 'border-slate-200/90 shadow-xs hover:border-blue-300'
+          }`}
+          title="Click to sort catalog by Gross Dispatched Volume"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total Units Audited</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <PackageCheck className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className={`w-4 h-4 transition-all ${sortBy === 'grossQty' ? 'text-blue-600' : 'text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
+            </div>
           </div>
-          <div className="mt-2">
-            <div className="text-2xl font-black text-navy-deep font-headline">
+          <div className="my-3">
+            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-navy-deep font-headline tracking-tight">
               {totalDispatchedUnits.toLocaleString()}
             </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Dispatched inventory items</p>
+            <p className="text-xs text-slate-500 mt-1">Dispatched inventory items</p>
           </div>
-          <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">{totalDeliveredUnits.toLocaleString()} kept</span>
-            <span className="font-bold text-emerald-600">
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
+            <span className="text-slate-500">{totalDeliveredUnits.toLocaleString()} kept</span>
+            <span className="font-bold text-emerald-600 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200/60 shadow-2xs">
               {totalDispatchedUnits > 0 ? ((totalDeliveredUnits / totalDispatchedUnits) * 100).toFixed(0) : 0}% kept
             </span>
           </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-500"></div>
         </div>
 
         {/* Card 5: Catalog Return Rate */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 text-xs">
-            <span className="font-medium">Catalog Return Rate</span>
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
+        <div
+          onClick={() => {
+            setFilterHighReturnOnly(!filterHighReturnOnly);
+            setSortBy('returnRate');
+          }}
+          className={`bg-white p-5 sm:p-5.5 xl:p-6 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+            filterHighReturnOnly
+              ? 'border-amber-500 ring-2 ring-amber-500/20 shadow-sm bg-amber-50/20'
+              : 'border-slate-200/90 shadow-xs hover:border-amber-300'
+          }`}
+          title="Click to toggle filter for items with >15% return rate"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Catalog Return Rate</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-2xs group-hover:scale-105 transition-transform">
+                <AlertTriangle className="w-4.5 h-4.5" />
+              </div>
+              <ArrowUpRight className={`w-4 h-4 transition-all ${filterHighReturnOnly ? 'text-amber-600' : 'text-slate-300 group-hover:text-amber-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
+            </div>
           </div>
-          <div className="mt-2">
-            <div className="text-2xl font-black text-primary font-headline">
+          <div className="my-3">
+            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-amber-600 font-headline tracking-tight">
               {avgReturnRate}%
             </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Weighted average return incidence</p>
+            <p className="text-xs text-slate-500 mt-1">Weighted return incidence</p>
           </div>
-          <div className="mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
-            {skuList.filter(s => s.returnRate > 15).length} styles &gt;15% return rate
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+            <span>{skuList.filter(s => s.returnRate > 15).length} items &gt; 15% RTO</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${filterHighReturnOnly ? 'bg-amber-200 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>
+              {filterHighReturnOnly ? 'Filtered >15%' : 'Click to filter'}
+            </span>
           </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500"></div>
         </div>
       </div>
 

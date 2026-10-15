@@ -11,4 +11,5 @@ export { UnitEconomicsTab } from './UnitEconomicsTab';
 export { ExchangedOrdersTab } from './ExchangedOrdersTab';
 export { OutletDispatchTab } from './OutletDispatchTab';
 export { OutletSalesTab } from './OutletSalesTab';
+export { LiveOpsTab } from './LiveOpsTab';
 export { SettingsTab } from './SettingsTab';
