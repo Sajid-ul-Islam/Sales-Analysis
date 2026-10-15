@@ -11,23 +11,34 @@ interface OrdersLedgerTabProps {
   orders: ReconciledOrderRow[];
   initialStatusFilter?: string;
   initialTerritoryFilter?: string;
+  onClearAiTags?: () => void;
 }
 
-export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryFilter }: OrdersLedgerTabProps) {
+export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryFilter, onClearAiTags }: OrdersLedgerTabProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter || 'ALL');
   const [branchFilter, setBranchFilter] = useState('ALL');
   const [territoryFilter, setTerritoryFilter] = useState(initialTerritoryFilter || 'ALL');
+  const [aiTagFilter, setAiTagFilter] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [overrides, setOverrides] = useState<Record<string, ManualOverride>>({});
 
+  const availableAiTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    orders.forEach((o) => {
+      if (o.aiAuditTag) tagSet.add(o.aiAuditTag);
+    });
+    return Array.from(tagSet);
+  }, [orders]);
+
   const hasActiveFilter =
     statusFilter !== 'ALL' ||
     branchFilter !== 'ALL' ||
     territoryFilter !== 'ALL' ||
+    aiTagFilter !== 'ALL' ||
     searchTerm.trim() !== '';
 
   const [hasActiveFilterRef, setHasActiveFilterRef] = useState(hasActiveFilter);
@@ -96,9 +107,14 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
         if (o.districtArea !== territoryFilter) return false;
       }
 
+      // AI Tag Filter
+      if (aiTagFilter !== 'ALL') {
+        if (o.aiAuditTag !== aiTagFilter) return false;
+      }
+
       return true;
     });
-  }, [orders, searchTerm, statusFilter, branchFilter, territoryFilter]);
+  }, [orders, searchTerm, statusFilter, branchFilter, territoryFilter, aiTagFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
   const paginatedOrders = useMemo(() => {
@@ -108,6 +124,47 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
 
   return (
     <div className="space-y-4">
+      {/* Active AI Dataset Audit Banner */}
+      {availableAiTags.length > 0 && (
+        <div className="bg-orange-50/70 border border-orange-200/90 rounded-2xl p-3 sm:px-4 sm:py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="w-2 h-2 rounded-full bg-primary shrink-0 animate-pulse"></span>
+            <span className="font-bold text-navy-deep">
+              AI Audited Dataset: {orders.filter((o) => Boolean(o.aiAuditTag)).length} orders tagged
+            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {availableAiTags.map((tag, tIdx) => (
+                <button
+                  key={tIdx}
+                  type="button"
+                  onClick={() => {
+                    setAiTagFilter(tag === aiTagFilter ? 'ALL' : tag);
+                    setCurrentPage(1);
+                  }}
+                  className={`px-2 py-0.5 rounded-full font-bold text-[10px] border transition-colors cursor-pointer ${
+                    aiTagFilter === tag
+                      ? 'bg-primary text-white border-primary'
+                      : 'bg-white text-primary border-orange-200 hover:bg-orange-100/50'
+                  }`}
+                  title={`Filter table by tag "${tag}"`}
+                >
+                  🏷️ {tag} ({orders.filter((o) => o.aiAuditTag === tag).length})
+                </button>
+              ))}
+            </div>
+          </div>
+          {onClearAiTags && (
+            <button
+              type="button"
+              onClick={onClearAiTags}
+              className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-600 hover:text-rose-600 bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-200 transition-colors self-start sm:self-auto shrink-0 cursor-pointer"
+            >
+              Clear AI Tags
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Search and Filters Bar */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
         <div className="flex items-center gap-3 w-full md:w-auto flex-1">
@@ -134,6 +191,7 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                   setStatusFilter('ALL');
                   setBranchFilter('ALL');
                   setTerritoryFilter('ALL');
+                  setAiTagFilter('ALL');
                   setCurrentPage(1);
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
@@ -193,6 +251,22 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                 <option value="Inside Dhaka">Inside Dhaka</option>
                 <option value="Outside Dhaka">Outside Dhaka</option>
               </select>
+
+              {availableAiTags.length > 0 && (
+                <select
+                  value={aiTagFilter}
+                  onChange={(e) => {
+                    setAiTagFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="bg-orange-50/70 border border-orange-200 rounded-xl px-3 py-2 text-xs font-bold text-primary focus:outline-none focus:border-primary"
+                >
+                  <option value="ALL">All AI Tags ({orders.filter((o) => Boolean(o.aiAuditTag)).length})</option>
+                  {availableAiTags.map((tag, tIdx) => (
+                    <option key={tIdx} value={tag}>🏷️ {tag}</option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
         </div>
@@ -298,6 +372,14 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                           {o.hasSplitSuffix && (
                             <span className="text-[10px] bg-amber-50 text-amber-700 px-1 py-0.5 rounded font-mono border border-amber-200">
                               split
+                            </span>
+                          )}
+                          {o.aiAuditTag && (
+                            <span
+                              className="text-[10px] bg-orange-100 text-primary px-1.5 py-0.5 rounded-full font-bold border border-orange-200 flex items-center gap-0.5 shrink-0"
+                              title={o.aiAuditNote || o.aiAuditTag}
+                            >
+                              🏷️ {o.aiAuditTag}
                             </span>
                           )}
                         </div>

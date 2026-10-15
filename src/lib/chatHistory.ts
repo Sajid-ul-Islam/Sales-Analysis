@@ -1,3 +1,5 @@
+import { AgenticActionProposal } from '@/types';
+
 export interface CopilotChatMessage {
   id: string;
   sender: 'user' | 'assistant';
@@ -5,6 +7,7 @@ export interface CopilotChatMessage {
   timestamp: string;
   source?: string;
   appliedRules?: string[];
+  agenticAction?: AgenticActionProposal;
 }
 
 const CURRENT_STORAGE_KEY = 'deen_assistant_chat_history_v2';

@@ -27,7 +27,9 @@ import {
   Copy,
   Check,
   History,
-  CornerDownLeft
+  CornerDownLeft,
+  Tag,
+  CheckCircle2
 } from 'lucide-react';
 import { loadBYOKConfig, BYOKConfig } from '@/lib/byok';
 import { BYOKModal } from '@/components/ai/BYOKModal';
@@ -41,6 +43,8 @@ import {
   CopilotChatMessage
 } from '@/lib/chatHistory';
 import { getTabContext } from '@/lib/ai/contextualPrompts';
+import { detectAgenticIntent } from '@/lib/ai/agenticActions';
+import { AgenticActionProposal } from '@/types';
 
 interface CopilotDrawerProps {
   isOpen: boolean;
@@ -48,9 +52,19 @@ interface CopilotDrawerProps {
   summary: SummaryAnalytics;
   reconciliationResult?: ReconciliationResult;
   activeTab?: string;
+  onApplyAgenticAction?: (proposal: AgenticActionProposal) => void;
+  onNavigateToTab?: (tab: string, filter?: string) => void;
 }
 
-export function CopilotDrawer({ isOpen, onClose, summary, reconciliationResult, activeTab }: CopilotDrawerProps) {
+export function CopilotDrawer({
+  isOpen,
+  onClose,
+  summary,
+  reconciliationResult,
+  activeTab,
+  onApplyAgenticAction,
+  onNavigateToTab
+}: CopilotDrawerProps) {
   const currentContext = getTabContext(activeTab);
   const [messages, setMessages] = useState<CopilotChatMessage[]>([]);
   const [inputQuery, setInputQuery] = useState('');
@@ -137,6 +151,8 @@ export function CopilotDrawer({ isOpen, onClose, summary, reconciliationResult, 
     setInputQuery('');
     setIsLoading(true);
 
+    const detectedAction = reconciliationResult ? detectAgenticIntent(q, reconciliationResult) : null;
+
     try {
       const currentBYOK = loadBYOKConfig();
       const res = await fetch('/api/ai/copilot', {
@@ -164,6 +180,7 @@ export function CopilotDrawer({ isOpen, onClose, summary, reconciliationResult, 
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         source: data?.source || 'ai',
         appliedRules: data?.appliedRules || [],
+        agenticAction: detectedAction || data?.agenticAction,
       };
 
       const finalMessages = [...updatedWithUser, botMsg];
@@ -182,6 +199,23 @@ export function CopilotDrawer({ isOpen, onClose, summary, reconciliationResult, 
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleExecuteAgenticAction = (messageId: string, action: AgenticActionProposal) => {
+    if (onApplyAgenticAction) {
+      onApplyAgenticAction(action);
+    }
+    setMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.id === messageId && msg.agenticAction) {
+          return {
+            ...msg,
+            agenticAction: { ...msg.agenticAction, isApplied: true },
+          };
+        }
+        return msg;
+      })
+    );
   };
 
   const handleClearHistory = () => {
@@ -345,6 +379,31 @@ export function CopilotDrawer({ isOpen, onClose, summary, reconciliationResult, 
                 <ArrowRight className="w-2.5 h-2.5 text-slate-400 dark:text-slate-500" />
               </button>
             ))}
+
+            <span className="text-[10px] uppercase font-bold text-[#EB5A19] shrink-0 pl-1 border-l border-slate-200 dark:border-slate-800">
+              Agentic:
+            </span>
+            <button
+              type="button"
+              onClick={() => handleSendQuery("Tag all orders with courier variance > 100 as 'Pathao Discrepancy'")}
+              className="text-[11px] font-medium bg-orange-50/80 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/40 text-[#EB5A19] dark:text-orange-300 px-2.5 py-1 rounded-full border border-orange-200 dark:border-orange-800/60 shrink-0 shadow-2xs transition-colors flex items-center gap-1 active:scale-95 cursor-pointer"
+            >
+              <span>🏷️ Tag Pathao Discrepancies</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSendQuery("Tag high-risk return orders as 'Hold for Advance'")}
+              className="text-[11px] font-medium bg-rose-50/80 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-300 px-2.5 py-1 rounded-full border border-rose-200 dark:border-rose-800/60 shrink-0 shadow-2xs transition-colors flex items-center gap-1 active:scale-95 cursor-pointer"
+            >
+              <span>🏷️ Tag High-Risk RTOs</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSendQuery("Tag all Outside Dhaka returned orders as 'Outside Logistics Review'")}
+              className="text-[11px] font-medium bg-amber-50/80 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-800/60 shrink-0 shadow-2xs transition-colors flex items-center gap-1 active:scale-95 cursor-pointer"
+            >
+              <span>🏷️ Tag Outside Returns</span>
+            </button>
           </div>
 
           {previousQueries.length > 0 && (
@@ -426,6 +485,79 @@ export function CopilotDrawer({ isOpen, onClose, summary, reconciliationResult, 
                           {rule}
                         </span>
                       ))}
+                    </div>
+                  )}
+
+                  {/* Agentic Action Proposal Card */}
+                  {!isUser && m.agenticAction && (
+                    <div className="mt-3 p-3.5 rounded-xl bg-orange-50/70 dark:bg-orange-950/30 border border-orange-200/90 dark:border-orange-800/40 text-xs">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 rounded-md bg-[#EB5A19] text-white flex items-center justify-center font-bold text-[10px]">
+                            ⚡
+                          </div>
+                          <span className="font-bold text-navy-deep dark:text-orange-200 text-xs">
+                            {m.agenticAction.type === 'CLEAR_TAGS' ? 'Clear Tags Proposal' : 'Agentic Dataset Action Proposed'}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white dark:bg-[#1A1A1A] border border-orange-300 dark:border-orange-700 text-[#EB5A19]">
+                          {m.agenticAction.affectedCount} orders affected
+                        </span>
+                      </div>
+
+                      <p className="text-slate-700 dark:text-slate-300 font-medium text-[11px] mb-2 leading-relaxed">
+                        {m.agenticAction.description}
+                      </p>
+
+                      {/* Order Previews */}
+                      {m.agenticAction.previewOrders && m.agenticAction.previewOrders.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-2.5">
+                          {m.agenticAction.previewOrders.slice(0, 4).map((p, pIdx) => (
+                            <span
+                              key={pIdx}
+                              className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-white dark:bg-[#141414] border border-slate-200 dark:border-[#333] text-slate-700 dark:text-slate-200"
+                              title={`${p.customerName}: ${p.reason}`}
+                            >
+                              #{p.orderId}
+                            </span>
+                          ))}
+                          {m.agenticAction.affectedCount > 4 && (
+                            <span className="text-[10px] text-slate-400 self-center">
+                              +{m.agenticAction.affectedCount - 4} more
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Action Execution Button */}
+                      <div className="flex items-center gap-2 pt-2 border-t border-orange-200/60 dark:border-orange-900/40">
+                        {m.agenticAction.isApplied ? (
+                          <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold text-xs py-0.5">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            <span>Changes Applied to Active Dataset</span>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleExecuteAgenticAction(m.id, m.agenticAction!)}
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-[#EB5A19] hover:bg-[#d44e13] shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <Tag className="w-3.5 h-3.5" />
+                              <span>{m.agenticAction.type === 'CLEAR_TAGS' ? 'Clear Tags from Dataset' : 'Apply to Excel Dataset'}</span>
+                            </button>
+                            {onNavigateToTab && (
+                              <button
+                                type="button"
+                                onClick={() => onNavigateToTab('tabOrders')}
+                                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-navy-deep hover:bg-white dark:hover:bg-[#1A1A1A] border border-slate-200 dark:border-[#333] transition-colors cursor-pointer"
+                              >
+                                View in Orders
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
 

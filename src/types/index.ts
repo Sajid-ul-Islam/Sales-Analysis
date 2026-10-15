@@ -32,6 +32,8 @@ export interface ReconciledOrderRow {
   branchSuffix?: string; // 'c' | 'w' | 's' | 'm' | ''
   isPaidReturn?: boolean;
   isExchange?: boolean;
+  aiAuditTag?: string; // AI operational tag (e.g. 'Pathao Discrepancy', 'Hold for Advance', 'Branch Audit')
+  aiAuditNote?: string; // AI audit description or reason
 }
 
 export interface ReturnedItemRow {
@@ -215,5 +217,38 @@ export interface CourierMismatchRecord {
   mismatchType: 'STATUS_MISMATCH' | 'COD_MISMATCH' | 'MISSING_IN_COURIER' | 'UNLOGGED_RETURN' | 'RECONCILED';
   description: string;
   recommendedAction: string;
+}
+
+export type AgenticActionType = 'TAG_ORDERS' | 'CLEAR_TAGS' | 'FILTER_VIEW';
+
+export interface AgenticPreviewOrder {
+  orderId: string;
+  customerName: string;
+  phone?: string;
+  amount: number;
+  status: string;
+  reason: string;
+}
+
+export interface AgenticActionProposal {
+  id: string;
+  type: AgenticActionType;
+  title: string;
+  description: string;
+  tag?: string;
+  note?: string;
+  matchCriteria: {
+    target: 'variance' | 'high_risk' | 'outside_dhaka' | 'branch' | 'sku' | 'order_ids' | 'status' | 'uncollected_cod' | 'all';
+    threshold?: number;
+    branchSuffix?: string;
+    branchName?: string;
+    sku?: string;
+    orderIds?: string[];
+    status?: string;
+  };
+  matchedOrderIds: string[];
+  affectedCount: number;
+  previewOrders: AgenticPreviewOrder[];
+  isApplied?: boolean;
 }
 

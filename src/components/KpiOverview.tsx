@@ -22,12 +22,18 @@ import {
   Cloud,
   ArrowUpRight,
   Scale,
-  CreditCard
+  CreditCard,
+  Sparkles
 } from 'lucide-react';
+import { AIKpiExplainerModal, KpiExplainerType } from '@/components/ai/AIKpiExplainerModal';
+import { SkuAnalytics, CustomerRiskProfile, CourierMismatchRecord, AgenticActionProposal } from '@/types';
 
 export interface KpiOverviewProps {
   summary: SummaryAnalytics;
   orders?: ReconciledOrderRow[];
+  skuAnalytics?: SkuAnalytics[];
+  customerRiskProfiles?: CustomerRiskProfile[];
+  courierMismatches?: CourierMismatchRecord[];
   onQuickRecalc?: () => void;
   onExport?: () => void;
   onSync?: () => void;
@@ -42,11 +48,16 @@ export interface KpiOverviewProps {
   hasCloudData?: boolean;
   onKpiClick?: (targetTab: string, statusFilter?: string, territoryFilter?: string) => void;
   onOpenComparison?: () => void;
+  onAskAi?: (prompt: string) => void;
+  onExecuteAgenticAction?: (proposal: AgenticActionProposal) => void;
 }
 
 export function KpiOverview({
   summary,
   orders = [],
+  skuAnalytics = [],
+  customerRiskProfiles = [],
+  courierMismatches = [],
   onQuickRecalc,
   onExport,
   onSync,
@@ -60,10 +71,13 @@ export function KpiOverview({
   onSwitchSourceMode,
   hasCloudData = false,
   onKpiClick,
-  onOpenComparison
+  onOpenComparison,
+  onAskAi,
+  onExecuteAgenticAction
 }: KpiOverviewProps) {
   const s = summary;
   const [isRecalculating, setIsRecalculating] = useState(false);
+  const [explainerKpi, setExplainerKpi] = useState<KpiExplainerType | null>(null);
 
   // Dynamic COD vs Online Paid metrics for Payment Settlement Ratio KPI card
   const paymentMetrics = useMemo(() => {
@@ -269,6 +283,17 @@ export function KpiOverview({
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-50 text-primary">
                 Pipeline
               </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExplainerKpi('dispatched');
+                }}
+                className="p-1 rounded-md hover:bg-orange-100 text-primary transition-colors flex items-center"
+                title="AI Root-Cause Explainer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+              </button>
               <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-primary transition-colors" />
             </div>
           </div>
@@ -311,6 +336,17 @@ export function KpiOverview({
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">
                 {deliverySuccessRate}% Kept
               </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExplainerKpi('delivered');
+                }}
+                className="p-1 rounded-md hover:bg-emerald-100 text-emerald-700 transition-colors flex items-center"
+                title="AI Root-Cause Explainer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+              </button>
               <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-emerald-600 transition-colors" />
             </div>
           </div>
@@ -353,6 +389,17 @@ export function KpiOverview({
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-600">
                 {returnPercentage}% RTO
               </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExplainerKpi('returns');
+                }}
+                className="p-1 rounded-md hover:bg-rose-100 text-rose-600 transition-colors flex items-center"
+                title="AI Root-Cause Explainer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+              </button>
               <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-rose-600 transition-colors" />
             </div>
           </div>
@@ -458,6 +505,17 @@ export function KpiOverview({
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-600">
                 {partialPercentage}% Split
               </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExplainerKpi('partials');
+                }}
+                className="p-1 rounded-md hover:bg-amber-100 text-amber-600 transition-colors flex items-center"
+                title="AI Root-Cause Explainer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+              </button>
               <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-amber-600 transition-colors" />
             </div>
           </div>
@@ -563,6 +621,17 @@ export function KpiOverview({
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700">
                 {exchangePercentage}% Swap
               </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExplainerKpi('exchanges');
+                }}
+                className="p-1 rounded-md hover:bg-purple-100 text-purple-700 transition-colors flex items-center"
+                title="AI Root-Cause Explainer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+              </button>
               <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-purple-600 transition-colors" />
             </div>
           </div>
@@ -1172,6 +1241,20 @@ export function KpiOverview({
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-orange-500"></div>
         </div>
       </div>
+
+      {/* Pattern 2: KPI Root-Cause Explainer Modal */}
+      <AIKpiExplainerModal
+        isOpen={explainerKpi !== null}
+        onClose={() => setExplainerKpi(null)}
+        kpiType={explainerKpi}
+        summary={s}
+        orders={orders}
+        skuAnalytics={skuAnalytics}
+        customerRiskProfiles={customerRiskProfiles}
+        courierMismatches={courierMismatches}
+        onAskAi={onAskAi}
+        onExecuteAgenticAction={onExecuteAgenticAction}
+      />
     </div>
   );
 }

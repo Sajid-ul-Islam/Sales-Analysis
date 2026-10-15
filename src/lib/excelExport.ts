@@ -87,7 +87,9 @@ export function exportReconciledExcel(result: ReconciliationResult, filenamePref
       'Unit Cost (BDT)': r.itemCost,
       'Order Total (BDT)': r.orderAmount,
       'Net Revenue Recognized': Math.round(r.netRevenueImpact),
-      'Payment Method': r.paymentMethod
+      'Payment Method': r.paymentMethod,
+      'AI Audit Tag': r.aiAuditTag || '',
+      'AI Operational Notes': r.aiAuditNote || ''
     };
   });
   const wsDetails = XLSX.utils.json_to_sheet(detailsData);
@@ -184,6 +186,29 @@ export function exportReconciledExcel(result: ReconciliationResult, filenamePref
     }));
     const wsMismatch = XLSX.utils.json_to_sheet(mismatchData);
     XLSX.utils.book_append_sheet(wb, wsMismatch, 'Courier Mismatches');
+  }
+
+  // 8. AI Audited & Tagged Orders Sheet (Generated dynamically when AI tags are present)
+  const taggedOrders = result.reconciledOrders.filter(r => Boolean(r.aiAuditTag));
+  if (taggedOrders.length > 0) {
+    const aiAuditData = taggedOrders.map(r => ({
+      'Order ID': r.orderId,
+      'AI Audit Tag': r.aiAuditTag || '',
+      'AI Operational Notes': r.aiAuditNote || '',
+      'Customer Name': r.customerName,
+      'Phone': r.phone,
+      'City': r.city,
+      'Territory': r.districtArea,
+      'Delivery Status': r.orderDeliveryStatus || r.deliveryStatus,
+      'SKU': r.sku,
+      'Product': r.itemName,
+      'Quantity': r.quantity,
+      'Order Total (BDT)': r.orderAmount,
+      'Net Revenue Recognized (BDT)': Math.round(r.netRevenueImpact),
+      'Fulfillment Branch': r.fulfillmentLocation || 'Online Store (Central Warehouse)'
+    }));
+    const wsAiAudit = XLSX.utils.json_to_sheet(aiAuditData);
+    XLSX.utils.book_append_sheet(wb, wsAiAudit, 'AI Audited Orders');
   }
 
   const dateStamp = new Date().toISOString().slice(0, 10);

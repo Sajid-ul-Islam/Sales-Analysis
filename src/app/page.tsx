@@ -36,7 +36,8 @@ import { exportReconciledExcel } from '@/lib/excelExport';
 import { loadSavedThemeSettings, applyThemeToDocument } from '@/lib/themeManager';
 import { loadAppSettings } from '@/lib/settingsStore';
 import { DateScope, filterOrdersByDateScope, CustomDateRange } from '@/lib/dateFilter';
-import { RawOrderRow } from '@/types';
+import { RawOrderRow, AgenticActionProposal } from '@/types';
+import { applyAgenticAction, clearAgenticTags } from '@/lib/ai/agenticActions';
 import { RefreshCw, AlertCircle, CheckCircle2, UploadCloud, Database, MessageSquare, Bot, Sparkles } from 'lucide-react';
 import {
   getCookie,
@@ -675,6 +676,30 @@ export default function DashboardPage() {
     }
   };
 
+  const handleApplyAgenticAction = useCallback((proposal: AgenticActionProposal) => {
+    if (!result || !result.reconciledOrders) return;
+    const updatedOrders = applyAgenticAction(result.reconciledOrders, proposal);
+    setResult({
+      ...result,
+      reconciledOrders: updatedOrders,
+    });
+    if (proposal.type === 'CLEAR_TAGS') {
+      setStatusMessage('AI audit tags cleared from all orders in active dataset.');
+    } else {
+      setStatusMessage(`✅ ${proposal.affectedCount} orders tagged as "${proposal.tag}". Updated in Orders Ledger and Excel export.`);
+    }
+  }, [result]);
+
+  const handleClearAiTags = useCallback(() => {
+    if (!result || !result.reconciledOrders) return;
+    const updatedOrders = clearAgenticTags(result.reconciledOrders);
+    setResult({
+      ...result,
+      reconciledOrders: updatedOrders,
+    });
+    setStatusMessage('AI audit tags cleared from all orders in active dataset.');
+  }, [result]);
+
   const handleExport = () => {
     if (!result) {
       setStatusMessage('No reconciled data available to export.');
@@ -889,6 +914,11 @@ export default function DashboardPage() {
                     el?.scrollIntoView({ behavior: 'smooth' });
                   }}
                   onOpenComparison={() => setIsWeekComparisonOpen(true)}
+                  skuAnalytics={result.skuAnalytics}
+                  customerRiskProfiles={result.customerRiskProfiles}
+                  courierMismatches={result.courierMismatches}
+                  onAskAi={() => setIsCopilotOpen(true)}
+                  onExecuteAgenticAction={handleApplyAgenticAction}
                 />
               )}
 
@@ -959,6 +989,7 @@ export default function DashboardPage() {
                     orders={result.reconciledOrders}
                     initialStatusFilter={ledgerStatusFilter}
                     initialTerritoryFilter={ledgerTerritoryFilter}
+                    onClearAiTags={handleClearAiTags}
                   />
                 )}
                 {activeTab === 'tabSku' && (
@@ -1061,6 +1092,8 @@ export default function DashboardPage() {
             summary={result.summary}
             reconciliationResult={result}
             activeTab={activeTab}
+            onApplyAgenticAction={handleApplyAgenticAction}
+            onNavigateToTab={(targetTab) => handleSelectTab(targetTab)}
           />
         )}
 
