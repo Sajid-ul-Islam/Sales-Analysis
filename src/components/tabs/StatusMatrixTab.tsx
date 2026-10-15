@@ -235,7 +235,7 @@ export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProp
             <PieChart className="w-3.5 h-3.5 text-primary" />
             Fulfillment Status Breakdown
           </span>
-          <span className="text-[11px] text-slate-400">Dispatched Orders</span>
+          <span className="text-[11px] text-slate-400">Dispatched</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -255,11 +255,11 @@ export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProp
             </div>
           </div>
 
-          {/* Partial Orders Card */}
+          {/* Partial Card */}
           <div className="bg-white dark:bg-black rounded-2xl p-5 border border-amber-200 dark:border-amber-900/60 shadow-sm flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">Partial Orders</span>
+                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">Partial</span>
                 <Split className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div className="text-3xl font-black text-amber-600 dark:text-amber-400">{partialTotal.toLocaleString()}</div>

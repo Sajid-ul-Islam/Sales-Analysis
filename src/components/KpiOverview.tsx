@@ -278,7 +278,6 @@ export function KpiOverview({
               <span className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-navy-deep">
                 {s.grossOrders.toLocaleString()}
               </span>
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Orders</span>
             </div>
             <div className="text-xs font-semibold text-slate-500 mt-1 flex items-center gap-1.5">
               <span className="font-bold text-navy-deep">৳ {grossSalesAmount.toLocaleString()}</span>
@@ -321,7 +320,6 @@ export function KpiOverview({
               <span className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-emerald-700">
                 {s.fullDeliveredOrders.toLocaleString()}
               </span>
-              <span className="text-xs font-bold text-emerald-600/70 uppercase tracking-wide">Orders</span>
             </div>
             <div className="text-xs font-semibold text-emerald-700/90 mt-1 flex items-center gap-1.5">
               <span className="font-bold text-emerald-700">৳ {deliveredSalesAmount.toLocaleString()}</span>
@@ -376,7 +374,6 @@ export function KpiOverview({
                         <span className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-rose-600">
                           {s.fullReturnedOrders.toLocaleString()}
                         </span>
-                        <span className="text-xs font-bold text-rose-500/70 uppercase tracking-wide">Orders</span>
                       </div>
                       <div className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap">
                         <span className="font-bold text-rose-600">৳ {totalReturnedAmount.toLocaleString()}</span>
@@ -482,7 +479,6 @@ export function KpiOverview({
                         <span className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-amber-600">
                           {s.partialOrders.toLocaleString()}
                         </span>
-                        <span className="text-xs font-bold text-amber-600/70 uppercase tracking-wide">Orders</span>
                       </div>
                       <div className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap">
                         <span className="font-bold text-rose-600">৳ {partialReturnedAmount.toLocaleString()}</span>
@@ -591,7 +587,6 @@ export function KpiOverview({
                         <span className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-purple-700">
                           {(s.totalExchangedOrders || 0).toLocaleString()}
                         </span>
-                        <span className="text-xs font-bold text-purple-600/70 uppercase tracking-wide">Orders</span>
                       </div>
                       <div className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap">
                         <span className={`font-bold ${netExchange >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
