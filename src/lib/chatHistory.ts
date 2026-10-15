@@ -4,6 +4,7 @@ export interface CopilotChatMessage {
   text: string;
   timestamp: string;
   source?: string;
+  appliedRules?: string[];
 }
 
 const CURRENT_STORAGE_KEY = 'deen_assistant_chat_history_v2';

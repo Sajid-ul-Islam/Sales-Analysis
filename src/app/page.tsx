@@ -1059,6 +1059,7 @@ export default function DashboardPage() {
             isOpen={isCopilotOpen}
             onClose={() => setIsCopilotOpen(false)}
             summary={result.summary}
+            reconciliationResult={result}
             activeTab={activeTab}
           />
         )}

@@ -1,7 +1,15 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { SummaryAnalytics } from '@/types';
+import { ReconciliationResult } from '@/lib/reconciliationEngine';
+import {
+  computeBranchMetrics,
+  computeCourierAuditSummary,
+  computeSkuRiskSummary,
+  computeCustomerRiskSummary,
+  AnalyticsSlices
+} from '@/lib/ai/semanticAnalytics';
 import {
   Sparkles,
   X,
@@ -38,10 +46,11 @@ interface CopilotDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   summary: SummaryAnalytics;
+  reconciliationResult?: ReconciliationResult;
   activeTab?: string;
 }
 
-export function CopilotDrawer({ isOpen, onClose, summary, activeTab }: CopilotDrawerProps) {
+export function CopilotDrawer({ isOpen, onClose, summary, reconciliationResult, activeTab }: CopilotDrawerProps) {
   const currentContext = getTabContext(activeTab);
   const [messages, setMessages] = useState<CopilotChatMessage[]>([]);
   const [inputQuery, setInputQuery] = useState('');
@@ -52,6 +61,17 @@ export function CopilotDrawer({ isOpen, onClose, summary, activeTab }: CopilotDr
   const [showHistoryChips, setShowHistoryChips] = useState(true);
   const [confirmClear, setConfirmClear] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Deterministically precompute analytical slices for high-precision query grounding
+  const analyticsSlices: AnalyticsSlices | undefined = useMemo(() => {
+    if (!reconciliationResult) return undefined;
+    return {
+      branches: computeBranchMetrics(reconciliationResult.reconciledOrders),
+      courierAudit: computeCourierAuditSummary(reconciliationResult.courierMismatches),
+      skuLoss: computeSkuRiskSummary(reconciliationResult.skuAnalytics),
+      customerRisk: computeCustomerRiskSummary(reconciliationResult.customerRiskProfiles),
+    };
+  }, [reconciliationResult]);
 
   // Initialize messages from localStorage on mount and ensure welcome message is always fresh
   useEffect(() => {
@@ -130,6 +150,7 @@ export function CopilotDrawer({ isOpen, onClose, summary, activeTab }: CopilotDr
           activeTab,
           tabLabel: currentContext.label,
           pageContext: currentContext.summaryFocus,
+          analyticsSlices,
         })
       });
 
@@ -141,7 +162,8 @@ export function CopilotDrawer({ isOpen, onClose, summary, activeTab }: CopilotDr
         sender: 'assistant',
         text: assistantText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        source: data?.source || 'ai'
+        source: data?.source || 'ai',
+        appliedRules: data?.appliedRules || [],
       };
 
       const finalMessages = [...updatedWithUser, botMsg];
@@ -389,6 +411,23 @@ export function CopilotDrawer({ isOpen, onClose, summary, activeTab }: CopilotDr
                 >
                   {/* Rich Markdown Formatter */}
                   <AIMarkdownMessage content={m.text} isUser={isUser} />
+
+                  {/* Applied Business Rules & Policies Badge */}
+                  {!isUser && m.appliedRules && m.appliedRules.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100 dark:border-[#1F1F1F]">
+                      <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        Rules Applied:
+                      </span>
+                      {m.appliedRules.map((rule, rIdx) => (
+                        <span
+                          key={rIdx}
+                          className="text-[9px] font-semibold px-2 py-0.5 rounded-md bg-orange-50 dark:bg-orange-950/40 text-[#EB5A19] dark:text-orange-400 border border-orange-200/60 dark:border-orange-900/40"
+                        >
+                          {rule}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Message Meta & Action Bar */}
                   <div
