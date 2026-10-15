@@ -52,7 +52,7 @@ export async function POST(req: Request) {
       after: body.after,
       before: body.before,
       fetchAllPages: body.fetchAllPages !== undefined ? body.fetchAllPages : true,
-      maxPages: body.maxPages || 10,
+      maxPages: Math.min(body.maxPages || 10, 20),
       credentials,
     });
 

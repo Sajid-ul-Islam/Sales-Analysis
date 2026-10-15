@@ -22,7 +22,13 @@ import {
   Calendar,
   Shirt,
   Filter,
-  Tag
+  Tag,
+  Zap,
+  Trash2,
+  Clock,
+  ArrowUpRight,
+  Sparkles,
+  CircleDollarSign
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { DateRangeSelector } from '@/components/DateRangeSelector';
@@ -109,6 +115,27 @@ export const PHYSICAL_OUTLETS = [
   }
 ];
 
+export type SyncDepth = '300' | '800' | '1500';
+
+export const SYNC_DEPTH_CONFIG: Record<SyncDepth, { label: string; pages: number; badge: string; desc: string }> = {
+  '300': { label: 'Quick (300)', pages: 3, badge: '⚡ Quick (300)', desc: 'Scans latest 300 orders (~3s)' },
+  '800': { label: 'Standard (800)', pages: 8, badge: '⭐ Standard (800)', desc: 'Default recommended: pulls all branch & Mirpur POS orders (~7s)' },
+  '1500': { label: 'Deep (1,500)', pages: 15, badge: '🔍 Deep (1,500)', desc: 'Multi-week historical POS audit depth (~14s)' },
+};
+
+export const POS_CACHE_STORAGE_KEY = 'deen_outlet_pos_orders_cache_v1';
+
+export function formatTimeAgo(timestamp: number): string {
+  const diffSec = Math.floor((Date.now() - timestamp) / 1000);
+  if (diffSec < 45) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDays = Math.floor(diffHr / 24);
+  return `${diffDays}d ago`;
+}
+
 export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTabProps) {
   const [wcOrders, setWcOrders] = useState<WcOrderRecord[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -116,6 +143,11 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
   const [selectedOutletFilter, setSelectedOutletFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
+
+  // Instant Local Caching & Sync Depth Controls
+  const [syncDepth, setSyncDepth] = useState<SyncDepth>('800');
+  const [lastCachedTimestamp, setLastCachedTimestamp] = useState<number | null>(null);
+  const [isFromCache, setIsFromCache] = useState<boolean>(false);
   
   // 4 View Modes: Branch Summary Matrix, Category Sales, Item/SKU Sales, POS Orders Stream
   type ActiveViewMode = 'SUMMARY' | 'CATEGORY' | 'ITEM' | 'ORDERS';
@@ -356,9 +388,17 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
   }, []);
 
   // Pull live orders from WooCommerce REST API with optional date filtering & bulletproof HTML protection
-  const handlePullFromWooCommerce = useCallback(async (perPage: number = 100, maxPages: number = 10) => {
+  const handlePullFromWooCommerce = useCallback(async (
+    perPage: number = 100, 
+    maxPagesOverride?: number,
+    depthOverride?: SyncDepth
+  ) => {
+    const activeDepth = depthOverride || syncDepth;
+    const pagesToFetch = maxPagesOverride || SYNC_DEPTH_CONFIG[activeDepth].pages;
+    const orderCap = pagesToFetch * perPage;
+
     setIsLoading(true);
-    setSyncStatusMsg('Connecting to WooCommerce REST API...');
+    setSyncStatusMsg(`Connecting to WooCommerce REST API (Scanning up to ${orderCap.toLocaleString()} orders)...`);
 
     try {
       let afterIso: string | undefined;
@@ -388,7 +428,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           perPage,
-          maxPages,
+          maxPages: pagesToFetch,
           fetchAllPages: true,
           status: 'any',
           after: afterIso,
@@ -414,7 +454,23 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
           setWcOrders(prev => {
             const incomingIds = new Set(parsed.map(p => p.orderNumber));
             const existingRetained = prev.filter(p => !incomingIds.has(p.orderNumber));
-            return [...parsed, ...existingRetained];
+            const combined = [...parsed, ...existingRetained];
+
+            // Save to localStorage for instant 0ms future reloads
+            try {
+              localStorage.setItem(POS_CACHE_STORAGE_KEY, JSON.stringify({
+                version: 1,
+                timestamp: Date.now(),
+                syncDepth: activeDepth,
+                orders: combined
+              }));
+              setLastCachedTimestamp(Date.now());
+              setIsFromCache(false);
+            } catch (err) {
+              console.warn('LocalStorage save failed:', err);
+            }
+
+            return combined;
           });
           setSyncStatusMsg(`Successfully pulled ${data.rawOrders.length} orders from WooCommerce (${parsed.length} branch POS outlet orders synchronized).`);
         } else {
@@ -487,7 +543,22 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
           setWcOrders(prev => {
             const incomingIds = new Set(parsedFallback.map(p => p.orderNumber));
             const existingRetained = prev.filter(p => !incomingIds.has(p.orderNumber));
-            return [...parsedFallback, ...existingRetained];
+            const combined = [...parsedFallback, ...existingRetained];
+
+            try {
+              localStorage.setItem(POS_CACHE_STORAGE_KEY, JSON.stringify({
+                version: 1,
+                timestamp: Date.now(),
+                syncDepth: activeDepth,
+                orders: combined
+              }));
+              setLastCachedTimestamp(Date.now());
+              setIsFromCache(false);
+            } catch (err) {
+              console.warn('LocalStorage save failed:', err);
+            }
+
+            return combined;
           });
           setSyncStatusMsg(`Successfully pulled ${parsedFallback.length} outlet POS records from WooCommerce.`);
         } else {
@@ -502,9 +573,21 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
     } finally {
       setIsLoading(false);
     }
-  }, [dateScope, customRange, parseRawWcOrders]);
+  }, [dateScope, customRange, syncDepth, parseRawWcOrders]);
 
-  // Seed from Reconciled Orders if available
+  // Clear Browser Cache Handler
+  const handleClearCache = useCallback(() => {
+    try {
+      localStorage.removeItem(POS_CACHE_STORAGE_KEY);
+      setLastCachedTimestamp(null);
+      setIsFromCache(false);
+      setSyncStatusMsg('Local cache cleared. Click "Sync Live" to pull fresh orders from WooCommerce.');
+    } catch (e) {
+      console.error('Failed to clear cache:', e);
+    }
+  }, []);
+
+  // Seed from Reconciled Orders if available and no live/cached orders exist
   useEffect(() => {
     if (wcOrders.length === 0 && reconciledOrders.length > 0) {
       const seedOrders = extractOutletOrdersFromReconciled(reconciledOrders);
@@ -514,9 +597,33 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
     }
   }, [reconciledOrders, wcOrders.length, extractOutletOrdersFromReconciled]);
 
-  // Initial live pull on mount
+  // Initial mount: Restore instantaneously from localStorage (0ms load), or trigger live pull
   useEffect(() => {
-    handlePullFromWooCommerce(100, 10);
+    let hasRestoredFromCache = false;
+    try {
+      const cachedRaw = localStorage.getItem(POS_CACHE_STORAGE_KEY);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (Array.isArray(cached?.orders) && cached.orders.length > 0) {
+          setWcOrders(cached.orders);
+          setLastCachedTimestamp(cached.timestamp || Date.now());
+          setIsFromCache(true);
+          if (cached.syncDepth && (cached.syncDepth === '300' || cached.syncDepth === '800' || cached.syncDepth === '1500')) {
+            setSyncDepth(cached.syncDepth);
+          }
+          const timeText = cached.timestamp ? formatTimeAgo(cached.timestamp) : 'recently';
+          setSyncStatusMsg(`⚡ Instant 0ms Load: Loaded ${cached.orders.length} POS orders from browser cache (${timeText}).`);
+          hasRestoredFromCache = true;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to restore from local cache:', e);
+    }
+
+    // Only if there was no cached data, pull live from WooCommerce
+    if (!hasRestoredFromCache) {
+      handlePullFromWooCommerce(100, SYNC_DEPTH_CONFIG[syncDepth].pages, syncDepth);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -989,6 +1096,38 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
     }
   };
 
+  // Computed values for Enhanced Interactive KPI Cards
+  const kpiStats = useMemo(() => {
+    const grossSales = aggregateTotals.totalSales + aggregateTotals.totalDiscounts;
+    const realizationRate = grossSales > 0 
+      ? Math.min(100, Math.round((aggregateTotals.totalSales / grossSales) * 100)) 
+      : 100;
+    const avgUnitsPerOrder = aggregateTotals.totalOrders > 0 
+      ? (aggregateTotals.totalUnits / aggregateTotals.totalOrders).toFixed(1) 
+      : '0.0';
+    const unitAsp = aggregateTotals.totalUnits > 0 
+      ? Math.round(aggregateTotals.totalSales / aggregateTotals.totalUnits) 
+      : 0;
+
+    const cashEntry = paymentMethodTotals.find(p => p.method.toLowerCase().includes('cash') || p.method.toLowerCase().includes('register'));
+    const cashPct = cashEntry ? Math.round(cashEntry.pct) : (paymentMethodTotals[0] ? Math.round(paymentMethodTotals[0].pct) : 80);
+
+    const topCategoryName = categorySales[0]?.name || 'Apparel';
+    const topBranchName = topBranch ? topBranch.name.replace(' Branch POS', '').replace(' POS', '') : 'N/A';
+    const topBranchShare = topBranch ? topBranch.revenueShare.toFixed(1) : '0';
+
+    return {
+      grossSales,
+      realizationRate,
+      avgUnitsPerOrder,
+      unitAsp,
+      cashPct,
+      topCategoryName,
+      topBranchName,
+      topBranchShare
+    };
+  }, [aggregateTotals, paymentMethodTotals, categorySales, topBranch]);
+
   const donutColors = ['#a855f7', '#0ea5e9', '#10b981', '#f59e0b', '#6366f1'];
 
   return (
@@ -1036,18 +1175,54 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
             align="right"
           />
 
-          {/* 2. Pull from WooCommerce Button */}
-          <button
-            onClick={() => handlePullFromWooCommerce(100, 10)}
-            disabled={isLoading}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-60 cursor-pointer"
-            title="Fetch latest live POS orders from deencommerce.com via WooCommerce REST API"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>{isLoading ? 'Pulling...' : 'Pull from WooCommerce'}</span>
-          </button>
+          {/* 2. Sync Depth & Live Sync Control Group */}
+          <div className="flex items-center rounded-xl bg-slate-100/90 p-1 border border-slate-200/80 shadow-2xs">
+            {/* Sync Depth Picker */}
+            <div className="flex items-center gap-1 px-2 py-0.5 text-xs text-slate-600 font-semibold border-r border-slate-200 mr-1">
+              <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold hidden sm:inline">Depth:</span>
+              <select
+                value={syncDepth}
+                onChange={(e) => setSyncDepth(e.target.value as SyncDepth)}
+                disabled={isLoading}
+                className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer pr-1"
+                title="Select scan depth for WooCommerce order synchronization"
+              >
+                <option value="300">Quick (300)</option>
+                <option value="800">Standard (800)</option>
+                <option value="1500">Deep (1,500)</option>
+              </select>
+            </div>
 
-          {/* 3. Export .XLSX Button */}
+            {/* Live Pull / Sync Button */}
+            <button
+              onClick={() => handlePullFromWooCommerce(100, SYNC_DEPTH_CONFIG[syncDepth].pages, syncDepth)}
+              disabled={isLoading}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-xs active:scale-95 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-60 cursor-pointer"
+              title={`Fetch latest ${SYNC_DEPTH_CONFIG[syncDepth].label} from deencommerce.com via WooCommerce REST API`}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+              <span>{isLoading ? 'Syncing...' : 'Sync Live'}</span>
+            </button>
+          </div>
+
+          {/* 3. Cache Status Pill & Clear Cache */}
+          {lastCachedTimestamp && (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 shadow-2xs">
+              <span className="flex items-center gap-1 font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                Cached {formatTimeAgo(lastCachedTimestamp)}
+              </span>
+              <button
+                onClick={handleClearCache}
+                title="Clear local browser cache"
+                className="ml-1 text-purple-400 hover:text-purple-900 transition-colors cursor-pointer p-0.5 rounded hover:bg-purple-100"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+
+          {/* 4. Export .XLSX Button */}
           <button
             onClick={handleExportSalesExcel}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border shadow-2xs active:scale-95 bg-white text-emerald-700 hover:bg-emerald-50 border-emerald-200/90 hover:border-emerald-300 cursor-pointer"
@@ -1059,132 +1234,279 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
         </div>
       </div>
 
-      {/* Sync Status Feedback Banner */}
+      {/* Sync Status Feedback Banner with Instant Cache Badge */}
       {syncStatusMsg && (
-        <div className="p-3 bg-purple-50/70 border border-purple-200/80 rounded-xl flex items-center justify-between text-xs text-purple-900 shadow-2xs">
+        <div className={`p-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs shadow-2xs transition-all ${
+          isFromCache 
+            ? 'bg-emerald-50/80 border border-emerald-200/90 text-emerald-950'
+            : 'bg-purple-50/70 border border-purple-200/80 text-purple-950'
+        }`}>
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0" />
+            {isFromCache ? (
+              <Zap className="w-4 h-4 text-emerald-600 shrink-0" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0" />
+            )}
             <span className="font-medium">{syncStatusMsg}</span>
           </div>
-          <span className="text-[11px] text-purple-700 font-mono font-bold">
-            {dateFilteredOrders.length} orders in active scope
-          </span>
+
+          <div className="flex items-center gap-2 self-end sm:self-center">
+            {isFromCache && (
+              <button
+                onClick={() => handlePullFromWooCommerce(100, SYNC_DEPTH_CONFIG[syncDepth].pages, syncDepth)}
+                disabled={isLoading}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-100/80 hover:bg-emerald-200/80 px-2 py-0.5 rounded-md cursor-pointer transition-colors"
+              >
+                <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+                Force Fresh Pull
+              </button>
+            )}
+            <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-md ${
+              isFromCache ? 'bg-emerald-100/70 text-emerald-800' : 'bg-purple-100/70 text-purple-800'
+            }`}>
+              {dateFilteredOrders.length} orders in active scope
+            </span>
+          </div>
         </div>
       )}
 
-      {/* 5 High-Impact Retail Outlet KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* KPI 1: Total Physical Outlet Net Sales */}
-        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-purple-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Outlet Sales</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-              <ShoppingBag className="w-4 h-4" />
+      {/* 5 High-Impact Retail Outlet Interactive KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-4.5 xl:gap-5">
+        {/* KPI 1: Total Physical Outlet Net Sales (Interactive -> Branch Summary) */}
+        <div
+          onClick={() => {
+            setSelectedOutletFilter('ALL');
+            setSelectedBranchFilter('ALL');
+            setActiveViewMode('SUMMARY');
+          }}
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-sm hover:border-emerald-300 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          title="Click to view all branch metrics in Branch Summary"
+        >
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+                <ShoppingBag className="w-4.5 h-4.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block truncate">Total Net Sales</span>
+                <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 inline-block mt-0.5">
+                  {kpiStats.realizationRate}% Realized
+                </span>
+              </div>
+            </div>
+            <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-emerald-600 group-hover:bg-emerald-50 transition-all shrink-0">
+              <ArrowUpRight className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="my-2">
-            <div className="text-2xl font-black text-emerald-600 font-headline">
+
+          <div className="my-3 space-y-1.5">
+            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-emerald-600 font-headline tracking-tight">
               ৳ {aggregateTotals.totalSales.toLocaleString()}
             </div>
-            <div className="text-xs text-slate-500 mt-0.5">
-              Net recognized in-store revenue
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5">
+              <span>Gross: <strong className="text-slate-800 font-semibold">৳ {kpiStats.grossSales.toLocaleString()}</strong></span>
+              <span className="text-[10px] font-semibold text-slate-400 bg-slate-100/80 px-1.5 py-0.5 rounded">0 Courier Risk</span>
             </div>
           </div>
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Total Discounts:</span>
-            <span className="font-bold text-slate-700">৳ {aggregateTotals.totalDiscounts.toLocaleString()}</span>
+
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Discounts Saved:</span>
+            <span className="font-bold text-slate-800">৳ {aggregateTotals.totalDiscounts.toLocaleString()}</span>
           </div>
         </div>
 
-        {/* KPI 2: Total POS Orders Pulled */}
-        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-purple-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Outlet POS Orders</span>
-            <div className="w-8 h-8 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
-              <PackageCheck className="w-4 h-4" />
+        {/* KPI 2: Total POS Orders Pulled (Interactive -> POS Orders Stream) */}
+        <div
+          onClick={() => setActiveViewMode('ORDERS')}
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-sm hover:border-purple-300 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          title="Click to view full real-time POS Orders Stream"
+        >
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+                <PackageCheck className="w-4.5 h-4.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block truncate">POS Orders</span>
+                <span className="text-[10px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200/60 inline-block mt-0.5">
+                  Walk-in Checkouts
+                </span>
+              </div>
+            </div>
+            <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-purple-600 group-hover:bg-purple-50 transition-all shrink-0">
+              <ArrowUpRight className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="my-2">
-            <div className="text-2xl font-black text-slate-900 font-headline">
+
+          <div className="my-3 space-y-2">
+            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-slate-900 font-headline tracking-tight">
               {aggregateTotals.totalOrders.toLocaleString()}
-              <span className="text-xs font-bold text-slate-400 ml-1">Orders</span>
+              <span className="text-xs font-bold text-slate-400 ml-1.5">Orders</span>
             </div>
-            <div className="text-xs text-slate-500 mt-0.5">
-              In-store register checkouts
+            {/* 4 Branch Dot Distribution */}
+            <div className="flex items-center gap-2.5 pt-0.5">
+              {outletMetrics.map((m) => (
+                <div 
+                  key={m.id} 
+                  className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium"
+                  title={`${m.name}: ${m.ordersCount} orders`}
+                >
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: m.dotColor }}></span>
+                  <span className="font-mono font-bold text-slate-700">{m.ordersCount}</span>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Store Scope:</span>
-            <span className="font-bold text-purple-700">4 Retail Branches</span>
-          </div>
-        </div>
 
-        {/* KPI 3: Total Garments / Items Sold */}
-        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-purple-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Units Sold</span>
-            <div className="w-8 h-8 rounded-lg bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
-              <Store className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="my-2">
-            <div className="text-2xl font-black text-sky-600 font-headline">
-              {aggregateTotals.totalUnits.toLocaleString()}
-              <span className="text-xs font-bold text-slate-400 ml-1">Pcs</span>
-            </div>
-            <div className="text-xs text-slate-500 mt-0.5">
-              Physical pieces sold in store
-            </div>
-          </div>
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Avg Units / Order:</span>
-            <span className="font-bold text-slate-700">
-              {aggregateTotals.totalOrders > 0 ? (aggregateTotals.totalUnits / aggregateTotals.totalOrders).toFixed(1) : 0} pcs
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Store Network:</span>
+            <span className="font-bold text-purple-700 flex items-center gap-1">
+              <span>4 Branches Active</span>
+              <span className="text-purple-400 font-normal">→</span>
             </span>
           </div>
         </div>
 
-        {/* KPI 4: Average Order Value (AOV) */}
-        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-purple-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Outlet AOV</span>
-            <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
-              <TrendingUp className="w-4 h-4" />
+        {/* KPI 3: Total Garments / Items Sold (Interactive -> Item/SKU Sales) */}
+        <div
+          onClick={() => setActiveViewMode('ITEM')}
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-sm hover:border-sky-300 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          title="Click to view Item & SKU Wise Sales Breakdown"
+        >
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+                <Shirt className="w-4.5 h-4.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block truncate">Units Sold</span>
+                <span className="text-[10px] text-sky-700 font-bold bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200/60 inline-block mt-0.5">
+                  Physical Pcs
+                </span>
+              </div>
+            </div>
+            <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-sky-600 group-hover:bg-sky-50 transition-all shrink-0">
+              <ArrowUpRight className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="my-2">
-            <div className="text-2xl font-black text-amber-600 font-headline">
-              ৳ {aggregateTotals.overallAov.toLocaleString()}
+
+          <div className="my-3 space-y-1.5">
+            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-sky-600 font-headline tracking-tight">
+              {aggregateTotals.totalUnits.toLocaleString()}
+              <span className="text-xs font-bold text-slate-400 ml-1.5">Pcs</span>
             </div>
-            <div className="text-xs text-slate-500 mt-0.5">
-              Average basket size per visit
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5">
+              <span>ASP: <strong className="text-slate-800 font-semibold">৳ {kpiStats.unitAsp.toLocaleString()}</strong></span>
+              <span className="text-[11px] text-slate-400">{kpiStats.avgUnitsPerOrder} pcs/ord</span>
             </div>
           </div>
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Basket Health:</span>
-            <span className="font-bold text-emerald-700">Optimal</span>
+
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Active Master SKUs:</span>
+            <span className="font-bold text-slate-800 flex items-center gap-1">
+              <span>{itemWiseSales.length} items</span>
+              <span className="text-sky-500 font-normal">→</span>
+            </span>
           </div>
         </div>
 
-        {/* KPI 5: Top Performing Retail Outlet */}
-        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-purple-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Top Branch Leader</span>
-            <div className="w-8 h-8 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
-              <Award className="w-4 h-4" />
+        {/* KPI 4: Average Order Value (Interactive -> Category Sales) */}
+        <div
+          onClick={() => setActiveViewMode('CATEGORY')}
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-sm hover:border-amber-300 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          title="Click to view Category Sales & Product Drivers"
+        >
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+                <TrendingUp className="w-4.5 h-4.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block truncate">Outlet AOV</span>
+                <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60 inline-block mt-0.5">
+                  Basket Value
+                </span>
+              </div>
+            </div>
+            <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-amber-600 group-hover:bg-amber-50 transition-all shrink-0">
+              <ArrowUpRight className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="my-2">
-            <div className="text-lg font-black text-purple-700 font-headline truncate" title={topBranch?.name || 'All Outlets'}>
-              {topBranch ? topBranch.name.replace(' Branch POS', '').replace(' POS', '') : 'N/A'}
+
+          <div className="my-3 space-y-1.5">
+            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-amber-600 font-headline tracking-tight">
+              ৳ {aggregateTotals.overallAov.toLocaleString()}
             </div>
-            <div className="text-xs font-bold text-emerald-600 mt-0.5">
-              {topBranch ? `৳ ${topBranch.netSales.toLocaleString()} (${topBranch.revenueShare.toFixed(1)}% share)` : 'Awaiting data'}
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5">
+              <span className="truncate max-w-[120px]">Top: <strong className="text-slate-800 font-semibold">{kpiStats.topCategoryName}</strong></span>
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
+                {kpiStats.cashPct}% Cash
+              </span>
             </div>
           </div>
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Lead Volume:</span>
-            <span className="font-bold text-slate-800">{topBranch?.ordersCount || 0} orders</span>
+
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Basket Quality:</span>
+            <span className="font-bold text-emerald-700 flex items-center gap-1">
+              <span>{parseFloat(kpiStats.avgUnitsPerOrder) >= 1.5 ? 'High Density' : 'Healthy'}</span>
+              <span className="text-amber-500 font-normal">→</span>
+            </span>
+          </div>
+        </div>
+
+        {/* KPI 5: Top Performing Retail Outlet (Interactive -> Filter to Branch) */}
+        <div
+          onClick={() => {
+            if (topBranch) {
+              const bName = topBranch.name;
+              setSelectedOutletFilter(bName);
+              setSelectedBranchFilter(bName);
+              setActiveViewMode('SUMMARY');
+            }
+          }}
+          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-sm hover:border-purple-300 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          title={topBranch ? `Click to filter dashboard to ${topBranch.name}` : 'Awaiting data'}
+        >
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+                <Award className="w-4.5 h-4.5 text-amber-500" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block truncate">Top Branch</span>
+                <span className="text-[10px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200/60 inline-block mt-0.5">
+                  {kpiStats.topBranchShare}% Share
+                </span>
+              </div>
+            </div>
+            <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-purple-600 group-hover:bg-purple-50 transition-all shrink-0">
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </div>
+          </div>
+
+          <div className="my-3 space-y-1.5">
+            <div className="text-xl sm:text-2xl font-black text-purple-700 font-headline truncate" title={topBranch?.name || 'All Outlets'}>
+              {kpiStats.topBranchName}
+            </div>
+            <div className="text-xs font-bold text-emerald-600 flex items-center justify-between pt-0.5">
+              <span>৳ {topBranch ? topBranch.netSales.toLocaleString() : 0}</span>
+              <span className="text-[11px] font-semibold text-slate-400">{topBranch?.ordersCount || 0} orders</span>
+            </div>
+            {/* Visual Revenue Share Bar */}
+            <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+              <div 
+                className="h-full bg-purple-600 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.max(5, parseFloat(kpiStats.topBranchShare)))}%` }}
+              ></div>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Branch Action:</span>
+            <span className="font-bold text-purple-700 flex items-center gap-1 group-hover:underline">
+              <span>Filter Branch</span>
+              <span className="text-purple-400 font-normal">⚡</span>
+            </span>
           </div>
         </div>
       </div>

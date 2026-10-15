@@ -107,8 +107,7 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder }: Territo
         orderShare: Math.round(orderShare * 10) / 10,
         revenueShare: Math.round(revenueShare * 10) / 10,
         aov: deliveredOrders > 0 ? Math.round(rev / deliveredOrders) : 1850,
-        topDistricts: d.districts.slice(0, 4).map((name: string) => ({ name, count: Math.round(disp / 4), revenue: Math.round(rev / 4) })),
-        branches: d.branches
+        topDistricts: d.districts.slice(0, 4).map((name: string) => ({ name, count: Math.round(disp / 4), revenue: Math.round(rev / 4) }))
       };
     });
 
@@ -454,7 +453,7 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder }: Territo
                 <th className="py-3.5 px-4 text-center">RTO Returns</th>
                 <th className="py-3.5 px-4 text-center">Return Rate</th>
                 <th className="py-3.5 px-4 text-right">Net Realized Sales</th>
-                <th className="py-3.5 px-4 text-center">Fulfillment Hubs</th>
+                <th className="py-3.5 px-4 text-right">Avg Order Value</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
@@ -511,21 +510,8 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder }: Territo
                     <td className="py-3.5 px-4 text-right font-black text-emerald-600">
                       ৳ {div.netRevenue.toLocaleString()}
                     </td>
-                    <td className="py-3.5 px-4 text-center">
-                      {div.branches && div.branches.length > 0 ? (
-                        <div className="flex items-center justify-center gap-1 flex-wrap">
-                          {div.branches.map((b, bIdx) => (
-                            <span
-                              key={bIdx}
-                              className="px-2 py-0.5 rounded bg-orange-50 text-orange-800 border border-orange-200 text-[10px] font-bold"
-                            >
-                              {b.name}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 text-[11px]">Central Warehouse (Linehaul)</span>
-                      )}
+                    <td className="py-3.5 px-4 text-right font-bold text-slate-800">
+                      ৳ {div.aov.toLocaleString()}
                     </td>
                   </tr>
                 );
@@ -556,8 +542,8 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder }: Territo
                 <td className="py-4 px-4 text-right font-black text-emerald-600 text-sm">
                   ৳ {geoAnalysis.nationalTotal.netRevenue.toLocaleString()}
                 </td>
-                <td className="py-4 px-4 text-center text-slate-500 font-bold text-[11px]">
-                  All Outlets & Hubs Active
+                <td className="py-4 px-4 text-right font-black text-slate-900 text-xs">
+                  ৳ {Math.round(geoAnalysis.nationalTotal.netRevenue / Math.max(1, geoAnalysis.nationalTotal.deliveredOrders)).toLocaleString()}
                 </td>
               </tr>
             </tbody>

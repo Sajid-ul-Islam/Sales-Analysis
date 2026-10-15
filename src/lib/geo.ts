@@ -191,21 +191,23 @@ export interface DivisionMetric {
 }
 
 /**
- * Intelligent Bangladesh division classifier.
- * Matches order attributes against standard geographical boundaries of all 8 administrative divisions.
+ * Intelligent Bangladesh division classifier for Customer Delivery Territory.
+ * Matches order recipient attributes against standard geographical boundaries of all 8 administrative divisions.
+ * 
+ * NOTE: Fulfillment locations (Central Warehouse, Mirpur Outlet POS, Wari Branch POS, Cumilla, Sylhet)
+ * are NOT associated with or used to classify destination territory, because outlets can dispatch to customers
+ * anywhere in Bangladesh when warehouse has stock limits, and POS is for physical outlet retail sales.
  */
 export function detectDivision(
   city?: string | null,
   address?: string | null,
   note?: string | null,
   districtArea?: LocationType,
-  fulfillmentLocation?: string | null
+  _fulfillmentLocation?: string | null
 ): BangladeshDivision {
-  if (districtArea === 'Inside Dhaka' || fulfillmentLocation === 'Mirpur Outlet POS' || fulfillmentLocation === 'Wari Branch') {
+  if (districtArea === 'Inside Dhaka') {
     return 'Dhaka';
   }
-  if (fulfillmentLocation === 'Cumilla Branch') return 'Chattogram';
-  if (fulfillmentLocation === 'Sylhet Branch') return 'Sylhet';
 
   const combined = `${city || ''} ${address || ''} ${note || ''}`.toLowerCase();
 
@@ -515,8 +517,7 @@ export function aggregateDivisionMetrics(orders: ReconciledOrderRow[]): {
       primary.city,
       primary.rawNote,
       primary.rawNote,
-      primary.districtArea,
-      primary.fulfillmentLocation
+      primary.districtArea
     );
 
     const stats = divStats.get(divName) || divStats.get('Dhaka')!;

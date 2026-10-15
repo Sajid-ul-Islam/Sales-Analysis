@@ -9,7 +9,6 @@ import {
   Coins,
   AlertTriangle,
   CheckCircle2,
-  Building2,
   Compass,
   ArrowUpRight,
   RotateCcw,
@@ -44,7 +43,6 @@ export function BangladeshMapChart({
   const [activeMetric, setActiveMetric] = useState<MapMetricType>('orders');
   const [hoveredDivision, setHoveredDivision] = useState<DivisionMetric | null>(null);
   const [selectedDivisionId, setSelectedDivisionId] = useState<string | null>(null);
-  const [showBranches, setShowBranches] = useState(true);
 
   // Calculate maximums for normalized choropleth color scales
   const maxOrders = useMemo(() => Math.max(...divisions.map(d => d.dispatchedOrders), 1), [divisions]);
@@ -103,19 +101,6 @@ export function BangladeshMapChart({
     onSelectDivision?.(null);
   };
 
-  // Extract all physical branch locations
-  const allBranches = useMemo(() => {
-    const list: Array<{ name: string; code: string; x: number; y: number; divName: string }> = [];
-    divisions.forEach(d => {
-      if (d.branches) {
-        d.branches.forEach(b => {
-          list.push({ ...b, divName: d.name });
-        });
-      }
-    });
-    return list;
-  }, [divisions]);
-
   return (
     <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden flex flex-col">
       {/* Map Control Bar & Header */}
@@ -124,15 +109,15 @@ export function BangladeshMapChart({
           <div className="flex items-center gap-2 mb-1">
             <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
             <span className="text-[10px] uppercase font-bold tracking-wider text-primary">
-              Geographic Intelligence & Linehaul Analytics
+              Geographic Intelligence & Customer Delivery Analytics
             </span>
           </div>
           <h3 className="text-base sm:text-lg font-black text-navy-deep font-headline flex items-center gap-2">
             <Compass className="w-5 h-5 text-primary" />
-            Bangladesh Territory Map: 8 Administrative Divisions
+            Customer Delivery Territory Map: 8 Administrative Divisions
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Interactive choropleth parcel distribution across Dhaka Metro and 63 Outside Dhaka districts.
+            Interactive parcel distribution across Dhaka Metro and 63 Outside Dhaka districts (central warehouse and retail outlets dispatch nationwide).
           </p>
         </div>
 
@@ -176,21 +161,6 @@ export function BangladeshMapChart({
               <span>Return %</span>
             </button>
           </div>
-
-          {/* Toggle Physical Branches */}
-          <button
-            type="button"
-            onClick={() => setShowBranches(prev => !prev)}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs ${
-              showBranches
-                ? 'bg-orange-50 border-orange-200 text-orange-800'
-                : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-            }`}
-            title="Toggle DEEN Outlet Branches & Central Warehouse overlay"
-          >
-            <Building2 className="w-3.5 h-3.5 text-primary" />
-            <span>Branches ({allBranches.length})</span>
-          </button>
 
           {selectedDivisionId && (
             <button
@@ -350,57 +320,14 @@ export function BangladeshMapChart({
                 })}
               </g>
 
-              {/* Physical Branch Network Overlay */}
-              {showBranches && (
-                <g id="branch-network">
-                  {allBranches.map((br, bIdx) => (
-                    <g key={`branch-${bIdx}`} transform={`translate(${br.x}, ${br.y})`}>
-                      {/* Pulsing Outer Status Halo */}
-                      <circle
-                        r="9"
-                        fill="#f97316"
-                        opacity="0.3"
-                        className="animate-ping"
-                      />
-                      {/* Branch Core Pin */}
-                      <circle
-                        r="6"
-                        fill="#ea580c"
-                        stroke="#ffffff"
-                        strokeWidth="2"
-                        filter="drop-shadow(0 1px 3px rgba(0,0,0,0.3))"
-                      />
-                      {/* Branch Label Tooltip on Hover */}
-                      <rect
-                        x="9"
-                        y="-10"
-                        width={br.name.length * 6 + 14}
-                        height="18"
-                        rx="5"
-                        fill="#0f172a"
-                        opacity="0.9"
-                      />
-                      <text
-                        x="15"
-                        y="2.5"
-                        fontSize="8.5"
-                        fontWeight="bold"
-                        fill="#ffffff"
-                      >
-                        {br.name}
-                      </text>
-                    </g>
-                  ))}
-                </g>
-              )}
             </svg>
 
             {/* Quick Map Legend at Bottom Left */}
             <div className="absolute bottom-2 left-2 bg-white/95 backdrop-blur-xs p-2 rounded-xl border border-slate-200/80 shadow-xs text-[10px] space-y-1 pointer-events-none">
-              <span className="font-bold text-slate-700 block uppercase tracking-wider text-[9px]">DEEN Fulfilled Nodes</span>
+              <span className="font-bold text-slate-700 block uppercase tracking-wider text-[9px]">Territory Intelligence</span>
               <div className="flex items-center gap-1.5 text-slate-600">
-                <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
-                <span>Mirpur POS, Wari, Cumilla, Sylhet</span>
+                <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                <span>Customer Delivery Destinations</span>
               </div>
             </div>
           </div>
