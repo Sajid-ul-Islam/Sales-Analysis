@@ -137,7 +137,7 @@ export function Header({
   };
 
   return (
-    <header className="sticky top-0 h-16 border-b border-slate-200 dark:border-[#1F1F1F] bg-white/95 dark:bg-[#000000]/95 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 shrink-0 z-20 shadow-xs transition-colors duration-200">
+    <header className="sticky top-0 h-16 border-b border-slate-200 dark:border-[#1F1F1F] bg-white/95 dark:bg-[#000000]/95 backdrop-blur-md flex items-center justify-between px-2 sm:px-6 shrink-0 z-20 shadow-xs transition-colors duration-200">
       {/* Search Input Bar with Mobile Menu Toggle & ⌘K shortcut */}
       <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 mr-2 sm:mr-4">
         {onToggleMobileMenu && (
@@ -228,7 +228,6 @@ export function Header({
             fileWeeks={fileWeeks}
             onOpenComparison={onOpenComparison}
             align="right"
-            className="hidden md:block"
           />
         )}
 

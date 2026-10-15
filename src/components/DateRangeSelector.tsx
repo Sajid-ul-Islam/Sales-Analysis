@@ -140,32 +140,32 @@ export function DateRangeSelector({
 
   return (
     <div ref={containerRef} className={`relative inline-block text-left ${className}`}>
-      {/* Trigger Button */}
+      {/* Trigger Button: Adaptive - Clean Native Icon on mobile, Full Executive Badge on Desktop */}
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         aria-haspopup="true"
         aria-expanded={isOpen}
         title="Filter by date range or select dynamic weeks"
-        className={`inline-flex items-center gap-2 px-3 py-2 sm:px-3.5 sm:py-2.5 min-w-[44px] min-h-[44px] rounded-xl text-xs font-semibold transition-all shadow-2xs border cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 ${
+        className={`relative inline-flex items-center justify-center p-2.5 sm:px-3 sm:py-2 sm:gap-2 min-w-[44px] min-h-[44px] rounded-xl text-xs font-semibold transition-all shadow-2xs border cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 ${
           isFiltered
-            ? 'bg-orange-50/90 text-slate-900 border-primary/30 ring-1 ring-primary/20'
-            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50/80 hover:text-slate-900'
+            ? 'bg-orange-50/90 text-slate-900 border-primary/30 ring-1 ring-primary/20 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-800'
+            : 'bg-white dark:bg-[#000000] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#1F1F1F] hover:bg-slate-50/80 dark:hover:bg-white/10 hover:text-slate-900'
         }`}
       >
         <div className="flex items-center gap-1.5 min-w-0">
           <Calendar
-            className={`w-3.5 h-3.5 shrink-0 ${isFiltered ? 'text-primary' : 'text-slate-400'}`}
+            className={`w-5 h-5 sm:w-3.5 sm:h-3.5 shrink-0 ${isFiltered ? 'text-primary' : 'text-slate-400'}`}
           />
-          <span className="font-bold truncate max-w-[140px] sm:max-w-[200px]">
+          <span className="hidden sm:inline font-bold truncate max-w-[140px] md:max-w-[200px]">
             {activeLabel}
           </span>
           {activeCount !== undefined && (
             <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold shrink-0 ${
+              className={`hidden sm:inline px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold shrink-0 ${
                 isFiltered
                   ? 'bg-primary text-white'
-                  : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                  : 'bg-slate-100 dark:bg-[#1A1A1A] text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-[#222222]'
               }`}
             >
               {activeCount.toLocaleString()}
@@ -173,30 +173,35 @@ export function DateRangeSelector({
           )}
         </div>
 
-        {/* Clear filter icon if active */}
+        {/* Mobile Filter Indicator Dot */}
+        {isFiltered && (
+          <span className="sm:hidden absolute bottom-1.5 w-1 h-1 rounded-full bg-[#EB5A19]" />
+        )}
+
+        {/* Clear filter icon if active on desktop */}
         {isFiltered ? (
           <span
             onClick={handleClear}
-            className="p-0.5 rounded-md hover:bg-orange-200/60 text-slate-400 hover:text-rose-600 transition-colors"
+            className="hidden sm:inline p-0.5 rounded-md hover:bg-orange-200/60 dark:hover:bg-orange-900/60 text-slate-400 hover:text-rose-600 transition-colors"
             title="Clear date filter (Reset to All Records)"
           >
             <X className="w-3.5 h-3.5" />
           </span>
         ) : (
           <ChevronDown
-            className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${
+            className={`hidden sm:inline w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${
               isOpen ? 'rotate-180 text-primary' : ''
             }`}
           />
         )}
       </button>
 
-      {/* Popover Menu */}
+      {/* Popover Menu: Full Screen / Centered on Mobile, Anchored on Desktop */}
       {isOpen && (
         <div
-          className={`absolute ${
-            align === 'right' ? 'right-0' : 'left-0'
-          } mt-2 w-[340px] sm:w-[400px] bg-white rounded-2xl border border-slate-200 shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150`}
+          className={`fixed inset-x-2 top-16 sm:absolute sm:inset-x-auto ${
+            align === 'right' ? 'sm:right-0' : 'sm:left-0'
+          } mt-2 w-auto sm:w-[400px] max-w-[calc(100vw-16px)] bg-white dark:bg-[#000000] rounded-2xl border border-slate-200 dark:border-[#1F1F1F] shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150`}
         >
           {/* Header */}
           <div className="px-4 py-3 bg-slate-50/90 border-b border-slate-100 flex items-center justify-between">

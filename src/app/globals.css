@@ -194,8 +194,14 @@ body.dark-canvas {
 }
 
 /* Frozen Sticky Table Identifiers (Order ID / SKU) during swipe */
+.sticky.left-0 {
+  background-color: inherit;
+  box-shadow: 3px 0 6px -2px rgba(0, 0, 0, 0.08);
+}
+
 .dark .sticky.left-0 {
   background-color: #000000 !important;
+  box-shadow: 4px 0 8px -2px rgba(0, 0, 0, 0.6);
 }
 
 .dark thead .sticky.left-0 {

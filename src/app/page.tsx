@@ -736,7 +736,7 @@ export default function DashboardPage() {
         />
 
         <main
-          className="px-3.5 py-4 sm:px-6 sm:py-6 pb-20 md:pb-6 space-y-5 max-w-[1920px] mx-auto w-full transition-colors duration-200"
+          className="px-2 py-3.5 sm:px-6 sm:py-6 pb-20 md:pb-6 space-y-5 max-w-[1920px] mx-auto w-full transition-colors duration-200"
           style={{ backgroundColor: 'var(--bg-surface, #FFFFFF)' }}
         >
           {/* Status Alert Banner */}

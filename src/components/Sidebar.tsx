@@ -91,7 +91,6 @@ export function Sidebar({
         { id: 'tabSku', label: 'SKU Flow', icon: Shirt },
         { id: 'tabCustomerRisk', label: 'Customer Risk', icon: ShieldAlert, highlight: true },
         { id: 'tabStatus', label: 'Status & Economics', icon: GitCompare },
-        { id: 'tabUnitEconomics', label: 'Unit Economics', icon: Calculator, highlight: true },
       ]
     },
     {
@@ -178,7 +177,7 @@ export function Sidebar({
                 )}
                 {group.items.map((item) => {
                   const Icon = item.icon;
-                  const isActive = activeTab === item.id;
+                  const isActive = activeTab === item.id || (item.id === 'tabStatus' && activeTab === 'tabUnitEconomics');
                   return (
                     <button
                       key={item.id}
@@ -323,7 +322,7 @@ export function Sidebar({
                 </div>
                 {group.items.map((item) => {
                   const Icon = item.icon;
-                  const isActive = activeTab === item.id;
+                  const isActive = activeTab === item.id || (item.id === 'tabStatus' && activeTab === 'tabUnitEconomics');
                   return (
                     <button
                       key={item.id}
@@ -450,7 +449,7 @@ export function Sidebar({
                     </div>
                     {group.items.map((item) => {
                       const Icon = item.icon;
-                      const isActive = activeTab === item.id;
+                      const isActive = activeTab === item.id || (item.id === 'tabStatus' && activeTab === 'tabUnitEconomics');
                       return (
                         <button
                           key={item.id}

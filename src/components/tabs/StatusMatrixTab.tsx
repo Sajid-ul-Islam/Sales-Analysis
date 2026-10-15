@@ -121,8 +121,52 @@ export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProp
         </div>
       </div>
 
+      {/* Quick Jump Navigation Pill Bar (1-tap jump on Mobile & Desktop) */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 select-none text-xs -mx-1 px-1 scrollbar-none">
+        <button
+          type="button"
+          onClick={() => document.getElementById('section-waterfall')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-[#111111] dark:hover:bg-[#1A1A1A] text-slate-700 dark:text-slate-300 font-semibold border border-transparent hover:border-slate-300 dark:hover:border-[#333333] transition-all shrink-0 cursor-pointer active:scale-95"
+        >
+          <Calculator className="w-3.5 h-3.5 text-primary shrink-0" />
+          <span>Financial Waterfall</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => document.getElementById('section-delivery-status')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-[#111111] dark:hover:bg-[#1A1A1A] text-slate-700 dark:text-slate-300 font-semibold border border-transparent hover:border-slate-300 dark:hover:border-[#333333] transition-all shrink-0 cursor-pointer active:scale-95"
+        >
+          <PieChart className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+          <span>Status Matrix</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => document.getElementById('section-financial-statement')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-[#111111] dark:hover:bg-[#1A1A1A] text-slate-700 dark:text-slate-300 font-semibold border border-transparent hover:border-slate-300 dark:hover:border-[#333333] transition-all shrink-0 cursor-pointer active:scale-95"
+        >
+          <Coins className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          <span>P&L & Courier Audit</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => document.getElementById('section-payment-ratio')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-[#111111] dark:hover:bg-[#1A1A1A] text-slate-700 dark:text-slate-300 font-semibold border border-transparent hover:border-slate-300 dark:hover:border-[#333333] transition-all shrink-0 cursor-pointer active:scale-95"
+        >
+          <TrendingUp className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+          <span>Payment Settlement</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => document.getElementById('section-distribution-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-[#111111] dark:hover:bg-[#1A1A1A] text-slate-700 dark:text-slate-300 font-semibold border border-transparent hover:border-slate-300 dark:hover:border-[#333333] transition-all shrink-0 cursor-pointer active:scale-95"
+        >
+          <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+          <span>Distribution Ledger</span>
+        </button>
+      </div>
+
       {/* SECTION 1: Unit Economics Waterfall (Top Executive Financial Overview) */}
-      <div className="space-y-2.5">
+      <div id="section-waterfall" className="space-y-2.5 scroll-mt-20">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
             <Calculator className="w-3.5 h-3.5 text-primary" />
@@ -229,7 +273,7 @@ export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProp
         </div>
       </div>
       {/* SECTION 2: Delivery Status Breakdown Matrix Cards */}
-      <div className="space-y-2.5">
+      <div id="section-delivery-status" className="space-y-2.5 scroll-mt-20">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
             <PieChart className="w-3.5 h-3.5 text-primary" />
@@ -388,7 +432,7 @@ export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProp
       </div>
 
       {/* SECTION 4: Financial Statement & Courier Reconciliation Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div id="section-financial-statement" className="grid grid-cols-1 lg:grid-cols-2 gap-6 scroll-mt-20">
         {/* Left: E-Commerce P&L Statement */}
         <div className="bg-white dark:bg-black rounded-2xl border border-slate-200 dark:border-[#1F1F1F] shadow-sm p-6 flex flex-col justify-between">
           <div>
@@ -539,15 +583,17 @@ export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProp
 
       {/* SECTION 5: COD vs Online Paid Ratio Donut Chart */}
       {orders && orders.length > 0 && (
-        <PaymentMethodMixCard
-          orders={orders}
-          title="Payment Settlement Ratio: COD vs Online Paid"
-          subtitle="Cash on Delivery ratio versus digital prepaid settlements (bKash, SSLCommerz, Cards & Bank)"
-        />
+        <div id="section-payment-ratio" className="scroll-mt-20">
+          <PaymentMethodMixCard
+            orders={orders}
+            title="Payment Settlement Ratio: COD vs Online Paid"
+            subtitle="Cash on Delivery ratio versus digital prepaid settlements (bKash, SSLCommerz, Cards & Bank)"
+          />
+        </div>
       )}
 
       {/* SECTION 6: Complete Status Distribution Table */}
-      <div className="bg-white dark:bg-black rounded-2xl border border-slate-200 dark:border-[#1F1F1F] shadow-sm overflow-hidden">
+      <div id="section-distribution-table" className="bg-white dark:bg-black rounded-2xl border border-slate-200 dark:border-[#1F1F1F] shadow-sm overflow-hidden scroll-mt-20">
         <div className="p-5 border-b border-slate-100 dark:border-[#1F1F1F] flex items-center justify-between bg-white dark:bg-black">
           <div className="flex items-center gap-3">
             <PieChart className="w-5 h-5 text-primary" />

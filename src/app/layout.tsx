@@ -1,9 +1,26 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#FFFFFF' },
+    { media: '(prefers-color-scheme: dark)', color: '#000000' }
+  ]
+};
 
 export const metadata: Metadata = {
   title: 'DEEN Commerce | Sales & Return Reconciliation Engine',
   description: 'Next.js 14 Enterprise Multi-Carrier Reconciliation & Knapsack DP Partial Item Matching Engine for DEEN Commerce',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'DEEN Reconcile',
+  },
 };
 
 const criticalCSS = `

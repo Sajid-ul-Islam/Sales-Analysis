@@ -1,0 +1,21 @@
+{
+  "name": "DEEN Commerce Reconciliation",
+  "short_name": "DEEN Reconcile",
+  "description": "Multi-Carrier Order Reconciliation & Sales Intelligence for DEEN Commerce",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "/deencommerce_logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/deencommerce_logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
