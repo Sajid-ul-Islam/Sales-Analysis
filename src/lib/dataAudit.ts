@@ -9,7 +9,7 @@ export interface PiiAuditReport {
 }
 
 export interface DataProvenanceInfo {
-  source: 'live_api' | 'demo_anonymized' | 'baseline_bundled' | 'disk_spreadsheet';
+  source: 'live_api' | 'demo_anonymized' | 'baseline_bundled' | 'disk_spreadsheet' | 'vercel_blob';
   environment: string;
   isDemoMode: boolean;
   isPIISanitized: boolean;

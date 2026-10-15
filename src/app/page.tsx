@@ -36,7 +36,7 @@ import { exportReconciledExcel } from '@/lib/excelExport';
 import { loadSavedThemeSettings, applyThemeToDocument } from '@/lib/themeManager';
 import { loadAppSettings } from '@/lib/settingsStore';
 import { DateScope, filterOrdersByDateScope, CustomDateRange } from '@/lib/dateFilter';
-import { RawOrderRow, AgenticActionProposal } from '@/types';
+import { RawOrderRow, AgenticActionProposal, DatasetSnapshot } from '@/types';
 import { applyAgenticAction, clearAgenticTags } from '@/lib/ai/agenticActions';
 import { RefreshCw, AlertCircle, CheckCircle2, UploadCloud, Database, MessageSquare, Bot, Sparkles } from 'lucide-react';
 import {
@@ -54,15 +54,6 @@ import {
 import { DataProvenanceInfo } from '@/lib/dataAudit';
 
 export type DataSourceMode = 'UPLOAD' | 'API';
-
-interface DatasetSnapshot {
-  orders: RawOrderRow[];
-  pathaoDelivery: RawOrderRow[];
-  returns: RawOrderRow[];
-  partials: RawOrderRow[];
-  exchanges: RawOrderRow[];
-  sourceName: string;
-}
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('tabExecutive');
@@ -91,31 +82,34 @@ export default function DashboardPage() {
     setCookie(DEEN_COOKIE_KEYS.ACTIVE_TAB, target, { days: 30 });
   };
 
-  const [dateScope, setDateScope] = useState<DateScope>('all');
+  const [dateScope, setDateScope] = useState<DateScope>('30d');
   const [customDateRange, setCustomDateRange] = useState<CustomDateRange | undefined>(undefined);
   const [isWeekComparisonOpen, setIsWeekComparisonOpen] = useState(false);
+  const [, startScopeTransition] = React.useTransition();
 
   const handleDateScopeChange = (range: DateScope, customRange?: CustomDateRange) => {
-    setDateScope(range);
-    if (customRange) {
-      setCustomDateRange(customRange);
-    } else if (range !== 'custom') {
-      setCustomDateRange(undefined);
-    }
-    setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, range, { days: 30 });
+    startScopeTransition(() => {
+      setDateScope(range);
+      if (customRange) {
+        setCustomDateRange(customRange);
+      } else if (range !== 'custom') {
+        setCustomDateRange(undefined);
+      }
+      setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, range, { days: 30 });
 
-    // Automatically re-run reconciliation engine on filtered order set
-    const filtered = filterOrdersByDateScope(rawOrders, range, customRange);
-    computeReconciliation(
-      filtered.filteredOrders,
-      rawReturns,
-      rawPartials,
-      excludeAugust,
-      excludePOS,
-      rawExchanges,
-      rawPathaoDelivery
-    );
-    setStatusMessage(`Date filter active: ${filtered.label}${filtered.subLabel ? ` (${filtered.subLabel})` : ''} — ${filtered.matchedOrders.toLocaleString()} orders reconciled.`);
+      // Automatically re-run reconciliation engine on filtered order set
+      const filtered = filterOrdersByDateScope(rawOrders, range, customRange);
+      computeReconciliation(
+        filtered.filteredOrders,
+        rawReturns,
+        rawPartials,
+        excludeAugust,
+        excludePOS,
+        rawExchanges,
+        rawPathaoDelivery
+      );
+      setStatusMessage(`Date filter active: ${filtered.label}${filtered.subLabel ? ` (${filtered.subLabel})` : ''} — ${filtered.matchedOrders.toLocaleString()} orders reconciled.`);
+    });
   };
 
   const handleToggleExcludeAugust = (val: boolean) => {
@@ -130,9 +124,9 @@ export default function DashboardPage() {
 
   const handleResetBaseline = () => {
     removeCacheItem(DEEN_CACHE_KEYS.ACTIVE_DATASET);
-    setDateScope('all');
+    setDateScope('30d');
     setCustomDateRange(undefined);
-    setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, 'all', { days: 30 });
+    setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, '30d', { days: 30 });
     loadPreloadedSeptemberData(true);
   };
 
@@ -337,8 +331,8 @@ export default function DashboardPage() {
     if (savedScope) {
       setDateScope(savedScope);
     } else {
-      setDateScope('all');
-      setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, 'all', { days: 30 });
+      setDateScope('30d');
+      setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, '30d', { days: 30 });
     }
 
     const savedExcludeAug = getCookie(DEEN_COOKIE_KEYS.EXCLUDE_AUGUST);
@@ -588,13 +582,14 @@ export default function DashboardPage() {
         timestamp: new Date().toISOString(),
         recordCount: ordersToUse.length
       });
-      setDateScope('all');
+      setDateScope('30d');
       setCustomDateRange(undefined);
-      setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, 'all', { days: 30 });
+      setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, '30d', { days: 30 });
 
-      computeReconciliation(ordersToUse, parsedReturns, parsedPartials, excludeAugust, excludePOS, parsedExchanges, parsedPathaoDelivery);
+      const filtered = filterOrdersByDateScope(ordersToUse, '30d', undefined);
+      computeReconciliation(filtered.filteredOrders, parsedReturns, parsedPartials, excludeAugust, excludePOS, parsedExchanges, parsedPathaoDelivery);
       const pathaoInfo = parsedPathaoDelivery.length > 0 ? `, ${parsedPathaoDelivery.length.toLocaleString()} Pathao records` : '';
-      setStatusMessage(`Reconciliation active: ${ordersToUse.length.toLocaleString()} orders reconciled with primary Pathao delivery${pathaoInfo}, ${parsedReturns.length.toLocaleString()} fallback returns, ${parsedPartials.length} partials, ${parsedExchanges.length} exchanges.`);
+      setStatusMessage(`Reconciliation active: ${filtered.matchedOrders.toLocaleString()} orders reconciled for Last 30 Days (${filtered.subLabel || 'rolling period'})${pathaoInfo}, ${parsedReturns.length.toLocaleString()} fallback returns, ${parsedPartials.length} partials, ${parsedExchanges.length} exchanges.`);
     } catch (err: any) {
       console.error('File reading failed:', err);
       setStatusMessage(`Upload parsing error: ${err.message}`);
@@ -639,6 +634,33 @@ export default function DashboardPage() {
     setDataSourceName(sourceLabel);
     computeReconciliation(updatedOrders, updatedReturns, updatedPartials, excludeAugust, excludePOS, updatedExchanges, updatedDelivery);
     setStatusMessage(`Live Cloud API Active: reconciled with ${rows.length} ${type === 'orders' ? 'WooCommerce order items' : 'Pathao courier records'}.`);
+  };
+
+  const handleLoadFullDataset = (dataset: DatasetSnapshot, provenance?: DataProvenanceInfo) => {
+    setDataSourceMode('API');
+    setCookie(DEEN_COOKIE_KEYS.SOURCE_MODE, 'API', { days: 30 });
+    if (provenance) {
+      setDataProvenance(provenance);
+    }
+    setCloudApiDataset(dataset);
+    setCacheItem(DEEN_CACHE_KEYS.ACTIVE_DATASET, dataset, { ttlMs: 24 * 3600 * 1000, tag: 'dataset' });
+    setRawOrders(dataset.orders || []);
+    setRawReturns(dataset.returns || []);
+    setRawPartials(dataset.partials || []);
+    setRawExchanges(dataset.exchanges || []);
+    setRawPathaoDelivery(dataset.pathaoDelivery || []);
+    const sourceLabel = dataset.sourceName || '☁️ Vercel Blob Dataset';
+    setDataSourceName(sourceLabel);
+    computeReconciliation(
+      dataset.orders || [],
+      dataset.returns || [],
+      dataset.partials || [],
+      excludeAugust,
+      excludePOS,
+      dataset.exchanges || [],
+      dataset.pathaoDelivery || []
+    );
+    setStatusMessage(`Loaded from ${sourceLabel}: ${(dataset.orders || []).length.toLocaleString()} orders, ${(dataset.returns || []).length.toLocaleString()} returns.`);
   };
 
   // Distinct Switcher between Uploaded Spreadsheets and Live WooCommerce & Pathao API
@@ -799,7 +821,20 @@ export default function DashboardPage() {
 
           {/* Cloud API Integration (WooCommerce + Pathao) - SHOWN ONLY ON EXECUTIVE OVERVIEW OR INITIAL STATE */}
           {dataSourceMode === 'API' && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && (!result || activeTab === 'tabExecutive') && (
-            <CloudSyncBar onDataSynced={handleLiveSyncData} activeOrders={rawOrders} provenance={dataProvenance} />
+            <CloudSyncBar
+              onDataSynced={handleLiveSyncData}
+              activeOrders={rawOrders}
+              provenance={dataProvenance}
+              activeDataset={{
+                orders: rawOrders,
+                returns: rawReturns,
+                partials: rawPartials,
+                exchanges: rawExchanges,
+                pathaoDelivery: rawPathaoDelivery,
+                sourceName: dataSourceName,
+              }}
+              onLoadFullDataset={handleLoadFullDataset}
+            />
           )}
 
           {/* Spreadsheet Upload Dropzones - SHOWN ONLY ON EXECUTIVE OVERVIEW OR INITIAL STATE */}

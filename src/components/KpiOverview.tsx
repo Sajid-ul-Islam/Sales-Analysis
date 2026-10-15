@@ -60,7 +60,7 @@ export function KpiOverview({
   onQuickRecalc,
   onExport,
   onSync,
-  activeDateScope = 'all',
+  activeDateScope = '30d',
   onDateRangeSelect,
   dateScopeCounts,
   dateScopeLabel,
@@ -223,12 +223,40 @@ export function KpiOverview({
 
         {/* Active Period & Scope Indicator (Unified with Header Date Selector) */}
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 self-start sm:self-auto shrink-0">
-          <div className="flex items-center gap-2 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs">
-            <span className={`w-2 h-2 rounded-full ${activeDateScope !== 'all' ? 'bg-primary animate-pulse' : 'bg-emerald-500'}`}></span>
+          {/* Quick Segmented Date Switcher */}
+          {onDateRangeSelect && (
+            <div className="hidden lg:flex items-center gap-1 p-1 bg-slate-100 dark:bg-[#111111] rounded-xl border border-slate-200/80 dark:border-[#222222]">
+              {[
+                { id: '30d' as DateScope, label: '30D' },
+                { id: 'month' as DateScope, label: 'Month' },
+                { id: '7d' as DateScope, label: '7D' },
+                { id: 'all' as DateScope, label: 'All' },
+              ].map((pill) => {
+                const isSelected = activeDateScope === pill.id;
+                return (
+                  <button
+                    key={pill.id}
+                    type="button"
+                    onClick={() => handleRangeClick(pill.id)}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-white dark:bg-[#222222] text-primary shadow-xs ring-1 ring-primary/20'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    {pill.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#0E0E0E] px-3.5 py-2 rounded-xl border border-slate-200 dark:border-[#1F1F1F] shadow-2xs">
+            <span className={`w-2 h-2 rounded-full ${activeDateScope !== '30d' ? 'bg-primary animate-pulse' : 'bg-emerald-500'}`}></span>
             <div className="flex items-center gap-1.5 text-xs">
               <span className="text-slate-500 font-medium">Period:</span>
-              <span className="font-bold text-slate-900 font-headline">
-                {dateScopeLabel || (activeDateScope === 'all' ? 'All Records' : activeDateScope.toUpperCase())}
+              <span className="font-bold text-slate-900 dark:text-white font-headline">
+                {dateScopeLabel || (activeDateScope === '30d' ? 'Last 30 Days' : activeDateScope === 'all' ? 'All Records' : activeDateScope.toUpperCase())}
               </span>
               {dateScopeSubLabel && (
                 <span className="text-slate-400 font-mono text-[11px] hidden sm:inline">
@@ -237,14 +265,14 @@ export function KpiOverview({
               )}
             </div>
 
-            {activeDateScope !== 'all' && (
+            {activeDateScope !== '30d' && (
               <button
                 type="button"
-                onClick={() => handleRangeClick('all')}
-                className="ml-1 px-2 py-0.5 rounded-md bg-orange-100/70 hover:bg-orange-200/80 text-primary text-[10px] font-bold transition-colors cursor-pointer"
-                title="Reset to All Records"
+                onClick={() => handleRangeClick('30d')}
+                className="ml-1 px-2 py-0.5 rounded-md bg-orange-100/70 hover:bg-orange-200/80 dark:bg-orange-950/60 dark:hover:bg-orange-900/60 text-primary text-[10px] font-bold transition-colors cursor-pointer"
+                title="Reset to default Last 30 Days"
               >
-                Reset to All
+                Reset to 30D
               </button>
             )}
           </div>
@@ -253,7 +281,7 @@ export function KpiOverview({
             <button
               type="button"
               onClick={onOpenComparison}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 hover:border-slate-300 text-xs font-bold transition-all shadow-2xs cursor-pointer group"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-[#0E0E0E] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-[#1F1F1F] hover:border-slate-300 text-xs font-bold transition-all shadow-2xs cursor-pointer group"
               title="Compare Performance Between Weeks (WoW Analysis)"
             >
               <Scale className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
@@ -297,17 +325,78 @@ export function KpiOverview({
             </div>
           </div>
 
-          <div className="my-2">
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-navy-deep">
-                {s.grossOrders.toLocaleString()}
-              </span>
-            </div>
-            <div className="text-xs font-semibold text-slate-500 mt-1 flex items-center gap-1.5">
-              <span className="font-bold text-navy-deep">৳ {grossSalesAmount.toLocaleString()}</span>
-              <span className="text-slate-400">• Gross</span>
-            </div>
-          </div>
+          {(() => {
+            const insideCount = s.insideOrders || 0;
+            const outsideCount = s.outsideOrders !== undefined ? s.outsideOrders : Math.max(0, s.grossOrders - insideCount);
+            const totalDispatched = (insideCount + outsideCount) || s.grossOrders || 1;
+            const insidePct = Math.min(100, Math.max(0, Math.round((insideCount / totalDispatched) * 100)));
+            const outsidePct = 100 - insidePct;
+            const strokeDash = `${insidePct} ${100 - insidePct}`;
+
+            return (
+              <div className="my-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-navy-deep">
+                        {s.grossOrders.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap">
+                      <span className="font-bold text-navy-deep">৳ {grossSalesAmount.toLocaleString()}</span>
+                      <span className="text-[10px] text-slate-400">gross</span>
+                    </div>
+                  </div>
+
+                  {/* Donut Chart with Numbers directly attached */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* SVG Donut Chart */}
+                    <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Pipeline Territory Split: ${insideCount.toLocaleString()} Inside (${insidePct}%) • ${outsideCount.toLocaleString()} Outside (${outsidePct}%)`}>
+                      <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
+                        {/* Outside Dhaka Track (Orange-200) */}
+                        <path
+                          className="text-orange-200"
+                          stroke="currentColor"
+                          strokeWidth="4.5"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                        {/* Inside Dhaka Segment (Primary) */}
+                        <path
+                          className="text-primary transition-all duration-500 ease-out"
+                          stroke="currentColor"
+                          strokeWidth="4.5"
+                          strokeDasharray={strokeDash}
+                          strokeLinecap="round"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="text-[10px] font-black text-primary font-headline leading-none">
+                          {insidePct}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Number Rendering with Donut Chart with Semantic Labels */}
+                    <div className="flex flex-col text-[11px] font-black leading-tight">
+                      <span className="text-primary flex items-center gap-1" title={`${insideCount.toLocaleString()} Inside Dhaka Orders`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0"></span>
+                        <span>{insideCount.toLocaleString()}</span>
+                        <span className="text-[9px] text-slate-400 font-semibold">Inside</span>
+                      </span>
+                      <span className="text-amber-700 flex items-center gap-1 mt-1" title={`${outsideCount.toLocaleString()} Outside Dhaka Orders`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-300 shrink-0"></span>
+                        <span>{outsideCount.toLocaleString()}</span>
+                        <span className="text-[9px] text-slate-400 font-semibold">Outside</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs" title={`SKU Flow: ${s.totalItemsDelivered.toLocaleString()} Kept + ${s.totalReturnedQty.toLocaleString()} Ret = ${(s.totalGrossItems || s.grossOrders).toLocaleString()} Units`}>
             <span className="text-slate-500 font-medium">Total Flow</span>
@@ -350,17 +439,78 @@ export function KpiOverview({
             </div>
           </div>
 
-          <div className="my-2">
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-emerald-700">
-                {s.fullDeliveredOrders.toLocaleString()}
-              </span>
-            </div>
-            <div className="text-xs font-semibold text-emerald-700/90 mt-1 flex items-center gap-1.5">
-              <span className="font-bold text-emerald-700">৳ {deliveredSalesAmount.toLocaleString()}</span>
-              <span className="text-slate-400">• Net Sales</span>
-            </div>
-          </div>
+          {(() => {
+            const deliveredCount = s.fullDeliveredOrders || 0;
+            const lossCount = Math.max(0, (s.grossOrders || 0) - deliveredCount);
+            const totalPipeline = (deliveredCount + lossCount) || s.grossOrders || 1;
+            const delivPct = Math.min(100, Math.max(0, Math.round((deliveredCount / totalPipeline) * 100)));
+            const lossPct = 100 - delivPct;
+            const strokeDash = `${delivPct} ${100 - delivPct}`;
+
+            return (
+              <div className="my-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-emerald-700">
+                        {s.fullDeliveredOrders.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap">
+                      <span className="font-bold text-emerald-700">৳ {deliveredSalesAmount.toLocaleString()}</span>
+                      <span className="text-[10px] text-slate-400">net</span>
+                    </div>
+                  </div>
+
+                  {/* Donut Chart with Numbers directly attached */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* SVG Donut Chart */}
+                    <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Delivery Yield: ${deliveredCount.toLocaleString()} Kept (${delivPct}%) • ${lossCount.toLocaleString()} Lost (${lossPct}%)`}>
+                      <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
+                        {/* Loss / Undelivered Track (Rose) */}
+                        <path
+                          className="text-rose-200"
+                          stroke="currentColor"
+                          strokeWidth="4.5"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                        {/* Kept / Delivered Segment (Emerald) */}
+                        <path
+                          className="text-emerald-500 transition-all duration-500 ease-out"
+                          stroke="currentColor"
+                          strokeWidth="4.5"
+                          strokeDasharray={strokeDash}
+                          strokeLinecap="round"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="text-[10px] font-black text-emerald-700 font-headline leading-none">
+                          {delivPct}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Number Rendering with Donut Chart with Semantic Labels */}
+                    <div className="flex flex-col text-[11px] font-black leading-tight">
+                      <span className="text-emerald-700 flex items-center gap-1" title={`${deliveredCount.toLocaleString()} Delivered / Kept Orders`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                        <span>{deliveredCount.toLocaleString()}</span>
+                        <span className="text-[9px] text-slate-400 font-semibold">Kept</span>
+                      </span>
+                      <span className="text-rose-600 flex items-center gap-1 mt-1" title={`${lossCount.toLocaleString()} Return / Lost Orders`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                        <span>{lossCount.toLocaleString()}</span>
+                        <span className="text-[9px] text-slate-400 font-semibold">Loss</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
             <span className="text-slate-500 font-medium">Kept Items</span>

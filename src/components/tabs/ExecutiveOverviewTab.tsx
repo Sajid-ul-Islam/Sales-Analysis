@@ -58,7 +58,7 @@ export function ExecutiveOverviewTab({ summary, orders = [], skuList = [] }: Exe
   const categories = useMemo(() => {
     if (skuList && skuList.length > 0) {
       const groups: Record<string, { dispatched: number; returns: number; net: number; revenue: number; icon: string; sub: string }> = {
-        'Jeans': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👖', sub: 'Signature Selvedge, Slim & Regular Fit Jeans' },
+        'Jeans': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👖', sub: 'Slim & Regular Fit Jeans' },
         'Casual & Formal Shirts': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👔', sub: 'Full Sleeve, Half Sleeve, Cuban Collar & Formal Shirts' },
         'Polo Shirts': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👕', sub: 'Classic Pique, Solid & Knitted Polos' },
         'T-Shirts': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👕', sub: 'Solid, Printed & Heavyweight GSM Tees' },

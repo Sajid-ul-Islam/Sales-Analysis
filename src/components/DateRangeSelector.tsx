@@ -8,7 +8,8 @@ import {
   Check,
   RotateCcw,
   Clock,
-  Scale
+  Scale,
+  Sparkles
 } from 'lucide-react';
 import { DateScope, DateScopeCounts, CustomDateRange, FileWeek } from '@/lib/dateFilter';
 
@@ -26,13 +27,13 @@ export interface DateRangeSelectorProps {
   className?: string;
 }
 
-const PRESET_OPTIONS: { id: DateScope; label: string; description: string }[] = [
-  { id: 'all', label: 'All Records', description: 'Full dataset period (Default)' },
-  { id: '30d', label: 'Last 30 Days', description: 'Past 30 rolling days' },
-  { id: 'today', label: 'Today', description: 'Latest active day' },
-  { id: '7d', label: 'Last 7 Days', description: 'Past 7 rolling days' },
+export const PRESET_OPTIONS: { id: DateScope; label: string; description: string; isDefault?: boolean }[] = [
+  { id: '30d', label: 'Last 30 Days', description: 'Past 30 rolling days (Recommended)', isDefault: true },
   { id: 'month', label: 'This Month', description: 'Dominant calendar month' },
-  { id: '90d', label: 'Last 90 Days', description: 'Past quarter' },
+  { id: '7d', label: 'Last 7 Days', description: 'Past 7 rolling days' },
+  { id: 'today', label: 'Today', description: 'Latest active live day' },
+  { id: '90d', label: 'Last 90 Days', description: 'Past quarterly view' },
+  { id: 'all', label: 'All Records', description: 'Full historical dataset archive' },
 ];
 
 export function DateRangeSelector({
@@ -136,13 +137,23 @@ export function DateRangeSelector({
     setIsOpen(false);
   };
 
-  const handleClear = (e: React.MouseEvent) => {
+  const handleResetToDefault = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onScopeChange('all');
+    onScopeChange('30d');
     setCustomError(null);
   };
 
-  const isFiltered = activeScope !== 'all';
+  const isNonDefault = activeScope !== '30d';
+
+  // Quick preset shortcuts for custom picker
+  const handleQuickCustomPreset = (daysBack: number) => {
+    const end = maxDateIso ? new Date(`${maxDateIso}T23:59:59`) : new Date();
+    const start = new Date(end.getTime() - (daysBack - 1) * 86400000);
+    const toIso = (d: Date) => d.toISOString().split('T')[0];
+    setStartInput(toIso(start));
+    setEndInput(toIso(end));
+    setCustomError(null);
+  };
 
   return (
     <div ref={containerRef} className={`relative inline-block text-left ${className}`}>
@@ -154,14 +165,14 @@ export function DateRangeSelector({
         aria-expanded={isOpen}
         title="Filter by date range or select dynamic weeks"
         className={`relative inline-flex items-center justify-center p-2.5 sm:px-3 sm:py-2 sm:gap-2 min-w-[44px] min-h-[44px] rounded-xl text-xs font-semibold transition-all shadow-2xs border cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 ${
-          isFiltered
-            ? 'bg-orange-50/90 text-slate-900 border-primary/30 ring-1 ring-primary/20 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-800'
+          isNonDefault
+            ? 'bg-orange-50/90 text-slate-900 border-primary/40 ring-1 ring-primary/20 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-800'
             : 'bg-white dark:bg-[#000000] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#1F1F1F] hover:bg-slate-50/80 dark:hover:bg-white/10 hover:text-slate-900'
         }`}
       >
         <div className="flex items-center gap-1.5 min-w-0">
           <Calendar
-            className={`w-5 h-5 sm:w-3.5 sm:h-3.5 shrink-0 ${isFiltered ? 'text-primary' : 'text-slate-400'}`}
+            className={`w-5 h-5 sm:w-3.5 sm:h-3.5 shrink-0 ${isNonDefault ? 'text-primary' : 'text-slate-400'}`}
           />
           <span className="hidden sm:inline font-bold truncate max-w-[140px] md:max-w-[200px]">
             {activeLabel}
@@ -169,7 +180,7 @@ export function DateRangeSelector({
           {activeCount !== undefined && (
             <span
               className={`hidden sm:inline px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold shrink-0 ${
-                isFiltered
+                isNonDefault
                   ? 'bg-primary text-white'
                   : 'bg-slate-100 dark:bg-[#1A1A1A] text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-[#222222]'
               }`}
@@ -180,16 +191,16 @@ export function DateRangeSelector({
         </div>
 
         {/* Mobile Filter Indicator Dot */}
-        {isFiltered && (
+        {isNonDefault && (
           <span className="sm:hidden absolute bottom-1.5 w-1 h-1 rounded-full bg-[#EB5A19]" />
         )}
 
-        {/* Clear filter icon if active on desktop */}
-        {isFiltered ? (
+        {/* Clear filter icon if non-default on desktop */}
+        {isNonDefault ? (
           <span
-            onClick={handleClear}
+            onClick={handleResetToDefault}
             className="hidden sm:inline p-0.5 rounded-md hover:bg-orange-200/60 dark:hover:bg-orange-900/60 text-slate-400 hover:text-rose-600 transition-colors"
-            title="Clear date filter (Reset to All Records)"
+            title="Reset date filter to default (Last 30 Days)"
           >
             <X className="w-3.5 h-3.5" />
           </span>
@@ -207,36 +218,147 @@ export function DateRangeSelector({
         <div
           className={`fixed inset-x-2 top-16 sm:absolute sm:inset-x-auto ${
             align === 'right' ? 'sm:right-0' : 'sm:left-0'
-          } mt-2 w-auto sm:w-[400px] max-w-[calc(100vw-16px)] bg-white dark:bg-[#000000] rounded-2xl border border-slate-200 dark:border-[#1F1F1F] shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150`}
+          } mt-2 w-auto sm:w-[420px] max-w-[calc(100vw-16px)] bg-white dark:bg-[#000000] rounded-2xl border border-slate-200 dark:border-[#1F1F1F] shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150`}
         >
           {/* Header */}
-          <div className="px-4 py-3 bg-slate-50/90 border-b border-slate-100 flex items-center justify-between">
+          <div className="px-4 py-3 bg-slate-50/90 dark:bg-[#0C0C0C] border-b border-slate-100 dark:border-[#1A1A1A] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-orange-100/80 text-primary flex items-center justify-center shrink-0">
+              <div className="w-6 h-6 rounded-lg bg-orange-100/80 dark:bg-orange-950/60 text-primary flex items-center justify-center shrink-0">
                 <Clock className="w-3.5 h-3.5" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-slate-900 font-headline">Date Scope Filter</h4>
-                <p className="text-[10px] text-slate-500">
-                  {subLabel ? subLabel : 'Default shows all records in uploaded file'}
+                <div className="flex items-center gap-1.5">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white font-headline">Date Scope Filter</h4>
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Live Smart
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  {subLabel ? subLabel : 'Default shows last 30 rolling days for optimal performance'}
                 </p>
               </div>
             </div>
 
-            {isFiltered && (
+            {isNonDefault ? (
               <button
                 type="button"
-                onClick={handleClear}
+                onClick={handleResetToDefault}
                 className="text-[11px] font-bold text-primary hover:text-orange-700 flex items-center gap-1 cursor-pointer transition-colors"
+                title="Reset to recommended default (Last 30 Days)"
               >
                 <RotateCcw className="w-3 h-3" />
-                <span>Reset to All</span>
+                <span>Reset (30D)</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleSelectPreset('all')}
+                className="text-[10px] font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer transition-colors"
+                title="View full historical dataset"
+              >
+                All Time
               </button>
             )}
           </div>
 
-          <div className="p-3 space-y-3.5 max-h-[500px] overflow-y-auto">
-            {/* 1. Dynamic File Weeks (Detected from Uploaded File) */}
+          <div className="p-3 space-y-3.5 max-h-[520px] overflow-y-auto">
+            {/* 1. Quick Segmented Pill Row for Instant 1-Click Switching */}
+            <div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 px-1 flex items-center justify-between">
+                <span>Quick Range Switch</span>
+                <span className="text-[9px] text-slate-400 font-normal">Instant 60fps filter</span>
+              </div>
+              <div className="grid grid-cols-5 gap-1 p-1 bg-slate-100 dark:bg-[#111111] rounded-xl border border-slate-200/80 dark:border-[#222222]">
+                {[
+                  { id: '30d' as DateScope, label: '30D', hint: 'Default' },
+                  { id: 'month' as DateScope, label: 'Month', hint: 'MTD' },
+                  { id: '7d' as DateScope, label: '7D', hint: 'Week' },
+                  { id: 'today' as DateScope, label: 'Today', hint: 'Live' },
+                  { id: 'all' as DateScope, label: 'All', hint: 'Archive' },
+                ].map((pill) => {
+                  const isSelected = activeScope === pill.id;
+                  return (
+                    <button
+                      key={pill.id}
+                      type="button"
+                      onClick={() => handleSelectPreset(pill.id)}
+                      className={`py-1.5 px-1 text-center rounded-lg transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-white dark:bg-[#222222] text-primary shadow-xs font-bold ring-1 ring-primary/30'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium hover:bg-white/50 dark:hover:bg-white/5'
+                      }`}
+                    >
+                      <div className="text-xs leading-none">{pill.label}</div>
+                      <div className={`text-[8px] mt-0.5 leading-none ${isSelected ? 'text-primary' : 'text-slate-400'}`}>
+                        {pill.hint}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. Detailed Standard Presets */}
+            <div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-1 flex items-center justify-between">
+                <span>Standard Periods</span>
+                <span className="text-[9px] text-slate-400 font-normal">Bounded query scopes</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {PRESET_OPTIONS.map((opt) => {
+                  const isSelected = activeScope === opt.id;
+                  const count = counts ? counts[opt.id as keyof DateScopeCounts] : undefined;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => handleSelectPreset(opt.id)}
+                      className={`flex items-center justify-between px-3 py-2 rounded-xl text-left transition-all border cursor-pointer ${
+                        isSelected
+                          ? 'bg-orange-50 dark:bg-orange-950/40 border-primary/40 text-slate-900 dark:text-white shadow-2xs ring-1 ring-primary/20'
+                          : 'bg-white dark:bg-[#0D0D0D] border-slate-200/80 dark:border-[#1F1F1F] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="min-w-0 pr-1">
+                        <div className="flex items-center gap-1.5">
+                          {isSelected && <Check className="w-3 h-3 text-primary shrink-0" />}
+                          <span
+                            className={`text-xs truncate ${
+                              isSelected ? 'font-bold text-primary' : 'font-semibold text-slate-800 dark:text-slate-200'
+                            }`}
+                          >
+                            {opt.label}
+                          </span>
+                          {opt.isDefault && (
+                            <span className="px-1 py-0.2 rounded text-[8px] font-bold bg-orange-100 dark:bg-orange-950 text-primary uppercase">
+                              Def
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[9px] text-slate-400 block truncate mt-0.5">
+                          {opt.description}
+                        </span>
+                      </div>
+
+                      {count !== undefined && (
+                        <span
+                          className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono shrink-0 ${
+                            isSelected
+                              ? 'bg-primary text-white font-bold'
+                              : 'bg-slate-100 dark:bg-[#1A1A1A] text-slate-600 dark:text-slate-400 font-medium'
+                          }`}
+                        >
+                          {count.toLocaleString()}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 3. Dynamic File Weeks (Detected from Uploaded File) */}
             {fileWeeks && fileWeeks.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-2 px-1">
@@ -278,8 +400,8 @@ export function DateRangeSelector({
                         }}
                         className={`flex items-center justify-between px-3 py-2 rounded-xl text-left transition-all border cursor-pointer ${
                           isWeekSelected
-                            ? 'bg-orange-50 border-primary/40 text-slate-900 shadow-2xs ring-1 ring-primary/20'
-                            : 'bg-white border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                            ? 'bg-orange-50 dark:bg-orange-950/40 border-primary/40 text-slate-900 dark:text-white shadow-2xs ring-1 ring-primary/20'
+                            : 'bg-white dark:bg-[#0D0D0D] border-slate-200/80 dark:border-[#1F1F1F] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:border-slate-300'
                         }`}
                       >
                         <div className="min-w-0 pr-1">
@@ -287,7 +409,7 @@ export function DateRangeSelector({
                             {isWeekSelected && <Check className="w-3 h-3 text-primary shrink-0" />}
                             <span
                               className={`text-xs truncate ${
-                                isWeekSelected ? 'font-bold text-primary' : 'font-semibold text-slate-800'
+                                isWeekSelected ? 'font-bold text-primary' : 'font-semibold text-slate-800 dark:text-slate-200'
                               }`}
                             >
                               {w.label}
@@ -302,7 +424,7 @@ export function DateRangeSelector({
                           className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono shrink-0 ${
                             isWeekSelected
                               ? 'bg-primary text-white font-bold'
-                              : 'bg-slate-100 text-slate-600 font-medium'
+                              : 'bg-slate-100 dark:bg-[#1A1A1A] text-slate-600 dark:text-slate-400 font-medium'
                           }`}
                         >
                           {w.orderCount.toLocaleString()}
@@ -314,76 +436,41 @@ export function DateRangeSelector({
               </div>
             )}
 
-            {/* 2. Quick Standard Presets */}
-            <div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">
-                Standard Presets
-              </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {PRESET_OPTIONS.map((opt) => {
-                  const isSelected = activeScope === opt.id;
-                  const count = counts ? counts[opt.id as keyof DateScopeCounts] : undefined;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => handleSelectPreset(opt.id)}
-                      className={`flex items-center justify-between px-3 py-2 rounded-xl text-left transition-all border cursor-pointer ${
-                        isSelected
-                          ? 'bg-orange-50 border-primary/40 text-slate-900 shadow-2xs ring-1 ring-primary/20'
-                          : 'bg-white border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="min-w-0 pr-1">
-                        <div className="flex items-center gap-1.5">
-                          {isSelected && <Check className="w-3 h-3 text-primary shrink-0" />}
-                          <span
-                            className={`text-xs truncate ${
-                              isSelected ? 'font-bold text-primary' : 'font-semibold text-slate-800'
-                            }`}
-                          >
-                            {opt.label}
-                          </span>
-                        </div>
-                        <span className="text-[9px] text-slate-400 block truncate mt-0.5">
-                          {opt.description}
-                        </span>
-                      </div>
-
-                      {count !== undefined && (
-                        <span
-                          className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono shrink-0 ${
-                            isSelected
-                              ? 'bg-primary text-white font-bold'
-                              : 'bg-slate-100 text-slate-600 font-medium'
-                          }`}
-                        >
-                          {count.toLocaleString()}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* 3. Custom Date Range Picker */}
-            <div className="pt-2 border-t border-slate-100">
+            {/* 4. Custom Date Range Picker */}
+            <div className="pt-2 border-t border-slate-100 dark:border-[#1A1A1A]">
               <div className="flex items-center justify-between mb-2 px-1">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Custom Date Range
+                  Custom Calendar Range
                 </span>
                 {minDateIso && maxDateIso && (
                   <span className="text-[10px] text-slate-400 font-mono">
-                    File: {minDateIso} → {maxDateIso}
+                    Data: {minDateIso} → {maxDateIso}
                   </span>
                 )}
+              </div>
+
+              {/* Quick shortcut helper pills */}
+              <div className="flex items-center gap-1.5 mb-2 px-1">
+                <button
+                  type="button"
+                  onClick={() => handleQuickCustomPreset(14)}
+                  className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-[#1A1A1A] hover:bg-slate-200 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                >
+                  Last 14 Days
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickCustomPreset(60)}
+                  className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-[#1A1A1A] hover:bg-slate-200 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                >
+                  Last 60 Days
+                </button>
               </div>
 
               <form onSubmit={handleApplyCustom} className="space-y-2.5">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-600 mb-1">
+                    <label className="block text-[10px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
                       Start Date
                     </label>
                     <input
@@ -392,11 +479,11 @@ export function DateRangeSelector({
                       min={minDateIso}
                       max={maxDateIso || endInput}
                       onChange={(e) => setStartInput(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono"
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#222222] text-xs text-slate-800 dark:text-slate-200 bg-white dark:bg-[#111111] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-600 mb-1">
+                    <label className="block text-[10px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
                       End Date
                     </label>
                     <input
@@ -405,13 +492,13 @@ export function DateRangeSelector({
                       min={startInput || minDateIso}
                       max={maxDateIso}
                       onChange={(e) => setEndInput(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono"
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#222222] text-xs text-slate-800 dark:text-slate-200 bg-white dark:bg-[#111111] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono"
                     />
                   </div>
                 </div>
 
                 {customError && (
-                  <div className="px-2.5 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 text-[11px] font-medium">
+                  <div className="px-2.5 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 text-[11px] font-medium">
                     {customError}
                   </div>
                 )}
@@ -423,7 +510,7 @@ export function DateRangeSelector({
                       setIsOpen(false);
                       setCustomError(null);
                     }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -438,16 +525,16 @@ export function DateRangeSelector({
               </form>
             </div>
 
-            {/* 4. Compare Between Weeks Button in Popover */}
+            {/* 5. Compare Between Weeks Button in Popover */}
             {onOpenComparison && (
-              <div className="pt-2 border-t border-slate-100">
+              <div className="pt-2 border-t border-slate-100 dark:border-[#1A1A1A]">
                 <button
                   type="button"
                   onClick={() => {
                     setIsOpen(false);
                     onOpenComparison();
                   }}
-                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white/10 dark:hover:bg-white/15 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
                 >
                   <Scale className="w-4 h-4 text-orange-400" />
                   <span>Compare Between Weeks (WoW Analysis)</span>

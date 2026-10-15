@@ -257,3 +257,13 @@ export interface AgenticActionProposal {
   isApplied?: boolean;
 }
 
+export interface DatasetSnapshot {
+  orders: RawOrderRow[];
+  pathaoDelivery: RawOrderRow[];
+  returns: RawOrderRow[];
+  partials: RawOrderRow[];
+  exchanges: RawOrderRow[];
+  sourceName?: string;
+  syncedAt?: string;
+  version?: string;
+}

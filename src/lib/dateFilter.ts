@@ -555,7 +555,7 @@ export function comparePeriods(
  */
 export function filterOrdersByDateScope(
   orders: RawOrderRow[],
-  scope: DateScope = 'all',
+  scope: DateScope = '30d',
   customRange?: CustomDateRange
 ): DateFilterResult {
   const totalOrders = orders.length;

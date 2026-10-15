@@ -15,11 +15,16 @@ import {
   Zap,
   HardDrive,
   Trash2,
-  ShieldCheck
+  ShieldCheck,
+  Download,
+  Database,
+  UploadCloud,
+  FileSpreadsheet
 } from 'lucide-react';
-import { RawOrderRow } from '@/types';
+import { RawOrderRow, DatasetSnapshot } from '@/types';
 import { loadAppSettings } from '@/lib/settingsStore';
 import { DataProvenanceInfo } from '@/lib/dataAudit';
+import { downloadDatasetAsJson, saveDatasetToLocalDisk } from '@/lib/datasetExport';
 import {
   getSyncCache,
   setSyncCache,
@@ -33,9 +38,11 @@ export interface CloudSyncBarProps {
   onDataSynced: (type: 'orders' | 'returns', rows: RawOrderRow[], provenance?: DataProvenanceInfo) => void;
   activeOrders?: RawOrderRow[];
   provenance?: DataProvenanceInfo | null;
+  activeDataset?: Partial<DatasetSnapshot>;
+  onLoadFullDataset?: (dataset: DatasetSnapshot, provenance?: DataProvenanceInfo) => void;
 }
 
-export function CloudSyncBar({ onDataSynced, activeOrders, provenance }: CloudSyncBarProps) {
+export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDataset, onLoadFullDataset }: CloudSyncBarProps) {
   const [currentProvenance, setCurrentProvenance] = useState<DataProvenanceInfo | null>(provenance || null);
 
   useEffect(() => {
@@ -59,6 +66,12 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance }: CloudSy
   const [forceLiveSync, setForceLiveSync] = useState(false);
   const [cacheStats, setCacheStats] = useState(() => getSyncCacheStats());
   const [lastSyncFromCache, setLastSyncFromCache] = useState<{ wc?: boolean; pathao?: boolean; age?: string } | null>(null);
+
+  // Vercel Blob & Storage State (Method 1, 2, 3)
+  const [blobStatus, setBlobStatus] = useState<{ configured: boolean; latestBlob?: any } | null>(null);
+  const [savingToBlob, setSavingToBlob] = useState(false);
+  const [loadingFromBlob, setLoadingFromBlob] = useState(false);
+  const [savingToLocal, setSavingToLocal] = useState(false);
 
   const [pathaoStatus, setPathaoStatus] = useState<any>(null);
   const [wcStatus, setWcStatus] = useState<any>(null);
@@ -88,6 +101,16 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance }: CloudSy
       } : undefined
     };
   };
+
+  const checkBlobStatus = React.useCallback(async () => {
+    try {
+      const res = await fetch('/api/blob/status');
+      const data = await res.json();
+      setBlobStatus(data.status ? { configured: data.configured, latestBlob: data.status.latestBlob } : { configured: Boolean(data.configured) });
+    } catch {
+      setBlobStatus({ configured: false });
+    }
+  }, []);
 
   const checkStatus = React.useCallback(async () => {
     setLoadingStatus(true);
@@ -119,8 +142,9 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance }: CloudSy
 
   useEffect(() => {
     checkStatus();
+    checkBlobStatus();
     setCacheStats(getSyncCacheStats());
-  }, [checkStatus]);
+  }, [checkStatus, checkBlobStatus]);
 
   // Quick Preset Handlers
   const handleApplyPreset = (preset: string) => {
@@ -154,6 +178,79 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance }: CloudSy
     const cleared = clearAllSyncCaches();
     setCacheStats(getSyncCacheStats());
     setMessage(`Cleared ${cleared} API sync cache snapshots. Subsequent requests will query live endpoints.`);
+  };
+
+  // Method 1: Client Download JSON Snapshot
+  const handleDownloadDatasetJson = () => {
+    const ds = activeDataset || { orders: activeOrders || [] };
+    downloadDatasetAsJson(ds, `deen_dataset_${startDate}_${endDate}.json`);
+    setMessage(`📥 Downloaded working dataset snapshot as JSON file.`);
+  };
+
+  // Method 1: Save directly to local baseline file (Node environment)
+  const handleSaveToLocalDisk = async () => {
+    setSavingToLocal(true);
+    try {
+      const ds = activeDataset || { orders: activeOrders || [] };
+      const res = await saveDatasetToLocalDisk(ds);
+      setMessage(res.message);
+    } catch (err: any) {
+      setMessage(`Failed to save baseline: ${err.message}`);
+    } finally {
+      setSavingToLocal(false);
+    }
+  };
+
+  // Method 3: Upload current working dataset to Vercel Blob
+  const handleSaveToVercelBlob = async () => {
+    setSavingToBlob(true);
+    setMessage('Uploading dataset snapshot to Vercel Blob...');
+    try {
+      const ds = activeDataset || { orders: activeOrders || [] };
+      const res = await fetch('/api/blob/dataset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ds),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage(`☁️ ${data.message}`);
+        checkBlobStatus();
+      } else {
+        setMessage(data.message || data.error || 'Failed to upload to Vercel Blob');
+      }
+    } catch (err: any) {
+      setMessage(`Vercel Blob upload error: ${err.message}`);
+    } finally {
+      setSavingToBlob(false);
+    }
+  };
+
+  // Method 3: Load latest cloud snapshot from Vercel Blob
+  const handleLoadFromVercelBlob = async () => {
+    setLoadingFromBlob(true);
+    setMessage('Fetching latest dataset from Vercel Blob...');
+    try {
+      const res = await fetch('/api/blob/dataset');
+      const data = await res.json();
+      if (data.success && data.dataset) {
+        if (onLoadFullDataset) {
+          onLoadFullDataset(data.dataset, data.provenance);
+        } else if (data.dataset.orders) {
+          onDataSynced('orders', data.dataset.orders, data.provenance);
+          if (data.dataset.returns) {
+            onDataSynced('returns', data.dataset.returns, data.provenance);
+          }
+        }
+        setMessage(`⚡ Loaded ${(data.dataset.orders || []).length.toLocaleString()} orders & ${(data.dataset.returns || []).length.toLocaleString()} returns from Vercel Blob.`);
+      } else {
+        setMessage(data.message || 'No dataset found in Vercel Blob.');
+      }
+    } catch (err: any) {
+      setMessage(`Vercel Blob load error: ${err.message}`);
+    } finally {
+      setLoadingFromBlob(false);
+    }
   };
 
   // Sync Pathao Live with Date Range and Local Cache
@@ -793,6 +890,159 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance }: CloudSy
                 </>
               )}
             </button>
+          </div>
+
+          {/* 3-Tier Storage & Persistence Hub (Methods 1, 2, 3) */}
+          <div className="pt-4 border-t border-slate-100">
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-2">
+                <Database className="w-4 h-4 text-primary" />
+                <h4 className="text-xs font-bold text-slate-900 font-headline">
+                  Dataset Storage & Persistence Hub (Methods 1, 2, 3)
+                </h4>
+              </div>
+              <span className="text-[10px] text-slate-500 font-medium hidden sm:inline">
+                Store fetched datasets so you never have to refetch repeatedly
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {/* Method 1: Bundled Baseline JSON & Export */}
+              <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Download className="w-3.5 h-3.5 text-primary" />
+                      Method 1: Static JSON
+                    </span>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-orange-100 text-primary">
+                      Zero Cost
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mb-3 leading-relaxed">
+                    Download active dataset as JSON or save to <code className="text-slate-700 font-mono">baselineSample.json</code>. Bundled into Vercel build for 0ms startup.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDownloadDatasetJson}
+                    className="flex-1 px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95"
+                    title="Download active dataset as standardized JSON file"
+                  >
+                    <Download className="w-3 h-3 text-primary" />
+                    <span>Download JSON</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveToLocalDisk}
+                    disabled={savingToLocal}
+                    className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95 disabled:opacity-50"
+                    title="Write directly to src/data/baselineSample.json in local development"
+                  >
+                    {savingToLocal ? (
+                      <RefreshCw className="w-3 h-3 animate-spin text-primary" />
+                    ) : (
+                      <FileSpreadsheet className="w-3 h-3 text-slate-600" />
+                    )}
+                    <span>Save Baseline</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Method 2: Browser Local Storage */}
+              <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <HardDrive className="w-3.5 h-3.5 text-emerald-600" />
+                      Method 2: Browser Cache
+                    </span>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                      Auto Active
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mb-3 leading-relaxed">
+                    Browser localStorage caches live API queries for 7 days (historical) or 2 hours. Provides instant 0ms reload on refresh.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForceLiveSync(false);
+                      const kb = Math.round(cacheStats.totalCachedBytes / 1024);
+                      setMessage(`⚡ Browser local cache active: ${cacheStats.totalCachedEntries} snapshots (${kb} KB) stored.`);
+                    }}
+                    className="flex-1 px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-emerald-800 border border-slate-200 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95"
+                    title="Restore active dataset from browser local storage"
+                  >
+                    <Zap className="w-3 h-3 text-emerald-600" />
+                    <span>{cacheStats.totalCachedEntries} Cached ({Math.round(cacheStats.totalCachedBytes / 1024)} KB)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearApiCaches}
+                    className="p-1.5 rounded-lg bg-white hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200 text-[11px] transition-all shadow-2xs active:scale-95"
+                    title="Clear Browser Cache"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Method 3: Vercel Blob Cloud Storage */}
+              <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Cloud className="w-3.5 h-3.5 text-indigo-600" />
+                      Method 3: Vercel Blob
+                    </span>
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                      blobStatus?.configured
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {blobStatus?.configured ? 'Connected' : 'Token Needed'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mb-3 leading-relaxed">
+                    Serverless cloud object storage. Persists synced JSON in Vercel Blob so all team members & visitors share the latest cloud data without redeploying.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSaveToVercelBlob}
+                    disabled={savingToBlob || !blobStatus?.configured}
+                    className="flex-1 px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95"
+                    title={blobStatus?.configured ? "Upload current dataset to Vercel Blob" : "Configure BLOB_READ_WRITE_TOKEN in Vercel Environment Variables"}
+                  >
+                    {savingToBlob ? (
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <UploadCloud className="w-3 h-3" />
+                    )}
+                    <span>Save to Blob</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleLoadFromVercelBlob}
+                    disabled={loadingFromBlob || !blobStatus?.configured}
+                    className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-indigo-800 border border-indigo-200 disabled:opacity-50 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95"
+                    title={blobStatus?.configured ? "Fetch latest dataset snapshot from Vercel Blob" : "Configure BLOB_READ_WRITE_TOKEN in Vercel Environment Variables"}
+                  >
+                    {loadingFromBlob ? (
+                      <RefreshCw className="w-3 h-3 animate-spin text-indigo-600" />
+                    ) : (
+                      <Cloud className="w-3 h-3 text-indigo-600" />
+                    )}
+                    <span>Load</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Feedback Message */}
