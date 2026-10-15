@@ -12,7 +12,9 @@ import {
   ExchangedOrderRow
 } from '@/types';
 import { classifyLocation } from './geo';
-import { matchPartialItemsAdvanced, OrderItemEntry, SubsetMatchResult } from './subsetSum';
+import { OrderItemEntry, SubsetMatchResult } from './subsetSum';
+import { matchPartialItemsWithAudit, AuditedSubsetMatchResult } from './subsetSumAuditor';
+import { assertNoDoubleCounting } from './accounting/accountingContract';
 
 export interface IngestionOptions {
   excludeAugust?: boolean;
@@ -319,8 +321,11 @@ export function runReconciliationEngine(
   const insideFee = options.insideDeliveryFee !== undefined ? options.insideDeliveryFee : 50;
   const outsideFee = options.outsideDeliveryFee !== undefined ? options.outsideDeliveryFee : 90;
   const packagingFee = options.packagingCost !== undefined ? options.packagingCost : 25;
-  const exactTol = options.exactTolerance !== undefined ? options.exactTolerance : 2.0;
+  const exactTol = options.exactTolerance !== undefined ? options.exactTolerance : 2;
   const metaAdCost = options.metaAdCost !== undefined ? options.metaAdCost : 150000;
+
+  // Accounting Contract Invariant: Verify multi-item order GMV deduplication
+  const doubleCountingAudit = assertNoDoubleCounting(orderRows);
 
   // Primary Courier Truth: If separate manifest files are absent, auto-synthesize from Pathao Delivery Data
   const effectiveReturnRows = (returnRows && returnRows.length > 0)
@@ -783,7 +788,7 @@ export function runReconciliationEngine(
     // Rule:
     // Delivered price (may include 50 TK or 90 TK delivery charge) matches kept items.
     // Leftover price is the price of returned items. Returned quantity is strictly an INTEGER.
-    let partialMatchResult: SubsetMatchResult | null = null;
+    let partialMatchResult: AuditedSubsetMatchResult | null = null;
     if (orderDeliveryCategory === 'PARTIAL') {
       let effCod: number | null = null;
       if (isResolvedByPathao && pathaoCodForPartial !== null && pathaoCodForPartial > 0) {
@@ -802,7 +807,7 @@ export function runReconciliationEngine(
         qty: Math.max(1, parseInt(findCol(r, ['quantity', 'qty']) || '1', 10) || 1)
       }));
 
-      partialMatchResult = matchPartialItemsAdvanced(itemsSummary, effCod, orderTotal, insideFee, outsideFee, exactTol);
+      partialMatchResult = matchPartialItemsWithAudit(itemsSummary, effCod, orderTotal, insideFee, outsideFee, exactTol);
     }
 
     // Detect branch from order ID or customer notes, or from matched courier return/exchange records
@@ -904,7 +909,9 @@ export function runReconciliationEngine(
             fulfillmentLocation: branchInfo.branch,
             branchSuffix: branchInfo.suffix || undefined,
             isPaidReturn: hasAnyPaidParcel,
-            isExchange: false
+            isExchange: false,
+            requiresManualReview: partialMatchResult?.requiresManualReview,
+            decisionEvidence: partialMatchResult?.decisionEvidence
           });
         }
 
@@ -935,7 +942,9 @@ export function runReconciliationEngine(
             fulfillmentLocation: branchInfo.branch,
             branchSuffix: branchInfo.suffix || undefined,
             isPaidReturn: hasAnyPaidParcel,
-            isExchange: false
+            isExchange: false,
+            requiresManualReview: partialMatchResult?.requiresManualReview,
+            decisionEvidence: partialMatchResult?.decisionEvidence
           });
         }
       } else if (orderDeliveryCategory === 'EXCHANGE') {
@@ -1505,7 +1514,8 @@ export function runReconciliationEngine(
     unpaidReturnsCount,
     totalExchangeCourierExpense,
     pathaoDeliveryCount: pathaoDeliveryRows.length,
-    pathaoMatchedOrdersCount: Array.from(orderGroups.keys()).filter(k => pathaoDeliveryMap.has(k)).length
+    pathaoMatchedOrdersCount: Array.from(orderGroups.keys()).filter(k => pathaoDeliveryMap.has(k)).length,
+    doubleCountingAudit
   };
 
   // 7. Calculate Courier & Pathao Status Reconciliations and Flag Mismatches

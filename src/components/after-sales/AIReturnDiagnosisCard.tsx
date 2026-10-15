@@ -61,7 +61,7 @@ export function AIReturnDiagnosisCard({ returnedItems }: AIReturnDiagnosisCardPr
     return () => window.removeEventListener('deen_byok_updated', handleBYOKUpdate);
   }, []);
 
-  const fetchDiagnosis = async () => {
+  const fetchDiagnosis = React.useCallback(async () => {
     if (returnedItems.length === 0) return;
     setLoading(true);
     try {
@@ -92,13 +92,13 @@ export function AIReturnDiagnosisCard({ returnedItems }: AIReturnDiagnosisCardPr
     } finally {
       setLoading(false);
     }
-  };
+  }, [returnedItems]);
 
   useEffect(() => {
     if (!diagnosis && returnedItems.length > 0) {
       fetchDiagnosis();
     }
-  }, [returnedItems.length]);
+  }, [diagnosis, returnedItems.length, fetchDiagnosis]);
 
   if (returnedItems.length === 0) return null;
 

@@ -382,6 +382,14 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                               🏷️ {o.aiAuditTag}
                             </span>
                           )}
+                          {o.requiresManualReview && (
+                            <span
+                              className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 px-1.5 py-0.5 rounded-full font-bold border border-amber-300 dark:border-amber-700 flex items-center gap-0.5 shrink-0"
+                              title={o.decisionEvidence?.explanation || 'Ambiguous partial delivery: manual review recommended'}
+                            >
+                              ⚠️ Review Needed
+                            </span>
+                          )}
                         </div>
                       </td>
 

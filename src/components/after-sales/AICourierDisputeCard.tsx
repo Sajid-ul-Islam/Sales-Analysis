@@ -65,7 +65,7 @@ export function AICourierDisputeCard({ mismatches }: AICourierDisputeCardProps) 
     return () => window.removeEventListener('deen_byok_updated', handleBYOKUpdate);
   }, []);
 
-  const fetchAudit = async () => {
+  const fetchAudit = React.useCallback(async () => {
     if (mismatches.length === 0) return;
     setLoading(true);
     try {
@@ -96,13 +96,13 @@ export function AICourierDisputeCard({ mismatches }: AICourierDisputeCardProps) 
     } finally {
       setLoading(false);
     }
-  };
+  }, [mismatches]);
 
   useEffect(() => {
     if (!audit && mismatches.length > 0) {
       fetchAudit();
     }
-  }, [mismatches.length]);
+  }, [audit, mismatches.length, fetchAudit]);
 
   const handleCopyClaim = () => {
     if (!audit?.claimDossierText) return;

@@ -304,9 +304,19 @@ export function CourierMismatchTab({
                         : 'bg-white group-hover:bg-slate-50'
                     }`}>
                       <div className="flex flex-col">
-                        <span className="font-headline font-bold text-slate-900">
-                          #{item.orderId}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-headline font-bold text-slate-900">
+                            #{item.orderId}
+                          </span>
+                          {(item.severity === 'CRITICAL' || item.severity === 'WARNING' || item.requiresManualReview) && (
+                            <span
+                              className="text-[9px] bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 px-1.5 py-0.2 rounded-full font-bold border border-amber-300 dark:border-amber-700 shrink-0"
+                              title={item.recommendedAction || item.reviewReason || 'Manual review required'}
+                            >
+                              ⚠️ Review
+                            </span>
+                          )}
+                        </div>
                         {item.consignmentId ? (
                           <span className="text-[10px] font-mono text-slate-400">
                             Cons: {item.consignmentId}

@@ -79,6 +79,7 @@ import {
 import { RawOrderRow } from '@/types';
 import { loadBYOKConfig, BYOKConfig } from '@/lib/byok';
 import { BYOKModal } from '@/components/ai/BYOKModal';
+import { DataProvenanceInfo } from '@/lib/dataAudit';
 
 interface SettingsTabProps {
   excludeAugust: boolean;
@@ -86,7 +87,7 @@ interface SettingsTabProps {
   excludePOS: boolean;
   setExcludePOS: (val: boolean) => void;
   onResetBaseline?: () => void;
-  onDataSynced?: (type: 'orders' | 'returns', rows: RawOrderRow[]) => void;
+  onDataSynced?: (type: 'orders' | 'returns', rows: RawOrderRow[], provenance?: DataProvenanceInfo) => void;
   onRefreshReconciliation?: () => void;
   insideDeliveryFee?: number;
   setInsideDeliveryFee?: (val: number) => void;
@@ -219,6 +220,49 @@ export function SettingsTab({
     }
   }, []);
 
+  // API Status Check
+  const checkApiStatus = React.useCallback(async (customCreds?: any) => {
+    setLoadingStatus(true);
+    try {
+      const payload: any = customCreds || {};
+      if (!customCreds) {
+        if (wcConsumerKey) {
+          payload.woocommerce = {
+            store_url: wcStoreUrl,
+            consumer_key: wcConsumerKey,
+            consumer_secret: wcConsumerSecret
+          };
+        }
+        if (pathaoClientId) {
+          payload.pathao = {
+            base_url: 'https://api-hermes.pathao.com',
+            client_id: pathaoClientId,
+            client_secret: pathaoClientSecret,
+            username: pathaoUsername
+          };
+        }
+      }
+
+      const res = Object.keys(payload).length > 0
+        ? await fetch('/api/sync/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+        : await fetch('/api/sync/status');
+
+      const data = await res.json();
+      setPathaoStatus(data.pathao);
+      setWcStatus(data.woocommerce);
+      setGa4Status(data.ga4);
+      setMetaStatus(data.meta);
+    } catch (e: any) {
+      console.error('Failed to verify API connectivity:', e);
+    } finally {
+      setLoadingStatus(false);
+    }
+  }, [wcConsumerKey, wcStoreUrl, wcConsumerSecret, pathaoClientId, pathaoClientSecret, pathaoUsername]);
+
   // Load saved settings on mount
   useEffect(() => {
     const loadedTheme = loadSavedThemeSettings();
@@ -245,9 +289,26 @@ export function SettingsTab({
       if (appSettings.auditLogs) setAuditLogs(appSettings.auditLogs);
     }
 
-    checkApiStatus();
+    const credsPayload: any = {};
+    if (appSettings?.wcConsumerKey) {
+      credsPayload.woocommerce = {
+        store_url: appSettings.wcStoreUrl || 'https://deencommerce.com',
+        consumer_key: appSettings.wcConsumerKey,
+        consumer_secret: appSettings.wcConsumerSecret
+      };
+    }
+    if (appSettings?.pathaoClientId) {
+      credsPayload.pathao = {
+        base_url: 'https://api-hermes.pathao.com',
+        client_id: appSettings.pathaoClientId,
+        client_secret: appSettings.pathaoClientSecret,
+        username: appSettings.pathaoUsername
+      };
+    }
+
+    checkApiStatus(Object.keys(credsPayload).length > 0 ? credsPayload : undefined);
     refreshStorageData();
-  }, [refreshStorageData]);
+  }, [refreshStorageData, checkApiStatus]);
 
   const showToast = (msg: string) => {
     setSaveToast(msg);
@@ -469,49 +530,6 @@ export function SettingsTab({
     });
   };
 
-  // API Status Check
-  const checkApiStatus = async (customCreds?: any) => {
-    setLoadingStatus(true);
-    try {
-      const payload: any = customCreds || {};
-      if (!customCreds) {
-        if (wcConsumerKey) {
-          payload.woocommerce = {
-            store_url: wcStoreUrl,
-            consumer_key: wcConsumerKey,
-            consumer_secret: wcConsumerSecret
-          };
-        }
-        if (pathaoClientId) {
-          payload.pathao = {
-            base_url: 'https://api-hermes.pathao.com',
-            client_id: pathaoClientId,
-            client_secret: pathaoClientSecret,
-            username: pathaoUsername
-          };
-        }
-      }
-
-      const res = Object.keys(payload).length > 0
-        ? await fetch('/api/sync/status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          })
-        : await fetch('/api/sync/status');
-
-      const data = await res.json();
-      setPathaoStatus(data.pathao);
-      setWcStatus(data.woocommerce);
-      setGa4Status(data.ga4);
-      setMetaStatus(data.meta);
-    } catch (e: any) {
-      console.error('Failed to verify API connectivity:', e);
-    } finally {
-      setLoadingStatus(false);
-    }
-  };
-
   // Purge API Sync Caches specifically
   const handlePurgeApiCaches = () => {
     const cleared = clearAllSyncCaches();
@@ -609,7 +627,7 @@ export function SettingsTab({
         setSyncCache('pathao', startDate, endDate, 'any', data.orders, {
           ordersCount: data.ordersCount || data.orders.length,
         });
-        onDataSynced?.('returns', data.orders);
+        onDataSynced?.('returns', data.orders, data.provenance);
         setApiMessage(`Retrieved ${data.ordersCount} Pathao return & delivery records & saved to local cache.`);
         showToast(`Synced ${data.ordersCount} courier parcels.`);
         logAuditAction('Pathao Synced', `Fetched ${data.ordersCount} consignments from Pathao Hermes API.`);

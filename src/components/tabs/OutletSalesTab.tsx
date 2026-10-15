@@ -188,7 +188,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
   }, [resolveOutletFromWcOrder]);
 
   // Pull live orders from WooCommerce REST API
-  const handlePullFromWooCommerce = async (perPage: number = 100, maxPages: number = 5) => {
+  const handlePullFromWooCommerce = useCallback(async (perPage: number = 100, maxPages: number = 5) => {
     setIsLoading(true);
     setSyncStatusMsg('Connecting to WooCommerce REST API (https://deencommerce.com)...');
 
@@ -251,14 +251,14 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [parseRawWcOrders]);
 
   // Auto-load on mount if wcOrders is empty: pull initially (500 orders across 5 pages)
   useEffect(() => {
     if (wcOrders.length === 0) {
       handlePullFromWooCommerce(100, 5);
     }
-  }, []);
+  }, [wcOrders.length, handlePullFromWooCommerce]);
 
   // Compute Outlet Sales Aggregates with Mirpur separate from Online Store
   const { outletMetrics, aggregateTotals, paymentMethodTotals } = useMemo(() => {

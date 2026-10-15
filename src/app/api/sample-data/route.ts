@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import path from 'path';
 import * as XLSX from 'xlsx';
 import fs from 'fs';
+import { sanitizeOrdersResponse } from '@/lib/auth/dataMasking';
+import { createDataProvenance } from '@/lib/dataAudit';
 import baselineData from '@/data/baselineSample.json';
 
 function findFirstExistingFile(candidatePaths: string[]): string | null {
@@ -106,6 +108,19 @@ export async function GET() {
     const isAnyFallbackUsed = ordersFromFallback || returnsFromFallback || partialsFromFallback || exchangesFromFallback || pathaoFromFallback;
     console.log(`[API /api/sample-data] Loaded ${orders.length} orders, ${returns.length} returns, ${partials.length} partials, ${exchanges.length} exchanges, ${pathaoDelivery.length} pathao records (Any Fallback: ${isAnyFallbackUsed})`);
 
+    // PII Sanitization across all exported sample records
+    const sanitizedOrders = sanitizeOrdersResponse(orders);
+    const sanitizedReturns = sanitizeOrdersResponse(returns);
+    const sanitizedPartials = sanitizeOrdersResponse(partials);
+    const sanitizedExchanges = sanitizeOrdersResponse(exchanges);
+    const sanitizedPathao = sanitizeOrdersResponse(pathaoDelivery);
+
+    const provenance = createDataProvenance(
+      isAnyFallbackUsed ? 'baseline_bundled' : 'disk_spreadsheet',
+      sanitizedOrders.length,
+      true
+    );
+
     return NextResponse.json({
       success: true,
       ordersPath: ordersPath ? path.basename(ordersPath) : (ordersFromFallback ? 'baselineSample.json (Bundled)' : null),
@@ -113,16 +128,17 @@ export async function GET() {
       partialsPath: partialsPath ? path.basename(partialsPath) : (partialsFromFallback ? 'baselineSample.json (Bundled)' : null),
       exchangesPath: exchangesPath ? path.basename(exchangesPath) : (exchangesFromFallback ? 'baselineSample.json (Bundled)' : null),
       pathaoDeliveryPath: pathaoPath ? path.basename(pathaoPath) : (pathaoFromFallback ? 'baselineSample.json (Bundled)' : null),
-      ordersCount: orders.length,
-      returnsCount: returns.length,
-      partialsCount: partials.length,
-      exchangesCount: exchanges.length,
-      pathaoDeliveryCount: pathaoDelivery.length,
-      orders,
-      returns,
-      partials,
-      exchanges,
-      pathaoDelivery
+      ordersCount: sanitizedOrders.length,
+      returnsCount: sanitizedReturns.length,
+      partialsCount: sanitizedPartials.length,
+      exchangesCount: sanitizedExchanges.length,
+      pathaoDeliveryCount: sanitizedPathao.length,
+      provenance,
+      orders: sanitizedOrders,
+      returns: sanitizedReturns,
+      partials: sanitizedPartials,
+      exchanges: sanitizedExchanges,
+      pathaoDelivery: sanitizedPathao
     });
   } catch (error: any) {
     console.error('Error reading sample data:', error);

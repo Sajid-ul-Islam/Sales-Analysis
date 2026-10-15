@@ -58,11 +58,17 @@ export function DateRangeSelector({
 
   // Sync inputs when customRange or min/max changes
   useEffect(() => {
-    if (customRange?.startDate) setStartInput(customRange.startDate);
-    else if (minDateIso && !startInput) setStartInput(minDateIso);
+    if (customRange?.startDate) {
+      setStartInput(customRange.startDate);
+    } else if (minDateIso) {
+      setStartInput(prev => prev || minDateIso);
+    }
 
-    if (customRange?.endDate) setEndInput(customRange.endDate);
-    else if (maxDateIso && !endInput) setEndInput(maxDateIso);
+    if (customRange?.endDate) {
+      setEndInput(customRange.endDate);
+    } else if (maxDateIso) {
+      setEndInput(prev => prev || maxDateIso);
+    }
   }, [customRange, minDateIso, maxDateIso]);
 
   // Click outside to close popover

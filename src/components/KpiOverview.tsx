@@ -16,7 +16,6 @@ import {
   Download,
   UploadCloud,
   Calendar,
-  Layers,
   ArrowRight,
   FileSpreadsheet,
   Cloud,
@@ -310,7 +309,7 @@ export function KpiOverview({
             </div>
           </div>
 
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs" title={`SKU Flow: ${s.totalItemsDelivered.toLocaleString()} Kept + ${s.totalReturnedQty.toLocaleString()} Ret = ${(s.totalGrossItems || s.grossOrders).toLocaleString()} Units`}>
             <span className="text-slate-500 font-medium">Total Flow</span>
             <span className="font-bold text-primary px-2 py-0.5 rounded-md bg-orange-50 border border-orange-200/60 shadow-2xs">
               {(s.totalGrossItems || s.grossOrders).toLocaleString()} pcs
@@ -412,6 +411,10 @@ export function KpiOverview({
             const unpaidPct = 100 - paidPct;
             const strokeDash = `${paidPct} ${100 - paidPct}`;
 
+            const rtoQty = Math.round(s.regularReturnedQty || s.fullReturnedOrders || 0);
+            const partialQty = Math.round(s.partialReturnedQty || s.partialOrders || 0);
+            const totalRetQty = Math.round(s.totalReturnedQty || (rtoQty + partialQty) || 0);
+
             return (
               <>
                 <div className="my-2">
@@ -476,11 +479,23 @@ export function KpiOverview({
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="text-slate-500 font-medium">RTO Items</span>
-                  <span className="font-bold text-rose-600 px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200/60 shadow-2xs">
-                    {s.totalReturnedQty.toLocaleString()} pcs
-                  </span>
+                <div className="pt-2 border-t border-slate-100 flex flex-col gap-1 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 font-medium">Total Returns</span>
+                    <span className="font-bold text-rose-600 px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200/60 shadow-2xs">
+                      {totalRetQty.toLocaleString()} pcs
+                    </span>
+                  </div>
+                  <div
+                    className="flex items-center justify-between text-[10px] px-1.5 py-0.5 rounded bg-slate-50 border border-slate-100 text-slate-600 font-medium"
+                    title={`SKU Return Balance: ${rtoQty.toLocaleString()} pcs RTO + ${partialQty.toLocaleString()} pcs Partials = ${totalRetQty.toLocaleString()} pcs Total Returns`}
+                  >
+                    <span className="text-rose-600 font-bold">{rtoQty.toLocaleString()} RTO</span>
+                    <span className="text-slate-300 font-bold">+</span>
+                    <span className="text-amber-700 font-bold">{partialQty.toLocaleString()} Partials</span>
+                    <span className="text-slate-300 font-bold">=</span>
+                    <span className="text-navy-deep font-bold">{totalRetQty.toLocaleString()} pcs</span>
+                  </div>
                 </div>
               </>
             );
@@ -726,42 +741,7 @@ export function KpiOverview({
         </div>
       </div>
 
-      {/* 4. FORMULA VERIFICATION & TOTAL RETURNED RECONCILIATION BAR */}
-      <div className="p-3 sm:p-3.5 rounded-xl bg-gradient-to-r from-slate-50 via-white to-slate-50 border border-slate-200/90 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <div className="w-7 h-7 rounded-lg bg-orange-100/80 text-primary flex items-center justify-center shrink-0">
-            <Layers className="w-4 h-4" />
-          </div>
-          <span className="font-bold text-primary text-[11px] uppercase tracking-wider shrink-0">
-            SKU Balance:
-          </span>
-          <div className="flex items-center gap-1.5 flex-wrap text-slate-700">
-            <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 font-bold border border-rose-200/60">
-              {(s.regularReturnedQty || s.fullReturnedOrders).toLocaleString()} pcs
-            </span>
-            <span className="text-slate-400 font-medium text-[11px]">RTO</span>
-            <span className="text-slate-400 font-bold">+</span>
-            <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 font-bold border border-amber-200/60">
-              {(s.partialReturnedQty || s.partialOrders).toLocaleString()} pcs
-            </span>
-            <span className="text-slate-400 font-medium text-[11px]">Partials</span>
-            <span className="text-slate-400 font-bold">=</span>
-            <span className="px-2 py-0.5 rounded bg-primary text-white font-bold shadow-2xs">
-              {(s.totalReturnedQty || ((s.regularReturnedQty || s.fullReturnedOrders) + (s.partialReturnedQty || s.partialOrders))).toLocaleString()} Total Returns
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-500 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          <span>SKU Flow:</span>
-          <span className="font-bold text-navy-deep">
-            {s.totalItemsDelivered.toLocaleString()} Kept + {s.totalReturnedQty.toLocaleString()} Ret = {(s.totalGrossItems || s.grossOrders).toLocaleString()} Units
-          </span>
-        </div>
-      </div>
-
-      {/* 5. EXECUTIVE FINANCIALS, LOGISTICS, TERRITORY & PAYMENT RATIO METRICS (Consolidated 5-Card Grid) */}
+      {/* 4. EXECUTIVE FINANCIALS, LOGISTICS, TERRITORY & PAYMENT RATIO METRICS (Consolidated 5-Card Grid) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
         {/* 1. Realized Net Revenue with Realization Rate & Return Leakage Donut */}
         <div

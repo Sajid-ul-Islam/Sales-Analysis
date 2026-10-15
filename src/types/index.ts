@@ -34,6 +34,8 @@ export interface ReconciledOrderRow {
   isExchange?: boolean;
   aiAuditTag?: string; // AI operational tag (e.g. 'Pathao Discrepancy', 'Hold for Advance', 'Branch Audit')
   aiAuditNote?: string; // AI audit description or reason
+  requiresManualReview?: boolean; // True when subset-sum match is ambiguous or deviates from discrete targets
+  decisionEvidence?: import('@/lib/subsetSumAuditor').DecisionEvidence; // Explainable evidence trail for the reconciliation outcome
 }
 
 export interface ReturnedItemRow {
@@ -153,6 +155,7 @@ export interface SummaryAnalytics {
   totalExchangeCourierExpense: number;
   pathaoDeliveryCount?: number;
   pathaoMatchedOrdersCount?: number;
+  doubleCountingAudit?: import('@/lib/accounting/accountingContract').DoubleCountingAuditResult;
 }
 
 export interface SummaryMetrics extends SummaryAnalytics {
@@ -217,6 +220,8 @@ export interface CourierMismatchRecord {
   mismatchType: 'STATUS_MISMATCH' | 'COD_MISMATCH' | 'MISSING_IN_COURIER' | 'UNLOGGED_RETURN' | 'RECONCILED';
   description: string;
   recommendedAction: string;
+  requiresManualReview?: boolean;
+  reviewReason?: string;
 }
 
 export type AgenticActionType = 'TAG_ORDERS' | 'CLEAR_TAGS' | 'FILTER_VIEW';

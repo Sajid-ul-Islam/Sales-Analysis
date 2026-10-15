@@ -1,5 +1,6 @@
 import { getSecretsConfig, getSecretsWithOverrides } from './secrets';
 import { RawOrderRow } from '@/types';
+import { withExponentialBackoff } from './sync/retry';
 
 export interface WcFetchOptions {
   page?: number;
@@ -29,22 +30,26 @@ export async function testWooCommerceConnection(credentials?: WcCredentials): Pr
     };
   }
 
-  const url = `${wc.store_url.replace(/\/+$/, '')}/wp-json/wc/v3/orders?consumer_key=${encodeURIComponent(
-    wc.consumer_key
-  )}&consumer_secret=${encodeURIComponent(wc.consumer_secret)}&per_page=1`;
+  const url = `${wc.store_url.replace(/\/+$/, '')}/wp-json/wc/v3/orders?per_page=1`;
+  const authHeader = 'Basic ' + Buffer.from(`${wc.consumer_key}:${wc.consumer_secret}`).toString('base64');
 
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 9000);
 
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
-      },
-    });
-    clearTimeout(timeoutId);
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': authHeader,
+          'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
+        },
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (res.ok) {
       return {
@@ -112,10 +117,10 @@ export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Prom
   let currentPage = options.page || 1;
   let allOrders: any[] = [];
 
+  const authHeader = 'Basic ' + Buffer.from(`${wc.consumer_key}:${wc.consumer_secret}`).toString('base64');
+
   while (currentPage <= maxPages) {
     const url = new URL(`${wc.store_url.replace(/\/+$/, '')}/wp-json/wc/v3/orders`);
-    url.searchParams.set('consumer_key', wc.consumer_key);
-    url.searchParams.set('consumer_secret', wc.consumer_secret);
     url.searchParams.set('page', String(currentPage));
     url.searchParams.set('per_page', String(perPage));
 
@@ -123,24 +128,33 @@ export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Prom
     if (options.after) url.searchParams.set('after', options.after);
     if (options.before) url.searchParams.set('before', options.before);
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 9500);
+    const pageOrders = await withExponentialBackoff(async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 9500);
 
-    const res = await fetch(url.toString(), {
-      signal: controller.signal,
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
-      },
-    });
-    clearTimeout(timeoutId);
+      try {
+        const res = await fetch(url.toString(), {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': authHeader,
+            'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
+          },
+        });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || `Failed to fetch WooCommerce orders: HTTP ${res.status}`);
-    }
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          const error: any = new Error(err.message || `Failed to fetch WooCommerce orders: HTTP ${res.status}`);
+          error.status = res.status;
+          throw error;
+        }
 
-    const pageOrders = await res.json();
+        return await res.json();
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }, { maxRetries: 2, baseDelayMs: 350 });
+
     if (!Array.isArray(pageOrders) || pageOrders.length === 0) break;
     allOrders = [...allOrders, ...pageOrders];
 

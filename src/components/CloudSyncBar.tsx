@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { RawOrderRow } from '@/types';
 import { loadAppSettings } from '@/lib/settingsStore';
+import { DataProvenanceInfo } from '@/lib/dataAudit';
 import {
   getSyncCache,
   setSyncCache,
@@ -29,11 +30,19 @@ import {
 } from '@/lib/apiCache';
 
 export interface CloudSyncBarProps {
-  onDataSynced: (type: 'orders' | 'returns', rows: RawOrderRow[]) => void;
+  onDataSynced: (type: 'orders' | 'returns', rows: RawOrderRow[], provenance?: DataProvenanceInfo) => void;
   activeOrders?: RawOrderRow[];
+  provenance?: DataProvenanceInfo | null;
 }
 
-export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) {
+export function CloudSyncBar({ onDataSynced, activeOrders, provenance }: CloudSyncBarProps) {
+  const [currentProvenance, setCurrentProvenance] = useState<DataProvenanceInfo | null>(provenance || null);
+
+  useEffect(() => {
+    if (provenance) {
+      setCurrentProvenance(provenance);
+    }
+  }, [provenance]);
   const [isOpen, setIsOpen] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState(false);
   const [syncingPathao, setSyncingPathao] = useState(false);
@@ -80,7 +89,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
     };
   };
 
-  const checkStatus = async () => {
+  const checkStatus = React.useCallback(async () => {
     setLoadingStatus(true);
     try {
       const creds = getClientCredentials();
@@ -106,12 +115,12 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
     } finally {
       setLoadingStatus(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     checkStatus();
     setCacheStats(getSyncCacheStats());
-  }, []);
+  }, [checkStatus]);
 
   // Quick Preset Handlers
   const handleApplyPreset = (preset: string) => {
@@ -181,7 +190,10 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
         setSyncCache('pathao', startDate, endDate, 'any', data.orders, {
           ordersCount: data.count || data.orders.length,
         });
-        onDataSynced('returns', data.orders);
+        if (data.provenance) {
+          setCurrentProvenance(data.provenance);
+        }
+        onDataSynced('returns', data.orders, data.provenance);
         setMessage(`Success: Fetched ${data.count} consignments from live Pathao API & cached in local storage.`);
         setLastSyncFromCache(prev => ({ ...prev, pathao: false }));
         setCacheStats(getSyncCacheStats());
@@ -232,7 +244,10 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
           ordersCount: data.ordersCount || data.orders.length,
           lineItemsCount: data.lineItemsCount,
         });
-        onDataSynced('orders', data.orders);
+        if (data.provenance) {
+          setCurrentProvenance(data.provenance);
+        }
+        onDataSynced('orders', data.orders, data.provenance);
         setMessage(`Success: Synced ${data.ordersCount} orders (${data.lineItemsCount} items) from live WooCommerce API & stored in local cache.`);
         setLastSyncFromCache(prev => ({ ...prev, wc: false }));
         setCacheStats(getSyncCacheStats());
@@ -320,10 +335,12 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
 
       const results = await Promise.all(promises);
 
+      let latestProvenance: DataProvenanceInfo | undefined = undefined;
       for (const item of results) {
         if (item.type === 'wc') {
           if (item.res.success && item.res.orders && item.res.orders.length > 0) {
             wcData = item.res.orders;
+            if (item.res.provenance) latestProvenance = item.res.provenance;
             setSyncCache('woocommerce', startDate, endDate, orderStatus, item.res.orders, {
               ordersCount: item.res.ordersCount || item.res.orders.length,
               lineItemsCount: item.res.lineItemsCount,
@@ -335,6 +352,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
         } else if (item.type === 'pathao') {
           if (item.res.success && item.res.orders && item.res.orders.length > 0) {
             pathaoData = item.res.orders;
+            if (item.res.provenance) latestProvenance = item.res.provenance;
             setSyncCache('pathao', startDate, endDate, 'any', item.res.orders, {
               ordersCount: item.res.count || item.res.orders.length,
             });
@@ -345,8 +363,11 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
         }
       }
 
-      if (wcData) onDataSynced('orders', wcData);
-      if (pathaoData) onDataSynced('returns', pathaoData);
+      if (latestProvenance) {
+        setCurrentProvenance(latestProvenance);
+      }
+      if (wcData) onDataSynced('orders', wcData, latestProvenance);
+      if (pathaoData) onDataSynced('returns', pathaoData, latestProvenance);
 
       const summaries = [wcMsg, pathaoMsg].filter(Boolean);
       setMessage(`Cloud Sync Complete (${startDate} to ${endDate}): ${summaries.join(' • ')}`);
@@ -376,6 +397,29 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-mono font-semibold">
                 Live REST APIs
               </span>
+              {currentProvenance && (
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border flex items-center gap-1 ${
+                    currentProvenance.source === 'live_api'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      : currentProvenance.source === 'demo_anonymized'
+                      ? 'bg-amber-50 text-amber-800 border-amber-200'
+                      : currentProvenance.source === 'baseline_bundled'
+                      ? 'bg-purple-50 text-purple-800 border-purple-200'
+                      : 'bg-blue-50 text-blue-800 border-blue-200'
+                  }`}
+                  title={`Source: ${currentProvenance.source} | Environment: ${currentProvenance.environment} | PII Sanitized: ${currentProvenance.isPIISanitized ? 'Yes' : 'No'}`}
+                >
+                  <ShieldCheck className="w-3 h-3" />
+                  {currentProvenance.source === 'live_api'
+                    ? 'Live API'
+                    : currentProvenance.source === 'demo_anonymized'
+                    ? 'Demo Anonymized'
+                    : currentProvenance.source === 'baseline_bundled'
+                    ? 'Bundled Baseline'
+                    : 'Disk Files'}
+                </span>
+              )}
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 GA4 Live Stream
@@ -504,6 +548,33 @@ export function CloudSyncBar({ onDataSynced, activeOrders }: CloudSyncBarProps) 
                     • ~{cacheStats.savedApiCallsEstimate} calls saved
                   </span>
                 </span>
+
+                {currentProvenance && (
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-bold border shadow-2xs ${
+                      currentProvenance.source === 'live_api'
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        : currentProvenance.source === 'demo_anonymized'
+                        ? 'bg-amber-50 text-amber-800 border-amber-200'
+                        : currentProvenance.source === 'baseline_bundled'
+                        ? 'bg-purple-50 text-purple-800 border-purple-200'
+                        : 'bg-blue-50 text-blue-800 border-blue-200'
+                    }`}
+                    title={`Source: ${currentProvenance.source} (${currentProvenance.recordCount} rows) | PII Masked: ${currentProvenance.isPIISanitized ? 'Yes' : 'No'}`}
+                  >
+                    <ShieldCheck className="w-3 h-3 text-current" />
+                    <span>Provenance:</span>
+                    <span className="font-semibold">
+                      {currentProvenance.source === 'live_api'
+                        ? 'Live API'
+                        : currentProvenance.source === 'demo_anonymized'
+                        ? 'Demo Anonymized'
+                        : currentProvenance.source === 'baseline_bundled'
+                        ? 'Bundled Baseline'
+                        : 'Disk / Spreadsheet Fallback'}
+                    </span>
+                  </span>
+                )}
 
                 <span className="text-slate-400 font-mono text-[10px]">
                   TTL: {isHistorical ? '🔒 Historical (7d cache)' : '⚡ Active MTD (2h cache)'}

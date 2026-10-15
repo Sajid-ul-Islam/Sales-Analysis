@@ -184,9 +184,8 @@ export function MarketingAnalyticsTab({
   const blendedCac = storeOrders > 0 ? Math.round(metaAdSpend / storeOrders) : 0;
 
   // Memoized Chart Data
-  const timeline = ga4Report?.dailyTimeline || [];
-
   const trendData = useMemo(() => {
+    const timeline = ga4Report?.dailyTimeline || [];
     if (!timeline.length) return [];
     if (trendMetric === 'revenue') {
       return timeline.map((d) => ({
@@ -208,7 +207,7 @@ export function MarketingAnalyticsTab({
       value: d.sessions,
       secondaryValue: d.activeUsers,
     }));
-  }, [timeline, trendMetric]);
+  }, [ga4Report?.dailyTimeline, trendMetric]);
 
   const channelSlices = useMemo(() => {
     const list = ga4Report?.channels?.length

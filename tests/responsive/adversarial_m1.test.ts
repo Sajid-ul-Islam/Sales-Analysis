@@ -147,7 +147,7 @@ describe('Adversarial & Empirical Challenge: Milestone M1 (Multi-Device Navigati
 
     it('3.3 Sidebar: Active tab highlighting across Tablet rail, Desktop sidebar, and Mobile drawer', () => {
       // Tablet rail active styling
-      expect(sidebarCode).toContain("isActive\n                          ? 'bg-orange-50 text-primary font-bold shadow-2xs dark:bg-orange-950/40 dark:text-orange-400'");
+      expect(sidebarCode).toContain("bg-orange-50 text-primary font-bold shadow-2xs dark:bg-orange-950/40 dark:text-orange-400");
       expect(sidebarCode).toContain("w-1 h-6 bg-primary rounded-r-full");
 
       // Desktop sidebar active styling

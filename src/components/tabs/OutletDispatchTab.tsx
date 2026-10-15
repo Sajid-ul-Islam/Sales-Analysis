@@ -55,6 +55,50 @@ interface OutletMetric {
   aov: number;
 }
 
+// Canonical Outlets: Online Store (Central Warehouse) and Mirpur Outlet POS are STRICTLY DISTINCT!
+const OUTLET_CONFIG = [
+  {
+    id: 'Online Store (Central Warehouse)',
+    name: 'Online Store (Central Warehouse)',
+    suffix: 'Base (None)',
+    locationType: 'Central Warehouse (Online)' as const,
+    city: 'Dhaka (Online Hub)',
+    badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200'
+  },
+  {
+    id: 'Mirpur Outlet POS',
+    name: 'Mirpur Outlet POS',
+    suffix: 'm',
+    locationType: 'Retail Outlet POS' as const,
+    city: 'Dhaka (Mirpur)',
+    badgeColor: 'bg-purple-50 text-purple-700 border-purple-200'
+  },
+  {
+    id: 'Cumilla Branch',
+    name: 'Cumilla Branch',
+    suffix: 'c',
+    locationType: 'Retail Branch' as const,
+    city: 'Cumilla',
+    badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+  },
+  {
+    id: 'Wari Branch',
+    name: 'Wari Branch',
+    suffix: 'w',
+    locationType: 'Retail Branch' as const,
+    city: 'Dhaka (Old Dhaka)',
+    badgeColor: 'bg-sky-50 text-sky-700 border-sky-200'
+  },
+  {
+    id: 'Sylhet Branch',
+    name: 'Sylhet Branch',
+    suffix: 's',
+    locationType: 'Retail Branch' as const,
+    city: 'Sylhet',
+    badgeColor: 'bg-amber-50 text-amber-700 border-amber-200'
+  }
+];
+
 export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
   const [selectedOutletFilter, setSelectedOutletFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -62,50 +106,6 @@ export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
   const [activeViewMode, setActiveViewMode] = useState<'MATRIX' | 'LEDGER'>('MATRIX');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 20;
-
-  // Canonical Outlets: Online Store (Central Warehouse) and Mirpur Outlet POS are STRICTLY DISTINCT!
-  const OUTLET_CONFIG = [
-    {
-      id: 'Online Store (Central Warehouse)',
-      name: 'Online Store (Central Warehouse)',
-      suffix: 'Base (None)',
-      locationType: 'Central Warehouse (Online)' as const,
-      city: 'Dhaka (Online Hub)',
-      badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200'
-    },
-    {
-      id: 'Mirpur Outlet POS',
-      name: 'Mirpur Outlet POS',
-      suffix: 'm',
-      locationType: 'Retail Outlet POS' as const,
-      city: 'Dhaka (Mirpur)',
-      badgeColor: 'bg-purple-50 text-purple-700 border-purple-200'
-    },
-    {
-      id: 'Cumilla Branch',
-      name: 'Cumilla Branch',
-      suffix: 'c',
-      locationType: 'Retail Branch' as const,
-      city: 'Cumilla',
-      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    },
-    {
-      id: 'Wari Branch',
-      name: 'Wari Branch',
-      suffix: 'w',
-      locationType: 'Retail Branch' as const,
-      city: 'Dhaka (Old Dhaka)',
-      badgeColor: 'bg-sky-50 text-sky-700 border-sky-200'
-    },
-    {
-      id: 'Sylhet Branch',
-      name: 'Sylhet Branch',
-      suffix: 's',
-      locationType: 'Retail Branch' as const,
-      city: 'Sylhet',
-      badgeColor: 'bg-amber-50 text-amber-700 border-amber-200'
-    }
-  ];
 
   // Helper to resolve an order line's outlet
   const getOrderOutlet = (o: ReconciledOrderRow): string => {

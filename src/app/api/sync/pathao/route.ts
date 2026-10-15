@@ -3,6 +3,10 @@ import path from 'path';
 import fs from 'fs';
 import * as XLSX from 'xlsx';
 import { batchFetchPathaoOrders, formatPathaoToReturnRows } from '@/lib/pathaoClient';
+import { validateApiRequest } from '@/lib/auth/apiAuth';
+import { checkRateLimit } from '@/lib/auth/rateLimiter';
+import { sanitizeOrdersResponse } from '@/lib/auth/dataMasking';
+import { createDataProvenance } from '@/lib/dataAudit';
 import baselineData from '@/data/baselineSample.json';
 
 export const dynamic = 'force-dynamic';
@@ -10,6 +14,28 @@ export const maxDuration = 60; // Allow up to 60s for batch Pathao consignment r
 
 export async function POST(req: Request) {
   try {
+    // 1. API Authentication & Role Check
+    const auth = validateApiRequest(req, { requiredRole: 'operator', allowDemo: true });
+    if (!auth.authenticated) {
+      return NextResponse.json({
+        success: false,
+        statusCode: auth.statusCode,
+        message: auth.message,
+        orders: [],
+      }, { status: auth.statusCode });
+    }
+
+    // 2. Sliding Window Rate Limiting (30 requests per minute)
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'internal_caller';
+    const rateCheck = checkRateLimit(`sync_pathao_${clientIp}`, 30, 60000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json({
+        success: false,
+        statusCode: 429,
+        message: 'Rate limit exceeded: Max 30 Pathao sync requests per minute.',
+        orders: [],
+      }, { status: 429 });
+    }
     const body = await req.json().catch(() => ({}));
     const credentials = body.credentials || undefined;
     let consignmentIds: string[] = body.consignmentIds || [];
@@ -81,13 +107,17 @@ export async function POST(req: Request) {
     }
 
     const formattedRows = formatPathaoToReturnRows(filteredData);
+    const isPrivileged = auth.role === 'admin';
+    const returnRows = isPrivileged ? formattedRows : sanitizeOrdersResponse(formattedRows);
+    const provenance = createDataProvenance('live_api', formattedRows.length, !isPrivileged);
 
     return NextResponse.json({
       success: true,
       message: `Successfully fetched ${formattedRows.length} live consignments from Pathao Hermes API for the selected date range.`,
       count: formattedRows.length,
-      orders: formattedRows,
-      rawPathao: filteredData,
+      orders: returnRows,
+      rawPathao: isPrivileged ? filteredData : undefined,
+      provenance,
     });
   } catch (error: any) {
     console.error('Pathao sync error:', error);

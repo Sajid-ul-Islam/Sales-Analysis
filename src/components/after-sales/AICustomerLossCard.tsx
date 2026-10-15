@@ -61,7 +61,7 @@ export function AICustomerLossCard({ profiles }: AICustomerLossCardProps) {
     return () => window.removeEventListener('deen_byok_updated', handleBYOKUpdate);
   }, []);
 
-  const fetchAudit = async () => {
+  const fetchAudit = React.useCallback(async () => {
     if (profiles.length === 0) return;
     setLoading(true);
     try {
@@ -92,13 +92,13 @@ export function AICustomerLossCard({ profiles }: AICustomerLossCardProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [profiles]);
 
   useEffect(() => {
     if (!audit && profiles.length > 0) {
       fetchAudit();
     }
-  }, [profiles.length]);
+  }, [audit, profiles.length, fetchAudit]);
 
   if (profiles.length === 0) return null;
 

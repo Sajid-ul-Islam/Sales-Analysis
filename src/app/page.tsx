@@ -51,6 +51,7 @@ import {
   removeCacheItem,
   DEEN_CACHE_KEYS
 } from '@/lib/cacheManager';
+import { DataProvenanceInfo } from '@/lib/dataAudit';
 
 export type DataSourceMode = 'UPLOAD' | 'API';
 
@@ -155,6 +156,7 @@ export default function DashboardPage() {
   const [cloudApiDataset, setCloudApiDataset] = useState<DatasetSnapshot | null>(null);
 
   const [dataSourceName, setDataSourceName] = useState<string>('📁 September Baseline (1,026 Clean)');
+  const [dataProvenance, setDataProvenance] = useState<DataProvenanceInfo | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -220,7 +222,7 @@ export default function DashboardPage() {
       console.error('Reconciliation execution error:', err);
       setStatusMessage(`Engine error: ${err.message}`);
     }
-  }, [insideDeliveryFee, outsideDeliveryFee, packagingCost, cogsPercent, exactTolerance, metaAdCost]);
+  }, [rawOrders.length, insideDeliveryFee, outsideDeliveryFee, packagingCost, cogsPercent, exactTolerance, metaAdCost]);
 
   // Fetch pre-loaded September workspace dataset from local API or local cache
   const loadPreloadedSeptemberData = useCallback(async (forceBypassCache = false) => {
@@ -262,6 +264,9 @@ export default function DashboardPage() {
       const res = await fetch('/api/sample-data');
       const data = await res.json();
       if (data.success && data.ordersCount > 0) {
+        if (data.provenance) {
+          setDataProvenance(data.provenance);
+        }
         const snapshot: DatasetSnapshot = {
           orders: data.orders || [],
           pathaoDelivery: data.pathaoDelivery || [],
@@ -306,7 +311,7 @@ export default function DashboardPage() {
       setIsProcessing(false);
       setInitialLoading(false);
     }
-  }, [excludeAugust, excludePOS, computeReconciliation]);
+  }, [excludeAugust, excludePOS, computeReconciliation, dateScope, customDateRange]);
 
   // Initial mount: load saved theme, settings, session cookies, and workspace data
   const hasInitialMountedRef = useRef(false);
@@ -386,7 +391,8 @@ export default function DashboardPage() {
     rawPartials,
     rawExchanges,
     rawPathaoDelivery,
-    computeReconciliation
+    computeReconciliation,
+    rawOrders.length
   ]);
 
   // Read a File object to XLSX Workbook (works seamlessly for .xlsx, .xls, .csv)
@@ -574,6 +580,14 @@ export default function DashboardPage() {
       setRawPartials(parsedPartials);
       setRawExchanges(parsedExchanges);
       setDataSourceName(sourceLabel);
+      setDataProvenance({
+        source: 'disk_spreadsheet',
+        environment: 'client_upload',
+        isDemoMode: false,
+        isPIISanitized: true,
+        timestamp: new Date().toISOString(),
+        recordCount: ordersToUse.length
+      });
       setDateScope('all');
       setCustomDateRange(undefined);
       setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, 'all', { days: 30 });
@@ -589,9 +603,12 @@ export default function DashboardPage() {
     }
   };
 
-  const handleLiveSyncData = (type: 'orders' | 'returns', rows: RawOrderRow[]) => {
+  const handleLiveSyncData = (type: 'orders' | 'returns', rows: RawOrderRow[], provenance?: DataProvenanceInfo) => {
     setDataSourceMode('API');
     setCookie(DEEN_COOKIE_KEYS.SOURCE_MODE, 'API', { days: 30 });
+    if (provenance) {
+      setDataProvenance(provenance);
+    }
     const updatedOrders = type === 'orders' ? rows : (cloudApiDataset?.orders || rawOrders);
     const updatedReturns = type === 'returns' ? rows : (cloudApiDataset?.returns || rawReturns);
     const updatedDelivery = cloudApiDataset?.pathaoDelivery || rawPathaoDelivery;
@@ -782,7 +799,7 @@ export default function DashboardPage() {
 
           {/* Cloud API Integration (WooCommerce + Pathao) - SHOWN ONLY ON EXECUTIVE OVERVIEW OR INITIAL STATE */}
           {dataSourceMode === 'API' && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && (!result || activeTab === 'tabExecutive') && (
-            <CloudSyncBar onDataSynced={handleLiveSyncData} activeOrders={rawOrders} />
+            <CloudSyncBar onDataSynced={handleLiveSyncData} activeOrders={rawOrders} provenance={dataProvenance} />
           )}
 
           {/* Spreadsheet Upload Dropzones - SHOWN ONLY ON EXECUTIVE OVERVIEW OR INITIAL STATE */}

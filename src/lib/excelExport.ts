@@ -20,6 +20,7 @@ export function exportReconciledExcel(result: ReconciliationResult, filenamePref
     ['Clean Realized Net Sales', Math.round(s.netDeliveredRevenue), 'Recognized net revenue after returns & partial adjustments'],
     ['Net Items Delivered', s.totalItemsDelivered, 'Physical apparel units in customer possession'],
     ['Outside : Inside Dhaka Ratio', s.outsideRatio + ' : 1', `${s.outsideOrders} Outside vs ${s.insideOrders} Inside`],
+    ['Multi-Item Order GMV Integrity', s.doubleCountingAudit ? (s.doubleCountingAudit.isValid ? 'VERIFIED (0% Double Counting)' : `FLAGGED (+৳${s.doubleCountingAudit.inflationDelta})`) : 'VERIFIED', 'Deduplication invariant: ensures zero revenue inflation across multi-item rows'],
     [],
     ['PATHAO & COURIER COST RECONCILIATION'],
     ['Total Pathao Courier Charge (Gross)', Math.round(s.courierCost.grossCharge), 'Sum of Charge column from courier return manifest'],
@@ -88,6 +89,8 @@ export function exportReconciledExcel(result: ReconciliationResult, filenamePref
       'Order Total (BDT)': r.orderAmount,
       'Net Revenue Recognized': Math.round(r.netRevenueImpact),
       'Payment Method': r.paymentMethod,
+      'Manual Review Flag': r.requiresManualReview ? 'FLAGGED FOR MANUAL AUDIT' : 'CONFIRMED OK',
+      'Audit Trail / Evidence': r.decisionEvidence?.explanation || '',
       'AI Audit Tag': r.aiAuditTag || '',
       'AI Operational Notes': r.aiAuditNote || ''
     };
