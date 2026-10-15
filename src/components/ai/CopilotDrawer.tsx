@@ -53,18 +53,24 @@ export function CopilotDrawer({ isOpen, onClose, summary, activeTab }: CopilotDr
   const [confirmClear, setConfirmClear] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Initialize messages from localStorage on mount
+  // Initialize messages from localStorage on mount and ensure welcome message is always fresh
   useEffect(() => {
+    const defaultWelcome: CopilotChatMessage = {
+      id: 'welcome',
+      sender: 'assistant',
+      text: `Hello! I am **DEEN Assistant**, your Executive E-Commerce & Reconciliation Analyst.\n\nI have real-time access to your reconciled store metrics (**${summary?.grossOrders?.toLocaleString() || 0} gross orders**, **৳${Math.round(summary?.netDeliveredRevenue || 0).toLocaleString()} net sales**).\n\nAsk me anything about your returns, courier settlement gaps, linehaul territory ratios, or SKU profitability!`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
     const saved = loadSavedChatHistory();
     if (saved && saved.length > 0) {
-      setMessages(saved);
+      // If history contains an old welcome message, ensure it is refreshed to the DEEN Assistant identity
+      const hasWelcome = saved.some(m => m.id === 'welcome');
+      const refreshed = saved.map(m => (m.id === 'welcome' ? defaultWelcome : m));
+      const finalInitial = hasWelcome ? refreshed : [defaultWelcome, ...refreshed];
+      setMessages(finalInitial);
+      saveChatHistory(finalInitial);
     } else {
-      const defaultWelcome: CopilotChatMessage = {
-        id: 'welcome',
-        sender: 'assistant',
-        text: `Hello! I am **DEEN Assistant**, your Executive E-Commerce & Reconciliation Analyst.\n\nI have real-time access to your reconciled store metrics (**${summary?.grossOrders?.toLocaleString() || 0} gross orders**, **৳${Math.round(summary?.netDeliveredRevenue || 0).toLocaleString()} net sales**).\n\nAsk me anything about your returns, courier settlement gaps, linehaul territory ratios, or SKU profitability!`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
       setMessages([defaultWelcome]);
       saveChatHistory([defaultWelcome]);
     }

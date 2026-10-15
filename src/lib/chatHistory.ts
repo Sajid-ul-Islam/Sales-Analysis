@@ -6,20 +6,63 @@ export interface CopilotChatMessage {
   source?: string;
 }
 
-const STORAGE_KEY = 'deen_copilot_chat_history_v1';
+const CURRENT_STORAGE_KEY = 'deen_assistant_chat_history_v2';
+const LEGACY_STORAGE_KEY = 'deen_copilot_chat_history_v1';
 const MAX_SAVED_MESSAGES = 100;
 
 export function loadSavedChatHistory(): CopilotChatMessage[] {
   if (typeof window === 'undefined') return [];
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    let raw = localStorage.getItem(CURRENT_STORAGE_KEY);
+    let isLegacy = false;
+
+    if (!raw) {
+      raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (raw) isLegacy = true;
+    }
+
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      return parsed;
+    if (!Array.isArray(parsed)) return [];
+
+    if (isLegacy) {
+      try {
+        localStorage.removeItem(LEGACY_STORAGE_KEY);
+      } catch (_) {}
     }
-    return [];
+
+    const sanitized = parsed
+      .map((msg: CopilotChatMessage) => {
+        if (!msg || typeof msg.text !== 'string') return msg;
+
+        // Discard legacy welcome message so fresh DEEN Assistant welcome is generated
+        if (
+          msg.id === 'welcome' &&
+          (msg.text.includes('DEEN Copilot') ||
+            msg.text.includes('Business Assistant') ||
+            msg.text.includes('Operations & Reconciliation Assistant'))
+        ) {
+          return null;
+        }
+
+        const cleanText = msg.text
+          .replace(/DEEN Copilot/g, 'DEEN Assistant')
+          .replace(/Business Assistant/g, 'DEEN Assistant')
+          .replace(/Operations & Reconciliation Assistant/g, 'Executive E-Commerce & Reconciliation Analyst');
+
+        return {
+          ...msg,
+          text: cleanText,
+        };
+      })
+      .filter(Boolean) as CopilotChatMessage[];
+
+    if (isLegacy || sanitized.length !== parsed.length) {
+      saveChatHistory(sanitized);
+    }
+
+    return sanitized;
   } catch (err) {
     console.error('Failed to load chat history from localStorage:', err);
     return [];
@@ -30,9 +73,8 @@ export function saveChatHistory(messages: CopilotChatMessage[]): void {
   if (typeof window === 'undefined') return;
 
   try {
-    // Keep only the most recent MAX_SAVED_MESSAGES
     const trimmed = messages.slice(-MAX_SAVED_MESSAGES);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+    localStorage.setItem(CURRENT_STORAGE_KEY, JSON.stringify(trimmed));
   } catch (err) {
     console.error('Failed to save chat history to localStorage:', err);
   }
@@ -42,7 +84,8 @@ export function clearSavedChatHistory(): void {
   if (typeof window === 'undefined') return;
 
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(CURRENT_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
   } catch (err) {
     console.error('Failed to clear chat history from localStorage:', err);
   }
