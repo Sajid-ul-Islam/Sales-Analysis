@@ -2,7 +2,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { SummaryAnalytics, ReconciledOrderRow } from '@/types';
-import { DateScope, DateScopeCounts } from '@/lib/dateFilter';
+import { DateScope, DateScopeCounts, CustomDateRange, FileWeek, AvailableMonth } from '@/lib/dateFilter';
+import { DateRangeSelector } from '@/components/DateRangeSelector';
 import {
   ShoppingBag,
   CircleDollarSign,
@@ -37,16 +38,22 @@ export interface KpiOverviewProps {
   onExport?: () => void;
   onSync?: () => void;
   activeDateScope?: DateScope;
+  customDateRange?: CustomDateRange;
   onDateRangeSelect?: (range: DateScope) => void;
+  onScopeChange?: (scope: DateScope, customRange?: CustomDateRange) => void;
   dateScopeCounts?: DateScopeCounts;
   dateScopeLabel?: string;
   dateScopeSubLabel?: string;
+  minDateIso?: string;
+  maxDateIso?: string;
+  fileWeeks?: FileWeek[];
+  availableMonths?: AvailableMonth[];
   activeSourceMode?: 'UPLOAD' | 'API';
   dataSourceName?: string;
   onSwitchSourceMode?: (mode: 'UPLOAD' | 'API') => void;
   hasCloudData?: boolean;
   onKpiClick?: (targetTab: string, statusFilter?: string, territoryFilter?: string) => void;
-  onOpenComparison?: () => void;
+  onOpenComparison?: (mode?: 'week' | 'month') => void;
   onAskAi?: (prompt: string) => void;
   onExecuteAgenticAction?: (proposal: AgenticActionProposal) => void;
 }
@@ -61,10 +68,16 @@ export function KpiOverview({
   onExport,
   onSync,
   activeDateScope = '30d',
+  customDateRange,
   onDateRangeSelect,
+  onScopeChange,
   dateScopeCounts,
   dateScopeLabel,
   dateScopeSubLabel,
+  minDateIso,
+  maxDateIso,
+  fileWeeks,
+  availableMonths,
   activeSourceMode = 'UPLOAD',
   dataSourceName,
   onSwitchSourceMode,
@@ -221,72 +234,53 @@ export function KpiOverview({
           </div>
         </div>
 
-        {/* Active Period & Scope Indicator (Unified with Header Date Selector) */}
+        {/* Active Period & Scope Indicator (Local Context Date Range Selector) */}
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 self-start sm:self-auto shrink-0">
-          {/* Quick Segmented Date Switcher */}
-          {onDateRangeSelect && (
-            <div className="hidden lg:flex items-center gap-1 p-1 bg-slate-100 dark:bg-[#111111] rounded-xl border border-slate-200/80 dark:border-[#222222]">
-              {[
-                { id: '30d' as DateScope, label: '30D' },
-                { id: 'month' as DateScope, label: 'Month' },
-                { id: '7d' as DateScope, label: '7D' },
-                { id: 'all' as DateScope, label: 'All' },
-              ].map((pill) => {
-                const isSelected = activeDateScope === pill.id;
-                return (
-                  <button
-                    key={pill.id}
-                    type="button"
-                    onClick={() => handleRangeClick(pill.id)}
-                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-white dark:bg-[#222222] text-primary shadow-xs ring-1 ring-primary/20'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    {pill.label}
-                  </button>
-                );
-              })}
-            </div>
+          {(onScopeChange || onDateRangeSelect) && (
+            <DateRangeSelector
+              activeScope={activeDateScope}
+              customRange={customDateRange}
+              onScopeChange={(scope, customRange) => {
+                if (onScopeChange) {
+                  onScopeChange(scope, customRange);
+                } else if (onDateRangeSelect) {
+                  onDateRangeSelect(scope);
+                }
+              }}
+              counts={dateScopeCounts}
+              subLabel={dateScopeSubLabel}
+              minDateIso={minDateIso}
+              maxDateIso={maxDateIso}
+              fileWeeks={fileWeeks}
+              availableMonths={availableMonths}
+              onOpenComparison={onOpenComparison}
+              align="right"
+            />
           )}
 
-          <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#0E0E0E] px-3.5 py-2 rounded-xl border border-slate-200 dark:border-[#1F1F1F] shadow-2xs">
-            <span className={`w-2 h-2 rounded-full ${activeDateScope !== '30d' ? 'bg-primary animate-pulse' : 'bg-emerald-500'}`}></span>
-            <div className="flex items-center gap-1.5 text-xs">
-              <span className="text-slate-500 font-medium">Period:</span>
-              <span className="font-bold text-slate-900 dark:text-white font-headline">
-                {dateScopeLabel || (activeDateScope === '30d' ? 'Last 30 Days' : activeDateScope === 'all' ? 'All Records' : activeDateScope.toUpperCase())}
-              </span>
-              {dateScopeSubLabel && (
-                <span className="text-slate-400 font-mono text-[11px] hidden sm:inline">
-                  ({dateScopeSubLabel})
-                </span>
-              )}
-            </div>
-
-            {activeDateScope !== '30d' && (
+          {onOpenComparison && (
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => handleRangeClick('30d')}
-                className="ml-1 px-2 py-0.5 rounded-md bg-orange-100/70 hover:bg-orange-200/80 dark:bg-orange-950/60 dark:hover:bg-orange-900/60 text-primary text-[10px] font-bold transition-colors cursor-pointer"
-                title="Reset to default Last 30 Days"
+                onClick={() => onOpenComparison('week')}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-[#0E0E0E] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-[#1F1F1F] hover:border-slate-300 text-xs font-bold transition-all shadow-2xs cursor-pointer group"
+                title="Compare Performance Between Weeks (WoW Analysis)"
               >
-                Reset to 30D
+                <Scale className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
+                <span className="hidden sm:inline">Week vs Week</span>
+                <span className="sm:hidden">WoW</span>
               </button>
-            )}
-          </div>
-
-          {onOpenComparison && (
-            <button
-              type="button"
-              onClick={onOpenComparison}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-[#0E0E0E] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-[#1F1F1F] hover:border-slate-300 text-xs font-bold transition-all shadow-2xs cursor-pointer group"
-              title="Compare Performance Between Weeks (WoW Analysis)"
-            >
-              <Scale className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
-              <span>Compare Weeks</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => onOpenComparison('month')}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-[#0E0E0E] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-[#1F1F1F] hover:border-slate-300 text-xs font-bold transition-all shadow-2xs cursor-pointer group"
+                title="Compare Performance Between Months (MoM Analysis, e.g. Oct vs Sep)"
+              >
+                <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
+                <span className="hidden sm:inline">Month vs Month</span>
+                <span className="sm:hidden">MoM</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -326,12 +320,27 @@ export function KpiOverview({
           </div>
 
           {(() => {
-            const insideCount = s.insideOrders || 0;
-            const outsideCount = s.outsideOrders !== undefined ? s.outsideOrders : Math.max(0, s.grossOrders - insideCount);
-            const totalDispatched = (insideCount + outsideCount) || s.grossOrders || 1;
-            const insidePct = Math.min(100, Math.max(0, Math.round((insideCount / totalDispatched) * 100)));
-            const outsidePct = 100 - insidePct;
-            const strokeDash = `${insidePct} ${100 - insidePct}`;
+            const deliveredCount = s.fullDeliveredOrders || 0;
+            const returnedCount = s.fullReturnedOrders || 0;
+            const partialCount = s.partialOrders || 0;
+            const exchangeCount = s.totalExchangedOrders || (orders.filter(o => o.orderCategory === 'EXCHANGE').length) || 0;
+            const totalDispatched = s.grossOrders || 1;
+
+            // Fulfillment Category Percentages (r = 15.9155 => circumference = 100)
+            const delivPct = Math.min(100, Math.max(0, Math.round((deliveredCount / totalDispatched) * 100)));
+            const returnPct = Math.min(100, Math.max(0, Math.round((returnedCount / totalDispatched) * 100)));
+            const partialPct = Math.min(100, Math.max(0, Math.round((partialCount / totalDispatched) * 100)));
+            const exchangePct = Math.min(100, Math.max(0, Math.round((exchangeCount / totalDispatched) * 100)));
+
+            // Compute SVG stroke-dasharray and offsets for clean non-overlapping concentric segments
+            const strokeDashDeliv = `${delivPct} ${100 - delivPct}`;
+            const strokeDashReturn = `${returnPct} ${100 - returnPct}`;
+            const strokeDashPartial = `${partialPct} ${100 - partialPct}`;
+            const strokeDashExchange = `${exchangePct} ${100 - exchangePct}`;
+
+            const offsetReturn = -delivPct;
+            const offsetPartial = -(delivPct + returnPct);
+            const offsetExchange = -(delivPct + returnPct + partialPct);
 
             return (
               <div className="my-2">
@@ -348,51 +357,116 @@ export function KpiOverview({
                     </div>
                   </div>
 
-                  {/* Donut Chart with Numbers directly attached */}
+                  {/* Multi-category Fulfillment Donut Chart (Delivered Focus) */}
                   <div className="flex items-center gap-2 shrink-0">
-                    {/* SVG Donut Chart */}
-                    <div className="relative w-11 h-11 flex items-center justify-center shrink-0" title={`Pipeline Territory Split: ${insideCount.toLocaleString()} Inside (${insidePct}%) • ${outsideCount.toLocaleString()} Outside (${outsidePct}%)`}>
+                    <div 
+                      className="relative w-11 h-11 flex items-center justify-center shrink-0" 
+                      title={`Fulfillment Breakdown: ${deliveredCount.toLocaleString()} Delivered (${delivPct}%) • ${returnedCount.toLocaleString()} Returned (${returnPct}%) • ${partialCount.toLocaleString()} Partial (${partialPct}%) • ${exchangeCount.toLocaleString()} Exchange (${exchangePct}%)`}
+                    >
                       <svg className="w-11 h-11 -rotate-90 transform shrink-0" viewBox="0 0 36 36" width="44" height="44">
-                        {/* Outside Dhaka Track (Orange-200) */}
+                        {/* Base Neutral Track */}
                         <path
-                          className="text-orange-200"
+                          className="text-slate-100 dark:text-[#222222]"
                           stroke="currentColor"
                           strokeWidth="4.5"
                           fill="none"
                           d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                         />
-                        {/* Inside Dhaka Segment (Primary) */}
-                        <path
-                          className="text-primary transition-all duration-500 ease-out"
-                          stroke="currentColor"
-                          strokeWidth="4.5"
-                          strokeDasharray={strokeDash}
-                          strokeLinecap="round"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
+                        {/* Delivered Segment (Emerald) */}
+                        {delivPct > 0 && (
+                          <path
+                            className="text-emerald-500 transition-all duration-500 ease-out"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            strokeDasharray={strokeDashDeliv}
+                            strokeDashoffset={0}
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        )}
+                        {/* Returned Segment (Rose) */}
+                        {returnPct > 0 && (
+                          <path
+                            className="text-rose-500 transition-all duration-500 ease-out"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            strokeDasharray={strokeDashReturn}
+                            strokeDashoffset={offsetReturn}
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        )}
+                        {/* Partial Segment (Amber) */}
+                        {partialPct > 0 && (
+                          <path
+                            className="text-amber-500 transition-all duration-500 ease-out"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            strokeDasharray={strokeDashPartial}
+                            strokeDashoffset={offsetPartial}
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        )}
+                        {/* Exchange Segment (Indigo/Violet) */}
+                        {exchangePct > 0 && (
+                          <path
+                            className="text-indigo-500 transition-all duration-500 ease-out"
+                            stroke="currentColor"
+                            strokeWidth="4.5"
+                            strokeDasharray={strokeDashExchange}
+                            strokeDashoffset={offsetExchange}
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        )}
                       </svg>
+                      {/* Center Delivered % badge */}
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <span className="text-[10px] font-black text-primary font-headline leading-none">
-                          {insidePct}%
+                        <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 font-headline leading-none" title={`${delivPct}% Delivered`}>
+                          {delivPct}%
                         </span>
                       </div>
                     </div>
 
-                    {/* Number Rendering with Donut Chart with Semantic Labels */}
+                    {/* Semantic Category Micro-Metrics beside Donut */}
                     <div className="flex flex-col text-[11px] font-black leading-tight">
-                      <span className="text-primary flex items-center gap-1" title={`${insideCount.toLocaleString()} Inside Dhaka Orders`}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0"></span>
-                        <span>{insideCount.toLocaleString()}</span>
-                        <span className="text-[9px] text-slate-400 font-semibold">Inside</span>
+                      <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1" title={`${deliveredCount.toLocaleString()} Delivered Orders (${delivPct}%)`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                        <span>{deliveredCount.toLocaleString()}</span>
+                        <span className="text-[9px] text-slate-400 font-semibold">Deliv</span>
                       </span>
-                      <span className="text-amber-700 flex items-center gap-1 mt-1" title={`${outsideCount.toLocaleString()} Outside Dhaka Orders`}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-orange-300 shrink-0"></span>
-                        <span>{outsideCount.toLocaleString()}</span>
-                        <span className="text-[9px] text-slate-400 font-semibold">Outside</span>
+                      <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1 mt-1" title={`${returnedCount.toLocaleString()} Returned Orders (${returnPct}%)`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                        <span>{returnedCount.toLocaleString()}</span>
+                        <span className="text-[9px] text-slate-400 font-semibold">Return</span>
                       </span>
                     </div>
                   </div>
+                </div>
+
+                {/* Granular Category Breakdown Micro-Pills */}
+                <div className="flex items-center gap-1 mt-2.5 pt-2 border-t border-slate-100 dark:border-[#1F1F1F] text-[10px] font-bold overflow-x-auto no-scrollbar">
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 flex items-center gap-1 shrink-0" title={`Delivered: ${deliveredCount.toLocaleString()}`}>
+                    <span className="w-1 h-1 rounded-full bg-emerald-500" />
+                    <span>{deliveredCount.toLocaleString()} Kept</span>
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 flex items-center gap-1 shrink-0" title={`Full Returns: ${returnedCount.toLocaleString()} (${s.paidReturnsCount || 0} Paid, ${s.unpaidReturnsCount || 0} Unpaid)`}>
+                    <span className="w-1 h-1 rounded-full bg-rose-500" />
+                    <span>{returnedCount.toLocaleString()} Ret</span>
+                  </span>
+                  {partialCount > 0 && (
+                    <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 flex items-center gap-1 shrink-0" title={`Partial Delivery: ${partialCount.toLocaleString()}`}>
+                      <span className="w-1 h-1 rounded-full bg-amber-500" />
+                      <span>{partialCount.toLocaleString()} Part</span>
+                    </span>
+                  )}
+                  {exchangeCount > 0 && (
+                    <span className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 flex items-center gap-1 shrink-0" title={`Exchange Orders: ${exchangeCount.toLocaleString()}`}>
+                      <span className="w-1 h-1 rounded-full bg-indigo-500" />
+                      <span>{exchangeCount.toLocaleString()} Exch</span>
+                    </span>
+                  )}
                 </div>
               </div>
             );

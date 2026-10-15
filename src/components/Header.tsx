@@ -251,22 +251,6 @@ export function Header({
           </button>
         </div>
 
-        {/* Unified Date Range Selector */}
-        {activeDateScope && onDateScopeChange && (
-          <DateRangeSelector
-            activeScope={activeDateScope}
-            customRange={customDateRange}
-            onScopeChange={onDateScopeChange}
-            counts={dateScopeCounts}
-            subLabel={dateScopeSubLabel}
-            minDateIso={minDateIso}
-            maxDateIso={maxDateIso}
-            fileWeeks={fileWeeks}
-            onOpenComparison={onOpenComparison}
-            align="right"
-          />
-        )}
-
         {/* Desktop & Tablet Actions Cluster (hidden on small mobile) */}
         <div className="hidden sm:flex items-center gap-1 shrink-0">
           <div className="h-5 w-px bg-slate-200 dark:bg-[#1F1F1F] mx-1" />
@@ -277,7 +261,7 @@ export function Header({
               type="button"
               onClick={onResetBaseline}
               className="inline-flex items-center justify-center p-2 min-w-[40px] min-h-[40px] rounded-xl text-slate-400 hover:text-[#EB5A19] dark:text-slate-500 dark:hover:text-[#EB5A19] hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
-              title="Reload verified 1,026 clean orders September baseline"
+              title="Reload verified master baseline ledger"
               aria-label="Reload verified baseline dataset"
             >
               <RefreshCw className="w-4 h-4 shrink-0" />

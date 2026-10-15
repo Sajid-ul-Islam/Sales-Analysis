@@ -35,7 +35,7 @@ import {
 import { exportReconciledExcel } from '@/lib/excelExport';
 import { loadSavedThemeSettings, applyThemeToDocument } from '@/lib/themeManager';
 import { loadAppSettings } from '@/lib/settingsStore';
-import { DateScope, filterOrdersByDateScope, CustomDateRange } from '@/lib/dateFilter';
+import { DateScope, filterOrdersByDateScope, CustomDateRange, getDynamicDatasetTitle } from '@/lib/dateFilter';
 import { RawOrderRow, AgenticActionProposal, DatasetSnapshot } from '@/types';
 import { applyAgenticAction, clearAgenticTags } from '@/lib/ai/agenticActions';
 import { RefreshCw, AlertCircle, CheckCircle2, UploadCloud, Database, MessageSquare, Bot, Sparkles } from 'lucide-react';
@@ -85,6 +85,7 @@ export default function DashboardPage() {
   const [dateScope, setDateScope] = useState<DateScope>('30d');
   const [customDateRange, setCustomDateRange] = useState<CustomDateRange | undefined>(undefined);
   const [isWeekComparisonOpen, setIsWeekComparisonOpen] = useState(false);
+  const [comparisonMode, setComparisonMode] = useState<'week' | 'month'>('week');
   const [, startScopeTransition] = React.useTransition();
 
   const handleDateScopeChange = (range: DateScope, customRange?: CustomDateRange) => {
@@ -127,7 +128,7 @@ export default function DashboardPage() {
     setDateScope('30d');
     setCustomDateRange(undefined);
     setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, '30d', { days: 30 });
-    loadPreloadedSeptemberData(true);
+    loadPreloadedBaselineData(true);
   };
 
   const [rawOrders, setRawOrders] = useState<RawOrderRow[]>([]);
@@ -149,7 +150,7 @@ export default function DashboardPage() {
   const [uploadedDataset, setUploadedDataset] = useState<DatasetSnapshot | null>(null);
   const [cloudApiDataset, setCloudApiDataset] = useState<DatasetSnapshot | null>(null);
 
-  const [dataSourceName, setDataSourceName] = useState<string>('📁 September Baseline (1,026 Clean)');
+  const [dataSourceName, setDataSourceName] = useState<string>('📁 Verified Master Ledger');
   const [dataProvenance, setDataProvenance] = useState<DataProvenanceInfo | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -218,10 +219,10 @@ export default function DashboardPage() {
     }
   }, [rawOrders.length, insideDeliveryFee, outsideDeliveryFee, packagingCost, cogsPercent, exactTolerance, metaAdCost]);
 
-  // Fetch pre-loaded September workspace dataset from local API or local cache
-  const loadPreloadedSeptemberData = useCallback(async (forceBypassCache = false) => {
+  // Fetch pre-loaded workspace dataset from local API or local cache
+  const loadPreloadedBaselineData = useCallback(async (forceBypassCache = false) => {
     setIsProcessing(true);
-    setStatusMessage('Loading September workspace Excel datasets...');
+    setStatusMessage('Loading verified workspace ledger datasets...');
 
     // 1. Instant recovery from local cache unless hard refresh is requested
     if (!forceBypassCache) {
@@ -234,7 +235,8 @@ export default function DashboardPage() {
         setRawReturns(cached.returns || []);
         setRawPartials(cached.partials || []);
         setRawExchanges(cached.exchanges || []);
-        setDataSourceName(cached.sourceName || '📁 September Baseline (Cached)');
+        const dynamicTitle = cached.sourceName || getDynamicDatasetTitle(cached.orders, 'UPLOAD');
+        setDataSourceName(dynamicTitle);
         const filtered = filterOrdersByDateScope(cached.orders || [], dateScope, customDateRange);
         computeReconciliation(
           filtered.filteredOrders,
@@ -261,13 +263,14 @@ export default function DashboardPage() {
         if (data.provenance) {
           setDataProvenance(data.provenance);
         }
+        const dynamicTitle = getDynamicDatasetTitle(data.orders || [], 'UPLOAD', '📁 Verified Master Ledger');
         const snapshot: DatasetSnapshot = {
           orders: data.orders || [],
           pathaoDelivery: data.pathaoDelivery || [],
           returns: data.returns || [],
           partials: data.partials || [],
           exchanges: data.exchanges || [],
-          sourceName: '📁 September Baseline (1,026 Clean)'
+          sourceName: dynamicTitle
         };
         setUploadedDataset(snapshot);
         setDataSourceMode('UPLOAD');
@@ -281,7 +284,7 @@ export default function DashboardPage() {
         setRawReturns(data.returns || []);
         setRawPartials(data.partials || []);
         setRawExchanges(data.exchanges || []);
-        setDataSourceName('📁 September Baseline (1,026 Clean)');
+        setDataSourceName(dynamicTitle);
         const filtered = filterOrdersByDateScope(data.orders || [], dateScope, customDateRange);
         computeReconciliation(
           filtered.filteredOrders,
@@ -358,7 +361,7 @@ export default function DashboardPage() {
       if (savedSettings.metaAdCost !== undefined) setMetaAdCost(savedSettings.metaAdCost);
     }
 
-    loadPreloadedSeptemberData();
+    loadPreloadedBaselineData();
 
     return () => clearTimeout(safetyTimer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -590,6 +593,20 @@ export default function DashboardPage() {
       computeReconciliation(filtered.filteredOrders, parsedReturns, parsedPartials, excludeAugust, excludePOS, parsedExchanges, parsedPathaoDelivery);
       const pathaoInfo = parsedPathaoDelivery.length > 0 ? `, ${parsedPathaoDelivery.length.toLocaleString()} Pathao records` : '';
       setStatusMessage(`Reconciliation active: ${filtered.matchedOrders.toLocaleString()} orders reconciled for Last 30 Days (${filtered.subLabel || 'rolling period'})${pathaoInfo}, ${parsedReturns.length.toLocaleString()} fallback returns, ${parsedPartials.length} partials, ${parsedExchanges.length} exchanges.`);
+
+      // Automated Cloud Sync: Non-blocking background persistence to Vercel Blob
+      fetch('/api/blob/dataset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(uploadedSnapshot),
+      })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          setStatusMessage(prev => `${prev} ☁️ Auto-synced to Cloud Blob.`);
+        }
+      })
+      .catch(() => {});
     } catch (err: any) {
       console.error('File reading failed:', err);
       setStatusMessage(`Upload parsing error: ${err.message}`);
@@ -635,6 +652,20 @@ export default function DashboardPage() {
     const filtered = filterOrdersByDateScope(updatedOrders, dateScope, customDateRange);
     computeReconciliation(filtered.filteredOrders, updatedReturns, updatedPartials, excludeAugust, excludePOS, updatedExchanges, updatedDelivery);
     setStatusMessage(`Live Cloud API Active: reconciled ${filtered.matchedOrders.toLocaleString()} orders (${filtered.label}) with ${rows.length} ${type === 'orders' ? 'WooCommerce items' : 'Pathao records'}.`);
+
+    // Automated Cloud Sync: Non-blocking background persistence to Vercel Blob
+    fetch('/api/blob/dataset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(snapshot),
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        setStatusMessage(prev => `${prev} ☁️ Auto-synced to Cloud Blob.`);
+      }
+    })
+    .catch(() => {});
   };
 
   const handleLoadFullDataset = (dataset: DatasetSnapshot, provenance?: DataProvenanceInfo) => {
@@ -688,7 +719,7 @@ export default function DashboardPage() {
         );
         setStatusMessage(`Switched active view to Uploaded Spreadsheets (${uploadedDataset.orders.length.toLocaleString()} orders).`);
       } else {
-        loadPreloadedSeptemberData();
+        loadPreloadedBaselineData();
       }
     } else {
       // mode === 'API'
@@ -788,15 +819,6 @@ export default function DashboardPage() {
           activeSourceMode={dataSourceMode}
           onSwitchSourceMode={handleSwitchDataSource}
           hasCloudData={cloudApiDataset !== null && cloudApiDataset.orders.length > 0}
-          activeDateScope={dateScope}
-          customDateRange={customDateRange}
-          onDateScopeChange={handleDateScopeChange}
-          dateScopeCounts={dateFilterResult.counts}
-          dateScopeSubLabel={dateFilterResult.subLabel}
-          minDateIso={dateFilterResult.minDateIso}
-          maxDateIso={dateFilterResult.maxDateIso}
-          fileWeeks={dateFilterResult.fileWeeks}
-          onOpenComparison={() => setIsWeekComparisonOpen(true)}
           onToggleMobileMenu={() => setMobileMenuOpen(prev => !prev)}
           mobileOpen={mobileMenuOpen}
         />
@@ -945,10 +967,16 @@ export default function DashboardPage() {
                   hasCloudData={cloudApiDataset !== null && cloudApiDataset.orders.length > 0}
                   onKpiClick={handleKpiCardClick}
                   activeDateScope={dateScope}
+                  customDateRange={customDateRange}
                   onDateRangeSelect={handleDateScopeChange}
+                  onScopeChange={handleDateScopeChange}
                   dateScopeCounts={dateFilterResult.counts}
                   dateScopeLabel={dateFilterResult.label}
                   dateScopeSubLabel={dateFilterResult.subLabel}
+                  minDateIso={dateFilterResult.minDateIso}
+                  maxDateIso={dateFilterResult.maxDateIso}
+                  fileWeeks={dateFilterResult.fileWeeks}
+                  availableMonths={dateFilterResult.availableMonths}
                   onQuickRecalc={() => {
                     computeReconciliation(
                       dateFilterResult.filteredOrders,
@@ -967,7 +995,10 @@ export default function DashboardPage() {
                     const el = document.getElementById('cloudSyncSection');
                     el?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  onOpenComparison={() => setIsWeekComparisonOpen(true)}
+                  onOpenComparison={(mode: 'week' | 'month' = 'week') => {
+                    setComparisonMode(mode);
+                    setIsWeekComparisonOpen(true);
+                  }}
                   skuAnalytics={result.skuAnalytics}
                   customerRiskProfiles={result.customerRiskProfiles}
                   courierMismatches={result.courierMismatches}
@@ -1102,12 +1133,14 @@ export default function DashboardPage() {
           )}
         </main>
 
-        {/* Dynamic Week-over-Week & Period Performance Comparison Modal */}
+        {/* Dynamic Week-over-Week & Month-over-Month Performance Comparison Modal */}
         <WeekComparisonModal
           isOpen={isWeekComparisonOpen}
           onClose={() => setIsWeekComparisonOpen(false)}
           orders={rawOrders}
           fileWeeks={dateFilterResult.fileWeeks}
+          availableMonths={dateFilterResult.availableMonths}
+          initialMode={comparisonMode}
           onApplyPeriod={handleDateScopeChange}
           activeScope={dateScope}
           activeCustomRange={customDateRange}

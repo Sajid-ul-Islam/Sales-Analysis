@@ -4,6 +4,8 @@ import {
   getScopeRange,
   analyzeDates,
   computeFileWeeks,
+  computeAvailableMonths,
+  getDynamicDatasetTitle,
   comparePeriods,
   DateScope
 } from '@/lib/dateFilter';
@@ -66,5 +68,70 @@ describe('Smart Date Range & Scope Engine', () => {
     expect(comparison.periodB.label).toBe('Last 30 Days');
     expect(comparison.deltas).toBeDefined();
     expect(typeof comparison.deltas.ordersDelta).toBe('number');
+  });
+
+  it('computes available calendar months with direct October 2026 1-click support', () => {
+    const analysis = analyzeDates(sampleOrders);
+    const months = computeAvailableMonths(sampleOrders, analysis);
+
+    expect(months.length).toBeGreaterThan(0);
+    // Should contain October 2026
+    const octMonth = months.find(m => m.label.includes('October 2026'));
+    expect(octMonth).toBeDefined();
+    expect(octMonth?.startDate).toBe('2026-10-01');
+    expect(octMonth?.orderCount).toBe(4); // 4 October orders in sample
+
+    // Should also find August 2026
+    const augMonth = months.find(m => m.label.includes('August 2026'));
+    expect(augMonth).toBeDefined();
+    expect(augMonth?.orderCount).toBe(1);
+
+    // Latest month (October) should be sorted first
+    expect(months[0].label).toContain('October');
+  });
+
+  it('filters accurately when October 2026 custom month range is selected', () => {
+    const result = filterOrdersByDateScope(sampleOrders, 'custom', {
+      startDate: '2026-10-01',
+      endDate: '2026-10-31',
+      label: 'October 2026'
+    });
+
+    expect(result.scope).toBe('custom');
+    expect(result.label).toBe('October 2026');
+    expect(result.matchedOrders).toBe(4);
+    expect(result.filteredOrders.every(o => o.orderDate?.toString().startsWith('2026-10'))).toBe(true);
+  });
+
+  it('accurately compares Month vs Month (MoM Analysis)', () => {
+    const analysis = analyzeDates(sampleOrders);
+    const months = computeAvailableMonths(sampleOrders, analysis);
+    expect(months.length).toBeGreaterThanOrEqual(2);
+
+    const oct = months[0];
+    const aug = months[1];
+
+    const comparison = comparePeriods(
+      sampleOrders,
+      { startMs: new Date(`${oct.startDate}T00:00:00`).getTime(), endMs: new Date(`${oct.endDate}T23:59:59`).getTime(), label: oct.label },
+      { startMs: new Date(`${aug.startDate}T00:00:00`).getTime(), endMs: new Date(`${aug.endDate}T23:59:59`).getTime(), label: aug.label }
+    );
+
+    expect(comparison.periodA.label).toContain('October');
+    expect(comparison.periodB.label).toContain('August');
+    expect(comparison.periodA.totalOrders).toBe(4);
+    expect(comparison.periodB.totalOrders).toBe(1);
+    expect(comparison.deltas.ordersDelta).toBe(3);
+  });
+
+  it('generates fully dynamic dataset titles without hardcoded September Baseline strings', () => {
+    const title = getDynamicDatasetTitle(sampleOrders, 'UPLOAD');
+    expect(title).toContain('Verified Ledger');
+    expect(title).toContain('5 Orders');
+    expect(title).not.toContain('September Baseline (1,026 Clean)');
+
+    const apiTitle = getDynamicDatasetTitle(sampleOrders, 'API');
+    expect(apiTitle).toContain('Live Cloud Ledger');
+    expect(apiTitle).toContain('5 Orders');
   });
 });

@@ -1787,8 +1787,8 @@ export function SettingsTab({
                   <button
                     onClick={() => {
                       if (onResetBaseline) onResetBaseline();
-                      logAuditAction('Baseline Reset', 'Reloaded clean 1,026 September orders baseline.');
-                      showToast('Reloaded verified September baseline dataset.');
+                      logAuditAction('Baseline Reset', 'Reloaded verified master baseline ledger.');
+                      showToast('Reloaded verified master baseline ledger.');
                     }}
                     className="px-3 py-1.5 rounded-xl bg-white hover:bg-orange-50 text-primary border border-orange-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
                   >

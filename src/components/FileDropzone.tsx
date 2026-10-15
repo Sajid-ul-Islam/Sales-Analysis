@@ -114,7 +114,7 @@ export function FileDropzone({
           </div>
           <div className="flex items-center gap-2.5 flex-wrap">
             <span className="text-xs font-bold text-navy-deep">
-              {dataSourceName || 'September Baseline Dataset'}
+              {dataSourceName || 'Verified Master Ledger'}
             </span>
             <span className="text-xs text-slate-500 font-medium">
               ({rawOrdersCount?.toLocaleString()} orders loaded)
@@ -130,7 +130,7 @@ export function FileDropzone({
             type="button"
             onClick={onLoadPreloadedData}
             className="px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold transition-all shadow-2xs"
-            title="Reload September clean baseline"
+            title="Reload verified master baseline"
           >
             Reset Baseline
           </button>
@@ -175,7 +175,7 @@ export function FileDropzone({
             className="px-3 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 text-primary border border-orange-200/60 text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs active:scale-95"
           >
             <FolderOpen className="w-3.5 h-3.5" />
-            <span>Load September Dataset</span>
+            <span>Load Master Baseline</span>
           </button>
           {rawOrdersCount && rawOrdersCount > 0 ? (
             <button
@@ -640,7 +640,7 @@ export function FileDropzone({
               onChange={(e) => setExcludeAugust(e.target.checked)}
               className="w-4 h-4 accent-primary rounded cursor-pointer"
             />
-            <span className="text-xs font-semibold text-slate-700">Exclude August Overflow (September Only)</span>
+            <span className="text-xs font-semibold text-slate-700">Exclude August Pre-Period Dates</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input

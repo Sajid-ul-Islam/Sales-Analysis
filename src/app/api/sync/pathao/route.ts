@@ -41,11 +41,23 @@ export async function POST(req: Request) {
     let consignmentIds: string[] = body.consignmentIds || [];
     const limit = Math.min(body.limit || 25, 40);
 
-    // 1. If active orders or tracking list supplied in body, harvest from them
+    // 1. If active WooCommerce orders or tracking list supplied in body, harvest from them
     if (consignmentIds.length === 0 && Array.isArray(body.activeOrders) && body.activeOrders.length > 0) {
       for (const row of body.activeOrders) {
-        const cid = row.consignmentId || row.trackingId || row.consignment_id || row['Consignment ID'];
-        if (cid) consignmentIds.push(String(cid).trim());
+        const cid = row.consignmentId || row.trackingId || row.consignment_id || row['Consignment ID'] || row.tracking_code || row.tracking_number;
+        if (cid) {
+          consignmentIds.push(String(cid).trim());
+          continue;
+        }
+        if (Array.isArray(row.meta_data)) {
+          const metaCid = row.meta_data.find((m: any) =>
+            m.key && (m.key.toLowerCase().includes('consignment') || m.key.toLowerCase().includes('tracking') || m.key.toLowerCase().includes('pathao'))
+          );
+          if (metaCid && metaCid.value) {
+            consignmentIds.push(String(metaCid.value).trim());
+            continue;
+          }
+        }
       }
     }
 

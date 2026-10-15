@@ -393,70 +393,67 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
         return;
       }
 
-      // Run network fetch for cache misses only
-      const promises: Promise<any>[] = [];
+      // Step 1: Query WooCommerce by date range [startDate, endDate]
+      let latestProvenance: DataProvenanceInfo | undefined = undefined;
+      let fetchedWcLive = false;
+      let fetchedPathaoLive = false;
 
       if (!wcData) {
-        promises.push(
-          fetch('/api/sync/woocommerce', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              after: `${startDate}T00:00:00`,
-              before: `${endDate}T23:59:59`,
-              status: orderStatus,
-              perPage: 100,
-              fetchAllPages: true,
-              maxPages: 3,
-              credentials: creds.wc,
-            }),
-          }).then(r => r.json()).then(res => ({ type: 'wc', res }))
-        );
+        setMessage(`Step 1/2: Querying WooCommerce REST API for orders (${startDate} to ${endDate})...`);
+        const wcRes = await fetch('/api/sync/woocommerce', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            after: `${startDate}T00:00:00`,
+            before: `${endDate}T23:59:59`,
+            status: orderStatus,
+            perPage: 100,
+            fetchAllPages: true,
+            maxPages: 3,
+            credentials: creds.wc,
+          }),
+        }).then(r => r.json());
+
+        if (wcRes.success && wcRes.orders && wcRes.orders.length > 0) {
+          wcData = wcRes.orders;
+          fetchedWcLive = true;
+          if (wcRes.provenance) latestProvenance = wcRes.provenance;
+          setSyncCache('woocommerce', startDate, endDate, orderStatus, wcRes.orders, {
+            ordersCount: wcRes.ordersCount || wcRes.orders.length,
+            lineItemsCount: wcRes.lineItemsCount,
+          });
+          wcMsg = `WooCommerce: 🌐 ${wcRes.ordersCount} orders (Live API)`;
+        } else {
+          wcMsg = `WooCommerce: ${wcRes.message || 'No orders found'}`;
+        }
       }
 
+      // Step 2: Now against the resulting WooCommerce orders, query Pathao courier data
       if (!pathaoData) {
-        promises.push(
-          fetch('/api/sync/pathao', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              startDate,
-              endDate,
-              limit: 35,
-              activeOrders: activeOrders?.slice(0, 100),
-              credentials: creds.pathao,
-            }),
-          }).then(r => r.json()).then(res => ({ type: 'pathao', res }))
-        );
-      }
+        const ordersForPathao = (wcData && wcData.length > 0) ? wcData : (activeOrders || []);
+        setMessage(`Step 2/2: Correlating Pathao courier status for ${ordersForPathao.length} WooCommerce orders (${startDate} to ${endDate})...`);
+        const pathaoRes = await fetch('/api/sync/pathao', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            startDate,
+            endDate,
+            limit: 35,
+            activeOrders: ordersForPathao.slice(0, 100),
+            credentials: creds.pathao,
+          }),
+        }).then(r => r.json());
 
-      const results = await Promise.all(promises);
-
-      let latestProvenance: DataProvenanceInfo | undefined = undefined;
-      for (const item of results) {
-        if (item.type === 'wc') {
-          if (item.res.success && item.res.orders && item.res.orders.length > 0) {
-            wcData = item.res.orders;
-            if (item.res.provenance) latestProvenance = item.res.provenance;
-            setSyncCache('woocommerce', startDate, endDate, orderStatus, item.res.orders, {
-              ordersCount: item.res.ordersCount || item.res.orders.length,
-              lineItemsCount: item.res.lineItemsCount,
-            });
-            wcMsg = `WooCommerce: 🌐 ${item.res.ordersCount} orders (Live API)`;
-          } else {
-            wcMsg = `WooCommerce: ${item.res.message || 'No orders'}`;
-          }
-        } else if (item.type === 'pathao') {
-          if (item.res.success && item.res.orders && item.res.orders.length > 0) {
-            pathaoData = item.res.orders;
-            if (item.res.provenance) latestProvenance = item.res.provenance;
-            setSyncCache('pathao', startDate, endDate, 'any', item.res.orders, {
-              ordersCount: item.res.count || item.res.orders.length,
-            });
-            pathaoMsg = `Pathao: 🌐 ${item.res.count} consignments (Live API)`;
-          } else {
-            pathaoMsg = `Pathao: ${item.res.message || 'No consignments'}`;
-          }
+        if (pathaoRes.success && pathaoRes.orders && pathaoRes.orders.length > 0) {
+          pathaoData = pathaoRes.orders;
+          fetchedPathaoLive = true;
+          if (pathaoRes.provenance) latestProvenance = pathaoRes.provenance;
+          setSyncCache('pathao', startDate, endDate, 'any', pathaoRes.orders, {
+            ordersCount: pathaoRes.count || pathaoRes.orders.length,
+          });
+          pathaoMsg = `Pathao: 🌐 ${pathaoRes.count} consignments (Live API)`;
+        } else {
+          pathaoMsg = `Pathao: ${pathaoRes.message || 'No consignments'}`;
         }
       }
 
@@ -467,8 +464,8 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
       if (pathaoData) onDataSynced('returns', pathaoData, latestProvenance);
 
       const summaries = [wcMsg, pathaoMsg].filter(Boolean);
-      setMessage(`Cloud Sync Complete (${startDate} to ${endDate}): ${summaries.join(' • ')}`);
-      setLastSyncFromCache({ wc: !promises.some(p => p.toString().includes('woocommerce')), pathao: !promises.some(p => p.toString().includes('pathao')) });
+      setMessage(`⚡ Sequential Sync Complete: ${summaries.join(' • ')}`);
+      setLastSyncFromCache({ wc: !fetchedWcLive, pathao: !fetchedPathaoLive });
       setCacheStats(getSyncCacheStats());
     } catch (err: any) {
       setMessage(`Consolidated sync error: ${err.message}`);
@@ -999,16 +996,23 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
                       <Cloud className="w-3.5 h-3.5 text-indigo-600" />
                       Method 3: Vercel Blob
                     </span>
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${
                       blobStatus?.configured
                         ? 'bg-emerald-100 text-emerald-800'
                         : 'bg-amber-100 text-amber-800'
                     }`}>
-                      {blobStatus?.configured ? 'Connected' : 'Token Needed'}
+                      {blobStatus?.configured ? (
+                        <>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Auto-Sync Active
+                        </>
+                      ) : (
+                        'Token Needed'
+                      )}
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 mb-3 leading-relaxed">
-                    Serverless cloud object storage. Persists synced JSON in Vercel Blob so all team members & visitors share the latest cloud data without redeploying.
+                    Serverless cloud object storage. Uploads & live syncs auto-save to Vercel Blob in the background so all remote team members share the latest cloud data instantly without re-uploading.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1024,7 +1028,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
                     ) : (
                       <UploadCloud className="w-3 h-3" />
                     )}
-                    <span>Save to Blob</span>
+                    <span>Sync to Blob</span>
                   </button>
                   <button
                     type="button"

@@ -11,7 +11,7 @@ import {
   Scale,
   Sparkles
 } from 'lucide-react';
-import { DateScope, DateScopeCounts, CustomDateRange, FileWeek } from '@/lib/dateFilter';
+import { DateScope, DateScopeCounts, CustomDateRange, FileWeek, AvailableMonth } from '@/lib/dateFilter';
 
 export interface DateRangeSelectorProps {
   activeScope: DateScope;
@@ -22,7 +22,8 @@ export interface DateRangeSelectorProps {
   minDateIso?: string;
   maxDateIso?: string;
   fileWeeks?: FileWeek[];
-  onOpenComparison?: () => void;
+  availableMonths?: AvailableMonth[];
+  onOpenComparison?: (mode?: 'week' | 'month') => void;
   align?: 'left' | 'right';
   className?: string;
 }
@@ -45,6 +46,7 @@ export function DateRangeSelector({
   minDateIso,
   maxDateIso,
   fileWeeks,
+  availableMonths,
   onOpenComparison,
   align = 'right',
   className = '',
@@ -272,7 +274,7 @@ export function DateRangeSelector({
               <div className="grid grid-cols-5 gap-1 p-1 bg-slate-100 dark:bg-[#111111] rounded-xl border border-slate-200/80 dark:border-[#222222]">
                 {[
                   { id: '30d' as DateScope, label: '30D', hint: 'Default' },
-                  { id: 'month' as DateScope, label: 'Month', hint: 'MTD' },
+                  { id: 'month' as DateScope, label: availableMonths && availableMonths[0] ? availableMonths[0].shortLabel.split(' ')[0] : 'Month', hint: 'MTD' },
                   { id: '7d' as DateScope, label: '7D', hint: 'Week' },
                   { id: 'today' as DateScope, label: 'Today', hint: 'Live' },
                   { id: 'all' as DateScope, label: 'All', hint: 'Archive' },
@@ -358,7 +360,91 @@ export function DateRangeSelector({
               </div>
             </div>
 
-            {/* 3. Dynamic File Weeks (Detected from Uploaded File) */}
+            {/* 3. Calendar Months (Dedicated 1-Click Month Selector for October, September, etc.) */}
+            {availableMonths && availableMonths.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Calendar Months
+                  </span>
+                  {onOpenComparison && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsOpen(false);
+                        onOpenComparison('month');
+                      }}
+                      className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 flex items-center gap-1 cursor-pointer transition-colors"
+                      title="Open Month-over-Month Comparator (MoM Analysis)"
+                    >
+                      <Calendar className="w-3 h-3" />
+                      <span>Compare Months</span>
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {availableMonths.map((m) => {
+                    const isMonthSelected =
+                      (activeScope === 'month' && m.isCurrentMonth) ||
+                      (activeScope === 'custom' &&
+                        (customRange?.label === m.label ||
+                          (customRange?.startDate === m.startDate && customRange?.endDate === m.endDate)));
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => {
+                          onScopeChange('custom', {
+                            startDate: m.startDate,
+                            endDate: m.endDate,
+                            label: m.label,
+                          });
+                          setIsOpen(false);
+                        }}
+                        className={`flex items-center justify-between px-3 py-2 rounded-xl text-left transition-all border cursor-pointer ${
+                          isMonthSelected
+                            ? 'bg-orange-50 dark:bg-orange-950/40 border-primary/40 text-slate-900 dark:text-white shadow-2xs ring-1 ring-primary/20'
+                            : 'bg-white dark:bg-[#0D0D0D] border-slate-200/80 dark:border-[#1F1F1F] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="min-w-0 pr-1">
+                          <div className="flex items-center gap-1.5">
+                            {isMonthSelected && <Check className="w-3 h-3 text-primary shrink-0" />}
+                            <span
+                              className={`text-xs truncate ${
+                                isMonthSelected ? 'font-bold text-primary' : 'font-semibold text-slate-800 dark:text-slate-200'
+                              }`}
+                            >
+                              {m.label}
+                            </span>
+                            {m.isCurrentMonth && (
+                              <span className="px-1 py-0.2 rounded text-[8px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 uppercase shrink-0">
+                                Current
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[9px] text-slate-400 block truncate mt-0.5">
+                            {m.startDate} → {m.endDate}
+                          </span>
+                        </div>
+
+                        <span
+                          className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono shrink-0 ${
+                            isMonthSelected
+                              ? 'bg-primary text-white font-bold'
+                              : 'bg-slate-100 dark:bg-[#1A1A1A] text-slate-600 dark:text-slate-400 font-medium'
+                          }`}
+                        >
+                          {m.orderCount.toLocaleString()}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 4. Dynamic File Weeks (Detected from Uploaded File) */}
             {fileWeeks && fileWeeks.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-2 px-1">
@@ -370,10 +456,10 @@ export function DateRangeSelector({
                       type="button"
                       onClick={() => {
                         setIsOpen(false);
-                        onOpenComparison();
+                        onOpenComparison('week');
                       }}
                       className="text-[10px] font-bold text-primary hover:text-orange-700 flex items-center gap-1 cursor-pointer transition-colors"
-                      title="Open Week-over-Week Comparator"
+                      title="Open Week-over-Week Comparator (WoW Analysis)"
                     >
                       <Scale className="w-3 h-3" />
                       <span>Compare Weeks</span>
@@ -477,7 +563,7 @@ export function DateRangeSelector({
                       type="date"
                       value={startInput}
                       min={minDateIso}
-                      max={maxDateIso || endInput}
+                      max={endInput || undefined}
                       onChange={(e) => setStartInput(e.target.value)}
                       className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#222222] text-xs text-slate-800 dark:text-slate-200 bg-white dark:bg-[#111111] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono"
                     />
@@ -490,7 +576,6 @@ export function DateRangeSelector({
                       type="date"
                       value={endInput}
                       min={startInput || minDateIso}
-                      max={maxDateIso}
                       onChange={(e) => setEndInput(e.target.value)}
                       className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#222222] text-xs text-slate-800 dark:text-slate-200 bg-white dark:bg-[#111111] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono"
                     />
@@ -525,20 +610,39 @@ export function DateRangeSelector({
               </form>
             </div>
 
-            {/* 5. Compare Between Weeks Button in Popover */}
+            {/* 5. Comparative Performance Analytics (WoW & MoM) */}
             {onOpenComparison && (
-              <div className="pt-2 border-t border-slate-100 dark:border-[#1A1A1A]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsOpen(false);
-                    onOpenComparison();
-                  }}
-                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white/10 dark:hover:bg-white/15 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-                >
-                  <Scale className="w-4 h-4 text-orange-400" />
-                  <span>Compare Between Weeks (WoW Analysis)</span>
-                </button>
+              <div className="pt-2 border-t border-slate-100 dark:border-[#1A1A1A] space-y-1.5">
+                <div className="flex items-center justify-between px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <span>Comparative Analytics</span>
+                  <span className="text-[9px] text-primary lowercase font-medium">multi-period</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      onOpenComparison('week');
+                    }}
+                    className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white/10 dark:hover:bg-white/15 text-white text-[11px] font-bold transition-all shadow-xs cursor-pointer"
+                    title="Compare any two weeks (WoW Analysis)"
+                  >
+                    <Scale className="w-3.5 h-3.5 text-orange-400" />
+                    <span>Week vs Week</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      onOpenComparison('month');
+                    }}
+                    className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white/10 dark:hover:bg-white/15 text-white text-[11px] font-bold transition-all shadow-xs cursor-pointer"
+                    title="Compare any two months (MoM Analysis, e.g. Oct vs Sep)"
+                  >
+                    <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Month vs Month</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
