@@ -147,6 +147,16 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
     const note = String(rawOrder.customer_note || '').toLowerCase();
     const orderIdStr = String(rawOrder.id || rawOrder.number || '').toLowerCase();
     const paymentMethod = String(rawOrder.payment_method || '').toLowerCase();
+    const paymentTitle = String(rawOrder.payment_method_title || '').toLowerCase();
+
+    // User rule: If payment is marked as ecom, then exclude them
+    const isEcom = paymentMethod === 'sip_ecom' || 
+                   paymentMethod === 'ecom' || 
+                   paymentTitle === 'ecom' || 
+                   paymentTitle.includes('ecom');
+    if (isEcom) {
+      return null;
+    }
 
     const isPos = sourceMeta?.value === 'pos' || 
                   Boolean(posDomainMeta?.value) || 
@@ -192,11 +202,18 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
     return null;
   }, []);
 
-  // Format raw WooCommerce orders into structured records, filtering out Online Store
+  // Format raw WooCommerce orders into structured records, filtering out Online Store & Ecom payments
   const parseRawWcOrders = useCallback((rawOrdersList: any[]): WcOrderRecord[] => {
     const outletRecords: WcOrderRecord[] = [];
 
     rawOrdersList.forEach(o => {
+      // User rule: If payment is marked as ecom, exclude them
+      const pMethod = String(o.payment_method || '').toLowerCase();
+      const pTitle = String(o.payment_method_title || '').toLowerCase();
+      if (pMethod === 'sip_ecom' || pMethod === 'ecom' || pTitle === 'ecom' || pTitle.includes('ecom')) {
+        return; // Exclude Ecom marked orders from Outlet Sales
+      }
+
       const outlet = resolveOutletFromWcOrder(o);
       // Strictly exclude Online Store (Website) orders
       if (!outlet) return;
@@ -256,6 +273,11 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
     ordersList.forEach(r => {
       const rowAny = r as any;
+      const pMethod = String(rowAny.paymentMethod || rowAny['Payment Method'] || r.paymentMethod || '').toLowerCase();
+      if (pMethod === 'sip_ecom' || pMethod === 'ecom' || pMethod.includes('ecom')) {
+        return; // Exclude Ecom marked orders from Outlet Sales
+      }
+
       let outletId = '';
       let outletName = '';
 
@@ -334,7 +356,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
   }, []);
 
   // Pull live orders from WooCommerce REST API with optional date filtering & bulletproof HTML protection
-  const handlePullFromWooCommerce = useCallback(async (perPage: number = 100, maxPages: number = 5) => {
+  const handlePullFromWooCommerce = useCallback(async (perPage: number = 100, maxPages: number = 10) => {
     setIsLoading(true);
     setSyncStatusMsg('Connecting to WooCommerce REST API...');
 
@@ -402,6 +424,11 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
         // Fallback using formatted order rows if rawOrders was not provided
         const parsedFallback: WcOrderRecord[] = [];
         data.orders.forEach((r: any, idx: number) => {
+          const pMethod = String(r['Payment Method'] || r.paymentMethod || '').toLowerCase();
+          if (pMethod === 'sip_ecom' || pMethod === 'ecom' || pMethod.includes('ecom')) {
+            return; // Exclude Ecom marked orders from Outlet Sales
+          }
+
           const isPos = r.isPos || r['Order Source'] === 'POS' || Boolean(r.outletId) || Boolean(r['Outlet ID']);
           const oid = String(r['Order ID'] || r.orderId || idx);
           const rawOutletId = String(r.outletId || r['Outlet ID'] || '');
@@ -489,7 +516,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
   // Initial live pull on mount
   useEffect(() => {
-    handlePullFromWooCommerce(100, 5);
+    handlePullFromWooCommerce(100, 10);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1011,7 +1038,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
           {/* 2. Pull from WooCommerce Button */}
           <button
-            onClick={() => handlePullFromWooCommerce(100, 5)}
+            onClick={() => handlePullFromWooCommerce(100, 10)}
             disabled={isLoading}
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-60 cursor-pointer"
             title="Fetch latest live POS orders from deencommerce.com via WooCommerce REST API"
