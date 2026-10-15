@@ -632,8 +632,9 @@ export default function DashboardPage() {
     setRawOrders(updatedOrders);
     setRawReturns(updatedReturns);
     setDataSourceName(sourceLabel);
-    computeReconciliation(updatedOrders, updatedReturns, updatedPartials, excludeAugust, excludePOS, updatedExchanges, updatedDelivery);
-    setStatusMessage(`Live Cloud API Active: reconciled with ${rows.length} ${type === 'orders' ? 'WooCommerce order items' : 'Pathao courier records'}.`);
+    const filtered = filterOrdersByDateScope(updatedOrders, dateScope, customDateRange);
+    computeReconciliation(filtered.filteredOrders, updatedReturns, updatedPartials, excludeAugust, excludePOS, updatedExchanges, updatedDelivery);
+    setStatusMessage(`Live Cloud API Active: reconciled ${filtered.matchedOrders.toLocaleString()} orders (${filtered.label}) with ${rows.length} ${type === 'orders' ? 'WooCommerce items' : 'Pathao records'}.`);
   };
 
   const handleLoadFullDataset = (dataset: DatasetSnapshot, provenance?: DataProvenanceInfo) => {
@@ -651,8 +652,9 @@ export default function DashboardPage() {
     setRawPathaoDelivery(dataset.pathaoDelivery || []);
     const sourceLabel = dataset.sourceName || '☁️ Vercel Blob Dataset';
     setDataSourceName(sourceLabel);
+    const filtered = filterOrdersByDateScope(dataset.orders || [], dateScope, customDateRange);
     computeReconciliation(
-      dataset.orders || [],
+      filtered.filteredOrders,
       dataset.returns || [],
       dataset.partials || [],
       excludeAugust,
@@ -660,7 +662,7 @@ export default function DashboardPage() {
       dataset.exchanges || [],
       dataset.pathaoDelivery || []
     );
-    setStatusMessage(`Loaded from ${sourceLabel}: ${(dataset.orders || []).length.toLocaleString()} orders, ${(dataset.returns || []).length.toLocaleString()} returns.`);
+    setStatusMessage(`Loaded from ${sourceLabel}: ${filtered.matchedOrders.toLocaleString()} orders (${filtered.label}), ${(dataset.returns || []).length.toLocaleString()} returns.`);
   };
 
   // Distinct Switcher between Uploaded Spreadsheets and Live WooCommerce & Pathao API

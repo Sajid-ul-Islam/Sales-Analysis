@@ -224,11 +224,11 @@ export async function POST(req: Request) {
     }
 
     const payload = {
-      orders: body.orders || [],
-      pathaoDelivery: body.pathaoDelivery || [],
-      returns: body.returns || [],
-      partials: body.partials || [],
-      exchanges: body.exchanges || [],
+      orders: sanitizeOrdersResponse(body.orders || []),
+      pathaoDelivery: sanitizeOrdersResponse(body.pathaoDelivery || []),
+      returns: sanitizeOrdersResponse(body.returns || []),
+      partials: sanitizeOrdersResponse(body.partials || []),
+      exchanges: sanitizeOrdersResponse(body.exchanges || []),
       updatedAt: new Date().toISOString(),
       sourceName: body.sourceName || 'Updated Baseline Dataset',
     };

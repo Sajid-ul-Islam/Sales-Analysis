@@ -179,18 +179,34 @@ export async function batchFetchPathaoOrders(
 export function formatPathaoToReturnRows(pathaoOrders: any[]): RawOrderRow[] {
   return pathaoOrders.map((o) => {
     const rawOid = o.merchant_order_id || o.order_id || o.order_consignment_id;
+    const consId = o.order_consignment_id || o.consignment_id || o.order_id;
+    const status = o.order_status || 'Delivered';
+    const amount = parseFloat(o.order_amount) || 0;
+    const collected = parseFloat(o.collected_amount || o.order_amount) || 0;
+    const fee = parseFloat(o.total_fee || o.delivery_fee) || 0;
+    const deliveryFee = parseFloat(o.delivery_fee) || 0;
+    const codFee = parseFloat(o.cod_fee) || 0;
+
     return {
+      'Merchant order id': rawOid,
+      'Order consignment id': consId,
+      'Order status': status,
+      'Collected amount': collected,
+      'Collectable Amount': amount,
+      'Total fee': fee,
+      'Delivery fee': deliveryFee,
+      'Cod fee': codFee,
+      'Store name': o.store_name || '',
       'order_id': rawOid,
       'orderId': rawOid,
-      'consignment_id': o.order_consignment_id || o.order_id,
-      'consignmentid': o.order_consignment_id || o.order_id,
-      'delivery_status': o.order_status || 'Delivered',
-      'deliverystatus': o.order_status || 'Delivered',
-      'status': o.order_status || 'Delivered',
-      'cod_amount': parseFloat(o.order_amount) || 0,
-      'codamount': parseFloat(o.order_amount) || 0,
-      'charge': parseFloat(o.total_fee || o.delivery_fee) || 0,
-      'delivery_fee': parseFloat(o.delivery_fee) || 0,
+      'consignment_id': consId,
+      'consignmentid': consId,
+      'delivery_status': status,
+      'deliverystatus': status,
+      'status': status,
+      'cod_amount': amount,
+      'codamount': amount,
+      'charge': fee,
       'discount': parseFloat(o.discount) || 0,
       'customer_name': o.recipient_name || '',
       'customername': o.recipient_name || '',
@@ -200,7 +216,6 @@ export function formatPathaoToReturnRows(pathaoOrders: any[]): RawOrderRow[] {
       'address': o.recipient_address || '',
       'failed_reason': o.failed_reason || '',
       'invoice_id': o.invoice_id || '',
-      'store_name': o.store_name || '',
       'created_at': o.order_created_at || '',
     };
   });

@@ -183,6 +183,17 @@ export function formatWooCommerceToOrderRows(orders: any[]): RawOrderRow[] {
     const note = order.customer_note || '';
     const status = order.status || 'processing';
 
+    const meta = order.meta_data || [];
+    const isPos = meta.some((m: any) => m.key === '_sip_pos_order' || (m.key === '_sip_order_source' && String(m.value).toLowerCase() === 'pos'));
+    const outletMeta = meta.find((m: any) => m.key === '_sip_outlet_id');
+    const outletId = outletMeta ? String(outletMeta.value) : undefined;
+    const trackingMeta = meta.find((m: any) => {
+      const k = String(m.key || '').toLowerCase();
+      return k.includes('consignment') || k.includes('tracking') || k.includes('pathao');
+    });
+    const trackingId = trackingMeta ? String(trackingMeta.value) : undefined;
+    const shippingFee = (order.shipping_lines && order.shipping_lines[0]) ? parseFloat(order.shipping_lines[0].total) || 0 : 0;
+
     const lineItems = order.line_items || [];
     if (lineItems.length === 0) {
       rows.push({
@@ -201,6 +212,12 @@ export function formatWooCommerceToOrderRows(orders: any[]): RawOrderRow[] {
         'Quantity': 1,
         'SKU': 'GENERAL',
         'Item Name': 'Apparel Order',
+        'Order Source': isPos ? 'POS' : 'Online',
+        'Outlet ID': outletId || '',
+        'Shipping Fee': shippingFee,
+        'Consignment ID': trackingId || '',
+        isPos,
+        outletId,
       });
     } else {
       for (const item of lineItems) {
@@ -224,6 +241,12 @@ export function formatWooCommerceToOrderRows(orders: any[]): RawOrderRow[] {
           'Payment Method': paymentMethod,
           'Order Notes': note,
           'Delivery Status': status,
+          'Order Source': isPos ? 'POS' : 'Online',
+          'Outlet ID': outletId || '',
+          'Shipping Fee': shippingFee,
+          'Consignment ID': trackingId || '',
+          isPos,
+          outletId,
         });
       }
     }

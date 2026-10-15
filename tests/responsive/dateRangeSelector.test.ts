@@ -5,9 +5,9 @@ import {
   analyzeDates,
   computeFileWeeks,
   comparePeriods,
-  DateScope,
-  RawOrderRow
+  DateScope
 } from '@/lib/dateFilter';
+import { RawOrderRow } from '@/types';
 
 describe('Smart Date Range & Scope Engine', () => {
   const sampleOrders: RawOrderRow[] = [
