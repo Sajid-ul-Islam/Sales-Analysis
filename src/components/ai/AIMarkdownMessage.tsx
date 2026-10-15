@@ -9,7 +9,7 @@ interface AIMarkdownMessageProps {
 }
 
 /**
- * Rich, responsive Markdown message formatter for DEEN Copilot.
+ * Rich, responsive Markdown message formatter for DEEN Assistant.
  * Formats:
  * - H1, H2, H3, H4 headers with font-headline styling
  * - Tables with overflow-x-auto, styled borders, and header badges
@@ -232,7 +232,7 @@ function renderBlock(block: BlockType, key: number) {
       if (block.level === 3) {
         return (
           <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-2 mb-1 flex items-center gap-1.5 uppercase tracking-wide">
-            <span className="w-1 h-2.5 bg-indigo-500 dark:bg-orange-400 rounded-full shrink-0" />
+            <span className="w-1 h-2.5 bg-[#EB5A19] dark:bg-orange-400 rounded-full shrink-0" />
             <span>{formatInlineText(block.text)}</span>
           </h3>
         );
@@ -282,7 +282,7 @@ function renderBlock(block: BlockType, key: number) {
 
     case 'quote': {
       return (
-        <div className="p-3 my-2 rounded-xl bg-indigo-50/70 dark:bg-[#121212] border-l-3 border-indigo-600 dark:border-orange-500 text-indigo-950 dark:text-orange-200 text-xs leading-relaxed shadow-2xs">
+        <div className="p-3 my-2 rounded-xl bg-orange-50/60 dark:bg-[#121212] border-l-3 border-[#EB5A19] dark:border-orange-500 text-slate-800 dark:text-orange-200 text-xs leading-relaxed shadow-2xs">
           {formatInlineText(block.text)}
         </div>
       );

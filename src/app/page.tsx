@@ -1028,33 +1028,32 @@ export default function DashboardPage() {
           activeCustomRange={customDateRange}
         />
 
-        {/* Floating Business Intelligence Assistant Glowing Action Icon */}
+        {/* DEEN Assistant Floating Action Trigger */}
         <div className="fixed z-40 bottom-20 right-4 md:bottom-6 md:right-6 group">
-          {/* Ambient Glowing Outer Aura Pulse */}
-          <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-orange-500 via-amber-400 to-orange-600 opacity-75 blur-md group-hover:opacity-100 group-hover:blur-lg transition-all duration-300 animate-pulse pointer-events-none" />
+          {/* Executive Tooltip on Desktop Hover */}
+          <div className="hidden md:flex items-center gap-1.5 absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-xl bg-slate-900/95 dark:bg-[#141414] text-white text-xs font-bold tracking-tight whitespace-nowrap shadow-xl border border-slate-700/60 dark:border-[#262626] pointer-events-none transition-all duration-200 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+            <span>DEEN Assistant</span>
+          </div>
 
           <button
             type="button"
             onClick={() => setIsCopilotOpen(prev => !prev)}
-            aria-label="Open Business Assistant"
-            title="Business Intelligence Assistant"
-            className="relative flex items-center justify-center w-13 h-13 min-w-[52px] min-h-[52px] rounded-full bg-gradient-to-br from-orange-500 via-orange-600 to-amber-600 hover:from-orange-400 hover:to-amber-500 text-white shadow-[0_0_25px_rgba(235,90,25,0.6),0_4px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_0_35px_rgba(235,90,25,0.85),0_6px_20px_rgba(0,0,0,0.4)] transition-all duration-300 transform hover:scale-105 active:scale-95 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-orange-500 dark:focus-visible:ring-offset-black border border-white/20"
+            aria-label="Open DEEN Assistant"
+            title="DEEN Assistant"
+            className="relative flex items-center justify-center w-12 h-12 md:w-13 md:h-13 min-w-[48px] min-h-[48px] rounded-2xl bg-gradient-to-b from-[#f26322] to-[#EB5A19] hover:from-[#EB5A19] hover:to-[#d44e13] text-white shadow-lg shadow-orange-950/20 dark:shadow-black/60 hover:shadow-xl hover:shadow-orange-950/30 transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#EB5A19] dark:focus-visible:ring-offset-black border border-white/20 dark:border-white/10"
           >
-            {/* Glowing Icon (Bot with Sparkle accent) */}
-            <div className="relative flex items-center justify-center">
-              <Bot className="w-6 h-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] transition-transform duration-300 group-hover:scale-110" />
-              <Sparkles className="w-3.5 h-3.5 text-amber-200 absolute -top-1.5 -right-1.5 animate-pulse" />
-            </div>
+            {/* Crisp On-Brand Assistant Icon */}
+            <Bot className="w-5 h-5 md:w-6 md:h-6 text-white drop-shadow-xs transition-transform duration-200 group-hover:scale-110" />
 
-            {/* Live Operational Status Radar Ping */}
-            <span className="absolute top-1 right-1 flex h-3 w-3 pointer-events-none">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 ring-2 ring-orange-600" />
+            {/* Subtle Operational Status Pill */}
+            <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3 pointer-events-none">
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 ring-2 ring-white dark:ring-[#0A0A0A]" />
             </span>
           </button>
         </div>
 
-        {/* AI Business Assistant Drawer */}
+        {/* DEEN Assistant Drawer */}
         {result?.summary && (
           <CopilotDrawer
             isOpen={isCopilotOpen}

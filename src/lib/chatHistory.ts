@@ -66,11 +66,11 @@ export function getPreviousUserQueries(messages: CopilotChatMessage[]): string[]
  */
 export function exportChatTranscriptMarkdown(messages: CopilotChatMessage[]): string {
   const timestamp = new Date().toLocaleString();
-  let markdown = `# DEEN Copilot Chat Transcript\n`;
+  let markdown = `# DEEN Assistant Chat Transcript\n`;
   markdown += `*Exported on ${timestamp}*\n\n---\n\n`;
 
   for (const msg of messages) {
-    const role = msg.sender === 'user' ? '👤 **Merchant**' : '🤖 **DEEN Copilot**';
+    const role = msg.sender === 'user' ? '👤 **Merchant**' : '🤖 **DEEN Assistant**';
     markdown += `### ${role} (${msg.timestamp})\n\n`;
     markdown += `${msg.text.trim()}\n\n---\n\n`;
   }

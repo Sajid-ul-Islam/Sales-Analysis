@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       const turns = history
         .filter((h: any) => h && h.text && (h.sender === 'user' || h.sender === 'assistant'))
         .slice(-6)
-        .map((h: any) => `${h.sender === 'user' ? 'Merchant' : 'Business Assistant'}: ${h.text.trim()}`)
+        .map((h: any) => `${h.sender === 'user' ? 'Merchant' : 'DEEN Assistant'}: ${h.text.trim()}`)
         .join('\n\n');
       if (turns) {
         historyContext = `\nRecent Conversation Context:\n${turns}\n`;

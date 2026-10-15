@@ -176,9 +176,9 @@ export function BYOKModal({ isOpen, onClose, onSaved }: BYOKModalProps) {
       <div className="relative w-full max-w-2xl bg-white dark:bg-[#0A0A0A] rounded-3xl shadow-2xl border border-slate-200 dark:border-[#1F1F1F] overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* Header */}
-        <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-[#1F1F1F] bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 dark:from-[#000000] dark:via-[#080808] dark:to-[#000000] text-white flex items-center justify-between">
+        <div className="p-5 sm:p-6 border-b border-slate-800 dark:border-[#1F1F1F] bg-[#0F172A] dark:bg-[#000000] text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-md">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-b from-[#f26322] to-[#EB5A19] flex items-center justify-center text-white shadow-md">
               <Key className="w-5 h-5" />
             </div>
             <div>
@@ -306,26 +306,26 @@ export function BYOKModal({ isOpen, onClose, onSaved }: BYOKModalProps) {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                <Info className="w-4 h-4 text-indigo-600" />
+                <Info className="w-4 h-4 text-[#EB5A19]" />
                 <span>1. Where to Get Your API Key</span>
               </h4>
               <span className="text-[10px] text-slate-500">Takes under 60 seconds</span>
             </div>
 
             {/* Primary Recommended: Google AI Studio */}
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-purple-50/50 to-white border border-indigo-200/80 shadow-2xs space-y-3">
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-50/60 via-amber-50/40 to-white border border-orange-200/80 shadow-2xs space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-xs sm:text-sm text-slate-900 font-headline">
                       Google AI Studio (Gemini 2.5 Flash)
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-600 text-white shadow-2xs">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#EB5A19] text-white shadow-2xs">
                       RECOMMENDED
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
-                    100% Free with 15 requests/minute. <strong>No credit card required</strong>. Perfect for daily return diagnosis, courier audits, and copilot inquiries.
+                    100% Free with 15 requests/minute. <strong>No credit card required</strong>. Perfect for daily return diagnosis, courier audits, and assistant inquiries.
                   </p>
                 </div>
 
@@ -333,24 +333,24 @@ export function BYOKModal({ isOpen, onClose, onSaved }: BYOKModalProps) {
                   href="https://aistudio.google.com/app/apikey"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs shrink-0 active:scale-95"
+                  className="px-4 py-2 rounded-xl bg-[#EB5A19] hover:bg-[#d44e13] text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs shrink-0 active:scale-95"
                 >
                   <span>Get Free Gemini Key</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-indigo-100 text-[10px] text-slate-600">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-orange-100 text-[10px] text-slate-600">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-4 h-4 rounded-full bg-indigo-200 text-indigo-800 font-bold flex items-center justify-center shrink-0">1</span>
+                  <span className="w-4 h-4 rounded-full bg-orange-100 text-[#EB5A19] font-bold flex items-center justify-center shrink-0">1</span>
                   <span>Sign in with Google</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-4 h-4 rounded-full bg-indigo-200 text-indigo-800 font-bold flex items-center justify-center shrink-0">2</span>
+                  <span className="w-4 h-4 rounded-full bg-orange-100 text-[#EB5A19] font-bold flex items-center justify-center shrink-0">2</span>
                   <span>Click &quot;Create API Key&quot;</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-4 h-4 rounded-full bg-indigo-200 text-indigo-800 font-bold flex items-center justify-center shrink-0">3</span>
+                  <span className="w-4 h-4 rounded-full bg-orange-100 text-[#EB5A19] font-bold flex items-center justify-center shrink-0">3</span>
                   <span>Copy & paste key above</span>
                 </div>
               </div>
@@ -426,12 +426,12 @@ export function BYOKModal({ isOpen, onClose, onSaved }: BYOKModalProps) {
                 onClick={() => setActiveTab('instant')}
                 className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
                   activeTab === 'instant'
-                    ? 'border-indigo-600 bg-indigo-50/40 ring-2 ring-indigo-600/10 shadow-xs'
+                    ? 'border-[#EB5A19] bg-orange-50/40 ring-2 ring-[#EB5A19]/10 shadow-xs'
                     : 'border-slate-200 bg-white hover:bg-slate-50/60'
                 }`}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+                  <div className="w-7 h-7 rounded-lg bg-orange-100 text-[#EB5A19] flex items-center justify-center shrink-0">
                     <Laptop className="w-4 h-4" />
                   </div>
                   <div>
@@ -449,7 +449,7 @@ export function BYOKModal({ isOpen, onClose, onSaved }: BYOKModalProps) {
                 onClick={() => setActiveTab('server')}
                 className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
                   activeTab === 'server'
-                    ? 'border-indigo-600 bg-indigo-50/40 ring-2 ring-indigo-600/10 shadow-xs'
+                    ? 'border-[#EB5A19] bg-orange-50/40 ring-2 ring-[#EB5A19]/10 shadow-xs'
                     : 'border-slate-200 bg-white hover:bg-slate-50/60'
                 }`}
               >

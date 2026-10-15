@@ -1411,23 +1411,23 @@ export function SettingsTab({
                 </button>
               </div>
 
-              {/* AI Copilot & After-Sales Engine (BYOK) Status Card */}
-              <div className="p-4 rounded-xl border border-indigo-200/90 bg-gradient-to-r from-indigo-50/50 via-purple-50/30 to-white flex items-start justify-between md:col-span-2 shadow-2xs">
+              {/* DEEN Assistant & Intelligence Engine (BYOK) Status Card */}
+              <div className="p-4 rounded-xl border border-orange-200/80 bg-gradient-to-r from-orange-50/40 via-amber-50/20 to-white flex items-start justify-between md:col-span-2 shadow-2xs">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600 shrink-0 shadow-2xs">
+                  <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-[#EB5A19] shrink-0 shadow-2xs">
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <h4 className="text-xs font-bold text-slate-900 font-headline">
-                        AI Intelligence Engine & Bring Your Own Key (BYOK)
+                        DEEN Assistant & Bring Your Own Key (BYOK)
                       </h4>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-700">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-orange-100 text-[#EB5A19]">
                         Multi-Provider Auto-Detect
                       </span>
                     </div>
                     <span className="text-[11px] text-slate-500 block mt-0.5">
-                      Powers After-Sales QA Diagnosis, Courier Financial Dispute Claims, and Chronic Buyer Protection
+                      Powers DEEN Assistant, After-Sales QA Diagnosis, Courier Dispute Audits, and Customer Risk Profiling
                     </span>
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                       <span
@@ -1439,7 +1439,7 @@ export function SettingsTab({
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
-                            byokConfig.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                            byokConfig.isActive ? 'bg-emerald-500' : 'bg-slate-400'
                           }`}
                         />
                         {byokConfig.isActive
@@ -1456,7 +1456,7 @@ export function SettingsTab({
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => setIsBYOKModalOpen(true)}
-                    className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs active:scale-95"
+                    className="px-3.5 py-1.5 rounded-lg bg-[#EB5A19] hover:bg-[#d44e13] text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs active:scale-95"
                   >
                     <Key className="w-3.5 h-3.5" />
                     <span>{byokConfig.isActive ? 'Manage BYOK' : 'Connect API Key'}</span>
