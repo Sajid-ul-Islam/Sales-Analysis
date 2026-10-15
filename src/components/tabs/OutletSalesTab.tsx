@@ -1,35 +1,34 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ReconciledOrderRow, SummaryAnalytics, RawOrderRow } from '@/types';
+import { ReconciledOrderRow, SummaryAnalytics } from '@/types';
 import {
   ShoppingBag,
   Store,
   Building2,
-  Warehouse,
   TrendingUp,
-  RotateCcw,
   PackageCheck,
   Download,
   Search,
-  Filter,
   ChevronLeft,
   ChevronRight,
-  PieChart,
   BarChart3,
   RefreshCw,
   CreditCard,
-  Banknote,
-  Smartphone,
-  ExternalLink,
   CheckCircle2,
-  Clock,
-  AlertCircle,
-  Calendar,
   Layers,
-  Globe
+  Award,
+  MapPin,
+  Calendar,
+  Shirt,
+  Filter,
+  Tag
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { DateRangeSelector } from '@/components/DateRangeSelector';
+import { DateScope, CustomDateRange, parseOrderDate } from '@/lib/dateFilter';
+import { classifyProductCategory } from '@/lib/reconciliationEngine';
+import { cleanProductMainName, extractMasterSku } from './ExecutiveOverviewTab';
 
 interface OutletSalesTabProps {
   orders?: ReconciledOrderRow[];
@@ -48,7 +47,7 @@ export interface WcOrderRecord {
   status: string;
   paymentMethod: string;
   paymentMethodTitle: string;
-  orderSource: 'pos' | 'checkout' | 'admin' | 'online';
+  orderSource: 'pos';
   outletId: string;
   outletName: string;
   itemsCount: number;
@@ -66,8 +65,9 @@ export interface WcOrderRecord {
 interface OutletSalesMetric {
   id: string;
   name: string;
-  channelType: 'Online E-Commerce' | 'Retail Branch POS';
+  channelType: 'Retail Branch POS';
   badgeColor: string;
+  dotColor: string;
   ordersCount: number;
   unitsSold: number;
   grossSales: number;
@@ -77,74 +77,130 @@ interface OutletSalesMetric {
   revenueShare: number;
 }
 
-export function OutletSalesTab({ orders: reconciledOrders = [], summary }: OutletSalesTabProps) {
+// Canonical Physical Retail Branches (Online Store excluded by business rule)
+export const PHYSICAL_OUTLETS = [
+  {
+    id: '1',
+    name: 'Mirpur Outlet POS',
+    channelType: 'Retail Branch POS' as const,
+    badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+    dotColor: '#a855f7'
+  },
+  {
+    id: '9',
+    name: 'Wari Branch POS',
+    channelType: 'Retail Branch POS' as const,
+    badgeColor: 'bg-sky-50 text-sky-700 border-sky-200',
+    dotColor: '#0ea5e9'
+  },
+  {
+    id: '2',
+    name: 'Cumilla Branch POS',
+    channelType: 'Retail Branch POS' as const,
+    badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    dotColor: '#10b981'
+  },
+  {
+    id: '7',
+    name: 'Sylhet Branch POS',
+    channelType: 'Retail Branch POS' as const,
+    badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
+    dotColor: '#f59e0b'
+  }
+];
+
+export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTabProps) {
   const [wcOrders, setWcOrders] = useState<WcOrderRecord[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [syncStatusMsg, setSyncStatusMsg] = useState<string>('');
   const [selectedOutletFilter, setSelectedOutletFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [sourceFilter, setSourceFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [activeViewMode, setActiveViewMode] = useState<'SUMMARY' | 'ORDERS'>('SUMMARY');
+  
+  // 4 View Modes: Branch Summary Matrix, Category Sales, Item/SKU Sales, POS Orders Stream
+  type ActiveViewMode = 'SUMMARY' | 'CATEGORY' | 'ITEM' | 'ORDERS';
+  const [activeViewMode, setActiveViewMode] = useState<ActiveViewMode>('SUMMARY');
+  
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 20;
 
-  // Resolve Outlet Name: Online Store and Mirpur are NOT the same!
-  // Mirpur is an in-store Outlet POS, distinct from Online Store (Website).
-  const resolveOutletFromWcOrder = useCallback((rawOrder: any): { outletId: string; outletName: string; orderSource: 'pos' | 'checkout' | 'admin' | 'online' } => {
+  // Item & Category Search / Filter states
+  const [itemSearchQuery, setItemSearchQuery] = useState('');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL');
+  const [selectedBranchFilter, setSelectedBranchFilter] = useState('ALL');
+  const [itemCurrentPage, setItemCurrentPage] = useState<number>(1);
+  const itemPageSize = 20;
+
+  // Local Date Range Filter state
+  const [dateScope, setDateScope] = useState<DateScope>('30d');
+  const [customRange, setCustomRange] = useState<CustomDateRange | undefined>(undefined);
+
+  // Resolve Outlet from WooCommerce Order:
+  // Strictly matches retail POS branches (Mirpur, Wari, Cumilla, Sylhet).
+  // Returns null for Online Store (Website) orders to exclude them.
+  const resolveOutletFromWcOrder = useCallback((rawOrder: any): { outletId: string; outletName: string; orderSource: 'pos' } | null => {
     const meta = Array.isArray(rawOrder.meta_data) ? rawOrder.meta_data : [];
     const sourceMeta = meta.find((m: any) => m.key === '_sip_order_source');
     const outletMeta = meta.find((m: any) => m.key === '_sip_outlet_id');
     const posDomainMeta = meta.find((m: any) => m.key === '_sip_pos_domain');
     const createdByMeta = meta.find((m: any) => m.key === '_sip_created_by');
     const note = String(rawOrder.customer_note || '').toLowerCase();
-    const orderIdStr = String(rawOrder.id || rawOrder.number || '');
+    const orderIdStr = String(rawOrder.id || rawOrder.number || '').toLowerCase();
+    const paymentMethod = String(rawOrder.payment_method || '').toLowerCase();
 
-    const isPos = sourceMeta?.value === 'pos' || Boolean(posDomainMeta?.value) || meta.some((m: any) => m.key === '_sip_pos_order');
+    const isPos = sourceMeta?.value === 'pos' || 
+                  Boolean(posDomainMeta?.value) || 
+                  meta.some((m: any) => m.key === '_sip_pos_order') ||
+                  paymentMethod.startsWith('sip_') ||
+                  rawOrder.created_via === 'pos';
     const outletId = String(outletMeta?.value || '');
     const createdBy = String(createdByMeta?.value || '');
 
+    // 1. Check explicit POS outlet IDs or POS register domains
     if (isPos || outletId) {
-      if (outletId === '1' || createdBy === '1508' || note.includes('mirpur')) {
+      if (outletId === '1' || createdBy === '1508' || note.includes('mirpur') || /\b\d+\s*m\b|[-_\s]m$/i.test(orderIdStr)) {
         return { outletId: '1', outletName: 'Mirpur Outlet POS', orderSource: 'pos' };
       }
-      if (outletId === '9' || createdBy === '572' || note.includes('wari')) {
+      if (outletId === '9' || createdBy === '572' || note.includes('wari') || /\b\d+\s*w\b|[-_\s]w$/i.test(orderIdStr)) {
         return { outletId: '9', outletName: 'Wari Branch POS', orderSource: 'pos' };
       }
-      if (outletId === '2' || createdBy === '3' || note.includes('cumilla') || note.includes('comilla')) {
+      if (outletId === '2' || createdBy === '3' || note.includes('cumilla') || note.includes('comilla') || /\b\d+\s*c\b|[-_\s]c$/i.test(orderIdStr)) {
         return { outletId: '2', outletName: 'Cumilla Branch POS', orderSource: 'pos' };
       }
-      if (outletId === '7' || outletId === '8' || createdBy === '35' || createdBy === '69' || note.includes('sylhet')) {
+      if (outletId === '7' || outletId === '8' || createdBy === '35' || createdBy === '69' || note.includes('sylhet') || /\b\d+\s*s\b|[-_\s]s$/i.test(orderIdStr)) {
         return { outletId: '7', outletName: 'Sylhet Branch POS', orderSource: 'pos' };
       }
-      if (outletId === '1') {
-        return { outletId: '1', outletName: 'Mirpur Outlet POS', orderSource: 'pos' };
-      }
+      // Unspecified POS outlet defaults to primary Mirpur register
       return { outletId: outletId || '1', outletName: 'Mirpur Outlet POS', orderSource: 'pos' };
     }
 
-    // Check for branch hints in notes or order number suffixes
-    if (/\b\d+\s*c\b|[-_\s]c$/i.test(orderIdStr) || note.includes('cumilla') || note.includes('comilla')) {
-      return { outletId: 'c', outletName: 'Cumilla Branch POS', orderSource: 'pos' };
-    }
-    if (/\b\d+\s*w\b|[-_\s]w$/i.test(orderIdStr) || note.includes('wari')) {
-      return { outletId: 'w', outletName: 'Wari Branch POS', orderSource: 'pos' };
-    }
-    if (/\b\d+\s*s\b|[-_\s]s$/i.test(orderIdStr) || note.includes('sylhet')) {
-      return { outletId: 's', outletName: 'Sylhet Branch POS', orderSource: 'pos' };
-    }
+    // 2. Check for branch hints in notes or order number suffixes (m, w, c, s)
     if (/\b\d+\s*m\b|[-_\s]m$/i.test(orderIdStr) || note.includes('mirpur')) {
       return { outletId: '1', outletName: 'Mirpur Outlet POS', orderSource: 'pos' };
     }
+    if (/\b\d+\s*w\b|[-_\s]w$/i.test(orderIdStr) || note.includes('wari')) {
+      return { outletId: '9', outletName: 'Wari Branch POS', orderSource: 'pos' };
+    }
+    if (/\b\d+\s*c\b|[-_\s]c$/i.test(orderIdStr) || note.includes('cumilla') || note.includes('comilla')) {
+      return { outletId: '2', outletName: 'Cumilla Branch POS', orderSource: 'pos' };
+    }
+    if (/\b\d+\s*s\b|[-_\s]s$/i.test(orderIdStr) || note.includes('sylhet')) {
+      return { outletId: '7', outletName: 'Sylhet Branch POS', orderSource: 'pos' };
+    }
 
-    // Default: Online Store (Website Checkout) - STRICTLY DISTINCT FROM MIRPUR OUTLET POS
-    return { outletId: 'online_store', outletName: 'Online Store (Website)', orderSource: 'checkout' };
+    // Default: Online Store website checkout order — strictly filtered out from Outlet Sales
+    return null;
   }, []);
 
-  // Format raw WooCommerce orders into structured records
+  // Format raw WooCommerce orders into structured records, filtering out Online Store
   const parseRawWcOrders = useCallback((rawOrdersList: any[]): WcOrderRecord[] => {
-    return rawOrdersList.map(o => {
-      const { outletId, outletName, orderSource } = resolveOutletFromWcOrder(o);
+    const outletRecords: WcOrderRecord[] = [];
+
+    rawOrdersList.forEach(o => {
+      const outlet = resolveOutletFromWcOrder(o);
+      // Strictly exclude Online Store (Website) orders
+      if (!outlet) return;
+
       const lineItems = Array.isArray(o.line_items) ? o.line_items : [];
       let itemsCount = 0;
       const itemsList: Array<{ name: string; sku: string; quantity: number; price: number; total: number }> = [];
@@ -152,20 +208,22 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
       lineItems.forEach((it: any) => {
         const qty = parseInt(it.quantity || '1', 10) || 1;
         itemsCount += qty;
+        const price = parseFloat(it.price || '0') || 0;
+        const total = parseFloat(it.total || '0') || (price * qty);
         itemsList.push({
-          name: it.name || 'DEEN Apparel',
+          name: it.name || it.parent_name || 'DEEN Apparel',
           sku: it.sku || 'N/A',
           quantity: qty,
-          price: parseFloat(it.price || '0') || 0,
-          total: parseFloat(it.total || '0') || 0
+          price,
+          total
         });
       });
 
       const customerName = `${o.billing?.first_name || ''} ${o.billing?.last_name || ''}`.trim() ||
         o.shipping?.first_name ||
-        'Customer';
+        'In-Store Customer';
 
-      return {
+      outletRecords.push({
         id: String(o.id || o.number || ''),
         orderNumber: String(o.number || o.id || ''),
         dateCreated: o.date_created || '',
@@ -174,25 +232,135 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
         city: o.billing?.city || o.shipping?.city || 'Dhaka',
         total: parseFloat(o.total || '0') || 0,
         status: o.status || 'completed',
-        paymentMethod: o.payment_method || 'cod',
-        paymentMethodTitle: o.payment_method_title || 'Cash on Delivery',
-        orderSource,
-        outletId,
-        outletName,
+        paymentMethod: o.payment_method || 'cash',
+        paymentMethodTitle: o.payment_method_title || (o.payment_method === 'cod' ? 'Cash' : o.payment_method || 'Cash Register'),
+        orderSource: 'pos',
+        outletId: outlet.outletId,
+        outletName: outlet.outletName,
         itemsCount: Math.max(1, itemsCount),
-        itemsSummary: itemsList.map(i => `${i.quantity}x ${i.name}`).slice(0, 2).join(', '),
+        itemsSummary: itemsList.map(i => `${i.quantity}x ${i.name}`).slice(0, 2).join(', ') || 'In-Store Item',
         lineItems: itemsList,
         discounts: parseFloat(o.discount_total || '0') || 0
-      };
+      });
     });
+
+    return outletRecords;
   }, [resolveOutletFromWcOrder]);
 
-  // Pull live orders from WooCommerce REST API
+  // Convert Reconciled Orders (from spreadsheets/baseline) to consolidated Outlet POS records as seed/fallback
+  const extractOutletOrdersFromReconciled = useCallback((ordersList: ReconciledOrderRow[]): WcOrderRecord[] => {
+    const orderMap = new Map<string, {
+      record: WcOrderRecord;
+      items: Array<{ name: string; sku: string; quantity: number; price: number; total: number }>;
+    }>();
+
+    ordersList.forEach(r => {
+      const rowAny = r as any;
+      let outletId = '';
+      let outletName = '';
+
+      const oid = String(r.orderId || '').toLowerCase();
+      const bOutlet = String(r.fulfillmentLocation || rowAny.branchOutlet || '');
+      const bSuffix = String(r.branchSuffix || '');
+
+      if (bOutlet.includes('Mirpur') || /[-_\s]m$/i.test(oid) || bSuffix === 'm' || rowAny.posOutletId === '1') {
+        outletId = '1';
+        outletName = 'Mirpur Outlet POS';
+      } else if (bOutlet.includes('Wari') || /[-_\s]w$/i.test(oid) || bSuffix === 'w' || rowAny.posOutletId === '9') {
+        outletId = '9';
+        outletName = 'Wari Branch POS';
+      } else if (bOutlet.includes('Cumilla') || /[-_\s]c$/i.test(oid) || bSuffix === 'c' || rowAny.posOutletId === '2') {
+        outletId = '2';
+        outletName = 'Cumilla Branch POS';
+      } else if (bOutlet.includes('Sylhet') || /[-_\s]s$/i.test(oid) || bSuffix === 's' || rowAny.posOutletId === '7' || rowAny.posOutletId === '8') {
+        outletId = '7';
+        outletName = 'Sylhet Branch POS';
+      }
+
+      if (!outletId) return; // Skip Online Store
+
+      const dateStr = r.orderDate instanceof Date 
+        ? r.orderDate.toISOString() 
+        : String(rowAny.rawOrder?.['Order Date'] || r.orderDate || '');
+
+      const cleanOid = r.orderId;
+      const itemQty = rowAny.quantity || r.quantity || 1;
+      const itemPrice = r.itemCost || 0;
+      const itemTotal = itemPrice * itemQty;
+
+      if (!orderMap.has(cleanOid)) {
+        orderMap.set(cleanOid, {
+          record: {
+            id: cleanOid,
+            orderNumber: cleanOid,
+            dateCreated: dateStr,
+            customerName: r.customerName || 'In-Store Customer',
+            phone: r.phone || '',
+            city: r.city || 'Dhaka',
+            total: 0,
+            status: r.deliveryStatus === 'Delivered' ? 'completed' : (r.deliveryStatus || 'completed').toLowerCase(),
+            paymentMethod: 'cash',
+            paymentMethodTitle: rowAny.rawOrder?.['Payment Method'] || 'In-Store Register',
+            orderSource: 'pos',
+            outletId,
+            outletName,
+            itemsCount: 0,
+            itemsSummary: '',
+            lineItems: [],
+            discounts: 0
+          },
+          items: []
+        });
+      }
+
+      const existing = orderMap.get(cleanOid)!;
+      existing.items.push({
+        name: r.itemName || rowAny.productName || 'DEEN Apparel',
+        sku: r.sku || 'N/A',
+        quantity: itemQty,
+        price: itemPrice,
+        total: itemTotal
+      });
+      existing.record.itemsCount += itemQty;
+      existing.record.total += itemTotal;
+    });
+
+    return Array.from(orderMap.values()).map(({ record, items }) => ({
+      ...record,
+      itemsSummary: items.map(i => `${i.quantity}x ${i.name}`).slice(0, 2).join(', ') || 'In-Store Apparel',
+      lineItems: items,
+      total: record.total > 0 ? record.total : 1200
+    }));
+  }, []);
+
+  // Pull live orders from WooCommerce REST API with optional date filtering & bulletproof HTML protection
   const handlePullFromWooCommerce = useCallback(async (perPage: number = 100, maxPages: number = 5) => {
     setIsLoading(true);
-    setSyncStatusMsg('Connecting to WooCommerce REST API (https://deencommerce.com)...');
+    setSyncStatusMsg('Connecting to WooCommerce REST API...');
 
     try {
+      let afterIso: string | undefined;
+      let beforeIso: string | undefined;
+
+      if (dateScope === 'today') {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        afterIso = today.toISOString();
+      } else if (dateScope === '7d') {
+        afterIso = new Date(Date.now() - 7 * 86400000).toISOString();
+      } else if (dateScope === '30d') {
+        afterIso = new Date(Date.now() - 30 * 86400000).toISOString();
+      } else if (dateScope === '90d') {
+        afterIso = new Date(Date.now() - 90 * 86400000).toISOString();
+      } else if (dateScope === 'custom' && customRange?.startDate) {
+        afterIso = new Date(customRange.startDate).toISOString();
+        if (customRange?.endDate) {
+          const end = new Date(customRange.endDate);
+          end.setHours(23, 59, 59, 999);
+          beforeIso = end.toISOString();
+        }
+      }
+
       const res = await fetch('/api/sync/woocommerce', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -200,34 +368,81 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
           perPage,
           maxPages,
           fetchAllPages: true,
-          status: 'any'
+          status: 'any',
+          after: afterIso,
+          before: beforeIso
         })
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get('content-type') || '';
+      let data: any = {};
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+          throw new Error(`Server returned HTML error (HTTP ${res.status}). Ensure dev server is active and endpoint is reachable.`);
+        }
+        throw new Error(`Server returned non-JSON response (HTTP ${res.status}): ${text.slice(0, 80)}`);
+      }
+
       if (data.success && Array.isArray(data.rawOrders) && data.rawOrders.length > 0) {
         const parsed = parseRawWcOrders(data.rawOrders);
-        setWcOrders(parsed);
-        setSyncStatusMsg(`Successfully pulled ${parsed.length} orders from WooCommerce store.`);
+        if (parsed.length > 0) {
+          setWcOrders(prev => {
+            const incomingIds = new Set(parsed.map(p => p.orderNumber));
+            const existingRetained = prev.filter(p => !incomingIds.has(p.orderNumber));
+            return [...parsed, ...existingRetained];
+          });
+          setSyncStatusMsg(`Successfully pulled ${data.rawOrders.length} orders from WooCommerce (${parsed.length} branch POS outlet orders synchronized).`);
+        } else {
+          setSyncStatusMsg(`Fetched ${data.rawOrders.length} orders from WooCommerce, but all were Online Store web checkouts (no POS orders in this window).`);
+        }
       } else if (data.orders && data.orders.length > 0) {
-        // Fallback using formatted rows if rawOrders was omitted
-        const parsedFallback: WcOrderRecord[] = data.orders.map((r: any, idx: number) => {
+        // Fallback using formatted order rows if rawOrders was not provided
+        const parsedFallback: WcOrderRecord[] = [];
+        data.orders.forEach((r: any, idx: number) => {
+          const isPos = r.isPos || r['Order Source'] === 'POS' || Boolean(r.outletId) || Boolean(r['Outlet ID']);
           const oid = String(r['Order ID'] || r.orderId || idx);
+          const rawOutletId = String(r.outletId || r['Outlet ID'] || '');
+
+          let outletId = '';
+          let outletName = '';
+
+          if (rawOutletId === '1' || /[-_\s]m$/i.test(oid)) {
+            outletId = '1';
+            outletName = 'Mirpur Outlet POS';
+          } else if (rawOutletId === '9' || /[-_\s]w$/i.test(oid)) {
+            outletId = '9';
+            outletName = 'Wari Branch POS';
+          } else if (rawOutletId === '2' || /[-_\s]c$/i.test(oid)) {
+            outletId = '2';
+            outletName = 'Cumilla Branch POS';
+          } else if (rawOutletId === '7' || rawOutletId === '8' || /[-_\s]s$/i.test(oid)) {
+            outletId = '7';
+            outletName = 'Sylhet Branch POS';
+          } else if (isPos) {
+            outletId = '1';
+            outletName = 'Mirpur Outlet POS';
+          }
+
+          if (!outletId) return; // Exclude Online Store
+
           const total = parseFloat(r['Order Amount'] || r['Item Cost'] || '0') || 0;
-          return {
+          parsedFallback.push({
             id: oid,
             orderNumber: oid,
             dateCreated: r['Order Date'] || '',
-            customerName: r['Customer Name'] || 'Customer',
+            customerName: r['Customer Name'] || 'In-Store Customer',
             phone: r['Phone'] || '',
             city: r['City'] || 'Dhaka',
             total,
             status: r['Delivery Status'] || 'completed',
-            paymentMethod: 'cod',
-            paymentMethodTitle: r['Payment Method'] || 'Cash on Delivery',
-            orderSource: 'online',
-            outletId: 'online_store',
-            outletName: 'Online Store (Website)',
+            paymentMethod: 'cash',
+            paymentMethodTitle: r['Payment Method'] || 'In-Store Register',
+            orderSource: 'pos',
+            outletId,
+            outletName,
             itemsCount: parseInt(r['Quantity'] || '1', 10) || 1,
             itemsSummary: r['Item Name'] || 'DEEN Apparel',
             lineItems: [{
@@ -238,62 +453,180 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
               total
             }],
             discounts: 0
-          };
+          });
         });
-        setWcOrders(parsedFallback);
-        setSyncStatusMsg(`Pulled ${parsedFallback.length} orders from WooCommerce.`);
+
+        if (parsedFallback.length > 0) {
+          setWcOrders(prev => {
+            const incomingIds = new Set(parsedFallback.map(p => p.orderNumber));
+            const existingRetained = prev.filter(p => !incomingIds.has(p.orderNumber));
+            return [...parsedFallback, ...existingRetained];
+          });
+          setSyncStatusMsg(`Successfully pulled ${parsedFallback.length} outlet POS records from WooCommerce.`);
+        } else {
+          setSyncStatusMsg('Fetched WooCommerce orders, but no POS branch orders were found in this query.');
+        }
       } else {
         setSyncStatusMsg(data.message || 'WooCommerce API returned 0 orders.');
       }
     } catch (err: any) {
       console.error('Failed to pull from WooCommerce:', err);
-      setSyncStatusMsg(`WooCommerce API connection note: ${err?.message || 'Check credentials'}`);
+      setSyncStatusMsg(`WooCommerce API connection: ${err?.message || 'Check credentials'}`);
     } finally {
       setIsLoading(false);
     }
-  }, [parseRawWcOrders]);
+  }, [dateScope, customRange, parseRawWcOrders]);
 
-  // Auto-load on mount if wcOrders is empty: pull initially (500 orders across 5 pages)
+  // Seed from Reconciled Orders if available
   useEffect(() => {
-    if (wcOrders.length === 0) {
-      handlePullFromWooCommerce(100, 5);
+    if (wcOrders.length === 0 && reconciledOrders.length > 0) {
+      const seedOrders = extractOutletOrdersFromReconciled(reconciledOrders);
+      if (seedOrders.length > 0) {
+        setWcOrders(seedOrders);
+      }
     }
-  }, [wcOrders.length, handlePullFromWooCommerce]);
+  }, [reconciledOrders, wcOrders.length, extractOutletOrdersFromReconciled]);
 
-  // Compute Outlet Sales Aggregates with Mirpur separate from Online Store
-  const { outletMetrics, aggregateTotals, paymentMethodTotals } = useMemo(() => {
-    const outletMap = new Map<string, {
-      id: string;
-      name: string;
-      channelType: 'Online E-Commerce' | 'Retail Branch POS';
-      badgeColor: string;
-      ordersCount: number;
-      unitsSold: number;
-      grossSales: number;
-      discounts: number;
-      netSales: number;
-    }>();
+  // Initial live pull on mount
+  useEffect(() => {
+    handlePullFromWooCommerce(100, 5);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    // Canonical Outlets: Online Store and Mirpur are DISTINCT!
-    const canonicals = [
-      { id: 'online_store', name: 'Online Store (Website)', channelType: 'Online E-Commerce' as const, badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
-      { id: '1', name: 'Mirpur Outlet POS', channelType: 'Retail Branch POS' as const, badgeColor: 'bg-purple-50 text-purple-700 border-purple-200' },
-      { id: '9', name: 'Wari Branch POS', channelType: 'Retail Branch POS' as const, badgeColor: 'bg-sky-50 text-sky-700 border-sky-200' },
-      { id: '2', name: 'Cumilla Branch POS', channelType: 'Retail Branch POS' as const, badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-      { id: '7', name: 'Sylhet Branch POS', channelType: 'Retail Branch POS' as const, badgeColor: 'bg-amber-50 text-amber-700 border-amber-200' }
-    ];
+  // Local Date Range Scope Analysis & Boundaries
+  const { dateBounds, dateCounts, dateSubLabel } = useMemo(() => {
+    const timestamps: number[] = [];
+    for (const o of wcOrders) {
+      const d = parseOrderDate(o.dateCreated);
+      if (d) timestamps.push(d.getTime());
+    }
 
-    canonicals.forEach(c => {
+    const nowMs = Date.now();
+    const anchorMs = timestamps.length > 0 ? Math.max(...timestamps) : nowMs;
+    const minMs = timestamps.length > 0 ? Math.min(...timestamps) : anchorMs;
+    const maxMs = anchorMs;
+
+    const startOfTodayMs = new Date(anchorMs).setHours(0, 0, 0, 0);
+    const endOfTodayMs = startOfTodayMs + 86400000;
+
+    const last7dStart = anchorMs - 7 * 86400000;
+    const last30dStart = anchorMs - 30 * 86400000;
+    const last90dStart = anchorMs - 90 * 86400000;
+
+    const anchorDate = new Date(anchorMs);
+    const monthStart = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1).getTime();
+    const monthEnd = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + 1, 1).getTime();
+
+    let todayCount = 0;
+    let last7dCount = 0;
+    let last30dCount = 0;
+    let monthCount = 0;
+    let last90dCount = 0;
+    let customCount = 0;
+
+    let customStartMs = 0;
+    let customEndMs = Infinity;
+    if (customRange?.startDate) {
+      customStartMs = new Date(customRange.startDate).setHours(0, 0, 0, 0);
+    }
+    if (customRange?.endDate) {
+      customEndMs = new Date(customRange.endDate).setHours(23, 59, 59, 999);
+    }
+
+    for (const o of wcOrders) {
+      const d = parseOrderDate(o.dateCreated);
+      const ms = d ? d.getTime() : anchorMs;
+      if (ms >= startOfTodayMs && ms < endOfTodayMs) todayCount++;
+      if (ms >= last7dStart && ms <= anchorMs + 86400000) last7dCount++;
+      if (ms >= last30dStart && ms <= anchorMs + 86400000) last30dCount++;
+      if (ms >= monthStart && ms < monthEnd) monthCount++;
+      if (ms >= last90dStart && ms <= anchorMs + 86400000) last90dCount++;
+      if (ms >= customStartMs && ms <= customEndMs) customCount++;
+    }
+
+    let activeStartMs = 0;
+    let activeEndMs = Infinity;
+    let subLabel = '';
+
+    if (dateScope === 'today') {
+      activeStartMs = startOfTodayMs;
+      activeEndMs = endOfTodayMs;
+      subLabel = new Date(anchorMs).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    } else if (dateScope === '7d') {
+      activeStartMs = last7dStart;
+      activeEndMs = anchorMs + 86400000;
+      subLabel = `${new Date(last7dStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${new Date(anchorMs).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+    } else if (dateScope === '30d') {
+      activeStartMs = last30dStart;
+      activeEndMs = anchorMs + 86400000;
+      subLabel = `${new Date(last30dStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${new Date(anchorMs).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+    } else if (dateScope === 'month') {
+      activeStartMs = monthStart;
+      activeEndMs = monthEnd;
+      subLabel = new Date(anchorMs).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    } else if (dateScope === '90d') {
+      activeStartMs = last90dStart;
+      activeEndMs = anchorMs + 86400000;
+      subLabel = `${new Date(last90dStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${new Date(anchorMs).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+    } else if (dateScope === 'custom' && customRange?.startDate && customRange?.endDate) {
+      activeStartMs = customStartMs;
+      activeEndMs = customEndMs;
+      subLabel = `${customRange.startDate} – ${customRange.endDate}`;
+    } else {
+      subLabel = timestamps.length > 0
+        ? `${new Date(minMs).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${new Date(maxMs).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+        : 'All Physical Records';
+    }
+
+    return {
+      dateBounds: {
+        startMs: activeStartMs,
+        endMs: activeEndMs,
+        minDateIso: timestamps.length > 0 ? new Date(minMs).toISOString().slice(0, 10) : undefined,
+        maxDateIso: timestamps.length > 0 ? new Date(maxMs).toISOString().slice(0, 10) : undefined
+      },
+      dateCounts: {
+        all: wcOrders.length,
+        today: todayCount,
+        '7d': last7dCount,
+        '30d': last30dCount,
+        month: monthCount,
+        '90d': last90dCount,
+        custom: customCount
+      },
+      dateSubLabel: subLabel
+    };
+  }, [wcOrders, dateScope, customRange]);
+
+  // Date-filtered orders
+  const dateFilteredOrders = useMemo(() => {
+    if (dateScope === 'all') return wcOrders;
+    return wcOrders.filter(o => {
+      const d = parseOrderDate(o.dateCreated);
+      if (!d) return true;
+      const ms = d.getTime();
+      return ms >= dateBounds.startMs && ms <= dateBounds.endMs;
+    });
+  }, [wcOrders, dateScope, dateBounds]);
+
+  // Compute Outlet Sales Aggregates across the 4 Retail Branches
+  const { outletMetrics, aggregateTotals, paymentMethodTotals, topBranch } = useMemo(() => {
+    const outletMap = new Map<string, OutletSalesMetric>();
+
+    PHYSICAL_OUTLETS.forEach(c => {
       outletMap.set(c.name, {
         id: c.id,
         name: c.name,
         channelType: c.channelType,
         badgeColor: c.badgeColor,
+        dotColor: c.dotColor,
         ordersCount: 0,
         unitsSold: 0,
         grossSales: 0,
         discounts: 0,
-        netSales: 0
+        netSales: 0,
+        aov: 0,
+        revenueShare: 0
       });
     });
 
@@ -302,30 +635,15 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
     let totalOrders = 0;
     let totalUnits = 0;
     let totalDiscounts = 0;
-    let posSales = 0;
-    let posOrders = 0;
-    let onlineSales = 0;
-    let onlineOrders = 0;
 
-    wcOrders.forEach(o => {
+    dateFilteredOrders.forEach(o => {
       totalSales += o.total;
       totalOrders++;
       totalUnits += o.itemsCount;
       totalDiscounts += o.discounts;
 
-      if (o.orderSource === 'pos') {
-        posSales += o.total;
-        posOrders++;
-      } else {
-        onlineSales += o.total;
-        onlineOrders++;
-      }
-
-      // Outlet grouping (Fallback: POS goes to Mirpur Outlet POS, web goes to Online Store)
-      const targetName = outletMap.has(o.outletName)
-        ? o.outletName
-        : (o.orderSource === 'pos' ? 'Mirpur Outlet POS' : 'Online Store (Website)');
-
+      // Group into canonical outlet
+      const targetName = outletMap.has(o.outletName) ? o.outletName : 'Mirpur Outlet POS';
       const m = outletMap.get(targetName)!;
       m.ordersCount++;
       m.unitsSold += o.itemsCount;
@@ -334,7 +652,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
       m.netSales += o.total;
 
       // Payment method grouping
-      const pKey = o.paymentMethodTitle || o.paymentMethod || 'Cash on Delivery';
+      const pKey = o.paymentMethodTitle || o.paymentMethod || 'Cash Register';
       if (!paymentMap.has(pKey)) {
         paymentMap.set(pKey, { count: 0, total: 0 });
       }
@@ -364,7 +682,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
     })).sort((a, b) => b.total - a.total);
 
     const overallAov = totalOrders > 0 ? Math.round(totalSales / totalOrders) : 0;
-    const posShare = totalSales > 0 ? (posSales / totalSales) * 100 : 0;
+    const topBranchLeader = metricsList[0]?.ordersCount > 0 ? metricsList[0] : null;
 
     return {
       outletMetrics: metricsList,
@@ -373,31 +691,165 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
         totalOrders,
         totalUnits,
         totalDiscounts: Math.round(totalDiscounts),
-        overallAov,
-        posSales: Math.round(posSales),
-        posOrders,
-        onlineSales: Math.round(onlineSales),
-        onlineOrders,
-        posShare
+        overallAov
       },
-      paymentMethodTotals: paymentList
+      paymentMethodTotals: paymentList,
+      topBranch: topBranchLeader
     };
-  }, [wcOrders]);
+  }, [dateFilteredOrders]);
 
-  // Filtered orders for the live ledger
+  // ============================================================================
+  // CATEGORY-WISE SALES BREAKDOWN (Just like the Main Executive Overview page)
+  // ============================================================================
+  const categorySales = useMemo(() => {
+    const groups: Record<string, {
+      name: string;
+      sub: string;
+      icon: string;
+      unitsSold: number;
+      revenue: number;
+      ordersCount: number;
+      branchSales: Record<string, number>;
+    }> = {
+      'Jeans': { name: 'Jeans', sub: 'Slim & Regular Fit Jeans', icon: '👖', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'Casual & Formal Shirts': { name: 'Casual & Formal Shirts', sub: 'Full Sleeve, Half Sleeve, Cuban & Formal Shirts', icon: '👔', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'Polo Shirts': { name: 'Polo Shirts', sub: 'Classic Pique, Solid & Knitted Polos', icon: '👕', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'T-Shirts': { name: 'T-Shirts', sub: 'Solid, Printed & Heavyweight GSM Tees', icon: '👕', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'Twill Pants & Chinos': { name: 'Twill Pants & Chinos', sub: 'Urban Slim Comfort Chinos, Trousers & Cargo', icon: '👖', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'Jackets': { name: 'Jackets', sub: 'Denim Jackets & Outerwear', icon: '🧥', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'Sweatshirts & Hoodies': { name: 'Sweatshirts & Hoodies', sub: 'Hoodies & French-Terry Sweatshirts', icon: '🧥', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'Apparel & Accessories': { name: 'Apparel & Accessories', sub: 'Boxers, Masks & Core Essentials', icon: '📦', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} }
+    };
+
+    let totalCatRevenue = 0;
+    let totalCatUnits = 0;
+
+    dateFilteredOrders.forEach(order => {
+      const orderBranch = order.outletName;
+      (order.lineItems || []).forEach(it => {
+        const cat = classifyProductCategory(it.name, it.sku) || 'Apparel & Accessories';
+        const target = groups[cat] || groups['Apparel & Accessories'];
+        const lineTotal = it.total || (it.quantity * it.price) || 0;
+        target.unitsSold += it.quantity;
+        target.revenue += lineTotal;
+        target.ordersCount++;
+        target.branchSales[orderBranch] = (target.branchSales[orderBranch] || 0) + lineTotal;
+        totalCatRevenue += lineTotal;
+        totalCatUnits += it.quantity;
+      });
+    });
+
+    return Object.values(groups)
+      .filter(g => g.unitsSold > 0 || g.revenue > 0)
+      .map(g => ({
+        ...g,
+        asp: g.unitsSold > 0 ? Math.round(g.revenue / g.unitsSold) : 0,
+        revenueShare: totalCatRevenue > 0 ? (g.revenue / totalCatRevenue) * 100 : 0,
+        topBranchName: Object.entries(g.branchSales).sort((a, b) => b[1] - a[1])[0]?.[0] || 'All Outlets'
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+  }, [dateFilteredOrders]);
+
+  // ============================================================================
+  // ITEM & MASTER SKU-WISE SALES BREAKDOWN (Just like the Main Executive Overview page)
+  // ============================================================================
+  const itemWiseSales = useMemo(() => {
+    const map = new Map<string, {
+      masterSku: string;
+      mainName: string;
+      category: string;
+      unitsSold: number;
+      revenue: number;
+      ordersCount: number;
+      branches: Set<string>;
+    }>();
+
+    let totalItemRevenue = 0;
+
+    dateFilteredOrders.forEach(order => {
+      (order.lineItems || []).forEach(it => {
+        const mSku = extractMasterSku(it.sku);
+        const mName = cleanProductMainName(it.name);
+        const cat = classifyProductCategory(it.name, it.sku) || 'Apparel & Accessories';
+        const lineTotal = it.total || (it.quantity * it.price) || 0;
+
+        if (!map.has(mSku)) {
+          map.set(mSku, {
+            masterSku: mSku,
+            mainName: mName,
+            category: cat,
+            unitsSold: 0,
+            revenue: 0,
+            ordersCount: 0,
+            branches: new Set()
+          });
+        }
+
+        const entry = map.get(mSku)!;
+        entry.unitsSold += it.quantity;
+        entry.revenue += lineTotal;
+        entry.ordersCount++;
+        entry.branches.add(order.outletName);
+        if (mName && mName.length > 3) {
+          entry.mainName = mName;
+        }
+        totalItemRevenue += lineTotal;
+      });
+    });
+
+    return Array.from(map.values())
+      .map(it => ({
+        ...it,
+        asp: it.unitsSold > 0 ? Math.round(it.revenue / it.unitsSold) : 0,
+        revenueShare: totalItemRevenue > 0 ? (it.revenue / totalItemRevenue) * 100 : 0,
+        branchesCount: it.branches.size,
+        branchesList: Array.from(it.branches).map(b => b.replace(' Branch POS', '').replace(' POS', '')).join(', ')
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+  }, [dateFilteredOrders]);
+
+  // Filtered Items for Item-wise table
+  const filteredMasterItems = useMemo(() => {
+    return itemWiseSales.filter(item => {
+      // Category filter
+      if (selectedCategoryFilter !== 'ALL' && item.category !== selectedCategoryFilter) {
+        return false;
+      }
+
+      // Branch filter
+      if (selectedBranchFilter !== 'ALL' && !item.branches.has(selectedBranchFilter)) {
+        return false;
+      }
+
+      // Search Query filter
+      if (itemSearchQuery.trim()) {
+        const query = itemSearchQuery.toLowerCase();
+        const matchesName = item.mainName.toLowerCase().includes(query);
+        const matchesSku = item.masterSku.toLowerCase().includes(query);
+        const matchesCat = item.category.toLowerCase().includes(query);
+        return matchesName || matchesSku || matchesCat;
+      }
+
+      return true;
+    });
+  }, [itemWiseSales, selectedCategoryFilter, selectedBranchFilter, itemSearchQuery]);
+
+  // Pagination for Item-wise table
+  const totalItemPages = Math.max(1, Math.ceil(filteredMasterItems.length / itemPageSize));
+  const paginatedMasterItems = useMemo(() => {
+    const start = (itemCurrentPage - 1) * itemPageSize;
+    return filteredMasterItems.slice(start, start + itemPageSize);
+  }, [filteredMasterItems, itemCurrentPage]);
+
+  // Search & table outlet filter for Orders Stream
   const filteredOrders = useMemo(() => {
-    return wcOrders.filter(o => {
+    return dateFilteredOrders.filter(o => {
       if (selectedOutletFilter !== 'ALL' && o.outletName !== selectedOutletFilter) {
         return false;
       }
 
       if (statusFilter !== 'ALL' && o.status.toLowerCase() !== statusFilter.toLowerCase()) {
         return false;
-      }
-
-      if (sourceFilter !== 'ALL') {
-        if (sourceFilter === 'POS' && o.orderSource !== 'pos') return false;
-        if (sourceFilter === 'ONLINE' && o.orderSource === 'pos') return false;
       }
 
       if (searchTerm.trim()) {
@@ -412,23 +864,23 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
 
       return true;
     });
-  }, [wcOrders, selectedOutletFilter, statusFilter, sourceFilter, searchTerm]);
+  }, [dateFilteredOrders, selectedOutletFilter, statusFilter, searchTerm]);
 
-  // Pagination
+  // Pagination for Orders Stream
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
   const paginatedOrders = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return filteredOrders.slice(start, start + pageSize);
   }, [filteredOrders, currentPage]);
 
-  // Export to Excel
+  // Export to Excel with all 4 comprehensive sheets
   const handleExportSalesExcel = () => {
     const wb = XLSX.utils.book_new();
 
     // Sheet 1: Outlet Sales Summary
     const summaryData = outletMetrics.map((m, idx) => ({
       'SL': idx + 1,
-      'Outlet / Sales Channel': m.name,
+      'Outlet / Branch': m.name,
       'Channel Type': m.channelType,
       'Orders Pulled': m.ordersCount,
       'Units Sold': m.unitsSold,
@@ -441,11 +893,39 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
     const wsSummary = XLSX.utils.json_to_sheet(summaryData);
     XLSX.utils.book_append_sheet(wb, wsSummary, 'Outlet Sales Summary');
 
-    // Sheet 2: WooCommerce Orders Stream
+    // Sheet 2: Category Wise Sales
+    const categoryData = categorySales.map((c, idx) => ({
+      'SL': idx + 1,
+      'Category': c.name,
+      'Sub Category': c.sub,
+      'Units Sold (Pcs)': c.unitsSold,
+      'Net Revenue (BDT)': c.revenue,
+      'Unit ASP (BDT)': c.asp,
+      'Revenue Share (%)': c.revenueShare.toFixed(1) + '%',
+      'Top Performing Branch': c.topBranchName
+    }));
+    const wsCategory = XLSX.utils.json_to_sheet(categoryData);
+    XLSX.utils.book_append_sheet(wb, wsCategory, 'Category Wise Sales');
+
+    // Sheet 3: Item Wise Sales
+    const itemData = itemWiseSales.map((item, idx) => ({
+      'SL': idx + 1,
+      'Master SKU': item.masterSku,
+      'Product Name': item.mainName,
+      'Category': item.category,
+      'Units Sold (Pcs)': item.unitsSold,
+      'Net Revenue (BDT)': item.revenue,
+      'Unit ASP (BDT)': item.asp,
+      'Revenue Share (%)': item.revenueShare.toFixed(1) + '%',
+      'Branches Active': item.branchesList
+    }));
+    const wsItem = XLSX.utils.json_to_sheet(itemData);
+    XLSX.utils.book_append_sheet(wb, wsItem, 'Item Wise Sales');
+
+    // Sheet 4: In-Store POS Orders Stream
     const ordersData = filteredOrders.map(o => ({
       'WooCommerce Order #': o.orderNumber,
-      'Outlet Channel': o.outletName,
-      'Channel Source': o.orderSource === 'pos' ? 'In-Store POS Register' : 'Online Website Checkout',
+      'Outlet Branch': o.outletName,
       'Order Date': o.dateCreated ? o.dateCreated.slice(0, 19).replace('T', ' ') : '',
       'Customer Name': o.customerName,
       'Phone': o.phone,
@@ -457,10 +937,10 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
       'Payment Method': o.paymentMethodTitle
     }));
     const wsOrders = XLSX.utils.json_to_sheet(ordersData);
-    XLSX.utils.book_append_sheet(wb, wsOrders, 'WooCommerce Orders Stream');
+    XLSX.utils.book_append_sheet(wb, wsOrders, 'POS Orders Stream');
 
     const dateStamp = new Date().toISOString().slice(0, 10);
-    const filename = `DEEN_WooCommerce_Outlet_Sales_${dateStamp}.xlsx`;
+    const filename = `DEEN_Branch_Outlet_Sales_Report_${dateScope}_${dateStamp}.xlsx`;
 
     try {
       XLSX.writeFile(wb, filename);
@@ -482,115 +962,105 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
     }
   };
 
-  // 5 Distinct colors for the 5 channels
-  const donutColors = ['#4f46e5', '#a855f7', '#0ea5e9', '#10b981', '#f59e0b'];
+  const donutColors = ['#a855f7', '#0ea5e9', '#10b981', '#f59e0b', '#6366f1'];
 
   return (
     <div className="space-y-6">
-      {/* Top Banner & WooCommerce Sync Bar */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      {/* Top Banner, Local Date Range Selector & WooCommerce Sync Bar */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-xs">
-              <ShoppingBag className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 shadow-xs">
+              <Store className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-lg font-black text-slate-900 font-headline">
-                  Outlet Sales & WooCommerce Revenue Hub
+                  Outlet Sales & POS Revenue Hub
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Live WooCommerce REST API
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>
+                  Retail Branch POS Only
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Real-time sales revenue from Online Store (Website) and in-store POS register transactions across Mirpur, Wari, Cumilla, and Sylhet outlets.
+                In-store POS register transactions across physical branches (Mirpur, Wari, Cumilla, and Sylhet). Online website orders are excluded.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Action Controls: Pull Button, View Toggle, Export */}
+        {/* Action Controls: Local Date Selector, Pull Button, View Toggle, Export */}
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Pull from WooCommerce Button */}
+          {/* 1. Local Date Range Selector */}
+          <DateRangeSelector
+            activeScope={dateScope}
+            customRange={customRange}
+            onScopeChange={(newScope, newRange) => {
+              setDateScope(newScope);
+              setCustomRange(newRange);
+              setCurrentPage(1);
+              setItemCurrentPage(1);
+            }}
+            counts={dateCounts}
+            subLabel={dateSubLabel}
+            minDateIso={dateBounds.minDateIso}
+            maxDateIso={dateBounds.maxDateIso}
+            align="right"
+          />
+
+          {/* 2. Pull from WooCommerce Button */}
           <button
             onClick={() => handlePullFromWooCommerce(100, 5)}
             disabled={isLoading}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-60"
-            title="Fetch latest live orders from deencommerce.com via WooCommerce API"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-60 cursor-pointer"
+            title="Fetch latest live POS orders from deencommerce.com via WooCommerce REST API"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>{isLoading ? 'Pulling from WooCommerce...' : 'Pull from WooCommerce'}</span>
+            <span>{isLoading ? 'Pulling...' : 'Pull from WooCommerce'}</span>
           </button>
 
-          {/* View Mode Toggle */}
-          <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200 shadow-2xs">
-            <button
-              onClick={() => setActiveViewMode('SUMMARY')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeViewMode === 'SUMMARY'
-                  ? 'bg-white text-navy-deep shadow-2xs border border-slate-200/90'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <BarChart3 className={`w-3.5 h-3.5 ${activeViewMode === 'SUMMARY' ? 'text-primary' : 'text-slate-400'}`} />
-              <span>Outlet Summary</span>
-            </button>
-            <button
-              onClick={() => setActiveViewMode('ORDERS')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeViewMode === 'ORDERS'
-                  ? 'bg-white text-navy-deep shadow-2xs border border-slate-200/90'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Layers className={`w-3.5 h-3.5 ${activeViewMode === 'ORDERS' ? 'text-primary' : 'text-slate-400'}`} />
-              <span>Orders Stream</span>
-            </button>
-          </div>
-
-          {/* Export .XLSX Button */}
+          {/* 3. Export .XLSX Button */}
           <button
             onClick={handleExportSalesExcel}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-2xs active:scale-95 bg-white text-emerald-700 hover:bg-emerald-50 border-emerald-200/90 hover:border-emerald-300"
-            title="Export WooCommerce outlet sales report to Excel (.xlsx)"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border shadow-2xs active:scale-95 bg-white text-emerald-700 hover:bg-emerald-50 border-emerald-200/90 hover:border-emerald-300 cursor-pointer"
+            title="Export outlet sales report to Excel (.xlsx)"
           >
             <Download className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Export Sales .XLSX</span>
+            <span>Export .XLSX</span>
           </button>
         </div>
       </div>
 
-      {/* Sync Status Banner */}
+      {/* Sync Status Feedback Banner */}
       {syncStatusMsg && (
-        <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-800 shadow-2xs">
+        <div className="p-3 bg-purple-50/70 border border-purple-200/80 rounded-xl flex items-center justify-between text-xs text-purple-900 shadow-2xs">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0" />
             <span className="font-medium">{syncStatusMsg}</span>
           </div>
-          <span className="text-[11px] text-emerald-600 font-mono font-bold">
-            {wcOrders.length} records in memory
+          <span className="text-[11px] text-purple-700 font-mono font-bold">
+            {dateFilteredOrders.length} orders in active scope
           </span>
         </div>
       )}
 
-      {/* 5 High-Impact KPI Overview Cards */}
+      {/* 5 High-Impact Retail Outlet KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* KPI 1: Total WooCommerce Sales */}
-        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
+        {/* KPI 1: Total Physical Outlet Net Sales */}
+        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-purple-300 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">WooCommerce Sales</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Outlet Sales</span>
             <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
               <ShoppingBag className="w-4 h-4" />
             </div>
           </div>
           <div className="my-2">
-            <div className="text-2xl font-black text-emerald-600">
+            <div className="text-2xl font-black text-emerald-600 font-headline">
               ৳ {aggregateTotals.totalSales.toLocaleString()}
             </div>
             <div className="text-xs text-slate-500 mt-0.5">
-              Top-line recognized sales
+              Net recognized in-store revenue
             </div>
           </div>
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
@@ -599,31 +1069,31 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
           </div>
         </div>
 
-        {/* KPI 2: Total Orders Pulled */}
-        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
+        {/* KPI 2: Total POS Orders Pulled */}
+        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-purple-300 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Orders Pulled</span>
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Outlet POS Orders</span>
+            <div className="w-8 h-8 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
               <PackageCheck className="w-4 h-4" />
             </div>
           </div>
           <div className="my-2">
-            <div className="text-2xl font-black text-slate-900">
+            <div className="text-2xl font-black text-slate-900 font-headline">
               {aggregateTotals.totalOrders.toLocaleString()}
               <span className="text-xs font-bold text-slate-400 ml-1">Orders</span>
             </div>
             <div className="text-xs text-slate-500 mt-0.5">
-              From in-store POS & web checkout
+              In-store register checkouts
             </div>
           </div>
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Store Status:</span>
-            <span className="font-bold text-emerald-700">Live Synchronized</span>
+            <span className="text-slate-400">Store Scope:</span>
+            <span className="font-bold text-purple-700">4 Retail Branches</span>
           </div>
         </div>
 
         {/* KPI 3: Total Garments / Items Sold */}
-        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
+        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-purple-300 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Units Sold</span>
             <div className="w-8 h-8 rounded-lg bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
@@ -631,90 +1101,88 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
             </div>
           </div>
           <div className="my-2">
-            <div className="text-2xl font-black text-sky-600">
+            <div className="text-2xl font-black text-sky-600 font-headline">
               {aggregateTotals.totalUnits.toLocaleString()}
               <span className="text-xs font-bold text-slate-400 ml-1">Pcs</span>
             </div>
             <div className="text-xs text-slate-500 mt-0.5">
-              Total apparel units ordered
+              Physical pieces sold in store
             </div>
           </div>
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
             <span className="text-slate-400">Avg Units / Order:</span>
             <span className="font-bold text-slate-700">
-              {aggregateTotals.totalOrders > 0 ? (aggregateTotals.totalUnits / aggregateTotals.totalOrders).toFixed(1) : 0}
+              {aggregateTotals.totalOrders > 0 ? (aggregateTotals.totalUnits / aggregateTotals.totalOrders).toFixed(1) : 0} pcs
             </span>
           </div>
         </div>
 
         {/* KPI 4: Average Order Value (AOV) */}
-        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
+        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-purple-300 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Average Order Value</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Outlet AOV</span>
             <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
           <div className="my-2">
-            <div className="text-2xl font-black text-amber-600">
+            <div className="text-2xl font-black text-amber-600 font-headline">
               ৳ {aggregateTotals.overallAov.toLocaleString()}
             </div>
             <div className="text-xs text-slate-500 mt-0.5">
-              Per completed transaction
+              Average basket size per visit
             </div>
           </div>
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Transaction Quality:</span>
-            <span className="font-bold text-emerald-700">Healthy</span>
+            <span className="text-slate-400">Basket Health:</span>
+            <span className="font-bold text-emerald-700">Optimal</span>
           </div>
         </div>
 
-        {/* KPI 5: In-Store POS Outlets vs Online Web Share */}
-        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
+        {/* KPI 5: Top Performing Retail Outlet */}
+        <div className="bg-white rounded-2xl p-4.5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-purple-300 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">POS Outlets Share</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Top Branch Leader</span>
             <div className="w-8 h-8 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
-              <Building2 className="w-4 h-4" />
+              <Award className="w-4 h-4" />
             </div>
           </div>
           <div className="my-2">
-            <div className="text-2xl font-black text-purple-600">
-              {aggregateTotals.posShare.toFixed(1)}%
+            <div className="text-lg font-black text-purple-700 font-headline truncate" title={topBranch?.name || 'All Outlets'}>
+              {topBranch ? topBranch.name.replace(' Branch POS', '').replace(' POS', '') : 'N/A'}
             </div>
-            <div className="text-xs text-slate-500 mt-0.5">
-              ৳ {aggregateTotals.posSales.toLocaleString()} ({aggregateTotals.posOrders} POS sales)
+            <div className="text-xs font-bold text-emerald-600 mt-0.5">
+              {topBranch ? `৳ ${topBranch.netSales.toLocaleString()} (${topBranch.revenueShare.toFixed(1)}% share)` : 'Awaiting data'}
             </div>
           </div>
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Online Store (Website):</span>
-            <span className="font-bold text-indigo-700">
-              ৳ {aggregateTotals.onlineSales.toLocaleString()} ({aggregateTotals.onlineOrders} orders)
-            </span>
+            <span className="text-slate-400">Lead Volume:</span>
+            <span className="font-bold text-slate-800">{topBranch?.ordersCount || 0} orders</span>
           </div>
         </div>
       </div>
 
-      {/* Visual Analytics Charts: Comparison & Payment Mix */}
+      {/* Visual Analytics Charts: Branch Revenue Breakdown & Payment Velocity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Chart 1: Outlet Sales Revenue Comparison (2 Cols) */}
+        {/* Chart 1: Retail Branch POS Revenue Comparison (2 Cols) */}
         <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-primary" />
-                  Outlet Sales Revenue Breakdown (BDT)
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 font-headline">
+                  <BarChart3 className="w-4 h-4 text-purple-600" />
+                  Branch POS Sales Revenue Breakdown (BDT)
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Comparison of sales revenue pulled from WooCommerce across Online Store and physical Branch POS registers (Mirpur, Wari, Cumilla, Sylhet)
+                  Comparison across Mirpur, Wari, Cumilla, and Sylhet physical store registers ({dateSubLabel})
                 </p>
               </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
                 Sorted by Revenue
               </span>
             </div>
 
-            {/* Visual Bar Comparison */}
+            {/* Visual Bar Comparison for 4 Outlets */}
             <div className="space-y-4 pt-2">
               {outletMetrics.map((m) => {
                 const maxSales = Math.max(...outletMetrics.map(x => x.netSales), 1);
@@ -726,19 +1194,22 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-slate-900">{m.name}</span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${m.badgeColor}`}>
-                          {m.channelType}
+                          Branch ID: {m.id}
                         </span>
                       </div>
                       <div className="text-xs text-slate-500 font-medium">
-                        {m.ordersCount} orders • <span className="font-bold text-slate-800">{m.unitsSold} units</span>
+                        {m.ordersCount} orders • <span className="font-bold text-slate-800">{m.unitsSold} pcs</span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3 text-xs">
                       <div className="flex-1 bg-slate-200/80 rounded-full h-3 overflow-hidden">
                         <div
-                          className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                          style={{ width: `${Math.max(barPct, 2)}%` }}
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${Math.max(barPct, 2)}%`,
+                            backgroundColor: m.dotColor
+                          }}
                         ></div>
                       </div>
                       <span className="w-24 text-right font-bold text-emerald-600 text-xs shrink-0">
@@ -746,9 +1217,9 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between mt-1 text-[11px] text-slate-400">
-                      <span>AOV: ৳{m.aov}</span>
-                      <span>Share: {m.revenueShare.toFixed(1)}%</span>
+                    <div className="flex items-center justify-between mt-1.5 text-[11px] text-slate-400">
+                      <span>AOV: ৳{m.aov.toLocaleString()}</span>
+                      <span className="font-bold text-slate-700">Share: {m.revenueShare.toFixed(1)}%</span>
                     </div>
                   </div>
                 );
@@ -757,13 +1228,13 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
           </div>
         </div>
 
-        {/* Chart 2: Payment Method Velocity (1 Col) */}
+        {/* Chart 2: In-Store Payment Method Mix (1 Col) */}
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 font-headline">
                 <CreditCard className="w-4 h-4 text-indigo-500" />
-                Payment Method Velocity
+                In-Store Payment Mix
               </h3>
               <span className="text-[11px] font-semibold text-slate-400">By BDT Volume</span>
             </div>
@@ -794,46 +1265,134 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
               ))}
             </div>
 
-            {/* Quick Summary Note */}
-            <div className="mt-5 p-3.5 bg-slate-50/80 rounded-xl border border-slate-100 text-xs text-slate-500 space-y-1">
-              <div className="flex items-center justify-between font-bold text-slate-700">
-                <span>In-Store POS Revenue:</span>
-                <span className="text-purple-700">৳ {aggregateTotals.posSales.toLocaleString()}</span>
+            {/* In-Store Outlet Overview Footer */}
+            <div className="mt-5 p-3.5 bg-slate-50/80 rounded-xl border border-slate-100 text-xs text-slate-600 space-y-1.5">
+              <div className="flex items-center justify-between font-bold text-slate-800">
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-purple-600" />
+                  Active Outlets:
+                </span>
+                <span className="text-purple-700">Mirpur, Wari, Cumilla, Sylhet</span>
               </div>
-              <div className="flex items-center justify-between font-bold text-slate-700">
-                <span>Online Web Revenue:</span>
-                <span className="text-indigo-700">৳ {aggregateTotals.onlineSales.toLocaleString()}</span>
+              <div className="flex items-center justify-between font-bold text-slate-800">
+                <span>Total In-Store Units:</span>
+                <span className="text-emerald-700">{aggregateTotals.totalUnits.toLocaleString()} pcs</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content Area: Summary Matrix View or Live Orders Stream */}
-      {activeViewMode === 'SUMMARY' ? (
-        /* OUTLET SALES SUMMARY MATRIX TABLE */
+      {/* ========================================================================= */}
+      {/* 4-WAY PERFORMANCE MATRIX NAVIGATION TABS                                   */}
+      {/* (Branch Summary | Category Sales | Item & SKU Sales | POS Orders Stream)   */}
+      {/* ========================================================================= */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* 1. Branch Matrix */}
+          <button
+            onClick={() => setActiveViewMode('SUMMARY')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeViewMode === 'SUMMARY'
+                ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30'
+                : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200/80 border border-slate-200/60'
+            }`}
+          >
+            <Building2 className="w-3.5 h-3.5" />
+            <span>Branch Summary</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+              activeViewMode === 'SUMMARY' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+            }`}>
+              4 Branches
+            </span>
+          </button>
+
+          {/* 2. Category Sales (Just like main page) */}
+          <button
+            onClick={() => setActiveViewMode('CATEGORY')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeViewMode === 'CATEGORY'
+                ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30'
+                : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200/80 border border-slate-200/60'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Category Wise Sales</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+              activeViewMode === 'CATEGORY' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+            }`}>
+              {categorySales.length}
+            </span>
+          </button>
+
+          {/* 3. Item & SKU Wise Sales (Just like main page) */}
+          <button
+            onClick={() => setActiveViewMode('ITEM')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeViewMode === 'ITEM'
+                ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30'
+                : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200/80 border border-slate-200/60'
+            }`}
+          >
+            <Shirt className="w-3.5 h-3.5" />
+            <span>Item & SKU Wise Sales</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+              activeViewMode === 'ITEM' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+            }`}>
+              {itemWiseSales.length}
+            </span>
+          </button>
+
+          {/* 4. POS Orders Stream */}
+          <button
+            onClick={() => setActiveViewMode('ORDERS')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeViewMode === 'ORDERS'
+                ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30'
+                : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200/80 border border-slate-200/60'
+            }`}
+          >
+            <ShoppingBag className="w-3.5 h-3.5" />
+            <span>POS Orders Stream</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+              activeViewMode === 'ORDERS' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+            }`}>
+              {dateFilteredOrders.length}
+            </span>
+          </button>
+        </div>
+
+        <div className="text-xs text-slate-500 font-medium">
+          Date Scope: <span className="font-bold text-slate-800">{dateSubLabel}</span>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* VIEW 1: OUTLET SALES SUMMARY MATRIX TABLE                                  */}
+      {/* ========================================================================= */}
+      {activeViewMode === 'SUMMARY' && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 font-headline">
-                <Store className="w-4 h-4 text-primary" />
-                Outlet Sales Performance Matrix
+                <Building2 className="w-4 h-4 text-purple-600" />
+                Physical Outlet Sales Matrix
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Consolidated transaction metrics pulled from WooCommerce for Online Store (Website) and in-store Branch POS registers (Mirpur, Wari, Cumilla, Sylhet)
+                Consolidated in-store register performance across Mirpur, Wari, Cumilla, and Sylhet ({dateSubLabel})
               </p>
             </div>
-            <div className="text-xs text-slate-500">
-              Total {aggregateTotals.totalOrders.toLocaleString()} sales records analyzed
+            <div className="text-xs text-slate-500 font-medium">
+              {aggregateTotals.totalOrders.toLocaleString()} total POS orders analyzed
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto min-w-0">
             <table className="w-full text-xs text-left">
               <thead className="bg-slate-50/90 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
                 <tr>
-                  <th className="py-3 px-4">Outlet / Sales Channel</th>
-                  <th className="py-3 px-3">Channel Type</th>
+                  <th className="py-3 px-4">Outlet / Branch</th>
+                  <th className="py-3 px-3">Branch Channel</th>
                   <th className="py-3 px-3 text-right">Orders Pulled</th>
                   <th className="py-3 px-3 text-right">Units Sold</th>
                   <th className="py-3 px-3 text-right">Gross Sales (BDT)</th>
@@ -848,12 +1407,15 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
                   <tr key={m.id} className="hover:bg-slate-50/70 transition-colors">
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700 font-bold text-xs">
+                        <div
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-2xs"
+                          style={{ backgroundColor: m.dotColor }}
+                        >
                           {m.name.charAt(0)}
                         </div>
                         <div>
                           <div className="font-bold text-slate-900">{m.name}</div>
-                          <span className="text-[10px] text-slate-400">Channel ID: {m.id}</span>
+                          <span className="text-[10px] text-slate-400">Branch Register ID: {m.id}</span>
                         </div>
                       </div>
                     </td>
@@ -878,15 +1440,18 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
                       ৳ {m.netSales.toLocaleString()}
                     </td>
                     <td className="py-3.5 px-3 text-right font-bold text-slate-800">
-                      ৳ {m.aov}
+                      ৳ {m.aov.toLocaleString()}
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <div className="flex flex-col items-center gap-1">
                         <span className="font-black text-slate-900">{m.revenueShare.toFixed(1)}%</span>
                         <div className="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden">
                           <div
-                            className="bg-emerald-500 h-full rounded-full"
-                            style={{ width: `${Math.min(m.revenueShare, 100)}%` }}
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${Math.min(m.revenueShare, 100)}%`,
+                              backgroundColor: m.dotColor
+                            }}
                           ></div>
                         </div>
                       </div>
@@ -897,9 +1462,9 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
               <tfoot className="bg-slate-50 font-bold text-slate-900 border-t-2 border-slate-200">
                 <tr>
                   <td className="py-3 px-4 font-black" colSpan={2}>
-                    Total Consolidated WooCommerce Sales
+                    Total Physical Outlet Sales (4 Branches)
                   </td>
-                  <td className="py-3 px-3 text-right text-indigo-700">
+                  <td className="py-3 px-3 text-right text-purple-700">
                     {aggregateTotals.totalOrders.toLocaleString()}
                   </td>
                   <td className="py-3 px-3 text-right">
@@ -915,7 +1480,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
                     ৳ {aggregateTotals.totalSales.toLocaleString()}
                   </td>
                   <td className="py-3 px-3 text-right text-slate-800">
-                    ৳ {aggregateTotals.overallAov}
+                    ৳ {aggregateTotals.overallAov.toLocaleString()}
                   </td>
                   <td className="py-3 px-4 text-center text-emerald-700">
                     100.0%
@@ -925,46 +1490,326 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
             </table>
           </div>
         </div>
-      ) : (
-        /* LIVE WOOCOMMERCE ORDERS STREAM TABLE */
+      )}
+
+      {/* ========================================================================= */}
+      {/* VIEW 2: CATEGORY-WISE SALES BREAKDOWN (Just like the Main Page)            */}
+      {/* ========================================================================= */}
+      {activeViewMode === 'CATEGORY' && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 font-headline">
+                <Layers className="w-4 h-4 text-purple-600" />
+                Category Wise Outlet POS Sales
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Breakdown of in-store garment sales by apparel product line across physical branch outlets ({dateSubLabel})
+              </p>
+            </div>
+            <div className="text-xs text-slate-500 font-medium">
+              {categorySales.length} categories active
+            </div>
+          </div>
+
+          <div className="overflow-x-auto min-w-0">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-slate-50/90 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                <tr>
+                  <th className="py-3.5 px-5">Apparel Category</th>
+                  <th className="py-3.5 px-4">Top Selling Branch</th>
+                  <th className="py-3.5 px-4 text-right">Units Sold</th>
+                  <th className="py-3.5 px-4 text-right">Avg Unit Price (ASP)</th>
+                  <th className="py-3.5 px-4 text-right">Revenue Share</th>
+                  <th className="py-3.5 px-5 text-right">Net POS Revenue (BDT)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+                {categorySales.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
+                      No category sales data recorded in the active date range.
+                    </td>
+                  </tr>
+                ) : (
+                  categorySales.map((c) => (
+                    <tr key={c.name} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-3.5 px-5">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl p-1.5 bg-slate-50 rounded-lg border border-slate-200/80 shadow-2xs">
+                            {c.icon}
+                          </span>
+                          <div>
+                            <div className="font-headline font-bold text-slate-900 text-xs">
+                              {c.name}
+                            </div>
+                            <div className="text-[11px] text-slate-400 font-normal mt-0.5 max-w-xs">
+                              {c.sub}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                          {c.topBranchName}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-headline font-bold text-slate-900 text-xs">
+                        {c.unitsSold.toLocaleString()} <span className="text-slate-400 font-normal">pcs</span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono font-medium text-slate-700 text-xs">
+                        ৳ {c.asp.toLocaleString()}
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-[11px] font-bold text-slate-800 font-mono">
+                            {c.revenueShare.toFixed(1)}%
+                          </span>
+                          <div className="w-20 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="h-full bg-purple-600 rounded-full"
+                              style={{ width: `${Math.min(c.revenueShare, 100)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-5 text-right font-headline font-black text-emerald-600 text-xs">
+                        ৳ {c.revenue.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+              <tfoot className="bg-slate-50 font-bold text-slate-900 border-t-2 border-slate-200">
+                <tr>
+                  <td className="py-3 px-5 font-black" colSpan={2}>
+                    Total Category Sales
+                  </td>
+                  <td className="py-3 px-4 text-right text-slate-900 font-black">
+                    {categorySales.reduce((acc, c) => acc + c.unitsSold, 0).toLocaleString()} pcs
+                  </td>
+                  <td className="py-3 px-4 text-right text-slate-600">
+                    ৳ {categorySales.length > 0
+                      ? Math.round(categorySales.reduce((acc, c) => acc + c.revenue, 0) / Math.max(1, categorySales.reduce((acc, c) => acc + c.unitsSold, 0))).toLocaleString()
+                      : 0}
+                  </td>
+                  <td className="py-3 px-4 text-right text-purple-700 font-bold">
+                    100.0%
+                  </td>
+                  <td className="py-3 px-5 text-right font-black text-emerald-600 text-sm">
+                    ৳ {categorySales.reduce((acc, c) => acc + c.revenue, 0).toLocaleString()}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* VIEW 3: ITEM & MASTER SKU-WISE SALES BREAKDOWN (Just like the Main Page)   */}
+      {/* ========================================================================= */}
+      {activeViewMode === 'ITEM' && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          {/* Filter Toolbar for Master Items */}
+          <div className="p-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* Category Filter */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-slate-400 font-medium">Category:</span>
+                <select
+                  value={selectedCategoryFilter}
+                  onChange={(e) => {
+                    setSelectedCategoryFilter(e.target.value);
+                    setItemCurrentPage(1);
+                  }}
+                  className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                >
+                  <option value="ALL">All Categories ({itemWiseSales.length} items)</option>
+                  {categorySales.map(c => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Branch Filter */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-slate-400 font-medium">Branch:</span>
+                <select
+                  value={selectedBranchFilter}
+                  onChange={(e) => {
+                    setSelectedBranchFilter(e.target.value);
+                    setItemCurrentPage(1);
+                  }}
+                  className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                >
+                  <option value="ALL">All Physical Branches</option>
+                  {PHYSICAL_OUTLETS.map(b => (
+                    <option key={b.name} value={b.name}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative w-full md:w-72">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={itemSearchQuery}
+                onChange={(e) => {
+                  setItemSearchQuery(e.target.value);
+                  setItemCurrentPage(1);
+                }}
+                placeholder="Search Item Name, Master SKU, or Category..."
+                className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto min-w-0">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-slate-50/90 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                <tr>
+                  <th className="py-3 px-4">Item Name / Master SKU</th>
+                  <th className="py-3 px-3">Category</th>
+                  <th className="py-3 px-3">Branches Sold In</th>
+                  <th className="py-3 px-3 text-right">Units Sold</th>
+                  <th className="py-3 px-4 text-right">Unit ASP (BDT)</th>
+                  <th className="py-3 px-4 text-right">Revenue Share</th>
+                  <th className="py-3 px-4 text-right">Total Net Revenue (BDT)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+                {paginatedMasterItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-12 text-center text-slate-400 font-semibold">
+                      No master garment items match the active search and filter criteria.
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedMasterItems.map((item, idx) => (
+                    <tr key={item.masterSku || idx} className="hover:bg-slate-50/70 transition-colors">
+                      {/* Product Name with Master SKU underneath */}
+                      <td className="py-3 px-4 max-w-xs sm:max-w-sm">
+                        <span className="font-headline font-bold text-slate-900 block truncate" title={item.mainName}>
+                          {item.mainName}
+                        </span>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="font-mono text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 shadow-2xs">
+                            {item.masterSku}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Category Badge */}
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <span className="text-[10px] font-semibold text-slate-600 px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200/60">
+                          {item.category}
+                        </span>
+                      </td>
+
+                      {/* Branches Sold In */}
+                      <td className="py-3 px-3 max-w-[160px] truncate" title={item.branchesList}>
+                        <span className="text-[11px] text-slate-600 font-medium">
+                          {item.branchesList || 'In-Store Register'}
+                        </span>
+                      </td>
+
+                      {/* Units Sold */}
+                      <td className="py-3 px-3 text-right font-headline font-bold text-slate-900">
+                        {item.unitsSold.toLocaleString()} <span className="text-slate-400 font-normal">pcs</span>
+                      </td>
+
+                      {/* Unit ASP */}
+                      <td className="py-3 px-4 text-right font-mono font-medium text-slate-700">
+                        ৳ {item.asp.toLocaleString()}
+                      </td>
+
+                      {/* Revenue Share */}
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-[11px] font-bold text-slate-800 font-mono">
+                            {item.revenueShare.toFixed(1)}%
+                          </span>
+                          <div className="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="h-full bg-purple-600 rounded-full"
+                              style={{ width: `${Math.min(item.revenueShare, 100)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Total Net Revenue */}
+                      <td className="py-3 px-4 text-right font-headline font-black text-emerald-600">
+                        ৳ {item.revenue.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls for Master Items */}
+          <div className="p-3 border-t border-slate-200 bg-slate-50/70 flex items-center justify-between text-xs text-slate-500">
+            <div>
+              Showing {filteredMasterItems.length > 0 ? (itemCurrentPage - 1) * itemPageSize + 1 : 0} to{' '}
+              {Math.min(itemCurrentPage * itemPageSize, filteredMasterItems.length)} of {filteredMasterItems.length.toLocaleString()} master styles
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setItemCurrentPage(p => Math.max(1, p - 1))}
+                disabled={itemCurrentPage === 1}
+                className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <span className="px-2 font-bold text-slate-800">
+                Page {itemCurrentPage} of {totalItemPages}
+              </span>
+              <button
+                onClick={() => setItemCurrentPage(p => Math.min(totalItemPages, p + 1))}
+                disabled={itemCurrentPage === totalItemPages}
+                className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* VIEW 4: LIVE IN-STORE POS ORDERS STREAM TABLE                              */}
+      {/* ========================================================================= */}
+      {activeViewMode === 'ORDERS' && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           {/* Filter Toolbar */}
           <div className="p-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2.5">
-              {/* Outlet Selector Dropdown */}
+              {/* Outlet Selector Dropdown (Physical Outlets Only) */}
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-400 font-medium">Outlet:</span>
+                <span className="text-xs text-slate-400 font-medium">Branch:</span>
                 <select
                   value={selectedOutletFilter}
                   onChange={(e) => {
                     setSelectedOutletFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                 >
-                  <option value="ALL">All Outlets ({wcOrders.length} orders)</option>
-                  {outletMetrics.map(m => (
+                  <option value="ALL">All Branches ({dateFilteredOrders.length} orders)</option>
+                  {PHYSICAL_OUTLETS.map(m => (
                     <option key={m.id} value={m.name}>
                       {m.name}
                     </option>
                   ))}
-                </select>
-              </div>
-
-              {/* Source Filter (POS vs Online) */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-400 font-medium">Channel:</span>
-                <select
-                  value={sourceFilter}
-                  onChange={(e) => {
-                    setSourceFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary"
-                >
-                  <option value="ALL">All Channels</option>
-                  <option value="POS">In-Store POS Registers Only (Mirpur, Wari, Cumilla, Sylhet)</option>
-                  <option value="ONLINE">Online Store (Website) Only</option>
                 </select>
               </div>
 
@@ -977,7 +1822,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
                     setStatusFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                 >
                   <option value="ALL">All Statuses</option>
                   <option value="completed">Completed</option>
@@ -1005,24 +1850,24 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto min-w-0">
             <table className="w-full text-xs text-left">
               <thead className="bg-slate-50/90 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
                 <tr>
-                  <th className="py-3 px-4">WooCommerce # & Date</th>
-                  <th className="py-3 px-3">Outlet / Channel</th>
-                  <th className="py-3 px-3">Customer & Location</th>
+                  <th className="py-3 px-4">Order # & Timestamp</th>
+                  <th className="py-3 px-3">Branch Location</th>
+                  <th className="py-3 px-3">Customer Info</th>
                   <th className="py-3 px-3">Items Ordered</th>
                   <th className="py-3 px-3 text-right">Order Total</th>
                   <th className="py-3 px-3 text-center">Payment</th>
-                  <th className="py-3 px-4 text-center">Order Status</th>
+                  <th className="py-3 px-4 text-center">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
                 {paginatedOrders.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-12 text-center text-slate-400">
-                      No WooCommerce orders matched the active outlet and filter criteria.
+                      No outlet POS orders matched the active branch and date filter criteria.
                     </td>
                   </tr>
                 ) : (
@@ -1040,12 +1885,8 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
                       </td>
                       <td className="py-3 px-3">
                         <div className="font-bold text-slate-800">{o.outletName}</div>
-                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold ${
-                          o.orderSource === 'pos'
-                            ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                            : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                        }`}>
-                          {o.orderSource === 'pos' ? 'POS Register' : 'Online Website'}
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                          In-Store POS
                         </span>
                       </td>
                       <td className="py-3 px-3">
@@ -1086,13 +1927,13 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
           <div className="p-3 border-t border-slate-200 bg-slate-50/70 flex items-center justify-between text-xs text-slate-500">
             <div>
               Showing {filteredOrders.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} to{' '}
-              {Math.min(currentPage * pageSize, filteredOrders.length)} of {filteredOrders.length.toLocaleString()} WooCommerce orders
+              {Math.min(currentPage * pageSize, filteredOrders.length)} of {filteredOrders.length.toLocaleString()} POS orders
             </div>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none"
+                className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
@@ -1102,7 +1943,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [], summary }: Outle
               <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none"
+                className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>

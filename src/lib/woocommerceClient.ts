@@ -59,13 +59,27 @@ export async function testWooCommerceConnection(credentials?: WcCredentials): Pr
       };
     }
 
-    const errJson = await res.json().catch(() => ({}));
+    const contentType = res.headers.get('content-type') || '';
+    let errJson: any = {};
+    if (contentType.includes('application/json')) {
+      errJson = await res.json().catch(() => ({}));
+    } else {
+      const text = await res.text().catch(() => '');
+      if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+        return {
+          success: false,
+          status: res.status,
+          message: `WooCommerce server returned HTML error page (HTTP ${res.status}). Verify store URL and firewall whitelist.`,
+        };
+      }
+    }
+
     if (res.status === 401 && errJson.code === 'woocommerce_rest_cannot_view') {
       return {
         success: false,
         status: 401,
         message:
-          'WooCommerce 401 (Cannot View): The API key is valid but associated with a WordPress user role that lacks "Administrator" or "Shop Manager" order viewing permissions. In WP Admin, go to WooCommerce > Settings > Advanced > REST API and ensure key permissions are Read/Write for an Admin user.',
+          'WooCommerce 401 (Cannot View): The API key is valid but lacks order viewing permissions. In WP Admin, ensure key permissions are Read/Write for an Admin user.',
       };
     }
 
@@ -74,7 +88,7 @@ export async function testWooCommerceConnection(credentials?: WcCredentials): Pr
         success: false,
         status: 403,
         message:
-          'WooCommerce 403 (Forbidden): Request blocked by WordPress firewall, Wordfence, or Cloudflare Bot Fight Mode. Whitelist Vercel serverless traffic or test with WordPress Application Passwords.',
+          'WooCommerce 403 (Forbidden): Request blocked by WordPress firewall, Wordfence, or Cloudflare. Whitelist server IP or use Application Passwords.',
       };
     }
 
@@ -142,11 +156,27 @@ export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Prom
           },
         });
 
+        const contentType = res.headers.get('content-type') || '';
+
         if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          const error: any = new Error(err.message || `Failed to fetch WooCommerce orders: HTTP ${res.status}`);
+          let errMsg = `Failed to fetch WooCommerce orders: HTTP ${res.status}`;
+          if (contentType.includes('application/json')) {
+            const err = await res.json().catch(() => ({}));
+            errMsg = err.message || errMsg;
+          } else {
+            const text = await res.text().catch(() => '');
+            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+              errMsg = `WooCommerce API returned HTML error (HTTP ${res.status}). Store firewall, Cloudflare, or WordPress error page encountered.`;
+            }
+          }
+          const error: any = new Error(errMsg);
           error.status = res.status;
           throw error;
+        }
+
+        if (!contentType.includes('application/json')) {
+          const text = await res.text().catch(() => '');
+          throw new Error(`WooCommerce returned HTML instead of JSON (${res.status}): ${text.slice(0, 80)}`);
         }
 
         return await res.json();

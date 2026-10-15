@@ -69,15 +69,19 @@ export async function POST(req: Request) {
       ordersCount: rawOrders.length,
       lineItemsCount: formattedRows.length,
       orders: returnRows,
-      rawOrders: isPrivileged ? rawOrders : undefined,
+      rawOrders: rawOrders,
       provenance,
     });
   } catch (error: any) {
     console.error('WooCommerce sync error:', error);
+    const msg = error?.message || 'Failed to sync with WooCommerce';
     return NextResponse.json(
       {
         success: false,
-        error: error?.message || 'Failed to sync with WooCommerce',
+        error: msg,
+        message: msg,
+        orders: [],
+        rawOrders: [],
       },
       { status: 500 }
     );
