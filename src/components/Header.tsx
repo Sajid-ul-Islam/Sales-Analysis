@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   Sun,
-  Moon
+  Moon,
+  MoreVertical
 } from 'lucide-react';
 import { DateScope, DateScopeCounts, CustomDateRange, FileWeek } from '@/lib/dateFilter';
 import { DateRangeSelector } from '@/components/DateRangeSelector';
@@ -70,7 +71,9 @@ export function Header({
   isSyncing = false
 }: HeaderProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
 
   // Self-contained dark mode fallback state if prop is not supplied
   const [internalDarkMode, setInternalDarkMode] = useState(false);
@@ -86,12 +89,37 @@ export function Header({
     }
   }, []);
 
+  // Close more menu on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+        setMoreMenuOpen(false);
+      }
+    }
+    if (moreMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [moreMenuOpen]);
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setSearchTerm(val);
     if (onSearch) {
       onSearch(val);
     }
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    if (onSearch) {
+      onSearch('');
+    }
+    searchRef.current?.focus();
   };
 
   React.useEffect(() => {
@@ -137,14 +165,14 @@ export function Header({
   };
 
   return (
-    <header className="sticky top-0 h-16 border-b border-slate-200 dark:border-[#1F1F1F] bg-white/95 dark:bg-[#000000]/95 backdrop-blur-md flex items-center justify-between px-2 sm:px-6 shrink-0 z-20 shadow-xs transition-colors duration-200">
+    <header className="sticky top-0 h-16 border-b border-slate-200 dark:border-[#1F1F1F] bg-white/95 dark:bg-[#000000]/95 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 shrink-0 z-20 shadow-xs transition-colors duration-200">
       {/* Search Input Bar with Mobile Menu Toggle & ⌘K shortcut */}
       <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 mr-2 sm:mr-4">
         {onToggleMobileMenu && (
           <button
             type="button"
             onClick={onToggleMobileMenu}
-            className="md:hidden p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all shrink-0 inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+            className="md:hidden p-2 min-w-[40px] min-h-[40px] rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all shrink-0 inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
             aria-label="Toggle navigation menu"
             aria-expanded={mobileOpen}
           >
@@ -155,7 +183,7 @@ export function Header({
             )}
           </button>
         )}
-        <div className="relative w-full max-w-[120px] xs:max-w-[160px] sm:max-w-xs md:max-w-sm">
+        <div className="relative flex-1 min-w-0 max-w-xs md:max-w-sm">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             ref={searchRef}
@@ -164,58 +192,66 @@ export function Header({
             onChange={handleSearchChange}
             placeholder="Search..."
             aria-label="Search orders, SKUs, customer phones"
-            className="w-full min-w-[44px] pl-9 pr-3 sm:pr-10 py-2 sm:py-2.5 min-h-[44px] bg-slate-100/70 hover:bg-slate-100 focus:bg-white dark:bg-[#0D0D0D] dark:hover:bg-[#141414] dark:focus:bg-[#000000] text-xs border border-transparent hover:border-slate-200 dark:hover:border-[#222222] focus:border-slate-300 dark:focus:border-[#333333] rounded-xl placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all text-slate-800 dark:text-slate-100"
+            className="w-full min-w-0 pl-9 pr-8 sm:pr-10 py-2 sm:py-2.5 min-h-[40px] sm:min-h-[44px] bg-slate-100/70 hover:bg-slate-100 focus:bg-white dark:bg-[#0D0D0D] dark:hover:bg-[#141414] dark:focus:bg-[#000000] text-xs border border-transparent hover:border-slate-200 dark:hover:border-[#222222] focus:border-slate-300 dark:focus:border-[#333333] rounded-xl placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all text-slate-800 dark:text-slate-100"
           />
-          <kbd className="hidden sm:inline-block absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-white/80 dark:bg-[#141414] border border-slate-200 dark:border-[#262626] rounded shadow-2xs pointer-events-none">
-            ⌘K
-          </kbd>
+          {searchTerm ? (
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              className="absolute right-2 sm:right-8 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              aria-label="Clear search query"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <kbd className="hidden sm:inline-block absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-white/80 dark:bg-[#141414] border border-slate-200 dark:border-[#262626] rounded shadow-2xs pointer-events-none">
+              ⌘K
+            </kbd>
+          )}
         </div>
       </div>
 
-      {/* Header Tools & Indicators (Clean Native Icons, No Boxed Buttons) */}
-      <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-        {/* Data Source Switcher: Clean Native Icons */}
-        <div className="flex items-center">
+      {/* Header Tools & Controls */}
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/* Segmented Data Source Mode Switcher */}
+        <div className="inline-flex items-center p-0.5 sm:p-1 rounded-xl bg-slate-100/90 dark:bg-[#141414] border border-slate-200/80 dark:border-[#222222] shrink-0">
           <button
             type="button"
             onClick={() => onSwitchSourceMode?.('UPLOAD')}
-            className={`relative inline-flex items-center justify-center p-2.5 min-w-[44px] min-h-[44px] rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeSourceMode === 'UPLOAD'
-                ? 'text-[#EB5A19]'
+                ? 'bg-white dark:bg-[#222222] text-[#EB5A19] shadow-2xs font-bold'
                 : 'text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300'
             }`}
             title="Render from uploaded spreadsheets & offline manifests (.xlsx / .csv)"
             aria-label="Switch data source to uploaded spreadsheets"
             aria-pressed={activeSourceMode === 'UPLOAD'}
           >
-            <FileSpreadsheet className="w-5 h-5 shrink-0" />
-            {activeSourceMode === 'UPLOAD' && (
-              <span className="absolute bottom-1.5 w-1 h-1 rounded-full bg-[#EB5A19]" />
-            )}
+            <FileSpreadsheet className="w-4 h-4 shrink-0" />
+            <span className="hidden xl:inline text-[11px]">Files</span>
           </button>
 
           <button
             type="button"
             onClick={() => onSwitchSourceMode?.('API')}
-            className={`relative inline-flex items-center justify-center p-2.5 min-w-[44px] min-h-[44px] rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeSourceMode === 'API'
-                ? 'text-emerald-500'
+                ? 'bg-white dark:bg-[#222222] text-emerald-600 dark:text-emerald-400 shadow-2xs font-bold'
                 : 'text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300'
             }`}
             title="Render from live WooCommerce & Pathao Hermes API"
             aria-label="Switch data source to Cloud API"
             aria-pressed={activeSourceMode === 'API'}
           >
-            <Cloud className={`w-5 h-5 shrink-0 ${activeSourceMode === 'API' && isSyncing ? 'animate-pulse' : ''}`} />
-            {activeSourceMode === 'API' ? (
-              <span className="absolute bottom-1.5 w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-            ) : hasCloudData ? (
-              <span className="absolute bottom-1.5 w-1 h-1 rounded-full bg-emerald-400/60" title="Cloud data synced" />
-            ) : null}
+            <Cloud className={`w-4 h-4 shrink-0 ${activeSourceMode === 'API' && isSyncing ? 'animate-pulse' : ''}`} />
+            <span className="hidden xl:inline text-[11px]">API</span>
+            {hasCloudData && activeSourceMode !== 'API' && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" title="Cloud data synced" />
+            )}
           </button>
         </div>
 
-        {/* Unified Date Range Selector in Header (cross-tab unified filtering) */}
+        {/* Unified Date Range Selector */}
         {activeDateScope && onDateScopeChange && (
           <DateRangeSelector
             activeScope={activeDateScope}
@@ -231,48 +267,125 @@ export function Header({
           />
         )}
 
-        <div className="h-5 w-px bg-slate-200 dark:bg-[#1F1F1F] mx-0.5 hidden sm:block" />
+        {/* Desktop & Tablet Actions Cluster (hidden on small mobile) */}
+        <div className="hidden sm:flex items-center gap-1 shrink-0">
+          <div className="h-5 w-px bg-slate-200 dark:bg-[#1F1F1F] mx-1" />
 
-        {/* Reset Baseline Action (Clean Native Icon) */}
-        {onResetBaseline && (
+          {/* Reset Baseline Action */}
+          {onResetBaseline && (
+            <button
+              type="button"
+              onClick={onResetBaseline}
+              className="inline-flex items-center justify-center p-2 min-w-[40px] min-h-[40px] rounded-xl text-slate-400 hover:text-[#EB5A19] dark:text-slate-500 dark:hover:text-[#EB5A19] hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+              title="Reload verified 1,026 clean orders September baseline"
+              aria-label="Reload verified baseline dataset"
+            >
+              <RefreshCw className="w-4 h-4 shrink-0" />
+            </button>
+          )}
+
+          {/* Export Excel Action */}
           <button
             type="button"
-            onClick={onResetBaseline}
-            className="inline-flex items-center justify-center p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-slate-400 hover:text-[#EB5A19] dark:text-slate-500 dark:hover:text-[#EB5A19] hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
-            title="Reload verified 1,026 clean orders September baseline"
-            aria-label="Reload verified baseline dataset"
+            onClick={onExport}
+            disabled={!hasData}
+            className="inline-flex items-center justify-center p-2 min-w-[40px] min-h-[40px] rounded-xl text-slate-400 hover:text-emerald-600 dark:text-slate-500 dark:hover:text-emerald-400 disabled:opacity-30 hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+            title="Export Reconciled Dataset to Excel (.xlsx)"
+            aria-label="Export Reconciled Dataset to Excel (.xlsx)"
           >
-            <RefreshCw className="w-5 h-5 shrink-0" />
+            <Download className="w-4 h-4 shrink-0" />
           </button>
-        )}
 
-        {/* Export Excel Action (Clean Native Icon) */}
-        <button
-          type="button"
-          onClick={onExport}
-          disabled={!hasData}
-          className="inline-flex items-center justify-center p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-slate-400 hover:text-emerald-600 dark:text-slate-500 dark:hover:text-emerald-400 disabled:opacity-30 hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
-          title="Export Reconciled Dataset to Excel (.xlsx)"
-          aria-label="Export Reconciled Dataset to Excel (.xlsx)"
-        >
-          <Download className="w-5 h-5 shrink-0" />
-        </button>
+          {/* Quick Light/Dark Theme Toggle Action */}
+          <button
+            type="button"
+            onClick={handleThemeToggle}
+            className="inline-flex items-center justify-center p-2 min-w-[40px] min-h-[40px] rounded-xl text-slate-400 hover:text-amber-500 dark:text-slate-400 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary group cursor-pointer"
+            title={activeDarkMode ? 'Switch to light mode (Current: Dark)' : 'Switch to dark mode (Current: Light)'}
+            aria-label={activeDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-pressed={activeDarkMode}
+          >
+            {activeDarkMode ? (
+              <Sun className="w-4 h-4 text-amber-400 group-hover:rotate-45 transition-transform shrink-0" />
+            ) : (
+              <Moon className="w-4 h-4 text-slate-400 group-hover:-rotate-12 transition-transform shrink-0" />
+            )}
+          </button>
+        </div>
 
-        {/* Quick Light/Dark Theme Toggle Action (Clean Native Icon) */}
-        <button
-          type="button"
-          onClick={handleThemeToggle}
-          className="inline-flex items-center justify-center p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-slate-400 hover:text-amber-500 dark:text-slate-400 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary group cursor-pointer"
-          title={activeDarkMode ? 'Switch to light mode (Current: Dark)' : 'Switch to dark mode (Current: Light)'}
-          aria-label={activeDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-          aria-pressed={activeDarkMode}
-        >
-          {activeDarkMode ? (
-            <Sun className="w-5 h-5 text-amber-400 group-hover:rotate-45 transition-transform shrink-0" />
-          ) : (
-            <Moon className="w-5 h-5 text-slate-400 group-hover:-rotate-12 transition-transform shrink-0" />
+        {/* Mobile More Actions Menu (sm:hidden) */}
+        <div className="relative sm:hidden" ref={moreMenuRef}>
+          <button
+            type="button"
+            onClick={() => setMoreMenuOpen(prev => !prev)}
+            className="inline-flex items-center justify-center p-2 min-w-[40px] min-h-[40px] rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+            aria-label="More header actions"
+            aria-expanded={moreMenuOpen}
+          >
+            <MoreVertical className="w-5 h-5 shrink-0" />
+          </button>
+
+          {moreMenuOpen && (
+            <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl bg-white dark:bg-[#111111] border border-slate-200 dark:border-[#222222] shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                Actions
+              </div>
+
+              {/* Export Option */}
+              <button
+                type="button"
+                onClick={() => {
+                  setMoreMenuOpen(false);
+                  onExport();
+                }}
+                disabled={!hasData}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 disabled:opacity-40 transition-colors cursor-pointer"
+              >
+                <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="flex-1 text-left">Export Reconciled (.xlsx)</span>
+              </button>
+
+              {/* Reload Baseline Option */}
+              {onResetBaseline && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMoreMenuOpen(false);
+                    onResetBaseline();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="w-4 h-4 text-[#EB5A19] shrink-0" />
+                  <span className="flex-1 text-left">Reload Baseline (1,026)</span>
+                </button>
+              )}
+
+              <div className="h-px bg-slate-100 dark:bg-[#222222] my-1" />
+
+              {/* Theme Toggle Option */}
+              <button
+                type="button"
+                onClick={() => {
+                  setMoreMenuOpen(false);
+                  handleThemeToggle();
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                {activeDarkMode ? (
+                  <>
+                    <Sun className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span className="flex-1 text-left">Switch to Light Mode</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-4 h-4 text-slate-500 shrink-0" />
+                    <span className="flex-1 text-left">Switch to Dark Mode</span>
+                  </>
+                )}
+              </button>
+            </div>
           )}
-        </button>
+        </div>
       </div>
     </header>
   );
