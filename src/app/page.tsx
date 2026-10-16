@@ -170,10 +170,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const savedTheme = loadSavedThemeSettings();
       const isDark =
         document.documentElement.classList.contains('dark') ||
         document.body.classList.contains('dark-canvas') ||
-        Boolean(localStorage.getItem('deen_reconcile_theme_settings_v1')?.includes('"dark-canvas"'));
+        savedTheme.backgroundId === 'dark-canvas' ||
+        Boolean(savedTheme.darkModeCanvas);
       setIsDarkMode(isDark);
 
       const handler = (e: any) => {

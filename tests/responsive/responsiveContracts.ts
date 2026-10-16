@@ -41,9 +41,9 @@ export const BREAKPOINTS = {
  */
 export const MOBILE_BOTTOM_NAV_TABS = [
   { id: 'tabExecutive', label: 'Overview', icon: 'LayoutDashboard' },
-  { id: 'tabOrders', label: 'Orders', icon: 'ListOrdered' },
+  { id: 'tabLiveOps', label: 'Live Ops', icon: 'Radio' },
+  { id: 'tabOrders', label: 'Orders', icon: 'ClipboardList' },
   { id: 'tabItemReturns', label: 'Returns', icon: 'RotateCcw' },
-  { id: 'tabSettings', label: 'Sync', icon: 'RefreshCw' },
 ] as const;
 
 /**

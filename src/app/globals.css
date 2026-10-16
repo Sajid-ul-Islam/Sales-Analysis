@@ -415,4 +415,12 @@ body.dark-canvas {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+
+  .animate-pulse,
+  .animate-spin,
+  .animate-bounce,
+  .animate-ping {
+    animation: none !important;
+    transform: none !important;
+  }
 }

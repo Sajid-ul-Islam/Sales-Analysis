@@ -1,11 +1,26 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { clampPosition, getDefaultPosition } from '@/lib/draggableAssistant';
+import {
+  clampPosition,
+  getDefaultPosition,
+  snapToEdge,
+  resetAssistantPosition,
+  HEADER_CLEARANCE_PX,
+  MOBILE_BOTTOM_NAV_CLEARANCE_PX,
+  DEFAULT_ASSISTANT_STORAGE_KEY
+} from '@/lib/draggableAssistant';
 
 describe('Draggable Assistant Button Utility & Geometry Engine', () => {
   beforeEach(() => {
     (globalThis as any).window = {
       innerWidth: 1280,
       innerHeight: 800,
+      dispatchEvent: vi.fn(),
+    };
+    (globalThis as any).CustomEvent = class CustomEvent {
+      type: string;
+      constructor(type: string) {
+        this.type = type;
+      }
     };
     const store: Record<string, string> = {};
     (globalThis as any).localStorage = {
@@ -19,6 +34,7 @@ describe('Draggable Assistant Button Utility & Geometry Engine', () => {
   afterEach(() => {
     delete (globalThis as any).window;
     delete (globalThis as any).localStorage;
+    delete (globalThis as any).CustomEvent;
   });
 
   it('clamps coordinates strictly inside the viewport boundaries', () => {
@@ -31,6 +47,32 @@ describe('Draggable Assistant Button Utility & Geometry Engine', () => {
     const clampedExceed = clampPosition(2000, 2000, 56, 12);
     expect(clampedExceed.x).toBe(1280 - 56 - 12); // 1212
     expect(clampedExceed.y).toBe(800 - 56 - 12); // 732
+  });
+
+  it('enforces exclusion zones when topClearance and bottomClearance are provided', () => {
+    // Header clearance: y must not be less than HEADER_CLEARANCE_PX (68px)
+    const nearTop = clampPosition(100, 20, 56, 12, 1280, 800, {
+      topClearance: HEADER_CLEARANCE_PX,
+      bottomClearance: MOBILE_BOTTOM_NAV_CLEARANCE_PX,
+    });
+    expect(nearTop.y).toBe(HEADER_CLEARANCE_PX);
+
+    // Mobile bottom nav clearance: y must not exceed height - btnSize - bottomClearance
+    const nearBottom = clampPosition(100, 780, 56, 12, 1280, 800, {
+      topClearance: HEADER_CLEARANCE_PX,
+      bottomClearance: MOBILE_BOTTOM_NAV_CLEARANCE_PX,
+    });
+    expect(nearBottom.y).toBe(800 - 56 - MOBILE_BOTTOM_NAV_CLEARANCE_PX);
+  });
+
+  it('snaps horizontal position to nearest edge (snapToEdge)', () => {
+    // Left half of screen (viewport width 400): x = 100 -> center is 128 < 200 -> snaps to margin (12)
+    const snappedLeft = snapToEdge(100, 400, 56, 12);
+    expect(snappedLeft).toBe(12);
+
+    // Right half of screen: x = 250 -> center is 278 > 200 -> snaps to 400 - 56 - 12 = 332
+    const snappedRight = snapToEdge(250, 400, 56, 12);
+    expect(snappedRight).toBe(332);
   });
 
   it('keeps valid within-bounds coordinates unchanged', () => {
@@ -88,5 +130,15 @@ describe('Draggable Assistant Button Utility & Geometry Engine', () => {
     expect(validated.y).toBe(350);
 
     (globalThis as any).localStorage.removeItem(testStorageKey);
+  });
+
+  it('resetAssistantPosition clears localStorage and dispatches window event', () => {
+    (globalThis as any).localStorage.setItem(DEFAULT_ASSISTANT_STORAGE_KEY, JSON.stringify({ x: 100, y: 200 }));
+    expect((globalThis as any).localStorage.getItem(DEFAULT_ASSISTANT_STORAGE_KEY)).not.toBeNull();
+
+    resetAssistantPosition();
+
+    expect((globalThis as any).localStorage.getItem(DEFAULT_ASSISTANT_STORAGE_KEY)).toBeNull();
+    expect((globalThis as any).window.dispatchEvent).toHaveBeenCalled();
   });
 });

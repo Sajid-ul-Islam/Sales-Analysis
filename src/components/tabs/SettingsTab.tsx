@@ -80,6 +80,7 @@ import { RawOrderRow } from '@/types';
 import { loadBYOKConfig, BYOKConfig } from '@/lib/byok';
 import { BYOKModal } from '@/components/ai/BYOKModal';
 import { DataProvenanceInfo } from '@/lib/dataAudit';
+import { resetAssistantPosition } from '@/lib/draggableAssistant';
 
 interface SettingsTabProps {
   excludeAugust: boolean;
@@ -128,6 +129,13 @@ export function SettingsTab({
   const [themeSettings, setThemeSettings] = useState<CustomThemeSettings>(DEFAULT_THEME_SETTINGS);
   const [tempHex, setTempHex] = useState('#EB5A19');
   const [saveToast, setSaveToast] = useState<string | null>(null);
+  const [assistantResetDone, setAssistantResetDone] = useState(false);
+
+  const handleResetAssistant = () => {
+    resetAssistantPosition();
+    setAssistantResetDone(true);
+    setTimeout(() => setAssistantResetDone(false), 2000);
+  };
 
   // Math & Model Parameter States
   const [insideDeliveryFee, setLocalInsideDeliveryFee] = useState<number>(propInsideFee ?? 50);
@@ -971,6 +979,22 @@ export function SettingsTab({
                   onChange={() => handleToggleOption('showDonutMeters')}
                   className="w-4 h-4 accent-primary rounded cursor-pointer"
                 />
+              </div>
+
+              {/* Reset AI Assistant FAB Position */}
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                <div>
+                  <span className="text-xs font-medium text-slate-800 block">Reset AI Assistant Position</span>
+                  <span className="text-[10px] text-slate-400">Restore the floating assistant button to the default corner</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleResetAssistant}
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                  <span>{assistantResetDone ? 'Reset!' : 'Reset Position'}</span>
+                </button>
               </div>
             </div>
           </div>

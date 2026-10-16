@@ -14,7 +14,7 @@ describe('Adversarial & Empirical Challenge: Milestone M1 (Multi-Device Navigati
   describe('1. Breakpoint Transitions (< 768px, 768px - 1023px, >= 1024px)', () => {
     it('1.1 Mobile Viewport (< 768px): MobileBottomNav is rendered and visible (md:hidden); Desktop and Tablet sidebars are hidden', () => {
       // MobileBottomNav container has md:hidden, fixed bottom-0, left-0, right-0, z-40
-      expect(mobileNavCode).toMatch(/<nav[\s\S]*?className="[^"]*md:hidden[^"]*fixed[^"]*bottom-0[^"]*z-40/);
+      expect(mobileNavCode).toMatch(/<nav[\s\S]*?className=[`"{][\s\S]*?md:hidden[\s\S]*?fixed[\s\S]*?bottom-0[\s\S]*?z-40/);
 
       // In CSS, @media (min-width: 768px) triggers md:hidden (display: none).
       // Therefore, at < 768px, MobileBottomNav is visible.
@@ -128,12 +128,12 @@ describe('Adversarial & Empirical Challenge: Milestone M1 (Multi-Device Navigati
   // SECTION 3: ACTIVE TAB HIGHLIGHTING & STATE / COOKIE SYNCHRONIZATION
   // =========================================================================
   describe('3. Active Tab Highlighting & State/Cookie Synchronization', () => {
-    it('3.1 MobileBottomNav: Exactly defines 4 primary tabs (Overview, Territory, Ad Analytics, Status Matrix) + More trigger', () => {
+    it('3.1 MobileBottomNav: Exactly defines 4 primary daily-driver tabs (Overview, Live Ops, Orders, Returns) + More trigger', () => {
       expect(mobileNavCode).toContain("activeTab === 'tabExecutive'");
-      expect(mobileNavCode).toContain("activeTab === 'tabTerritory'");
-      expect(mobileNavCode).toContain("activeTab === 'tabMarketingAnalytics'");
-      expect(mobileNavCode).toContain("activeTab === 'tabStatus'");
-      expect(mobileNavCode).toContain("const primaryTabIds = ['tabExecutive', 'tabTerritory', 'tabMarketingAnalytics', 'tabStatus'];");
+      expect(mobileNavCode).toContain("activeTab === 'tabLiveOps'");
+      expect(mobileNavCode).toContain("activeTab === 'tabOrders'");
+      expect(mobileNavCode).toContain("activeTab === 'tabItemReturns'");
+      expect(mobileNavCode).toContain("const primaryTabIds = ['tabExecutive', 'tabLiveOps', 'tabOrders', 'tabItemReturns'];");
       expect(mobileNavCode).toContain("const isExtendedModuleActive = !primaryTabIds.includes(activeTab);");
     });
 

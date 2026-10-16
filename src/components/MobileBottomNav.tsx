@@ -1,11 +1,11 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard,
-  MapPin,
-  BarChart3,
-  GitCompare,
+  Radio,
+  ClipboardList,
+  RotateCcw,
   Menu
 } from 'lucide-react';
 
@@ -26,11 +26,11 @@ export interface MobileBottomNavProps {
    */
   onOpenDrawer: () => void;
   /**
-   * Optional badge count for returned items (displayed in slide-over drawer).
+   * Optional badge count for returned items.
    */
   returnCount?: number;
   /**
-   * Optional badge count for orders (displayed in slide-over drawer).
+   * Optional badge count for orders.
    */
   orderCount?: number;
   /**
@@ -51,16 +51,17 @@ export interface MobileBottomNavProps {
  * MobileBottomNav
  * 
  * Sticky mobile navigation bar for viewports < 768px (md:hidden).
- * Provides one-tap switching between the 4 executive intelligence tabs:
+ * Provides one-tap switching between the 4 primary daily-driver operational tabs:
  * 1. Overview (tabExecutive)
- * 2. Territory (tabTerritory)
- * 3. Ad Analytics (tabMarketingAnalytics)
- * 4. Status Matrix (tabStatus)
+ * 2. Live Ops (tabLiveOpsTerminal)
+ * 3. Orders (tabOrders)
+ * 4. Returns (tabItemReturns)
  * Plus a 5th action to trigger the slide-over drawer for extended modules (More).
  * 
  * Complies with:
  * - WCAG AA & Mobile Touch Target standard (>= 48px width and height).
  * - Safe area bottom inset (env(safe-area-inset-bottom)).
+ * - Auto-hide on scroll-down to maximize vertical space for data tables.
  * - DEEN Commerce Design System (Brand Orange #EB5A19, high-contrast dark tokens).
  * - True Deep Black background (#000000) matching dashboard surface.
  */
@@ -75,12 +76,42 @@ export function MobileBottomNav({
   isSyncing = false
 }: MobileBottomNavProps) {
   // Check if current active tab is an extended module from the slide-over drawer
-  const primaryTabIds = ['tabExecutive', 'tabTerritory', 'tabMarketingAnalytics', 'tabStatus'];
+  const primaryTabIds = ['tabExecutive', 'tabLiveOps', 'tabOrders', 'tabItemReturns'];
   const isExtendedModuleActive = !primaryTabIds.includes(activeTab);
+
+  // Auto-hide navigation bar on scroll-down to reclaim 64px vertical space for tables
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollYRef = useRef(0);
+
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+          // Hide when scrolling downwards past 60px
+          if (currentScrollY > 60 && currentScrollY > lastScrollYRef.current + 8) {
+            setIsVisible(false);
+          } else if (currentScrollY < lastScrollYRef.current - 8 || currentScrollY <= 20) {
+            // Restore when scrolling upwards or near top of page
+            setIsVisible(true);
+          }
+          lastScrollYRef.current = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-deepBlack-canvas/95 backdrop-blur-md border-t border-slate-200/90 dark:border-deepBlack-border shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom,0px)] select-none transition-colors duration-200"
+      className={`md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-deepBlack-canvas/95 backdrop-blur-md border-t border-slate-200/90 dark:border-deepBlack-border shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom,0px)] select-none transition-all duration-300 ease-in-out ${
+        isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
+      }`}
       aria-label="Mobile Navigation"
       role="navigation"
     >
@@ -111,83 +142,91 @@ export function MobileBottomNav({
           </span>
         </button>
 
-        {/* 2. Territory Tab */}
+        {/* 2. Live Ops Tab */}
         <button
           type="button"
-          onClick={() => onSelectTab('tabTerritory')}
+          onClick={() => onSelectTab('tabLiveOps')}
           className={`group relative flex flex-col items-center justify-center min-h-[48px] min-w-[48px] h-full w-full py-1.5 px-0.5 select-none transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark dark:focus-visible:ring-orange-400 focus-visible:ring-inset cursor-pointer ${
-            activeTab === 'tabTerritory'
+            activeTab === 'tabLiveOps'
               ? 'text-primary-dark dark:text-orange-400 font-bold'
               : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium'
           }`}
-          aria-label="Territory Distribution tab"
-          aria-current={activeTab === 'tabTerritory' ? 'page' : undefined}
+          aria-label="Live Operations Terminal tab"
+          aria-current={activeTab === 'tabLiveOps' ? 'page' : undefined}
         >
-          {activeTab === 'tabTerritory' && (
+          {activeTab === 'tabLiveOps' && (
             <span
               className="absolute top-0 inset-x-0 mx-auto w-10 h-1 bg-[#EB5A19] rounded-b-full shadow-[0_1px_4px_rgba(235,90,25,0.4)] transition-all duration-200"
               aria-hidden="true"
             />
           )}
           <div className="relative">
-            <MapPin className={`w-5 h-5 shrink-0 transition-transform duration-150 ${activeTab === 'tabTerritory' ? 'scale-105' : 'group-hover:scale-105'}`} />
+            <Radio className={`w-5 h-5 shrink-0 transition-transform duration-150 ${activeTab === 'tabLiveOps' ? 'scale-105' : 'group-hover:scale-105'}`} />
           </div>
           <span className="text-[11px] mt-1 tracking-tight truncate max-w-[62px]">
-            Territory
+            Live Ops
           </span>
         </button>
 
-        {/* 3. Ad Analytics Tab */}
+        {/* 3. Orders Tab */}
         <button
           type="button"
-          onClick={() => onSelectTab('tabMarketingAnalytics')}
+          onClick={() => onSelectTab('tabOrders')}
           className={`group relative flex flex-col items-center justify-center min-h-[48px] min-w-[48px] h-full w-full py-1.5 px-0.5 select-none transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark dark:focus-visible:ring-orange-400 focus-visible:ring-inset cursor-pointer ${
-            activeTab === 'tabMarketingAnalytics'
+            activeTab === 'tabOrders'
               ? 'text-primary-dark dark:text-orange-400 font-bold'
               : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium'
           }`}
-          aria-label="Ad Analytics and Marketing ROAS tab"
-          aria-current={activeTab === 'tabMarketingAnalytics' ? 'page' : undefined}
+          aria-label="Orders Ledger tab"
+          aria-current={activeTab === 'tabOrders' ? 'page' : undefined}
         >
-          {activeTab === 'tabMarketingAnalytics' && (
+          {activeTab === 'tabOrders' && (
             <span
               className="absolute top-0 inset-x-0 mx-auto w-10 h-1 bg-[#EB5A19] rounded-b-full shadow-[0_1px_4px_rgba(235,90,25,0.4)] transition-all duration-200"
               aria-hidden="true"
             />
           )}
           <div className="relative">
-            <BarChart3 className={`w-5 h-5 shrink-0 transition-transform duration-150 ${activeTab === 'tabMarketingAnalytics' ? 'scale-105' : 'group-hover:scale-105'}`} />
+            <ClipboardList className={`w-5 h-5 shrink-0 transition-transform duration-150 ${activeTab === 'tabOrders' ? 'scale-105' : 'group-hover:scale-105'}`} />
+            {orderCount !== undefined && orderCount > 0 && (
+              <span className="absolute -top-1 -right-2 px-1 rounded-full text-[9px] font-bold bg-slate-900 text-white min-w-[15px] text-center leading-tight">
+                {orderCount > 99 ? '99+' : orderCount}
+              </span>
+            )}
           </div>
           <span className="text-[11px] mt-1 tracking-tight truncate max-w-[62px]">
-            <span className="hidden xs:inline">Ad Analytics</span>
-            <span className="xs:hidden">Ads</span>
+            Orders
           </span>
         </button>
 
-        {/* 4. Status Matrix Tab */}
+        {/* 4. Returns Tab */}
         <button
           type="button"
-          onClick={() => onSelectTab('tabStatus')}
+          onClick={() => onSelectTab('tabItemReturns')}
           className={`group relative flex flex-col items-center justify-center min-h-[48px] min-w-[48px] h-full w-full py-1.5 px-0.5 select-none transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark dark:focus-visible:ring-orange-400 focus-visible:ring-inset cursor-pointer ${
-            activeTab === 'tabStatus'
+            activeTab === 'tabItemReturns'
               ? 'text-primary-dark dark:text-orange-400 font-bold'
               : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium'
           }`}
-          aria-label="Status Matrix reconciliation tab"
-          aria-current={activeTab === 'tabStatus' ? 'page' : undefined}
+          aria-label="Item Returns and Audit tab"
+          aria-current={activeTab === 'tabItemReturns' ? 'page' : undefined}
         >
-          {activeTab === 'tabStatus' && (
+          {activeTab === 'tabItemReturns' && (
             <span
               className="absolute top-0 inset-x-0 mx-auto w-10 h-1 bg-[#EB5A19] rounded-b-full shadow-[0_1px_4px_rgba(235,90,25,0.4)] transition-all duration-200"
               aria-hidden="true"
             />
           )}
           <div className="relative">
-            <GitCompare className={`w-5 h-5 shrink-0 transition-transform duration-150 ${activeTab === 'tabStatus' ? 'scale-105' : 'group-hover:scale-105'}`} />
+            <RotateCcw className={`w-5 h-5 shrink-0 transition-transform duration-150 ${activeTab === 'tabItemReturns' ? 'scale-105' : 'group-hover:scale-105'}`} />
+            {returnCount > 0 && (
+              <span className="absolute -top-1 -right-2 px-1 rounded-full text-[9px] font-bold bg-rose-600 text-white min-w-[15px] text-center leading-tight">
+                {returnCount > 99 ? '99+' : returnCount}
+              </span>
+            )}
           </div>
           <span className="text-[11px] mt-1 tracking-tight truncate max-w-[62px]">
-            <span className="hidden xs:inline">Status Matrix</span>
-            <span className="xs:hidden">Status</span>
+            Returns
           </span>
         </button>
 
@@ -211,7 +250,7 @@ export function MobileBottomNav({
           )}
           <div className="relative">
             <Menu className="w-5 h-5 shrink-0 transition-transform duration-150 group-hover:scale-105" />
-            {(isExtendedModuleActive || returnCount > 0) && (
+            {isExtendedModuleActive && (
               <span
                 className="absolute -top-0.5 -right-1 w-2 h-2 rounded-full bg-[#EB5A19] ring-2 ring-white dark:ring-deepBlack-canvas"
                 aria-hidden="true"

@@ -40,7 +40,7 @@ describe('DEEN Commerce Responsive Architecture Test Suite (Tiers 1 - 4)', () =>
         expect(tabIds).toContain('tabExecutive');
         expect(tabIds).toContain('tabOrders');
         expect(tabIds).toContain('tabItemReturns');
-        expect(tabIds).toContain('tabSettings');
+        expect(tabIds).toContain('tabLiveOps');
       });
 
       it('F1.3: enforces active visual indicator contract and bold typography', () => {

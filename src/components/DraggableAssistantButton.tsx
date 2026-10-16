@@ -1,15 +1,18 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Bot, RotateCcw, Move } from 'lucide-react';
+import { Bot, RotateCcw, Move, Check } from 'lucide-react';
 
 import {
   AssistantPosition,
   DEFAULT_ASSISTANT_STORAGE_KEY,
   DEFAULT_ASSISTANT_BUTTON_SIZE,
   DEFAULT_SCREEN_MARGIN,
+  HEADER_CLEARANCE_PX,
+  MOBILE_BOTTOM_NAV_CLEARANCE_PX,
   clampPosition,
-  getDefaultPosition
+  getDefaultPosition,
+  snapToEdge
 } from '@/lib/draggableAssistant';
 
 export type { AssistantPosition };
@@ -31,8 +34,11 @@ export function DraggableAssistantButton({
   const [isInitialized, setIsInitialized] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [showResetToast, setShowResetToast] = useState(false);
 
   const buttonRef = useRef<HTMLDivElement>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTapTimeRef = useRef<number>(0);
   const dragContextRef = useRef<{
     startX: number;
     startY: number;
@@ -57,7 +63,19 @@ export function DraggableAssistantButton({
       if (saved) {
         const parsed = JSON.parse(saved);
         if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') {
-          initialPos = clampPosition(parsed.x, parsed.y);
+          const isMobile = (typeof window !== 'undefined' ? window.innerWidth : 1280) < 768;
+          initialPos = clampPosition(
+            parsed.x,
+            parsed.y,
+            DEFAULT_ASSISTANT_BUTTON_SIZE,
+            DEFAULT_SCREEN_MARGIN,
+            undefined,
+            undefined,
+            {
+              topClearance: HEADER_CLEARANCE_PX,
+              bottomClearance: isMobile ? MOBILE_BOTTOM_NAV_CLEARANCE_PX : 24,
+            }
+          );
         }
       }
     } catch {}
@@ -66,17 +84,66 @@ export function DraggableAssistantButton({
     setIsInitialized(true);
   }, [storageKey]);
 
-  // 2. Auto-clamp position when viewport is resized or rotated
+  // 2. Auto-clamp position when viewport is resized, rotated, or visual viewport shifts
   useEffect(() => {
-    const handleResize = () => {
-      setPosition((prev) => clampPosition(prev.x, prev.y));
+    const handleViewportChange = () => {
+      const vp = typeof window !== 'undefined' && window.visualViewport ? window.visualViewport : null;
+      const vpWidth = vp ? Math.round(vp.width) : (typeof window !== 'undefined' ? window.innerWidth : 1280);
+      const vpHeight = vp ? Math.round(vp.height) : (typeof window !== 'undefined' ? window.innerHeight : 800);
+      const isMobile = vpWidth < 768;
+
+      setPosition((prev) =>
+        clampPosition(prev.x, prev.y, DEFAULT_ASSISTANT_BUTTON_SIZE, DEFAULT_SCREEN_MARGIN, vpWidth, vpHeight, {
+          topClearance: HEADER_CLEARANCE_PX,
+          bottomClearance: isMobile ? MOBILE_BOTTOM_NAV_CLEARANCE_PX : 24,
+        })
+      );
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener('resize', handleViewportChange);
+    if (typeof window !== 'undefined' && window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+      window.visualViewport.addEventListener('scroll', handleViewportChange);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleViewportChange);
+      if (typeof window !== 'undefined' && window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
+        window.visualViewport.removeEventListener('scroll', handleViewportChange);
+      }
+    };
   }, []);
 
-  // 3. Pointer drag handlers with pointer capture for zero-slip tracking
+  // 3. Listen for remote reset event dispatched from SettingsTab
+  useEffect(() => {
+    const handleExternalReset = () => {
+      const def = getDefaultPosition();
+      setPosition(def);
+      setShowResetToast(true);
+      setTimeout(() => setShowResetToast(false), 2000);
+    };
+
+    window.addEventListener('deen-reset-assistant-pos', handleExternalReset);
+    return () => window.removeEventListener('deen-reset-assistant-pos', handleExternalReset);
+  }, []);
+
+  // 4. Double click or helper to reset to default position
+  const handleResetPosition = useCallback((e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const def = getDefaultPosition();
+    setPosition(def);
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {}
+    setShowResetToast(true);
+    setTimeout(() => setShowResetToast(false), 2000);
+  }, [storageKey]);
+
+  // 5. Pointer drag handlers with pointer capture for zero-slip tracking
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     // Only primary button (left click or touch)
     if (e.button !== 0 && e.pointerType === 'mouse') return;
@@ -89,6 +156,21 @@ export function DraggableAssistantButton({
       hasMoved: false,
       pointerId: e.pointerId,
     };
+
+    // Start 600ms long-press timer to reset position
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+    }
+    longPressTimerRef.current = setTimeout(() => {
+      if (!dragContextRef.current.hasMoved && dragContextRef.current.pointerId !== null) {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          try {
+            navigator.vibrate(50);
+          } catch {}
+        }
+        handleResetPosition();
+      }
+    }, 600);
 
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -106,6 +188,10 @@ export function DraggableAssistantButton({
       if (Math.hypot(deltaX, deltaY) >= 5) {
         dragContextRef.current.hasMoved = true;
         setIsDragging(true);
+        if (longPressTimerRef.current) {
+          clearTimeout(longPressTimerRef.current);
+          longPressTimerRef.current = null;
+        }
       } else {
         return;
       }
@@ -113,11 +199,35 @@ export function DraggableAssistantButton({
 
     const nextX = dragContextRef.current.initialX + deltaX;
     const nextY = dragContextRef.current.initialY + deltaY;
-    setPosition(clampPosition(nextX, nextY));
+
+    const vp = typeof window !== 'undefined' && window.visualViewport ? window.visualViewport : null;
+    const width = vp ? Math.round(vp.width) : (typeof window !== 'undefined' ? window.innerWidth : 1280);
+    const height = vp ? Math.round(vp.height) : (typeof window !== 'undefined' ? window.innerHeight : 800);
+    const isMobile = width < 768;
+
+    setPosition(
+      clampPosition(
+        nextX,
+        nextY,
+        DEFAULT_ASSISTANT_BUTTON_SIZE,
+        DEFAULT_SCREEN_MARGIN,
+        width,
+        height,
+        {
+          topClearance: HEADER_CLEARANCE_PX,
+          bottomClearance: isMobile ? MOBILE_BOTTOM_NAV_CLEARANCE_PX : 24,
+        }
+      )
+    );
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (dragContextRef.current.pointerId !== e.pointerId) return;
+
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
 
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
@@ -128,17 +238,54 @@ export function DraggableAssistantButton({
     setIsDragging(false);
 
     if (didMove) {
-      // Persist user's preferred custom placement
+      const vp = typeof window !== 'undefined' && window.visualViewport ? window.visualViewport : null;
+      const width = vp ? Math.round(vp.width) : (typeof window !== 'undefined' ? window.innerWidth : 1280);
+      const height = vp ? Math.round(vp.height) : (typeof window !== 'undefined' ? window.innerHeight : 800);
+      const isMobile = width < 768;
+
+      // On mobile or touch drag release, snap FAB to edge to avoid obscuring central tables
+      let finalX = position.x;
+      if (isMobile || e.pointerType === 'touch') {
+        finalX = snapToEdge(position.x, width, DEFAULT_ASSISTANT_BUTTON_SIZE, DEFAULT_SCREEN_MARGIN);
+      }
+
+      const finalPos = clampPosition(
+        finalX,
+        position.y,
+        DEFAULT_ASSISTANT_BUTTON_SIZE,
+        DEFAULT_SCREEN_MARGIN,
+        width,
+        height,
+        {
+          topClearance: HEADER_CLEARANCE_PX,
+          bottomClearance: isMobile ? MOBILE_BOTTOM_NAV_CLEARANCE_PX : 24,
+        }
+      );
+
+      setPosition(finalPos);
       try {
-        localStorage.setItem(storageKey, JSON.stringify(position));
+        localStorage.setItem(storageKey, JSON.stringify(finalPos));
       } catch {}
     } else {
-      // Clean click: toggle drawer
+      // Touch double-tap detection (< 320ms) to reset
+      const now = Date.now();
+      if (e.pointerType === 'touch' && now - lastTapTimeRef.current < 320) {
+        handleResetPosition();
+        lastTapTimeRef.current = 0;
+        return;
+      }
+      lastTapTimeRef.current = now;
+
+      // Clean single tap: toggle drawer
       onToggle();
     }
   };
 
   const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
     if (dragContextRef.current.pointerId === e.pointerId) {
       try {
         e.currentTarget.releasePointerCapture(e.pointerId);
@@ -147,19 +294,6 @@ export function DraggableAssistantButton({
       setIsDragging(false);
     }
   };
-
-  // 4. Double click or button to reset to default position
-  const handleResetPosition = useCallback((e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    const def = getDefaultPosition();
-    setPosition(def);
-    try {
-      localStorage.removeItem(storageKey);
-    } catch {}
-  }, [storageKey]);
 
   // Determine dynamic tooltip placement based on screen position
   const isLeftSide = typeof window !== 'undefined' ? position.x < window.innerWidth / 2 : false;
@@ -198,10 +332,27 @@ export function DraggableAssistantButton({
         left: `${position.x}px`,
         top: `${position.y}px`,
         touchAction: 'none',
+        transition: isDragging
+          ? 'none'
+          : 'left 0.25s cubic-bezier(0.16, 1, 0.3, 1), top 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
       className={`fixed ${isDragging ? 'z-50' : 'z-40'} select-none group ${className}`}
-      title="DEEN Assistant (Drag to reposition anywhere • Double-click to reset)"
+      title="DEEN Assistant (Drag to reposition • Long-press or double-tap to reset)"
     >
+      {/* Toast Notification on Position Reset */}
+      {showResetToast && (
+        <div
+          className={`absolute ${
+            isTopSide ? 'top-full mt-2' : 'bottom-full mb-2'
+          } ${
+            isLeftSide ? 'left-0' : 'right-0'
+          } px-2.5 py-1 rounded-full bg-slate-900/95 dark:bg-[#1A1A1A] text-white text-[10px] font-bold tracking-tight shadow-xl border border-slate-700/80 dark:border-white/10 flex items-center gap-1.5 whitespace-nowrap pointer-events-none transition-all duration-200`}
+        >
+          <Check className="w-3 h-3 text-emerald-400" />
+          <span>Position Reset</span>
+        </div>
+      )}
+
       {/* Context-Aware Adaptive Tooltip */}
       <div
         className={`hidden md:flex items-center gap-2 absolute ${
