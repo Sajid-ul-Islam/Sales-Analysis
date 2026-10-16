@@ -312,10 +312,15 @@ describe('DEEN Commerce Responsive Architecture Test Suite (Tiers 1 - 4)', () =>
         expect(dashArray).toBe('85, 100');
       });
 
-      it('F9.5: static inspection of KpiOverview.tsx confirms explicit SVG dimensions and shrink-0', () => {
-        const content = readProjectFile('src/components/KpiOverview.tsx');
-        expect(content).toContain('viewBox="0 0 36 36" width="44" height="44"');
-        expect(content).toContain('shrink-0');
+      it('F9.5: static inspection of MiniDonutChart and KpiOverview confirms explicit SVG dimensions and shrink-0', () => {
+        const donutContent = readProjectFile('src/components/kpi/MiniDonutChart.tsx');
+        expect(donutContent).toContain('viewBox="0 0 36 36"');
+        expect(donutContent).toContain('shrink-0');
+        expect(donutContent).toContain('size = 44');
+
+        const kpiContent = readProjectFile('src/components/KpiOverview.tsx');
+        expect(kpiContent).toContain('MiniDonutChart');
+        expect(kpiContent).toContain('shrink-0');
       });
     });
 

@@ -1368,7 +1368,7 @@ export function SettingsTab({
                   <div>
                     <h4 className="text-xs font-bold text-slate-900">Google Analytics 4 (GA4)</h4>
                     <span className="text-[11px] text-slate-500 font-mono block">
-                      Property #{ga4Status?.propertyId || '314841375'}
+                      Property #{ga4Status?.propertyId || '123456789'}
                     </span>
                     <div className="flex items-center gap-2 mt-2">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -1402,7 +1402,7 @@ export function SettingsTab({
                   <div>
                     <h4 className="text-xs font-bold text-slate-900">Meta Pixel & Marketing API</h4>
                     <span className="text-[11px] text-slate-500 font-mono block">
-                      Pixel #{metaStatus?.pixelId || '2547021025592489'} • Account {metaStatus?.adAccountId || 'act_3397888253858911'}
+                      Pixel #{metaStatus?.pixelId || '1234567890123456'} • Account {metaStatus?.adAccountId || 'act_1234567890123456'}
                     </span>
                     <div className="flex items-center gap-2 mt-2">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${

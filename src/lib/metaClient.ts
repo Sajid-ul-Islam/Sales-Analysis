@@ -85,8 +85,8 @@ export async function testMetaConnection(optionsOrToken?: string | {
   const startTime = Date.now();
   const options = typeof optionsOrToken === 'string' ? { overrideToken: optionsOrToken } : (optionsOrToken || {});
   const secrets = getSecretsConfig();
-  const pixelId = options.overridePixelId || secrets.meta.pixel_id || '2547021025592489';
-  const adAccountId = normalizeAdAccountId(options.overrideAdAccountId || secrets.meta.ad_account_id || 'act_3397888253858911');
+  const pixelId = options.overridePixelId || secrets.meta.pixel_id || '0000000000000000';
+  const adAccountId = normalizeAdAccountId(options.overrideAdAccountId || secrets.meta.ad_account_id || 'act_0000000000000000');
   const token = options.overrideToken || secrets.meta.access_token;
 
   if (!token) {
@@ -178,8 +178,8 @@ export async function fetchFullMetaAnalytics(
 ): Promise<MetaFullReport> {
   const startTime = Date.now();
   const secrets = getSecretsConfig();
-  const pixelId = secrets.meta.pixel_id || '2547021025592489';
-  const adAccountId = normalizeAdAccountId(secrets.meta.ad_account_id || 'act_3397888253858911');
+  const pixelId = secrets.meta.pixel_id || '0000000000000000';
+  const adAccountId = normalizeAdAccountId(secrets.meta.ad_account_id || 'act_0000000000000000');
   const token = overrideToken || secrets.meta.access_token;
 
   const connStatus = await testMetaConnection(token);

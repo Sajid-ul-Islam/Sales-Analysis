@@ -43,14 +43,14 @@ PATHAO_PASSWORD="your_pathao_password"
 # ==============================================================================
 # Google Analytics 4 (Recommended: Single JSON Variable)
 # ==============================================================================
-GA4_PROPERTY_ID="314841375"
+GA4_PROPERTY_ID="123456789"
 GCP_SERVICE_ACCOUNT_JSON='{"type":"service_account","project_id":"...","private_key_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n","client_email":"...","client_id":"..."}'
 
 # ==============================================================================
 # Meta Ads & Pixel Marketing Integration
 # ==============================================================================
-META_PIXEL_ID="2547021025592489"
-META_AD_ACCOUNT_ID="act_3397888253858911"
+META_PIXEL_ID="1234567890123456"
+META_AD_ACCOUNT_ID="act_1234567890123456"
 META_ACCESS_TOKEN="your_meta_system_user_token"
 ```
 
@@ -90,13 +90,13 @@ META_ACCESS_TOKEN="your_meta_system_user_token"
 4. Add the Service Account's `client_email` with **Viewer** permissions.
 5. In Vercel, paste the entire contents of the downloaded JSON file into `GCP_SERVICE_ACCOUNT_JSON`.
    * *This avoids having to manually escape `\n` in private keys!*
-6. Set `GA4_PROPERTY_ID` to your numeric Property ID (e.g. `314841375`).
+6. Set `GA4_PROPERTY_ID` to your numeric Property ID (e.g. `123456789`).
 
 ---
 
 ### D. Meta Ads & Pixel API
-1. In Meta Events Manager, copy your **Pixel ID** (`META_PIXEL_ID`).
-2. In Meta Ads Manager, copy your **Ad Account ID** with `act_` prefix (`META_AD_ACCOUNT_ID`, e.g. `act_3397888253858911`).
+1. In Meta Events Manager, copy your **Pixel ID** (`META_PIXEL_ID`, e.g. `1234567890123456`).
+2. In Meta Ads Manager, copy your **Ad Account ID** with `act_` prefix (`META_AD_ACCOUNT_ID`, e.g. `act_1234567890123456`).
 3. In Meta Business Settings, go to **System Users** and generate an access token with permissions:
    * `ads_read`
    * `read_insights`

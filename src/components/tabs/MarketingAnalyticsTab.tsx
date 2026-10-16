@@ -429,7 +429,7 @@ export function MarketingAnalyticsTab({
                 <span className="text-[10px] font-bold text-emerald-700 uppercase">Live Stream</span>
               </div>
               <div className="text-[11px] text-slate-500 truncate">
-                Property #{ov?.propertyId || '314841375'} • {ov?.timeZone || 'Asia/Dhaka'} ({ov?.currency || 'BDT'})
+                Property #{ov?.propertyId || '123456789'} • {ov?.timeZone || 'Asia/Dhaka'} ({ov?.currency || 'BDT'})
               </div>
             </div>
           </div>
@@ -463,7 +463,7 @@ export function MarketingAnalyticsTab({
                 </span>
               </div>
               <div className="text-[11px] text-slate-500 truncate">
-                Pixel #{metaReport?.status?.pixelId || '2547021025592489'} • Account {metaReport?.status?.adAccountId || 'act_3397888253858911'}
+                Pixel #{metaReport?.status?.pixelId || '1234567890123456'} • Account {metaReport?.status?.adAccountId || 'act_1234567890123456'}
               </div>
             </div>
           </div>
@@ -809,7 +809,7 @@ export function MarketingAnalyticsTab({
               </h3>
             </div>
             <span className="text-[11px] text-slate-400">
-              Ad Account #{metaReport?.status?.adAccountId || 'act_3397888253858911'}
+              Ad Account #{metaReport?.status?.adAccountId || 'act_1234567890123456'}
             </span>
           </div>
 

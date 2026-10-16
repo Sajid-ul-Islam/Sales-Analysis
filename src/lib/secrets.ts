@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { validateSafeOutboundUrl } from './security/urlValidator';
 
 export interface SecretsConfig {
   woocommerce: {
@@ -321,21 +322,62 @@ export function getSecretsWithOverrides(overrides?: {
   const base = getSecretsConfig();
   if (!overrides) return base;
 
+  // 1. WooCommerce SSRF & Credential Exfiltration Protection
+  let storeUrl = base.woocommerce.store_url;
+  let consumerKey = base.woocommerce.consumer_key;
+  let consumerSecret = base.woocommerce.consumer_secret;
+
+  if (overrides.woocommerce?.store_url) {
+    const check = validateSafeOutboundUrl(overrides.woocommerce.store_url, { allowLocalInDev: true });
+    if (!check.valid) {
+      console.warn(`[Security Warning] Rejected untrusted WooCommerce store_url override "${overrides.woocommerce.store_url}": ${check.error}`);
+    } else {
+      storeUrl = overrides.woocommerce.store_url;
+      // If store_url host is altered from the server-configured host, prevent leaking server-side consumer credentials!
+      try {
+        const baseHost = base.woocommerce.store_url ? new URL(base.woocommerce.store_url).hostname : '';
+        const targetHost = new URL(overrides.woocommerce.store_url).hostname;
+        if (baseHost && targetHost !== baseHost) {
+          // Require caller to supply own consumer_key and consumer_secret; do not inherit server keys!
+          consumerKey = overrides.woocommerce?.consumer_key || '';
+          consumerSecret = overrides.woocommerce?.consumer_secret || '';
+        }
+      } catch {
+        // parsing fallback
+      }
+    }
+  }
+
+  if (overrides.woocommerce?.consumer_key) consumerKey = overrides.woocommerce.consumer_key;
+  if (overrides.woocommerce?.consumer_secret) consumerSecret = overrides.woocommerce.consumer_secret;
+
+  // 2. Pathao SSRF & Domain Whitelist Protection
+  let pathaoBaseUrl = base.pathao.base_url;
+  if (overrides.pathao?.base_url) {
+    const check = validateSafeOutboundUrl(overrides.pathao.base_url, {
+      allowedDomains: ['pathao.com'],
+      allowLocalInDev: true,
+    });
+    if (!check.valid) {
+      console.warn(`[Security Warning] Rejected untrusted Pathao base_url override "${overrides.pathao.base_url}": ${check.error}`);
+    } else {
+      pathaoBaseUrl = overrides.pathao.base_url;
+    }
+  }
+
   return {
     ...base,
     woocommerce: {
-      ...base.woocommerce,
-      ...(overrides.woocommerce?.store_url ? { store_url: overrides.woocommerce.store_url } : {}),
-      ...(overrides.woocommerce?.consumer_key ? { consumer_key: overrides.woocommerce.consumer_key } : {}),
-      ...(overrides.woocommerce?.consumer_secret ? { consumer_secret: overrides.woocommerce.consumer_secret } : {}),
+      store_url: storeUrl,
+      consumer_key: consumerKey,
+      consumer_secret: consumerSecret,
     },
     pathao: {
-      ...base.pathao,
-      ...(overrides.pathao?.base_url ? { base_url: overrides.pathao.base_url } : {}),
-      ...(overrides.pathao?.client_id ? { client_id: overrides.pathao.client_id } : {}),
-      ...(overrides.pathao?.client_secret ? { client_secret: overrides.pathao.client_secret } : {}),
-      ...(overrides.pathao?.username ? { username: overrides.pathao.username } : {}),
-      ...(overrides.pathao?.password ? { password: overrides.pathao.password } : {}),
+      base_url: pathaoBaseUrl,
+      client_id: overrides.pathao?.client_id || base.pathao.client_id,
+      client_secret: overrides.pathao?.client_secret || base.pathao.client_secret,
+      username: overrides.pathao?.username || base.pathao.username,
+      password: overrides.pathao?.password || base.pathao.password,
     },
     ga4: {
       ...base.ga4,

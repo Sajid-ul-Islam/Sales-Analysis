@@ -43,7 +43,7 @@ export const PROVIDERS_METADATA: Record<AIProvider, ProviderMetadata> = {
     keyUrl: 'https://aistudio.google.com/app/apikey',
     keyUrlLabel: 'Get Free Gemini Key in Google AI Studio',
     whereToPutGuidance: {
-      inApp: 'Paste your key directly in the BYOK input below (saved in your local encrypted browser vault).',
+      inApp: 'Paste your key in the BYOK input below (stored locally in browser localStorage with client-side device salting; never saved to backend servers).',
       envVar: 'GEMINI_API_KEY=AIzaSy...',
       envFile: '.env.local (in root directory) or Vercel Environment Variables',
     },
@@ -208,6 +208,48 @@ export function detectAIProvider(apiKey: string): {
 
 const STORAGE_KEY = 'deen_byok_config_v1';
 
+/**
+ * Derives a local device/origin salt to obfuscate stored API keys
+ * and prevent trivial plaintext exposure in localStorage.
+ */
+function getDeviceSalt(): string {
+  if (typeof window === 'undefined') return 'deen_server_salt_fallback';
+  const nav = window.navigator || {} as any;
+  return `${window.location.origin || 'deen'}|${(nav.userAgent || '').slice(0, 32)}|${nav.language || 'en'}`;
+}
+
+function obfuscateKey(plaintext: string): string {
+  if (!plaintext) return '';
+  const salt = getDeviceSalt();
+  let result = '';
+  for (let i = 0; i < plaintext.length; i++) {
+    const charCode = plaintext.charCodeAt(i) ^ salt.charCodeAt(i % salt.length);
+    result += String.fromCharCode(charCode);
+  }
+  return 'v1:' + (typeof btoa !== 'undefined' ? btoa(result) : Buffer.from(result, 'binary').toString('base64'));
+}
+
+function deobfuscateKey(stored: string): string {
+  if (!stored) return '';
+  if (!stored.startsWith('v1:')) {
+    // Backwards compatibility: raw plaintext from older versions
+    return stored;
+  }
+  try {
+    const b64 = stored.slice(3);
+    const decoded = typeof atob !== 'undefined' ? atob(b64) : Buffer.from(b64, 'base64').toString('binary');
+    const salt = getDeviceSalt();
+    let result = '';
+    for (let i = 0; i < decoded.length; i++) {
+      const charCode = decoded.charCodeAt(i) ^ salt.charCodeAt(i % salt.length);
+      result += String.fromCharCode(charCode);
+    }
+    return result;
+  } catch {
+    return stored;
+  }
+}
+
 export function loadBYOKConfig(): BYOKConfig {
   if (typeof window === 'undefined') {
     return {
@@ -231,13 +273,16 @@ export function loadBYOKConfig(): BYOKConfig {
       };
     }
     const parsed = JSON.parse(raw);
+    const storedKey = parsed.encryptedKey || parsed.apiKey || '';
+    const resolvedKey = deobfuscateKey(storedKey);
+
     return {
-      apiKey: parsed.apiKey || '',
+      apiKey: resolvedKey,
       provider: parsed.provider || 'gemini',
       model: parsed.model || 'gemini-2.5-flash',
-      isActive: Boolean(parsed.apiKey && parsed.apiKey.trim() !== ''),
+      isActive: Boolean(resolvedKey && resolvedKey.trim() !== ''),
       lastTestedAt: parsed.lastTestedAt,
-      status: parsed.status || (parsed.apiKey ? 'CONNECTED' : 'UNCONFIGURED'),
+      status: parsed.status || (resolvedKey ? 'CONNECTED' : 'UNCONFIGURED'),
       statusMessage: parsed.statusMessage,
     };
   } catch (e) {
@@ -287,7 +332,13 @@ export function saveBYOKConfig(config: Partial<BYOKConfig>): BYOKConfig {
   };
 
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    // Obfuscate key before persisting to localStorage
+    const storagePayload = {
+      ...updated,
+      apiKey: '', // Never store plaintext key in localStorage
+      encryptedKey: obfuscateKey(apiKey),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(storagePayload));
     // Dispatch custom event for real-time reactivity across all open cards
     window.dispatchEvent(new CustomEvent('deen_byok_updated', { detail: updated }));
   } catch (e) {

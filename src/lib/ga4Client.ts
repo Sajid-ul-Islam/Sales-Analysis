@@ -194,7 +194,7 @@ export async function testGA4Connection(): Promise<{
 }> {
   const startTime = Date.now();
   const secrets = getSecretsConfig();
-  const propertyId = secrets.ga4.property_id || '314841375';
+  const propertyId = secrets.ga4.property_id || '123456789';
   const clientEmail = secrets.gcp_service_account.client_email;
 
   if (!propertyId || !clientEmail || !secrets.gcp_service_account.private_key) {
@@ -265,7 +265,7 @@ export async function testGA4Connection(): Promise<{
 export async function fetchFullGA4Analytics(dateRangeIdentifier: string = '30d'): Promise<GA4FullReport> {
   const startTime = Date.now();
   const secrets = getSecretsConfig();
-  const propertyId = secrets.ga4.property_id || '314841375';
+  const propertyId = secrets.ga4.property_id || '123456789';
   const range = resolveGA4DateRange(dateRangeIdentifier);
 
   try {

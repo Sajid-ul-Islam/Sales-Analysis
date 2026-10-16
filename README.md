@@ -1,6 +1,11 @@
 # Deen Commerce Reconciliation Engine
 
-A web-based dashboard for reconciling returns, sales, and order fulfillment data between Pathao (courier) and WooCommerce (e-commerce).
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
+[![CI Pipeline](https://github.com/Sajid-ul-Islam/Sales-Analysis/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-14.2-black.svg)](https://nextjs.org/)
+
+A unified, real-time analytics & reconciliation dashboard reconciling Pathao courier deliveries and WooCommerce e-commerce sales (returns, partials, exchanges), featuring a Live Operations Terminal, AI copilot intelligence, and automated accounting audit exports.
 
 ## Overview
 
@@ -63,10 +68,6 @@ Launch_Dashboard.bat
 
 **Option 2: Manual start**
 ```bash
-# Start the Python backend (if needed)
-python server.py
-
-# In another terminal, start Next.js
 npm run dev
 ```
 
@@ -75,7 +76,7 @@ The dashboard will be available at `http://localhost:3000`.
 ## Documentation Architecture & Business Rules
 
 Detailed architectural and business specifications:
-- **[Product Requirements Document (PRD)](./docs/PRD.md)**: Product features, 12 analysis modules, persona requirements, and operational workflows
+- **[Product Requirements Document (PRD)](./docs/PRD.md)**: Product features, 14 analysis modules, persona requirements, and operational workflows
 - **[Technical Requirements Document (TRD)](./docs/TRD.md)**: System topology, algorithms (Knapsack DP solver), API integrations, and data contracts
 - **[Design System & CSS Architecture (DESIGN.md)](./docs/DESIGN.md)**: Color tokens, typography, component blueprints, and unbreakable CSS guarantees
 - **[Order Tracking Business Rules](./.agents/rules/order_rules.md)**: Branch suffixes (`c`, `w`, `s`, `m`), paid return propagation, and integer-only return rule
@@ -85,14 +86,16 @@ Detailed architectural and business specifications:
 ## Project Structure
 
 ```
+├── .github/workflows/ # GitHub Actions CI pipeline (ci.yml)
 ├── src/
 │   ├── app/           # Next.js app router pages & API routes
-│   ├── components/    # React components (tabs, KPIs, etc.)
-│   └── lib/           # Business logic (reconciliation, clients, export)
-├── server.py          # Python backend for data processing
-├── process_net_sales.py
+│   ├── components/    # React components (tabs, CommandPalette, notifications)
+│   ├── lib/           # Business logic (reconciliation, clients, security, export)
+│   └── types/         # TypeScript interfaces and contracts
 ├── public/            # Static assets (logos, images)
-└── scripts/           # Utility scripts
+├── scripts/           # Utility and anonymization scripts
+├── legacy/            # Archived pre-v2.0 vanilla JS and Python prototypes
+└── docs/              # Architectural PRD, TRD, and deployment guides
 ```
 
 ## API Routes
@@ -238,8 +241,7 @@ The `Export` button generates a multi-sheet workbook:
 │   │   └── ...
 │   └── types/
 │       └── index.ts                # All TypeScript interfaces
-├── server.py                 # Python dev server (port 8085)
-├── process_net_sales.py     # Net sales processing script
+├── legacy/                   # Archived pre-v2.0 vanilla JS & Python prototypes
 ├── secrets.example.toml      # Configuration template
 ├── .env.example              # Environment variables template
 └── package.json              # Next.js 14 + dependencies
