@@ -963,19 +963,24 @@ export default function DashboardPage() {
                 setLedgerStatusFilter('ALL');
                 setActiveTab('tabOrders');
               }}
-              onRefreshLive={async () => {
+              onRefreshLive={async (fetchedOrders?: RawOrderRow[], provenance?: any) => {
+                if (fetchedOrders && fetchedOrders.length > 0) {
+                  setRawOrders(fetchedOrders);
+                  handleLiveSyncData('orders', fetchedOrders, provenance);
+                  return;
+                }
                 try {
                   const res = await fetch('/api/sync/live-terminal', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ limitConsignments: 35 }),
+                    body: JSON.stringify({ limitConsignments: 35, fetchLiveWc: true }),
                   });
                   const contentType = res.headers.get('content-type') || '';
                   if (contentType.includes('application/json')) {
                     const data = await res.json().catch(() => null);
                     if (data && data.success && data.orders && data.orders.length > 0) {
                       setRawOrders(data.orders);
-                      handleLiveSyncData(data.orders, data.provenance);
+                      handleLiveSyncData('orders', data.orders, data.provenance);
                     }
                   }
                 } catch {
@@ -1196,6 +1201,7 @@ export default function DashboardPage() {
             onClose={() => setIsCopilotOpen(false)}
             summary={result.summary}
             reconciliationResult={result}
+            liveOrders={rawOrders.length > 0 ? rawOrders : ((result?.reconciledOrders as any) || [])}
             activeTab={activeTab}
             onApplyAgenticAction={handleApplyAgenticAction}
             onNavigateToTab={(targetTab) => handleSelectTab(targetTab)}

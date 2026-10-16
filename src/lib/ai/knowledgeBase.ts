@@ -11,7 +11,7 @@
 
 export interface KnowledgeEntry {
   id: string;
-  category: 'branch' | 'reconciliation' | 'courier' | 'risk' | 'metric' | 'policy';
+  category: 'branch' | 'reconciliation' | 'courier' | 'risk' | 'metric' | 'policy' | 'live_ops';
   title: string;
   summary: string;
   formulaOrRule: string;
@@ -144,6 +144,57 @@ export const KNOWLEDGE_BASE_ENTRIES: KnowledgeEntry[] = [
       'Interpretation: E.g., 3:1 means 3 outside Dhaka parcels dispatched for every 1 inside Dhaka parcel.',
     operationalSOP: 'Outside Dhaka orders typically incur higher courier return fees (৳130-150) vs Inside Dhaka (৳60-70). High outside ratio requires stricter advance screening.',
     keywords: ['territory', 'outside ratio', 'dhaka', 'outside dhaka', 'inside dhaka', 'linehaul', 'division']
+  },
+
+  // 6. Live Operations, Today's Sales & Real-Time Delivery Telemetry
+  {
+    id: 'live_ops_today_shipped_standard',
+    category: 'live_ops',
+    title: 'Today\'s Shipped Orders & Sales Reporting Standard',
+    summary: 'Standard for calculating today\'s dispatched parcel volume and gross shipped revenue.',
+    formulaOrRule:
+      'Today\'s Shipped Orders = All orders completed or shipped from processing/hold/cancelled whose status modification timestamp (Date Modified) matches the current operational date.\n' +
+      'Gross Shipped Value = Sum of (Item Cost * Quantity) across all shipped items for today.\n' +
+      'Strict Integer Standard: All item and order counts must strictly evaluate to integer values (floating-point decimals like 0.5 are forbidden).',
+    operationalSOP: 'Check status modification time (date_modified) to determine actual dispatch date, rather than order creation date.',
+    keywords: ['today', 'todays', 'today shipped', 'today sales', 'today revenue', 'status modification', 'date modified', 'daily sales', 'shipped orders', 'gross shipped']
+  },
+  {
+    id: 'live_ops_queue_and_todays_orders_rules',
+    category: 'live_ops',
+    title: 'Warehouse Fulfillment Queue & Today\'s Orders Definition',
+    summary: 'Standard definitions for live order fulfillment queue and today\'s incoming order intake.',
+    formulaOrRule:
+      'Fulfillment Queue = All active orders with status "Processing" OR "Hold" ("On-Hold") awaiting customer verification or warehouse packaging.\n' +
+      'Today\'s Orders = Today\'s Shipped Orders + Active orders placed today with "Processing" status.\n' +
+      'Previous Day Shipped = Dispatches matching the previous working day (skips Friday in Bangladesh).',
+    operationalSOP: 'Orders in Hold status represent phone confirmation or address clarification holds. Resolve holds before shifting to the active packaging line.',
+    keywords: ['queue', 'packing queue', 'hold', 'on-hold', 'processing', 'todays orders', 'today orders', 'warehouse queue', 'fulfillment queue', 'previous day shipped']
+  },
+  {
+    id: 'real_time_courier_telemetry_and_discrepancies',
+    category: 'courier',
+    title: 'Real-Time Courier Telemetry & Automated Discrepancy Detection',
+    summary: 'Pathao Hermes live API integration, parcel delivery status tracking, and automated discrepancy classification.',
+    formulaOrRule:
+      'Standard Courier Categories: Delivered, In Transit, Returned, Partial, Pending Pickup, Untracked.\n' +
+      'RETURNED_BUT_SHIPPED: Store considers parcel shipped/completed, but Pathao courier returned parcel to warehouse.\n' +
+      'DELIVERED_BUT_PROCESSING: Pathao successfully delivered and collected payment, but store status remains processing.\n' +
+      'COD_MISMATCH: Variance > ৳150 between store invoice amount and courier collected cash.',
+    operationalSOP: 'Review the Live Operations Discrepancy Ledger daily to claim courier remittance gaps and update store statuses.',
+    keywords: ['courier telemetry', 'pathao', 'in transit', 'delivered', 'courier discrepancy', 'cod mismatch', 'returned but shipped', 'delivered but processing', 'handed over', 'cod collected']
+  },
+  {
+    id: 'daily_reconciliation_seven_day_baseline',
+    category: 'reconciliation',
+    title: 'Daily Reconciliation & 7-Day Rolling Baseline Comparison',
+    summary: 'Daily operational baseline using integer-rounded 7-day rolling averages.',
+    formulaOrRule:
+      '7-Day Average Baseline = Math.round(Sum(Daily Metric over last 7 operational days) / 7)\n' +
+      'Evaluates average items/day, average orders/day, average gross revenue/day, and average basket size (AOV).\n' +
+      'Volume & Revenue Delta (%) = Math.round(((Today - 7D Daily Avg) / 7D Daily Avg) * 100).',
+    operationalSOP: 'Use the 7-day rolling average baseline to detect warehouse bottlenecks, courier handover slowdowns, and daily sales spikes.',
+    keywords: ['7-day', '7 day', 'rolling average', 'baseline', 'daily reconciliation', 'reconciliation update', '7-day avg', 'daily trend', 'executive briefing']
   }
 ];
 
@@ -188,6 +239,7 @@ export function retrieveRelevantKnowledge(query: string, activeTab?: string, max
       if (tab.includes('risk') && entry.category === 'risk') score += 10;
       if (tab.includes('territory') && entry.id.includes('territory')) score += 10;
       if (tab.includes('orders') && entry.category === 'reconciliation') score += 5;
+      if ((tab.includes('live') || tab.includes('liveops')) && (entry.category === 'live_ops' || entry.category === 'courier' || entry.category === 'reconciliation')) score += 12;
     }
 
     // 4. Content token matching (Summary & Formula)

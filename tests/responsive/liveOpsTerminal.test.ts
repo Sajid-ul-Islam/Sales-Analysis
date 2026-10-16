@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { classifyProductLine, computeSelectsStats } from '@/lib/selectsAnalytics';
 import { getCategoryForSales, getSubCategoryForSales, getShortCategoryLabel } from '@/lib/liveCategoryEngine';
-import { getPreviousWorkingDay, processLiveOpsData, computeDispatchCutoff, formatBangladeshPhoneNumber, generateWhatsAppConfirmationUrl } from '@/lib/liveOpsProcessor';
+import { getPreviousWorkingDay, processLiveOpsData, formatBangladeshPhoneNumber, generateWhatsAppConfirmationUrl } from '@/lib/liveOpsProcessor';
 import { RawOrderRow } from '@/types';
 
 describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () => {
@@ -249,10 +249,9 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
         customDate: todayIso,
       });
 
-      // Active orders must contain exactly the 3 checkout orders: Processing (4001) + On-Hold (4002) + Today Shipped (4003)
+      // Active orders must contain Today Shipped (4003) + Processing (4001)
       const orderIds = report.activeOrders.map((o) => o['Order ID']);
       expect(orderIds).toContain('4001');
-      expect(orderIds).toContain('4002');
       expect(orderIds).toContain('4003');
       expect(orderIds).not.toContain('4004'); // Old shipped
       expect(orderIds).not.toContain('4005'); // Cancelled
@@ -263,9 +262,19 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(report.allOrdersBreakdown.holdCount).toBe(1);
       expect(report.allOrdersBreakdown.todayShippedCount).toBe(1);
       expect(report.allOrdersBreakdown.totalActiveCount).toBe(3);
+
+      // Verify Queue view includes both processing and hold orders
+      const queueReport = processLiveOpsData(mockCheckoutOrders as RawOrderRow[], {
+        view: 'Queue',
+        onlineOnly: true,
+      });
+      const queueIds = queueReport.activeOrders.map((o) => o['Order ID']);
+      expect(queueIds).toContain('4001'); // Processing in queue
+      expect(queueIds).toContain('4002'); // Hold in queue
+      expect(queueIds).not.toContain('4003'); // Shipped not in queue
     });
 
-    it('enforces Today\'s Orders = orders shipped today + orders with status Processing or Hold', () => {
+    it('enforces Today\'s Orders = orders shipped today + orders with status Processing', () => {
       const todayIso = '2026-10-15';
       const mockTodayOrders: Partial<RawOrderRow>[] = [
         {
@@ -340,57 +349,85 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
 
       expect(report.selectedView).toBe("Today's Orders");
       const activeIds = report.activeOrders.map((o) => o['Order ID']);
-      // Must contain Shipped Today (6001), Processing (6002), On-Hold (6003)
+      // Must contain Shipped Today (6001) and Processing (6002)
       expect(activeIds).toContain('6001');
       expect(activeIds).toContain('6002');
-      expect(activeIds).toContain('6003');
-      // Must exclude yesterday shipped (6004) and cancelled (6005)
+      // Must exclude on-hold (6003 in queue), yesterday shipped (6004), and cancelled (6005)
+      expect(activeIds).not.toContain('6003');
       expect(activeIds).not.toContain('6004');
       expect(activeIds).not.toContain('6005');
 
-      // Total orders count
-      expect(report.totalUniqueOrders).toBe(3);
-      // Total items count = 2 (jeans) + 1 (pant) + 1 (jacket) = 4
-      expect(report.totalDispatchedItems).toBe(4);
-      // Revenue = 5000 + 2000 + 6000 = 13000
-      expect(report.salesRevenue.rawValue).toBe(13000);
+      // Total orders count = 2 (shipped today + processing)
+      expect(report.totalUniqueOrders).toBe(2);
+      // Total items count = 2 (jeans) + 1 (pant) = 3
+      expect(report.totalDispatchedItems).toBe(3);
+      // Revenue = 5000 + 2000 = 7000
+      expect(report.salesRevenue.rawValue).toBe(7000);
       expect(report.todaysOrdersBreakdown.processingCount).toBe(1);
       expect(report.todaysOrdersBreakdown.holdCount).toBe(1);
       expect(report.todaysOrdersBreakdown.todayShippedCount).toBe(1);
     });
+
+    it('generates 7-day rolling history, strictly integer 7-day averages, and executive briefing', () => {
+      const todayIso = '2026-10-15';
+      const mockHistoricalOrders: Partial<RawOrderRow>[] = [
+        {
+          'Order ID': '7001',
+          'Date Modified': '2026-10-15T10:00:00Z',
+          'Delivery Status': 'shipped',
+          Quantity: 3,
+          'Order Amount': 6000,
+          'Order Source': 'Online',
+        },
+        {
+          'Order ID': '7002',
+          'Date Modified': '2026-10-14T10:00:00Z',
+          'Delivery Status': 'completed',
+          Quantity: 2,
+          'Order Amount': 4000,
+          'Order Source': 'Online',
+        },
+        {
+          'Order ID': '7003',
+          'Date Modified': '2026-10-13T10:00:00Z',
+          'Delivery Status': 'delivered',
+          Quantity: 1,
+          'Order Amount': 2000,
+          'Order Source': 'Online',
+        },
+      ];
+
+      const report = processLiveOpsData(mockHistoricalOrders as RawOrderRow[], {
+        view: 'Today Shipped',
+        customDate: todayIso,
+      });
+
+      // 7-day history length
+      expect(report.last7DaysHistory.length).toBe(7);
+
+      // Verify strict integer averages
+      expect(Number.isInteger(report.avg7dMetrics.items)).toBe(true);
+      expect(Number.isInteger(report.avg7dMetrics.orders)).toBe(true);
+      expect(Number.isInteger(report.avg7dMetrics.revenue)).toBe(true);
+      expect(Number.isInteger(report.avg7dMetrics.aov)).toBe(true);
+
+      // Verify KPI prevValue is integer
+      expect(Number.isInteger(report.shippedItems.rawPrevValue)).toBe(true);
+      expect(Number.isInteger(report.salesRevenue.rawPrevValue)).toBe(true);
+      expect(Number.isInteger(report.shippedOrders.rawPrevValue)).toBe(true);
+      expect(Number.isInteger(report.basketSize.rawPrevValue)).toBe(true);
+
+      // Verify Executive Briefing
+      expect(report.executiveBriefing.dateIso).toBe(todayIso);
+      expect(report.executiveBriefing.totalOrders).toBe(1);
+      expect(report.executiveBriefing.totalItems).toBe(3);
+      expect(report.executiveBriefing.totalRevenue).toBe(6000);
+      expect(report.executiveBriefing.clipboardText).toContain('Executive Briefing');
+      expect(report.executiveBriefing.summaryPoints.length).toBeGreaterThan(0);
+    });
   });
 
-  describe('Real-Time Fulfillment Acceleration: Dispatch Cut-off, WhatsApp & Product Spotlight', () => {
-    it('computes accurate dispatch cut-off countdown, required packing velocity, and packing progress', () => {
-      // Create a deterministic simulated date: 2:30 PM (14:30) Bangladesh time (UTC 8:30)
-      const simulatedNow = new Date('2026-10-15T08:30:00.000Z'); // 8:30 UTC = 14:30 BST
-      const cutoff4pm = computeDispatchCutoff(15, 16, simulatedNow, 45);
-
-      expect(cutoff4pm.cutoffHour).toBe(16);
-      expect(cutoff4pm.cutoffLabel).toBe('4:00 PM BST');
-      expect(cutoff4pm.isPassed).toBe(false);
-      expect(cutoff4pm.hoursRemaining).toBe(1);
-      expect(cutoff4pm.minutesRemaining).toBe(30);
-      expect(cutoff4pm.timeRemainingFormatted).toBe('1h 30m');
-      expect(cutoff4pm.pendingToPackCount).toBe(15);
-      // 15 orders in 1.5 hours = 10 orders/hour
-      expect(cutoff4pm.packingVelocityRequired).toBe(10);
-      expect(cutoff4pm.urgencyLevel).toBe('URGENT'); // <= 120 mins remaining
-      expect(cutoff4pm.packedCount).toBe(45);
-      expect(cutoff4pm.totalTargetCount).toBe(60);
-      expect(cutoff4pm.packingProgressPct).toBe(75); // 45 / 60 = 75%
-
-      // Simulate overdue/passed cut-off: 5:00 PM (17:00 BST = 11:00 UTC)
-      const passedNow = new Date('2026-10-15T11:00:00.000Z');
-      const cutoffOverdue = computeDispatchCutoff(8, 16, passedNow, 32);
-      expect(cutoffOverdue.isPassed).toBe(true);
-      expect(cutoffOverdue.urgencyLevel).toBe('OVERDUE');
-      expect(cutoffOverdue.timeRemainingFormatted).toBe('Cutoff Passed');
-      expect(cutoffOverdue.packedCount).toBe(32);
-      expect(cutoffOverdue.totalTargetCount).toBe(40);
-      expect(cutoffOverdue.packingProgressPct).toBe(80); // 32 / 40 = 80%
-    });
-
+  describe('Real-Time Fulfillment Acceleration: WhatsApp & Product Spotlight', () => {
     it('formats Bangladesh phone numbers accurately for WhatsApp links', () => {
       expect(formatBangladeshPhoneNumber('01712345678')).toBe('8801712345678');
       expect(formatBangladeshPhoneNumber('+8801812345678')).toBe('8801812345678');

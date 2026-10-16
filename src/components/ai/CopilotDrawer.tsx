@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { SummaryAnalytics } from '@/types';
+import { SummaryAnalytics, RawOrderRow } from '@/types';
 import { ReconciliationResult } from '@/lib/reconciliationEngine';
 import {
   computeBranchMetrics,
   computeCourierAuditSummary,
   computeSkuRiskSummary,
   computeCustomerRiskSummary,
+  computeLiveOpsSlice,
   AnalyticsSlices
 } from '@/lib/ai/semanticAnalytics';
 import {
@@ -51,6 +52,7 @@ interface CopilotDrawerProps {
   onClose: () => void;
   summary: SummaryAnalytics;
   reconciliationResult?: ReconciliationResult;
+  liveOrders?: RawOrderRow[];
   activeTab?: string;
   onApplyAgenticAction?: (proposal: AgenticActionProposal) => void;
   onNavigateToTab?: (tab: string, filter?: string) => void;
@@ -61,6 +63,7 @@ export function CopilotDrawer({
   onClose,
   summary,
   reconciliationResult,
+  liveOrders,
   activeTab,
   onApplyAgenticAction,
   onNavigateToTab
@@ -78,21 +81,38 @@ export function CopilotDrawer({
 
   // Deterministically precompute analytical slices for high-precision query grounding
   const analyticsSlices: AnalyticsSlices | undefined = useMemo(() => {
-    if (!reconciliationResult) return undefined;
+    const orderPool = (liveOrders && liveOrders.length > 0)
+      ? liveOrders
+      : (reconciliationResult?.reconciledOrders || []);
+
+    const liveOps = orderPool.length > 0 ? computeLiveOpsSlice(orderPool) : undefined;
+
+    if (!reconciliationResult && !liveOps) return undefined;
+
     return {
-      branches: computeBranchMetrics(reconciliationResult.reconciledOrders),
-      courierAudit: computeCourierAuditSummary(reconciliationResult.courierMismatches),
-      skuLoss: computeSkuRiskSummary(reconciliationResult.skuAnalytics),
-      customerRisk: computeCustomerRiskSummary(reconciliationResult.customerRiskProfiles),
+      branches: reconciliationResult ? computeBranchMetrics(reconciliationResult.reconciledOrders) : undefined,
+      courierAudit: reconciliationResult ? computeCourierAuditSummary(reconciliationResult.courierMismatches) : undefined,
+      skuLoss: reconciliationResult ? computeSkuRiskSummary(reconciliationResult.skuAnalytics) : undefined,
+      customerRisk: reconciliationResult ? computeCustomerRiskSummary(reconciliationResult.customerRiskProfiles) : undefined,
+      liveOps,
     };
-  }, [reconciliationResult]);
+  }, [reconciliationResult, liveOrders]);
 
   // Initialize messages from localStorage on mount and ensure welcome message is always fresh
   useEffect(() => {
+    const liveOps = analyticsSlices?.liveOps;
+    const liveOpsHighlight = liveOps
+      ? `\n\n⚡ **Live Ops & Fulfillment Pulse** (${liveOps.refDayName}, ${liveOps.referenceDate}):\n` +
+        `• **Today's Shipped**: ${liveOps.todayShipped.ordersCount.toLocaleString()} parcels (৳${Math.round(liveOps.todayShipped.grossRevenue).toLocaleString()})\n` +
+        `• **Warehouse Queue**: ${liveOps.queue.totalCount.toLocaleString()} pending (${liveOps.queue.processingCount} processing, ${liveOps.queue.holdCount} on hold)\n` +
+        `• **Today's Total Orders**: ${liveOps.todaysOrders.totalCount.toLocaleString()} orders (shipped: ${liveOps.todaysOrders.shippedCount}, processing: ${liveOps.todaysOrders.processingCount})\n` +
+        `• **Courier Telemetry**: ${liveOps.courierTelemetry.deliveredCount} delivered, ${liveOps.courierTelemetry.inTransitCount} in-transit, ${liveOps.courierTelemetry.discrepanciesCount} courier variances`
+      : '';
+
     const defaultWelcome: CopilotChatMessage = {
       id: 'welcome',
       sender: 'assistant',
-      text: `Hello! I am **DEEN Assistant**, your Executive E-Commerce & Reconciliation Analyst.\n\nI have real-time access to your reconciled store metrics (**${summary?.grossOrders?.toLocaleString() || 0} gross orders**, **৳${Math.round(summary?.netDeliveredRevenue || 0).toLocaleString()} net sales**).\n\nAsk me anything about your returns, courier settlement gaps, linehaul territory ratios, or SKU profitability!`,
+      text: `Hello! I am **DEEN Assistant**, your Executive E-Commerce & Reconciliation Analyst.\n\nI have real-time access to your store metrics (**${summary?.grossOrders?.toLocaleString() || 0} orders**, **৳${Math.round(summary?.netDeliveredRevenue || 0).toLocaleString()} net sales**).${liveOpsHighlight}\n\nAsk me anything about today's sales, queue dispatches, courier delivery telemetry, returns, or 7-day rolling baselines!`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
@@ -108,7 +128,7 @@ export function CopilotDrawer({
       setMessages([defaultWelcome]);
       saveChatHistory([defaultWelcome]);
     }
-  }, [summary?.grossOrders, summary?.netDeliveredRevenue]);
+  }, [summary?.grossOrders, summary?.netDeliveredRevenue, analyticsSlices?.liveOps]);
 
   // Persist messages whenever they change
   useEffect(() => {
@@ -379,6 +399,38 @@ export function CopilotDrawer({
                 <ArrowRight className="w-2.5 h-2.5 text-slate-400 dark:text-slate-500" />
               </button>
             ))}
+
+            <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 shrink-0 pl-1 border-l border-slate-200 dark:border-slate-800">
+              Live Ops:
+            </span>
+            <button
+              type="button"
+              onClick={() => handleSendQuery("What are today's sales, revenue, and shipped order numbers?")}
+              className="text-[11px] font-medium bg-emerald-50/80 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/60 shrink-0 shadow-2xs transition-colors flex items-center gap-1 active:scale-95 cursor-pointer"
+            >
+              <span>📊 Today&apos;s Sales</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSendQuery("What is the real-time courier delivery status and discrepancy report?")}
+              className="text-[11px] font-medium bg-cyan-50/80 dark:bg-cyan-950/40 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 px-2.5 py-1 rounded-full border border-cyan-200 dark:border-cyan-800/60 shrink-0 shadow-2xs transition-colors flex items-center gap-1 active:scale-95 cursor-pointer"
+            >
+              <span>🚚 Courier Telemetry</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSendQuery("How many orders are in the queue and what is the processing status?")}
+              className="text-[11px] font-medium bg-amber-50/80 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-800/60 shrink-0 shadow-2xs transition-colors flex items-center gap-1 active:scale-95 cursor-pointer"
+            >
+              <span>📦 Queue Status</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSendQuery("Compare today's sales and dispatch performance with the 7-day baseline")}
+              className="text-[11px] font-medium bg-purple-50/80 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-2.5 py-1 rounded-full border border-purple-200 dark:border-purple-800/60 shrink-0 shadow-2xs transition-colors flex items-center gap-1 active:scale-95 cursor-pointer"
+            >
+              <span>📈 7-Day Baseline</span>
+            </button>
 
             <span className="text-[10px] uppercase font-bold text-[#EB5A19] shrink-0 pl-1 border-l border-slate-200 dark:border-slate-800">
               Agentic:

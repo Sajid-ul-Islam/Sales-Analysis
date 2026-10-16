@@ -174,6 +174,18 @@ export const TAB_CONTEXT_REGISTRY: Record<string, TabContextConfig> = {
       'How does the offline spreadsheet mode compare to Cloud API mode?',
       'How do custom themes and deep black OLED mode get persisted?'
     ]
+  },
+  tabLiveOps: {
+    id: 'tabLiveOps',
+    label: 'Live Operations Terminal',
+    badge: 'Real-Time Operations',
+    summaryFocus: 'Real-time order fulfillment, today\'s sales and dispatches, warehouse packing queue, live Pathao delivery telemetry, and daily reconciliation.',
+    prompts: [
+      'How are today\'s sales, dispatches, and revenue performing?',
+      'What is the current status of the warehouse packing queue?',
+      'Break down real-time Pathao courier delivery status and COD collected',
+      'Compare today\'s dispatches against our 7-day rolling average baseline'
+    ]
   }
 };
 

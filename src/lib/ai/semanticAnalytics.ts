@@ -5,6 +5,7 @@ import {
   CustomerRiskProfile,
   SummaryAnalytics
 } from '@/types';
+import { processLiveOpsData } from '@/lib/liveOpsProcessor';
 
 export interface BranchMetricSummary {
   branchName: string;
@@ -213,11 +214,203 @@ export function computeCustomerRiskSummary(profiles: CustomerRiskProfile[] = [])
   };
 }
 
+export interface LiveOpsAnalyticsSlice {
+  referenceDate: string;
+  refDayName: string;
+  isFallbackDate: boolean;
+  todayShipped: {
+    ordersCount: number;
+    itemsCount: number;
+    grossRevenue: number;
+    aov: number;
+    deltaVs7dVolumePct: number;
+    deltaVs7dRevenuePct: number;
+  };
+  queue: {
+    totalCount: number;
+    processingCount: number;
+    holdCount: number;
+  };
+  todaysOrders: {
+    totalCount: number;
+    shippedCount: number;
+    processingCount: number;
+  };
+  courierTelemetry: {
+    handedOverCount: number;
+    handedOverRate: number;
+    inTransitCount: number;
+    deliveredCount: number;
+    returnedCount: number;
+    pendingPickupCount: number;
+    untrackedCount: number;
+    totalCodCollected: number;
+    discrepanciesCount: number;
+    discrepancies: Array<{
+      orderId: string;
+      type: string;
+      message: string;
+      courierStatus: string;
+      wcStatus: string;
+    }>;
+  };
+  sevenDayBaseline: {
+    avg7dItems: number;
+    avg7dOrders: number;
+    avg7dRevenue: number;
+    avg7dAov: number;
+    dailyHistory: Array<{
+      dateIso: string;
+      dayName: string;
+      orderCount: number;
+      itemCount: number;
+      revenue: number;
+      aov: number;
+    }>;
+  };
+  topPerformers?: {
+    topCategory: { name: string; volume: number; revenue: number };
+    topProduct: { name: string; units: number; revenue: number };
+    selectsRevSharePct: number;
+    newCustomerPct: number;
+    repeatCustomerPct: number;
+  };
+  executiveBriefingText?: string;
+}
+
 export interface AnalyticsSlices {
   branches?: BranchMetricSummary[];
   courierAudit?: CourierAuditSummary;
   skuLoss?: SkuLossSummary;
   customerRisk?: CustomerRiskSummary;
+  liveOps?: LiveOpsAnalyticsSlice;
+}
+
+/**
+ * Deterministically computes real-time operational live sales, queue, delivery telemetry,
+ * and 7-day rolling reconciliation baseline for AI assistant grounding.
+ */
+export function computeLiveOpsSlice(
+  orders: any[] = [],
+  options?: {
+    onlineOnly?: boolean;
+    customDate?: string;
+  }
+): LiveOpsAnalyticsSlice {
+  const report = processLiveOpsData(orders, {
+    view: 'Today Shipped',
+    onlineOnly: options?.onlineOnly ?? false,
+    customDate: options?.customDate,
+  });
+
+  // Extract courier telemetry from order rows
+  const seenOrders = new Set<string>();
+  let handedOverCount = 0;
+  let inTransitCount = 0;
+  let deliveredCount = 0;
+  let returnedCount = 0;
+  let pendingPickupCount = 0;
+  let untrackedCount = 0;
+  let totalCodCollected = 0;
+  const discrepanciesList: Array<{
+    orderId: string;
+    type: string;
+    message: string;
+    courierStatus: string;
+    wcStatus: string;
+  }> = [];
+
+  for (const o of orders) {
+    const oid = String(o['Order ID'] || o.orderId || '').trim();
+    if (!oid || seenOrders.has(oid)) continue;
+    seenOrders.add(oid);
+
+    const cStatus = String(o['Courier Status'] || o.courierStatus || 'Untracked');
+    if (cStatus !== 'Untracked') {
+      handedOverCount++;
+    } else {
+      untrackedCount++;
+    }
+
+    if (cStatus === 'In Transit') inTransitCount++;
+    else if (cStatus === 'Delivered') {
+      deliveredCount++;
+      totalCodCollected += Number(o.collectedAmount || o['Order Amount'] || o['Item Cost'] || 0);
+    } else if (cStatus === 'Returned') returnedCount++;
+    else if (cStatus === 'Pending Pickup') pendingPickupCount++;
+
+    if (o.hasDiscrepancy) {
+      discrepanciesList.push({
+        orderId: oid,
+        type: String(o.discrepancyType || 'DISCREPANCY'),
+        message: String(o.discrepancyMessage || 'Store and courier mismatch detected'),
+        courierStatus: cStatus,
+        wcStatus: String(o['Delivery Status'] || o.status || ''),
+      });
+    }
+  }
+
+  const distinctOrders = seenOrders.size;
+  const handedOverRate = distinctOrders > 0 ? Math.round((handedOverCount / distinctOrders) * 1000) / 10 : 0;
+  const briefing = report.executiveBriefing;
+
+  return {
+    referenceDate: report.referenceDate,
+    refDayName: report.refDayName,
+    isFallbackDate: report.isFallbackDate,
+    todayShipped: {
+      ordersCount: Number(report.shippedOrders.value) || 0,
+      itemsCount: Number(report.shippedItems.value) || 0,
+      grossRevenue: report.salesRevenue.rawValue,
+      aov: report.basketSize.rawValue,
+      deltaVs7dVolumePct: briefing?.vs7dVolumePct || 0,
+      deltaVs7dRevenuePct: briefing?.vs7dRevenuePct || 0,
+    },
+    queue: {
+      totalCount: (report.allOrdersBreakdown.processingCount || 0) + (report.allOrdersBreakdown.holdCount || 0),
+      processingCount: report.allOrdersBreakdown.processingCount || 0,
+      holdCount: report.allOrdersBreakdown.holdCount || 0,
+    },
+    todaysOrders: {
+      totalCount: (Number(report.shippedOrders.value) || 0) + (report.allOrdersBreakdown.processingCount || 0),
+      shippedCount: Number(report.shippedOrders.value) || 0,
+      processingCount: report.allOrdersBreakdown.processingCount || 0,
+    },
+    courierTelemetry: {
+      handedOverCount,
+      handedOverRate,
+      inTransitCount,
+      deliveredCount,
+      returnedCount,
+      pendingPickupCount,
+      untrackedCount,
+      totalCodCollected: Math.round(totalCodCollected),
+      discrepanciesCount: discrepanciesList.length,
+      discrepancies: discrepanciesList.slice(0, 5),
+    },
+    sevenDayBaseline: {
+      avg7dItems: report.avg7dMetrics.items,
+      avg7dOrders: report.avg7dMetrics.orders,
+      avg7dRevenue: report.avg7dMetrics.revenue,
+      avg7dAov: report.avg7dMetrics.aov,
+      dailyHistory: report.last7DaysHistory.map((h) => ({
+        dateIso: h.dateIso,
+        dayName: h.dayName,
+        orderCount: h.orderCount,
+        itemCount: h.itemCount,
+        revenue: h.revenue,
+        aov: h.aov,
+      })),
+    },
+    topPerformers: briefing ? {
+      topCategory: briefing.topCategory,
+      topProduct: briefing.topProduct,
+      selectsRevSharePct: briefing.selectsSharePct,
+      newCustomerPct: briefing.newCustomerPct,
+      repeatCustomerPct: 100 - briefing.newCustomerPct,
+    } : undefined,
+    executiveBriefingText: briefing?.clipboardText,
+  };
 }
 
 /**
@@ -314,11 +507,69 @@ export function generateQueryAnalyticalFacts(
     q.includes('division') ||
     activeTab?.includes('Territory');
 
-  if (mentionsTerritory && summary) {
-    facts.push('Deterministic Territory Distribution:');
-    facts.push(`- Inside Dhaka: ${summary.insideOrders?.toLocaleString() || 0} orders | Net Realized: ৳${(summary.insideNetRevenue || 0).toLocaleString()} | Returns: ${summary.insideReturns || 0}`);
-    facts.push(`- Outside Dhaka: ${summary.outsideOrders?.toLocaleString() || 0} orders | Net Realized: ৳${(summary.outsideNetRevenue || 0).toLocaleString()} | Returns: ${summary.outsideReturns || 0}`);
-    facts.push(`- Linehaul Dependency Ratio: ~${Math.round(Number(summary.outsideRatio) || 1)} Outside orders per 1 Inside Dhaka order`);
+  // 6. Live Operations: Today's Sales, Warehouse Queue, Real-Time Delivery & Daily Reconciliation Updates
+  const mentionsLiveOps =
+    q.includes('today') ||
+    q.includes('todays') ||
+    q.includes('sale') ||
+    q.includes('sales') ||
+    q.includes('live') ||
+    q.includes('queue') ||
+    q.includes('pack') ||
+    q.includes('shipped') ||
+    q.includes('dispatch') ||
+    q.includes('real-time') ||
+    q.includes('real time') ||
+    q.includes('reconciliation') ||
+    q.includes('7-day') ||
+    q.includes('7 day') ||
+    q.includes('baseline') ||
+    q.includes('yesterday') ||
+    q.includes('telemetry') ||
+    activeTab?.includes('LiveOps');
+
+  if (mentionsLiveOps && slices?.liveOps) {
+    const l = slices.liveOps;
+    facts.push('Deterministic Live Operations & Today\'s Sales Report:');
+    facts.push(`- **Operational Reference Day:** ${l.refDayName} (${l.referenceDate})${l.isFallbackDate ? ' (Latest recorded dispatches snapshot)' : ''}`);
+    facts.push(`- **Today\'s Dispatched Volume:** ${l.todayShipped.ordersCount} unique orders (${l.todayShipped.itemsCount} items)`);
+    facts.push(`- **Today\'s Gross Shipped Revenue:** ৳${l.todayShipped.grossRevenue.toLocaleString()} (AOV: ৳${l.todayShipped.aov.toLocaleString()})`);
+    facts.push(`- **Performance vs 7-Day Daily Baseline:** ${l.todayShipped.deltaVs7dVolumePct >= 0 ? '+' : ''}${l.todayShipped.deltaVs7dVolumePct}% items | ${l.todayShipped.deltaVs7dRevenuePct >= 0 ? '+' : ''}${l.todayShipped.deltaVs7dRevenuePct}% revenue`);
+    facts.push(`- **Fulfillment Queue:** ${l.queue.totalCount} orders pending packaging (${l.queue.processingCount} processing, ${l.queue.holdCount} on-hold)`);
+    facts.push(`- **Today\'s Total Orders:** ${l.todaysOrders.totalCount} active orders (${l.todaysOrders.shippedCount} shipped + ${l.todaysOrders.processingCount} in packaging)`);
+
+    facts.push('Real-Time Courier Telemetry (Pathao Hermes):');
+    facts.push(`- **Courier Status Breakdown:** ${l.courierTelemetry.deliveredCount} Delivered, ${l.courierTelemetry.inTransitCount} In Transit, ${l.courierTelemetry.returnedCount} Returned, ${l.courierTelemetry.pendingPickupCount} Pending Pickup, ${l.courierTelemetry.untrackedCount} Untracked`);
+    facts.push(`- **Courier Handover Rate:** ${l.courierTelemetry.handedOverRate}% (${l.courierTelemetry.handedOverCount} parcels handed over)`);
+    facts.push(`- **Real-Time COD Collected:** ৳${l.courierTelemetry.totalCodCollected.toLocaleString()}`);
+
+    if (l.courierTelemetry.discrepanciesCount > 0) {
+      facts.push(`- **Active Courier Discrepancies:** ${l.courierTelemetry.discrepanciesCount} detected`);
+      for (const d of l.courierTelemetry.discrepancies.slice(0, 3)) {
+        facts.push(`  * Order ${d.orderId} [${d.type || 'DISCREPANCY'}]: Store=${d.wcStatus || 'N/A'}, Courier=${d.courierStatus || 'N/A'}${d.message ? ` (${d.message})` : ''}`);
+      }
+    } else {
+      facts.push('- **Active Courier Discrepancies:** 0 detected (Store and courier statuses are in complete harmony)');
+    }
+
+    facts.push('Daily Reconciliation & 7-Day Rolling Baseline:');
+    facts.push(`- **7-Day Daily Baseline:** ${l.sevenDayBaseline.avg7dItems} items/day | ${l.sevenDayBaseline.avg7dOrders} orders/day | ৳${l.sevenDayBaseline.avg7dRevenue.toLocaleString()}/day (AOV: ৳${l.sevenDayBaseline.avg7dAov.toLocaleString()})`);
+
+    if (l.sevenDayBaseline.dailyHistory.length > 0) {
+      facts.push('- **Recent 7-Day Dispatch History:**');
+      for (const h of l.sevenDayBaseline.dailyHistory.slice(0, 5)) {
+        facts.push(`  * ${h.dayName} (${h.dateIso}): ${h.orderCount} orders (${h.itemCount} items) | ৳${h.revenue.toLocaleString()} (AOV ৳${h.aov})`);
+      }
+    }
+
+    if (l.topPerformers) {
+      const tp = l.topPerformers;
+      facts.push('Today\'s Performance Spotlight:');
+      facts.push(`- **Top Category:** ${tp.topCategory.name} (${tp.topCategory.volume} pcs, ৳${tp.topCategory.revenue.toLocaleString()})`);
+      facts.push(`- **Top Product SKU:** ${tp.topProduct.name} (${tp.topProduct.units} units sold)`);
+      facts.push(`- **DEEN Selects Share:** ${tp.selectsRevSharePct}% of gross revenue`);
+      facts.push(`- **Customer Mix:** ${tp.newCustomerPct}% New buyers / ${tp.repeatCustomerPct}% Returning repeat customers`);
+    }
   }
 
   return facts.join('\n');

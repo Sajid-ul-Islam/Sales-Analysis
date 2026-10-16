@@ -55,11 +55,12 @@ import {
   detectFulfillmentBranch,
   CourierDiscrepancyType,
 } from '@/lib/sync/liveTerminalSync';
+import { loadAppSettings } from '@/lib/settingsStore';
 
 interface LiveOpsTabProps {
   orders: RawOrderRow[];
   onSelectOrder?: (orderId: string) => void;
-  onRefreshLive?: () => Promise<void>;
+  onRefreshLive?: (fetchedOrders?: RawOrderRow[], provenance?: any) => Promise<void> | void;
   isSyncing?: boolean;
 }
 
@@ -84,20 +85,24 @@ export function LiveOpsTab({
   const [liveOrders, setLiveOrders] = useState<RawOrderRow[]>([]);
   const [courierStats, setCourierStats] = useState<LiveTerminalStats | null>(null);
   const [discrepancies, setDiscrepancies] = useState<DiscrepancyAlert[]>([]);
-  const [wcConnected, setWcConnected] = useState<boolean>(true);
-  const [pathaoConnected, setPathaoConnected] = useState<boolean>(true);
+  const [wcConnected, setWcConnected] = useState<boolean>(false);
+  const [pathaoConnected, setPathaoConnected] = useState<boolean>(false);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
   // Inspection modal state
   const [selectedDetailOrder, setSelectedDetailOrder] = useState<RawOrderRow | null>(null);
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
 
-  // Dispatch Cut-off Configuration (4 PM or 6 PM) & Analytics View
-  const [cutoffHour, setCutoffHour] = useState<16 | 18>(16);
+  // 7-Day History selection & Executive Briefing State
+  const [selectedHistoricalDate, setSelectedHistoricalDate] = useState<string | null>(null);
+  const [briefingCopied, setBriefingCopied] = useState(false);
   const [activeAnalyticsView, setActiveAnalyticsView] = useState<'category' | 'spotlight'>('category');
 
   // Auto-refresh timer countdown (60s loop)
   const [countdown, setCountdown] = useState(60);
+
+  // Guard to prevent concurrent sync loops
+  const isSyncingRef = React.useRef(false);
 
   // Active dataset for processing (prefer live synced orders if available)
   const activeDataset = liveOrders.length > 0 ? liveOrders : orders;
@@ -105,27 +110,47 @@ export function LiveOpsTab({
   // Process live operational data
   const report: LiveOpsReport = useMemo(() => {
     return processLiveOpsData(activeDataset, {
-      view: selectedView,
+      view: selectedHistoricalDate ? 'Today Shipped' : selectedView,
       onlineOnly,
-      cutoffHour,
+      customDate: selectedHistoricalDate || undefined,
     });
-  }, [activeDataset, selectedView, onlineOnly, cutoffHour]);
+  }, [activeDataset, selectedView, onlineOnly, selectedHistoricalDate]);
 
   const activeCategoryItems = showSubCategory ? report.subCategoryItems : report.categoryItems;
 
-  // Manual Trigger for Live Sync (WooCommerce REST API + Pathao Aladdin API)
+  // Manual & Automated Trigger for Live Sync (WooCommerce REST API + Pathao Aladdin API)
   const handleSyncNow = useCallback(async () => {
+    if (isSyncingRef.current) return;
+    isSyncingRef.current = true;
     setLocalSyncing(true);
     setSyncStatusMsg('Syncing with WooCommerce REST API & Pathao Hermes API...');
     try {
+      const appSettings = typeof window !== 'undefined' ? loadAppSettings() : null;
+      const payload: any = {
+        limitConsignments: 35,
+        fetchLiveWc: true,
+      };
+
+      if (appSettings?.wcConsumerKey) {
+        payload.wcCredentials = {
+          store_url: appSettings.wcStoreUrl || 'https://deencommerce.com',
+          consumer_key: appSettings.wcConsumerKey,
+          consumer_secret: appSettings.wcConsumerSecret,
+        };
+      }
+      if (appSettings?.pathaoClientId) {
+        payload.pathaoCredentials = {
+          base_url: appSettings.pathaoBaseUrl || 'https://api-hermes.pathao.com',
+          client_id: appSettings.pathaoClientId,
+          client_secret: appSettings.pathaoClientSecret,
+          username: appSettings.pathaoUsername,
+        };
+      }
+
       const res = await fetch('/api/sync/live-terminal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          activeOrders: activeDataset,
-          limitConsignments: 35,
-          fetchLiveWc: true,
-        }),
+        body: JSON.stringify(payload),
       });
 
       let data: any = null;
@@ -136,35 +161,39 @@ export function LiveOpsTab({
         } catch {
           data = null;
         }
-      } else {
-        await res.text().catch(() => '');
       }
 
       if (data && data.success && data.orders && data.orders.length > 0) {
         setLiveOrders(data.orders);
         setCourierStats(data.stats);
         setDiscrepancies(data.discrepancies || []);
-        setWcConnected(data.wcConnected);
-        setPathaoConnected(data.pathaoConnected);
+        setWcConnected(!!data.wcConnected);
+        setPathaoConnected(!!data.pathaoConnected);
         setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
         setSyncStatusMsg(
-          `Sync successful: ${data.stats.totalOrders} orders reconciled with Pathao courier telemetry (${data.stats.discrepancyCount} discrepancies detected).`
+          data.wcConnected
+            ? `Live Sync Active: ${data.stats.totalOrders} live WooCommerce orders synchronized (${data.orders.length} items, ${data.stats.discrepancyCount} discrepancies).`
+            : `Snapshot Active: ${data.stats.totalOrders} orders loaded (${data.orders.length} items).`
         );
+        if (onRefreshLive) {
+          // Pass fetched data directly to parent so parent doesn't make an extra network request
+          await onRefreshLive(data.orders, data.provenance);
+        }
       } else if (data && data.message) {
         setSyncStatusMsg(`Notice: ${data.message}`);
+        if (data.wcConnected !== undefined) setWcConnected(data.wcConnected);
+        if (data.pathaoConnected !== undefined) setPathaoConnected(data.pathaoConnected);
       } else {
         setSyncStatusMsg('Operational snapshot active (WooCommerce REST API & Pathao Hermes).');
       }
       setCountdown(60);
-      if (onRefreshLive) {
-        await onRefreshLive();
-      }
-    } catch {
-      setSyncStatusMsg('Synchronized with local operational snapshot (WooCommerce & Pathao).');
+    } catch (e: any) {
+      setSyncStatusMsg(`Sync notice: ${e?.message || 'Using current snapshot'}`);
     } finally {
       setLocalSyncing(false);
+      isSyncingRef.current = false;
     }
-  }, [activeDataset, onRefreshLive]);
+  }, [onRefreshLive]);
 
   // Initial synchronization on mount to load courier telemetry
   useEffect(() => {
@@ -335,21 +364,51 @@ export function LiveOpsTab({
 
               {/* Real-time Connection Status Badges */}
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/80 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  <span>WooCommerce REST API</span>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all ${
+                    wcConnected
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200/90 shadow-2xs'
+                      : 'bg-amber-50 text-amber-700 border-amber-200/90'
+                  }`}
+                  title={wcConnected ? 'Connected to live WooCommerce REST API' : 'WooCommerce unconfigured or using snapshot'}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      wcConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'
+                    }`}
+                  />
+                  <span>{wcConnected ? 'WooCommerce API Live' : 'WooCommerce Snapshot'}</span>
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200/80 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                  <span>Pathao Aladdin API</span>
+
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all ${
+                    pathaoConnected
+                      ? 'bg-blue-50 text-blue-700 border-blue-200/90 shadow-2xs'
+                      : 'bg-slate-100 text-slate-600 border-slate-200'
+                  }`}
+                  title={pathaoConnected ? 'Connected to Pathao Hermes courier API' : 'Pathao unconfigured or using local telemetry'}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      pathaoConnected ? 'bg-blue-500 animate-pulse' : 'bg-slate-400'
+                    }`}
+                  />
+                  <span>{pathaoConnected ? 'Pathao Aladdin Live' : 'Pathao Telemetry (Sim)'}</span>
                 </span>
+
+                {liveOrders.length > 0 && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200/90 flex items-center gap-1 shadow-2xs">
+                    <Sparkles className="w-3 h-3 text-purple-500" />
+                    <span>{liveOrders.length} Items Synced</span>
+                  </span>
+                )}
               </div>
             </div>
 
             <p className="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
               <span>Operational snapshot: <strong>{report.refDayName} ({report.referenceDate})</strong></span>
               <span>•</span>
-              <span>Compared against <strong>{report.prevDayName} ({report.comparisonDate})</strong></span>
+              <span>Baseline: <strong>7-Day Daily Avg ({report.avg7dMetrics.items} pkgs/day, ৳{report.avg7dMetrics.revenue.toLocaleString()})</strong></span>
               {lastSyncTime && (
                 <>
                   <span>•</span>
@@ -369,9 +428,12 @@ export function LiveOpsTab({
             <div className="inline-flex bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-bold">
               <button
                 type="button"
-                onClick={() => setSelectedView('Today Shipped')}
+                onClick={() => {
+                  setSelectedHistoricalDate(null);
+                  setSelectedView('Today Shipped');
+                }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                  selectedView === 'Today Shipped'
+                  selectedView === 'Today Shipped' && !selectedHistoricalDate
                     ? 'bg-white text-slate-900 shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
@@ -383,15 +445,16 @@ export function LiveOpsTab({
               <button
                 type="button"
                 onClick={() => {
+                  setSelectedHistoricalDate(null);
                   setSelectedView("Today's Orders");
                   setPipelineFilter('ALL');
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                  selectedView === "Today's Orders"
+                  selectedView === "Today's Orders" && !selectedHistoricalDate
                     ? 'bg-white text-slate-900 shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
-                title="Today's Orders = Orders shipped today, and orders with status Processing or Hold"
+                title="Today's Orders = Shipped today + all orders with Processing status"
               >
                 <span>📦</span>
                 <span>Today&apos;s Orders</span>
@@ -402,9 +465,12 @@ export function LiveOpsTab({
 
               <button
                 type="button"
-                onClick={() => setSelectedView('Last Day Shipped')}
+                onClick={() => {
+                  setSelectedHistoricalDate(null);
+                  setSelectedView('Last Day Shipped');
+                }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                  selectedView === 'Last Day Shipped'
+                  selectedView === 'Last Day Shipped' && !selectedHistoricalDate
                     ? 'bg-white text-slate-900 shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
@@ -415,15 +481,21 @@ export function LiveOpsTab({
 
               <button
                 type="button"
-                onClick={() => setSelectedView('Queue')}
+                onClick={() => {
+                  setSelectedHistoricalDate(null);
+                  setSelectedView('Queue');
+                }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                  selectedView === 'Queue'
+                  selectedView === 'Queue' && !selectedHistoricalDate
                     ? 'bg-white text-slate-900 shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <span>📋</span>
                 <span>Queue</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700 font-semibold">
+                  {report.allOrdersBreakdown.processingCount + report.allOrdersBreakdown.holdCount}
+                </span>
               </button>
             </div>
 
@@ -465,6 +537,83 @@ export function LiveOpsTab({
         )}
       </div>
 
+      {/* ── 7-Day Dispatch History Strip ── */}
+      <div className="bg-white border border-slate-200/90 rounded-3xl p-3.5 sm:p-4 shadow-xs">
+        <div className="flex items-center justify-between gap-2 mb-2.5 px-1 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">🗓️</span>
+            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+              Last 7 Days Dispatch History
+            </span>
+            <span className="text-[11px] text-slate-500 font-medium">
+              • Click any date to audit that day&apos;s shipped orders, charts &amp; executive briefing
+            </span>
+          </div>
+          {selectedHistoricalDate && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedHistoricalDate(null);
+                setSelectedView('Today Shipped');
+              }}
+              className="text-[11px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200/80 transition-colors"
+            >
+              ↺ Reset to Today
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+          {report.last7DaysHistory.map((day) => {
+            const isSelected = selectedHistoricalDate
+              ? selectedHistoricalDate === day.dateIso
+              : day.isToday && selectedView === 'Today Shipped';
+            return (
+              <button
+                key={day.dateIso}
+                type="button"
+                onClick={() => {
+                  setSelectedHistoricalDate(day.dateIso);
+                  setSelectedView('Today Shipped');
+                }}
+                className={`p-2.5 rounded-2xl border text-left transition-all ${
+                  isSelected
+                    ? 'bg-blue-50/90 border-blue-400 ring-2 ring-blue-500/20 shadow-xs'
+                    : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className={`text-[11px] font-black ${isSelected ? 'text-blue-900' : 'text-slate-800'}`}>
+                    {day.dayName.slice(0, 3)}
+                  </span>
+                  {day.isToday && (
+                    <span className="text-[9px] font-bold bg-blue-100 text-blue-700 px-1 py-0.2 rounded-full">
+                      Today
+                    </span>
+                  )}
+                  {day.isPrevDay && !day.isToday && (
+                    <span className="text-[9px] font-bold bg-slate-200 text-slate-700 px-1 py-0.2 rounded-full">
+                      Prev
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                  {day.dateLabel.includes(',') ? day.dateLabel.split(',')[1].trim() : day.dateIso.slice(5)}
+                </div>
+                <div className="mt-1 flex items-baseline justify-between text-[11px]">
+                  <span className="font-bold text-slate-800">
+                    📦 {day.orderCount}
+                  </span>
+                  <span className="font-semibold text-slate-600">
+                    ৳{Math.round(day.revenue / 1000)}k
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* ── 5 Operational KPI Cards (Top Row: Pixel-Matched to DEEN-OPS Screenshot) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         {/* Card 1: SHIPPED ITEMS - TODAY */}
@@ -485,7 +634,7 @@ export function LiveOpsTab({
 
             <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-600 font-medium">
               <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[10px]">
-                📅 {report.prevDayName}: {report.shippedItems.prevValue}
+                📊 {report.prevDayName}: {report.shippedItems.prevValue}
               </span>
             </div>
 
@@ -531,7 +680,7 @@ export function LiveOpsTab({
 
             <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-600 font-medium">
               <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[10px]">
-                📅 {report.prevDayName}: {report.salesRevenue.prevValue}
+                📊 {report.prevDayName}: {report.salesRevenue.prevValue}
               </span>
             </div>
 
@@ -577,7 +726,7 @@ export function LiveOpsTab({
 
             <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-600 font-medium">
               <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[10px]">
-                📅 {report.prevDayName}: {report.shippedOrders.prevValue}
+                📊 {report.prevDayName}: {report.shippedOrders.prevValue}
               </span>
             </div>
 
@@ -623,7 +772,7 @@ export function LiveOpsTab({
 
             <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-600 font-medium">
               <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[10px]">
-                📅 {report.prevDayName}: {report.basketSize.prevValue}
+                📊 {report.prevDayName}: {report.basketSize.prevValue}
               </span>
             </div>
 
@@ -675,7 +824,7 @@ export function LiveOpsTab({
 
             <div className="mt-1.5">
               <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200/80">
-                ▲ +{report.customerMix.deltaNew} New vs {report.customerMix.prevDayName.slice(0, 3)} ({report.customerMix.prevDayName}: {report.customerMix.prevNew}N / {report.customerMix.prevRet}R)
+                {report.customerMix.deltaNew >= 0 ? '▲ +' : '▼ '}{report.customerMix.deltaNew} New vs 7D Avg ({report.customerMix.prevNew}N / {report.customerMix.prevRet}R)
               </span>
             </div>
           </div>
@@ -1103,147 +1252,118 @@ export function LiveOpsTab({
         )}
       </div>
 
-      {/* ── Real-Time Dispatch Cut-off & Packing Velocity Strip ── */}
-      <div
-        className={`rounded-3xl p-4 sm:p-5 border transition-all shadow-xs ${
-          report.dispatchCutoff.urgencyLevel === 'CRITICAL'
-            ? 'bg-rose-50/90 border-rose-300 ring-2 ring-rose-500/20'
-            : report.dispatchCutoff.urgencyLevel === 'URGENT'
-            ? 'bg-amber-50/90 border-amber-300 ring-2 ring-amber-500/20'
-            : report.dispatchCutoff.urgencyLevel === 'OVERDUE'
-            ? 'bg-purple-50/90 border-purple-300 ring-2 ring-purple-500/20'
-            : 'bg-emerald-50/80 border-emerald-200/90'
-        }`}
-      >
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3">
-            <div
-              className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-lg shadow-2xs shrink-0 ${
-                report.dispatchCutoff.urgencyLevel === 'CRITICAL'
-                  ? 'bg-rose-200/80 text-rose-700'
-                  : report.dispatchCutoff.urgencyLevel === 'URGENT'
-                  ? 'bg-amber-200/80 text-amber-700'
-                  : report.dispatchCutoff.urgencyLevel === 'OVERDUE'
-                  ? 'bg-purple-200/80 text-purple-700'
-                  : 'bg-emerald-200/80 text-emerald-700'
-              }`}
-            >
-              <Clock className="w-5 h-5" />
+      {/* ── Executive Operations Briefing Panel (7-Day Performance Analysis) ── */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-700/80 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/60 pb-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-lg">
+              📋
             </div>
             <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 font-headline">
-                  Courier Dispatch Cut-Off ({report.dispatchCutoff.cutoffLabel})
-                </span>
-                <span
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                    report.dispatchCutoff.urgencyLevel === 'CRITICAL'
-                      ? 'bg-rose-100 text-rose-800 border-rose-300 animate-pulse'
-                      : report.dispatchCutoff.urgencyLevel === 'URGENT'
-                      ? 'bg-amber-100 text-amber-800 border-amber-300'
-                      : report.dispatchCutoff.urgencyLevel === 'OVERDUE'
-                      ? 'bg-purple-100 text-purple-800 border-purple-300'
-                      : 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                  }`}
-                >
-                  {report.dispatchCutoff.urgencyLevel === 'CRITICAL'
-                    ? '⚠️ Critical Urgency (< 60m)'
-                    : report.dispatchCutoff.urgencyLevel === 'URGENT'
-                    ? '⏳ Expedite Packing'
-                    : report.dispatchCutoff.urgencyLevel === 'OVERDUE'
-                    ? '🚨 Cut-off Passed (Rollover)'
-                    : '✅ On Track'}
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm sm:text-base font-black tracking-tight text-white font-headline">
+                  Executive Operations Briefing
+                </h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                  {selectedHistoricalDate ? 'Historical Audit' : 'Live Status'}
                 </span>
               </div>
-              <p className="text-xs text-slate-600 mt-1">
-                {!report.dispatchCutoff.isPassed ? (
-                  <>
-                    <strong className="text-slate-900 font-bold">{report.dispatchCutoff.timeRemainingFormatted}</strong> remaining until Pathao evening handover.{' '}
-                    Required packing speed:{' '}
-                    <strong className="text-slate-900 font-bold">
-                      ⚡ {report.dispatchCutoff.packingVelocityRequired} orders/hr
-                    </strong>{' '}
-                    to clear the <span className="font-semibold">{report.dispatchCutoff.pendingToPackCount} pending processing</span> orders.
-                  </>
-                ) : (
-                  <>
-                    Today&apos;s cut-off window has concluded. Any remaining unpacked parcels (
-                    <strong className="text-slate-900 font-bold">
-                      {report.dispatchCutoff.pendingToPackCount} in queue
-                    </strong>
-                    ) will rollover to tomorrow morning&apos;s scheduled handover.
-                  </>
-                )}
+              <p className="text-xs text-slate-300">
+                {report.executiveBriefing.dateFormatted} • Operational Summary &amp; Performance vs 7-Day Average
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
-            {/* Cutoff Hour Switcher */}
-            <div className="inline-flex bg-white/90 p-1 rounded-2xl border border-slate-200 text-xs font-bold shadow-2xs">
-              <button
-                type="button"
-                onClick={() => setCutoffHour(16)}
-                className={`px-3 py-1.5 rounded-xl transition-all ${
-                  cutoffHour === 16 ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                4:00 PM Express
-              </button>
-              <button
-                type="button"
-                onClick={() => setCutoffHour(18)}
-                className={`px-3 py-1.5 rounded-xl transition-all ${
-                  cutoffHour === 18 ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                6:00 PM Regular
-              </button>
-            </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                  navigator.clipboard.writeText(report.executiveBriefing.clipboardText);
+                  setBriefingCopied(true);
+                  setTimeout(() => setBriefingCopied(false), 2500);
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-xs active:scale-95"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              <span>{briefingCopied ? 'Copied to Clipboard! ✓' : 'Copy Briefing'}</span>
+            </button>
 
-            {/* Quick Action Button to Filter Processing Queue */}
-            {report.allOrdersBreakdown.processingCount > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedView("Today's Orders");
-                  setPipelineFilter('PROCESSING');
-                }}
-                className="px-3.5 py-1.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
-              >
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                <span>Pack Queue ({report.allOrdersBreakdown.processingCount})</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-xs active:scale-95"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export {report.referenceDate} Excel</span>
+            </button>
           </div>
         </div>
 
-        {/* Daily Dispatch Packing Progress Bar */}
-        {report.dispatchCutoff.totalTargetCount !== undefined && report.dispatchCutoff.totalTargetCount > 0 && (
-          <div className="mt-3.5 pt-3 border-t border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-            <div className="flex items-center gap-2 text-xs">
-              <span className="font-bold text-slate-700">Daily Packing Progress:</span>
-              <span className="font-extrabold text-slate-900 bg-white px-2 py-0.5 rounded-lg border border-slate-200 shadow-2xs">
-                {report.dispatchCutoff.packingProgressPct}%
-              </span>
-              <span className="text-slate-500 text-[11.5px]">
-                ({report.dispatchCutoff.packedCount} shipped / {report.dispatchCutoff.totalTargetCount} total target today)
-              </span>
+        {/* 4 Executive Metric Chips */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+              Dispatched Volume
+            </span>
+            <div className="text-lg sm:text-xl font-black text-white font-headline mt-0.5">
+              {report.executiveBriefing.totalOrders} <span className="text-xs font-normal text-slate-400">orders</span>
             </div>
-            <div className="w-full sm:w-56 bg-slate-200/80 rounded-full h-2.5 overflow-hidden p-0.5">
-              <div
-                className={`h-1.5 rounded-full transition-all duration-500 ${
-                  (report.dispatchCutoff.packingProgressPct || 0) >= 80
-                    ? 'bg-emerald-500'
-                    : (report.dispatchCutoff.packingProgressPct || 0) >= 50
-                    ? 'bg-blue-500'
-                    : 'bg-amber-500'
-                }`}
-                style={{ width: `${Math.min(100, report.dispatchCutoff.packingProgressPct || 0)}%` }}
-              />
+            <div className="text-[11px] text-slate-300">
+              {report.executiveBriefing.totalItems} items dispatched
             </div>
           </div>
-        )}
+
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+              Gross Value &amp; AOV
+            </span>
+            <div className="text-lg sm:text-xl font-black text-emerald-400 font-headline mt-0.5">
+              ৳ {report.executiveBriefing.totalRevenue.toLocaleString()}
+            </div>
+            <div className="text-[11px] text-slate-300">
+              AOV: ৳ {report.executiveBriefing.aov.toLocaleString()}
+            </div>
+          </div>
+
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+              vs 7-Day Daily Avg
+            </span>
+            <div className={`text-lg sm:text-xl font-black font-headline mt-0.5 ${(report.executiveBriefing.vs7dVolumePct || 0) >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+              {(report.executiveBriefing.vs7dVolumePct || 0) >= 0 ? '+' : ''}{report.executiveBriefing.vs7dVolumePct}% items
+            </div>
+            <div className="text-[11px] text-slate-300">
+              {(report.executiveBriefing.vs7dRevenuePct || 0) >= 0 ? '+' : ''}{report.executiveBriefing.vs7dRevenuePct}% revenue
+            </div>
+          </div>
+
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+              Top Category &amp; SKU
+            </span>
+            <div className="text-sm font-black text-sky-300 truncate mt-0.5" title={report.executiveBriefing.topCategory.name}>
+              {report.executiveBriefing.topCategory.name} ({report.executiveBriefing.topCategory.volume} pcs)
+            </div>
+            <div className="text-[11px] text-slate-300 truncate" title={report.executiveBriefing.topProduct.name}>
+              {report.executiveBriefing.topProduct.name}
+            </div>
+          </div>
+        </div>
+
+        {/* Executive Takeaway Bullet Points */}
+        <div className="bg-black/25 rounded-2xl p-3.5 border border-white/5 space-y-1.5 text-xs text-slate-200">
+          <div className="font-bold text-slate-300 text-[11px] uppercase tracking-wider mb-1">
+            Operational Highlights &amp; Analysis:
+          </div>
+          {report.executiveBriefing.summaryPoints.map((pt, idx) => (
+            <div key={idx} className="flex items-start gap-2">
+              <span className="text-indigo-400 text-xs leading-relaxed">•</span>
+              <span className="leading-relaxed">{pt}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ── Product Demand & Velocity Spotlight Leaderboard ── */}

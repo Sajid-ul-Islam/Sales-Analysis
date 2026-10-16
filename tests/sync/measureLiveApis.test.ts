@@ -39,7 +39,7 @@ describe('Live API Measurement & Performance Diagnostics', () => {
       console.log(`[WooCommerce Connection Benchmark] Status: ${conn.status}, Message: "${conn.message}", Elapsed: ${elapsedMs}ms`);
       expect(conn).toBeDefined();
       expect(typeof conn.status).toBe('number');
-    });
+    }, 15000);
 
     it('measures recent order fetch latency, throughput, and schema integrity', async () => {
       const startTime = performance.now();
@@ -61,7 +61,7 @@ describe('Live API Measurement & Performance Diagnostics', () => {
       } catch (err: any) {
         console.warn(`[WooCommerce Fetch Notice]: ${err.message}`);
       }
-    });
+    }, 15000);
   });
 
   describe('Pathao Hermes Live API Diagnostic', () => {
@@ -82,7 +82,7 @@ describe('Live API Measurement & Performance Diagnostics', () => {
       } catch (err: any) {
         console.warn(`[Pathao Live Notice]: ${err.message}`);
       }
-    });
+    }, 15000);
 
     it('measures single consignment tracking lookup latency', async () => {
       try {

@@ -74,6 +74,24 @@ export async function POST(req: NextRequest) {
       : '';
 
     // 5. Construct Grounded Prompt
+    const liveOpsSlice = analyticsSlices?.liveOps;
+    let liveOpsContext = '';
+    if (liveOpsSlice) {
+      const l = liveOpsSlice;
+      liveOpsContext = `\nReal-Time Operational Ground Truth (Live Terminal & Courier Telemetry):
+- Operational Date: ${l.refDayName} (${l.referenceDate})${l.isFallbackDate ? ' [Displaying latest recorded dispatches snapshot]' : ''}
+- Today's Shipped Orders: ${l.todayShipped.ordersCount} orders (${l.todayShipped.itemsCount} items)
+- Today's Gross Shipped Sales: ৳${l.todayShipped.grossRevenue.toLocaleString()} (AOV: ৳${l.todayShipped.aov.toLocaleString()})
+- vs 7-Day Daily Average Baseline: ${l.todayShipped.deltaVs7dVolumePct >= 0 ? '+' : ''}${l.todayShipped.deltaVs7dVolumePct}% items | ${l.todayShipped.deltaVs7dRevenuePct >= 0 ? '+' : ''}${l.todayShipped.deltaVs7dRevenuePct}% revenue
+- Live Warehouse Fulfillment Queue: ${l.queue.totalCount} orders pending packaging (${l.queue.processingCount} processing, ${l.queue.holdCount} on-hold)
+- Today's Total Active Orders: ${l.todaysOrders.totalCount} orders (${l.todaysOrders.shippedCount} shipped + ${l.todaysOrders.processingCount} in packaging)
+- Real-Time Courier Telemetry (Pathao): ${l.courierTelemetry.deliveredCount} Delivered, ${l.courierTelemetry.inTransitCount} In Transit, ${l.courierTelemetry.returnedCount} Returned, ${l.courierTelemetry.pendingPickupCount} Pending Pickup, ${l.courierTelemetry.untrackedCount} Untracked
+- Courier Handover Rate: ${l.courierTelemetry.handedOverRate}% (${l.courierTelemetry.handedOverCount} parcels handed over)
+- Real-Time COD Collected: ৳${l.courierTelemetry.totalCodCollected.toLocaleString()}
+- Active Courier Discrepancies: ${l.courierTelemetry.discrepanciesCount} alerts
+- 7-Day Rolling Baseline: ${l.sevenDayBaseline.avg7dItems} items/day | ${l.sevenDayBaseline.avg7dOrders} orders/day | ৳${l.sevenDayBaseline.avg7dRevenue.toLocaleString()}/day (AOV: ৳${l.sevenDayBaseline.avg7dAov.toLocaleString()})\n`;
+    }
+
     const contextPrompt = `Store Performance Facts (Reconciled by Knapsack DP Engine):
 - Gross Orders Dispatched: ${summary?.grossOrders?.toLocaleString() || 0}
 - Net Delivered Orders: ${summary?.fullDeliveredOrders?.toLocaleString() || 0}
@@ -86,7 +104,7 @@ export async function POST(req: NextRequest) {
 - Outside Dhaka Orders: ${summary?.outsideOrders?.toLocaleString() || 0} (Net: ৳${(summary?.outsideNetRevenue || 0).toLocaleString()})
 - Territory Outside Ratio: ~${Math.round(Number(summary?.outsideRatio) || (summary?.outsideOrders / Math.max(1, summary?.insideOrders || 1))) || 1} : 1
 - Exchanged Orders: ${summary?.totalExchangedOrders || 0} (COD collected: ৳${(summary?.totalExchangeCodCollected || 0).toLocaleString()})
-${dynamicFactsContext}${knowledgeContext}${activeModuleContext}${historyContext}
+${liveOpsContext}${dynamicFactsContext}${knowledgeContext}${activeModuleContext}${historyContext}
 User Executive Question:
 "${query}"
 
@@ -120,11 +138,44 @@ Instructions:
     }
 
     // Heuristic Fallback if AI Key is not configured
-    let fallbackText = `### Store Performance Summary
+    let fallbackText = '';
+    const qLower = query.toLowerCase();
+    const isLiveOpsQuery =
+      qLower.includes('today') ||
+      qLower.includes('todays') ||
+      qLower.includes('sale') ||
+      qLower.includes('queue') ||
+      qLower.includes('dispatch') ||
+      qLower.includes('courier') ||
+      qLower.includes('reconciliation') ||
+      qLower.includes('7-day') ||
+      qLower.includes('baseline');
+
+    if (isLiveOpsQuery && liveOpsSlice) {
+      const l = liveOpsSlice;
+      fallbackText += `### Today's Sales & Operational Executive Summary
+- **Operational Date:** ${l.refDayName} (${l.referenceDate})
+- **Today's Dispatched Volume:** ${l.todayShipped.ordersCount} orders (${l.todayShipped.itemsCount} items)
+- **Gross Shipped Sales:** ৳${l.todayShipped.grossRevenue.toLocaleString()} (AOV: ৳${l.todayShipped.aov.toLocaleString()})
+- **vs 7-Day Daily Baseline:** ${l.todayShipped.deltaVs7dVolumePct >= 0 ? '+' : ''}${l.todayShipped.deltaVs7dVolumePct}% items | ${l.todayShipped.deltaVs7dRevenuePct >= 0 ? '+' : ''}${l.todayShipped.deltaVs7dRevenuePct}% revenue
+- **Warehouse Fulfillment Queue:** ${l.queue.totalCount} orders pending packaging (${l.queue.processingCount} processing, ${l.queue.holdCount} on-hold)
+- **Today's Total Orders:** ${l.todaysOrders.totalCount} active orders (${l.todaysOrders.shippedCount} shipped + ${l.todaysOrders.processingCount} in packaging)
+
+### Real-Time Courier Telemetry (Pathao)
+- **Delivered Parcels:** ${l.courierTelemetry.deliveredCount} (COD Collected: ৳${l.courierTelemetry.totalCodCollected.toLocaleString()})
+- **In Transit / Out for Delivery:** ${l.courierTelemetry.inTransitCount} parcels
+- **Courier Handover Rate:** ${l.courierTelemetry.handedOverRate}%
+- **Active Courier Discrepancies:** ${l.courierTelemetry.discrepanciesCount} alerts
+
+### Daily Reconciliation & 7-Day Baseline
+- **7-Day Daily Average Baseline:** ${l.sevenDayBaseline.avg7dItems} items/day | ৳${l.sevenDayBaseline.avg7dRevenue.toLocaleString()}/day (AOV: ৳${l.sevenDayBaseline.avg7dAov.toLocaleString()})\n\n`;
+    } else {
+      fallbackText += `### Store Performance Summary
 - **Gross Dispatched:** ${summary?.grossOrders?.toLocaleString() || 0} orders (৳${(summary?.grossRevenue || 0).toLocaleString()})
 - **Net Realized Sales:** ৳${(summary?.netDeliveredRevenue || 0).toLocaleString()} (${summary?.fullDeliveredOrders?.toLocaleString() || 0} orders)
 - **Return Rate:** ${(summary?.returnRate || 0).toFixed(1)}% (${summary?.fullReturnedOrders || 0} full returns, ${summary?.partialOrders || 0} partials)
 - **Territory Ratio:** ~${Math.round(Number(summary?.outsideRatio) || 1)} Outside orders per 1 Dhaka order.\n\n`;
+    }
 
     if (queryFacts) {
       fallbackText += `### Relevant Operational Data\n${queryFacts}\n\n`;

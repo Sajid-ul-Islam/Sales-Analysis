@@ -176,6 +176,35 @@ export function extractBaseOrderId(rawId: any): string {
  * Central Warehouse: No suffix (e.g. '17263')
  */
 export function detectFulfillmentBranch(orderIdOrRow: any): FulfillmentBranchInfo {
+  // If orderIdOrRow is an object with pre-existing branchCode and fulfillmentBranch, preserve them
+  if (typeof orderIdOrRow === 'object' && orderIdOrRow !== null) {
+    const rawOid = String(orderIdOrRow['Order ID'] || orderIdOrRow.orderId || orderIdOrRow['Consignment ID'] || '');
+    const baseOrderId = extractBaseOrderId(rawOid);
+
+    if (orderIdOrRow.fulfillmentBranch && orderIdOrRow.branchCode) {
+      return {
+        branchName: orderIdOrRow.fulfillmentBranch,
+        branchCode: orderIdOrRow.branchCode,
+        isBranchFulfillment: orderIdOrRow.branchCode !== 'ONLINE',
+        baseOrderId,
+      };
+    }
+
+    const oid = String(orderIdOrRow.outletId || orderIdOrRow['Outlet ID'] || '').trim();
+    if (oid === '1') {
+      return { branchName: 'Mirpur Outlet POS', branchCode: 'MIRPUR', isBranchFulfillment: true, baseOrderId };
+    }
+    if (oid === '2') {
+      return { branchName: 'Cumilla Branch', branchCode: 'CUMILLA', isBranchFulfillment: true, baseOrderId };
+    }
+    if (oid === '9') {
+      return { branchName: 'Wari Branch', branchCode: 'WARI', isBranchFulfillment: true, baseOrderId };
+    }
+    if (oid === '7' || oid === '8') {
+      return { branchName: 'Sylhet Branch', branchCode: 'SYLHET', isBranchFulfillment: true, baseOrderId };
+    }
+  }
+
   const raw = typeof orderIdOrRow === 'string'
     ? orderIdOrRow
     : String(orderIdOrRow?.['Order ID'] || orderIdOrRow?.orderId || orderIdOrRow?.['Consignment ID'] || '');
@@ -520,7 +549,7 @@ export async function syncLiveTerminalData(options: {
   const seenOrders = new Set<string>();
 
   const enrichedOrders: RawOrderRow[] = rawOrders.map((row) => {
-    const branchInfo = detectFulfillmentBranch(row['Order ID'] || row.orderId);
+    const branchInfo = detectFulfillmentBranch(row);
     const rawOid = cleanOrderId(row['Order ID'] || row.orderId);
     const baseOid = branchInfo.baseOrderId || extractBaseOrderId(rawOid) || rawOid;
     const consId = String(
@@ -610,6 +639,7 @@ export async function syncLiveTerminalData(options: {
       fulfillmentBranch: branchInfo.branchName,
       branchCode: branchInfo.branchCode,
       isBranchFulfillment: branchInfo.isBranchFulfillment,
+      isPos: row.isPos ?? (branchInfo.branchCode !== 'ONLINE' && branchInfo.branchCode !== 'EXCHANGE'),
       baseOrderId: baseOid,
     };
   });
@@ -640,9 +670,13 @@ export async function syncLiveTerminalData(options: {
     false
   );
 
+  const message = wcConnected
+    ? `Successfully synchronized ${totalDistinctOrders} live orders (${enrichedOrders.length} line items) from WooCommerce REST API with Pathao courier telemetry.`
+    : `Synchronized ${totalDistinctOrders} orders (${enrichedOrders.length} line items) with local snapshot / Pathao courier telemetry.`;
+
   return {
     success: true,
-    message: `Synchronized ${totalDistinctOrders} orders (${enrichedOrders.length} line items) with Pathao courier telemetry.`,
+    message,
     orders: enrichedOrders,
     courierTrackingMap,
     stats,

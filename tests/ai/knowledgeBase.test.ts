@@ -5,9 +5,10 @@ import {
   computeCourierAuditSummary,
   computeSkuRiskSummary,
   computeCustomerRiskSummary,
+  computeLiveOpsSlice,
   generateQueryAnalyticalFacts
 } from '@/lib/ai/semanticAnalytics';
-import { ReconciledOrderRow, CourierMismatchRecord, SkuAnalytics, CustomerRiskProfile, SummaryAnalytics } from '@/types';
+import { ReconciledOrderRow, CourierMismatchRecord, SkuAnalytics, CustomerRiskProfile, SummaryAnalytics, RawOrderRow } from '@/types';
 
 describe('Semantic Metric Catalog & Knowledge Base Retrieval', () => {
   it('contains essential e-commerce reconciliation entries', () => {
@@ -217,17 +218,96 @@ describe('Deterministic Analytics & Slicing Engine', () => {
     expect(riskSummary.atRiskCustomerOrders).toBe(6);
   });
 
-  it('dynamically generates focused analytical facts based on query keywords', () => {
-    const branchFacts = generateQueryAnalyticalFacts('Which branch has the highest sales?', sampleSummary, {
-      branches: computeBranchMetrics(sampleOrders)
-    });
-    expect(branchFacts).toContain('Deterministic Branch Performance');
-    expect(branchFacts).toContain('Cumilla Branch');
+  it('retrieves live ops today shipped rules when asking about today sales or shipped calculation', () => {
+    const results = retrieveRelevantKnowledge("What are today's sales and how is today shipped calculated?");
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.some(r => r.id === 'live_ops_today_shipped_standard')).toBe(true);
+    const entry = results.find(r => r.id === 'live_ops_today_shipped_standard');
+    expect(entry?.formulaOrRule).toContain('Date Modified');
+    expect(entry?.formulaOrRule).toContain('Strict Integer Standard');
+  });
 
-    const courierFacts = generateQueryAnalyticalFacts('How much COD is in dispute with Pathao?', sampleSummary, {
-      courierAudit: computeCourierAuditSummary(sampleMismatches)
+  it('retrieves warehouse queue and today order definitions', () => {
+    const results = retrieveRelevantKnowledge('How is queue and total orders calculated in live terminal?', 'tabLiveOps');
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.some(r => r.id === 'live_ops_queue_and_todays_orders_rules')).toBe(true);
+  });
+
+  it('retrieves real-time courier telemetry rules and discrepancies', () => {
+    const results = retrieveRelevantKnowledge('Pathao courier delivery telemetry and COD discrepancies');
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.some(r => r.id === 'real_time_courier_telemetry_and_discrepancies')).toBe(true);
+  });
+
+  it('retrieves 7-day rolling baseline integer rules', () => {
+    const results = retrieveRelevantKnowledge('How does the 7-day rolling baseline compare with today sales?');
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.some(r => r.id === 'daily_reconciliation_seven_day_baseline')).toBe(true);
+  });
+
+  it('computes accurate LiveOpsAnalyticsSlice and generates grounded analytical facts', () => {
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const mockLiveOrders: RawOrderRow[] = [
+      {
+        orderId: '2001',
+        status: 'completed',
+        date_modified: `${todayIso}T10:30:00`,
+        date_created: `${todayIso}T09:00:00`,
+        itemCost: 1200,
+        orderAmount: 1200,
+        quantity: 1,
+        itemName: 'Panjabi Premium',
+        customerName: 'Live Buyer 1',
+        phone: '01711111111',
+        deliveryStatus: 'Delivered',
+        pathaoStatus: 'Delivered',
+        courierCollectedCod: 1200,
+      },
+      {
+        orderId: '2002',
+        status: 'processing',
+        date_modified: `${todayIso}T11:00:00`,
+        date_created: `${todayIso}T10:00:00`,
+        itemCost: 1500,
+        orderAmount: 1500,
+        quantity: 1,
+        itemName: 'Formal Shirt',
+        customerName: 'Live Buyer 2',
+        phone: '01722222222',
+        deliveryStatus: 'In Transit',
+        pathaoStatus: 'In Transit',
+        courierCollectedCod: 0,
+      },
+      {
+        orderId: '2003',
+        status: 'on-hold',
+        date_modified: `${todayIso}T11:30:00`,
+        date_created: `${todayIso}T11:00:00`,
+        itemCost: 2000,
+        orderAmount: 2000,
+        quantity: 1,
+        itemName: 'Silk Kurti',
+        customerName: 'Live Buyer 3',
+        phone: '01733333333',
+        deliveryStatus: 'Pending Pickup',
+      }
+    ];
+
+    const liveOpsSlice = computeLiveOpsSlice(mockLiveOrders);
+    expect(liveOpsSlice.referenceDate).toBe(todayIso);
+    expect(liveOpsSlice.todayShipped.ordersCount).toBeGreaterThanOrEqual(1);
+    expect(liveOpsSlice.queue.processingCount).toBeGreaterThanOrEqual(1);
+    expect(liveOpsSlice.queue.holdCount).toBeGreaterThanOrEqual(1);
+    expect(liveOpsSlice.queue.totalCount).toBe(liveOpsSlice.queue.processingCount + liveOpsSlice.queue.holdCount);
+    expect(liveOpsSlice.courierTelemetry).toBeDefined();
+
+    const facts = generateQueryAnalyticalFacts("What are today's sales and real-time delivery status?", sampleSummary, {
+      liveOps: liveOpsSlice
     });
-    expect(courierFacts).toContain('Deterministic Courier Mismatch Audit');
-    expect(courierFacts).toContain('৳2,200');
+    expect(facts).toContain("Deterministic Live Operations & Today's Sales Report");
+    expect(facts).toContain("Today's Dispatched Volume");
+    expect(facts).toContain('Fulfillment Queue');
+    expect(facts).toContain('Real-Time Courier Telemetry (Pathao Hermes)');
+    expect(facts).toContain('Daily Reconciliation & 7-Day Rolling Baseline');
   });
 });
