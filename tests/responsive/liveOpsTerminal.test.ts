@@ -361,10 +361,10 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
   });
 
   describe('Real-Time Fulfillment Acceleration: Dispatch Cut-off, WhatsApp & Product Spotlight', () => {
-    it('computes accurate dispatch cut-off countdown and required packing velocity', () => {
+    it('computes accurate dispatch cut-off countdown, required packing velocity, and packing progress', () => {
       // Create a deterministic simulated date: 2:30 PM (14:30) Bangladesh time (UTC 8:30)
       const simulatedNow = new Date('2026-10-15T08:30:00.000Z'); // 8:30 UTC = 14:30 BST
-      const cutoff4pm = computeDispatchCutoff(15, 16, simulatedNow);
+      const cutoff4pm = computeDispatchCutoff(15, 16, simulatedNow, 45);
 
       expect(cutoff4pm.cutoffHour).toBe(16);
       expect(cutoff4pm.cutoffLabel).toBe('4:00 PM BST');
@@ -376,13 +376,19 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       // 15 orders in 1.5 hours = 10 orders/hour
       expect(cutoff4pm.packingVelocityRequired).toBe(10);
       expect(cutoff4pm.urgencyLevel).toBe('URGENT'); // <= 120 mins remaining
+      expect(cutoff4pm.packedCount).toBe(45);
+      expect(cutoff4pm.totalTargetCount).toBe(60);
+      expect(cutoff4pm.packingProgressPct).toBe(75); // 45 / 60 = 75%
 
       // Simulate overdue/passed cut-off: 5:00 PM (17:00 BST = 11:00 UTC)
       const passedNow = new Date('2026-10-15T11:00:00.000Z');
-      const cutoffOverdue = computeDispatchCutoff(8, 16, passedNow);
+      const cutoffOverdue = computeDispatchCutoff(8, 16, passedNow, 32);
       expect(cutoffOverdue.isPassed).toBe(true);
       expect(cutoffOverdue.urgencyLevel).toBe('OVERDUE');
       expect(cutoffOverdue.timeRemainingFormatted).toBe('Cutoff Passed');
+      expect(cutoffOverdue.packedCount).toBe(32);
+      expect(cutoffOverdue.totalTargetCount).toBe(40);
+      expect(cutoffOverdue.packingProgressPct).toBe(80); // 32 / 40 = 80%
     });
 
     it('formats Bangladesh phone numbers accurately for WhatsApp links', () => {

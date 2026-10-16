@@ -52,6 +52,8 @@ import {
   DiscrepancyAlert,
   StandardCourierStatus,
   cleanOrderId,
+  detectFulfillmentBranch,
+  CourierDiscrepancyType,
 } from '@/lib/sync/liveTerminalSync';
 
 interface LiveOpsTabProps {
@@ -213,6 +215,14 @@ export function LiveOpsTab({
       if (courierFilter !== 'ALL') {
         if (courierFilter === 'DISCREPANCY_ONLY') {
           if (!o.hasDiscrepancy) return false;
+        } else if (
+          courierFilter === 'RETURNED_BUT_SHIPPED' ||
+          courierFilter === 'DELIVERED_BUT_PROCESSING' ||
+          courierFilter === 'COD_MISMATCH' ||
+          courierFilter === 'UNCOLLECTED_COD' ||
+          courierFilter === 'DOUBLE_COLLECTION_RISK'
+        ) {
+          if (!o.hasDiscrepancy || o.discrepancyType !== courierFilter) return false;
         } else {
           const cStatus = o['Courier Status'] || o.courierStatus || 'Untracked';
           if (cStatus !== courierFilter) return false;
@@ -972,6 +982,11 @@ export function LiveOpsTab({
               </div>
               <p className="text-[11px] text-slate-300 mt-0.5">
                 Real-time parcel delivery status, collected cash on delivery, and courier discrepancy audit.
+                {courierStats && (Boolean(courierStats.branchOrderCount) || Boolean(courierStats.exchangeOrderCount)) && (
+                  <span className="ml-1 text-amber-300 font-semibold">
+                    (Tracking includes {courierStats.branchOrderCount || 0} outlet dispatches & {courierStats.exchangeOrderCount || 0} replacements)
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -1055,20 +1070,34 @@ export function LiveOpsTab({
 
         {/* Discrepancy Banner Alert if any exist */}
         {discrepancies.length > 0 && (
-          <div className="bg-rose-950/60 border border-rose-800/70 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-rose-200">
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
-              <span>
-                <strong>{discrepancies.length} Courier Status Mismatches Detected:</strong> Store records show orders as Shipped/Completed, but Pathao Courier marked parcels as Returned to Merchant.
-              </span>
+          <div className="bg-rose-950/60 border border-rose-800/70 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-rose-200">
+            <div className="flex items-start sm:items-center gap-2.5">
+              <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5 sm:mt-0" />
+              <div>
+                <strong className="text-white">{discrepancies.length} Courier Reconciliation Discrepancies:</strong>{' '}
+                {(() => {
+                  const uniqueTypes = Array.from(new Set(discrepancies.map((d) => d.type)));
+                  const typeLabels = uniqueTypes.map((t) => {
+                    if (t === 'RETURNED_BUT_SHIPPED') return 'Returned but Shipped';
+                    if (t === 'DELIVERED_BUT_PROCESSING') return 'Delivered but Processing';
+                    if (t === 'UNCOLLECTED_COD') return 'Uncollected COD';
+                    if (t === 'DOUBLE_COLLECTION_RISK') return 'Double Collection Risk';
+                    if (t === 'COD_MISMATCH') return 'COD Amount Mismatch';
+                    return t;
+                  });
+                  return `Identified ${typeLabels.join(', ')}. Review flags before invoice settlement.`;
+                })()}
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setCourierFilter('DISCREPANCY_ONLY')}
-              className="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold shrink-0 transition-colors shadow-2xs"
-            >
-              Filter Discrepancies
-            </button>
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setCourierFilter('DISCREPANCY_ONLY')}
+                className="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold transition-colors shadow-2xs"
+              >
+                Filter All Discrepancies
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -1187,6 +1216,33 @@ export function LiveOpsTab({
             )}
           </div>
         </div>
+
+        {/* Daily Dispatch Packing Progress Bar */}
+        {report.dispatchCutoff.totalTargetCount !== undefined && report.dispatchCutoff.totalTargetCount > 0 && (
+          <div className="mt-3.5 pt-3 border-t border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-bold text-slate-700">Daily Packing Progress:</span>
+              <span className="font-extrabold text-slate-900 bg-white px-2 py-0.5 rounded-lg border border-slate-200 shadow-2xs">
+                {report.dispatchCutoff.packingProgressPct}%
+              </span>
+              <span className="text-slate-500 text-[11.5px]">
+                ({report.dispatchCutoff.packedCount} shipped / {report.dispatchCutoff.totalTargetCount} total target today)
+              </span>
+            </div>
+            <div className="w-full sm:w-56 bg-slate-200/80 rounded-full h-2.5 overflow-hidden p-0.5">
+              <div
+                className={`h-1.5 rounded-full transition-all duration-500 ${
+                  (report.dispatchCutoff.packingProgressPct || 0) >= 80
+                    ? 'bg-emerald-500'
+                    : (report.dispatchCutoff.packingProgressPct || 0) >= 50
+                    ? 'bg-blue-500'
+                    : 'bg-amber-500'
+                }`}
+                style={{ width: `${Math.min(100, report.dispatchCutoff.packingProgressPct || 0)}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Product Demand & Velocity Spotlight Leaderboard ── */}
@@ -1485,14 +1541,42 @@ export function LiveOpsTab({
                       }`}
                     >
                       <td className="py-2.5 px-3.5 font-bold text-blue-600 font-mono whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <span className="group-hover:underline">{oid}</span>
-                          {hasDiscrepancy && (
-                            <span title="Discrepancy detected between WooCommerce and Pathao Courier" className="text-rose-500">
-                              <AlertTriangle className="w-3.5 h-3.5 inline" />
-                            </span>
-                          )}
-                          <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="group-hover:underline">{oid}</span>
+                            {hasDiscrepancy && (
+                              <span title={`Discrepancy: ${row.discrepancyType || 'Status mismatch'}`} className="text-rose-500">
+                                <AlertTriangle className="w-3.5 h-3.5 inline" />
+                              </span>
+                            )}
+                            <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                          {(() => {
+                            const branch = detectFulfillmentBranch(row);
+                            if (!branch.isBranchFulfillment) return null;
+                            const badgeColor =
+                              branch.branchCode === 'MIRPUR'
+                                ? 'bg-purple-100 text-purple-800 border-purple-200'
+                                : branch.branchCode === 'CUMILLA'
+                                ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                : branch.branchCode === 'WARI'
+                                ? 'bg-teal-100 text-teal-800 border-teal-200'
+                                : branch.branchCode === 'SYLHET'
+                                ? 'bg-indigo-100 text-indigo-800 border-indigo-200'
+                                : branch.branchCode === 'EXCHANGE'
+                                ? 'bg-rose-100 text-rose-800 border-rose-200'
+                                : 'bg-slate-100 text-slate-700 border-slate-200';
+                            return (
+                              <span
+                                className={`inline-block self-start px-1.5 py-0.2 rounded text-[9.5px] font-bold tracking-tight border font-sans ${badgeColor}`}
+                                title={`Fulfillment: ${branch.branchName}`}
+                              >
+                                {branch.branchCode === 'EXCHANGE'
+                                  ? 'Exchange'
+                                  : branch.branchName.replace(' Branch', '').replace(' Outlet POS', ' POS')}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </td>
                       <td className="py-2.5 px-3.5 text-slate-500 whitespace-nowrap">
@@ -1622,10 +1706,19 @@ export function LiveOpsTab({
           <div className="bg-white rounded-3xl max-w-2xl w-full border border-slate-200 shadow-2xl p-6 space-y-5 overflow-y-auto max-h-[90vh]">
             <div className="flex items-start justify-between border-b border-slate-100 pb-3">
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-lg font-black text-slate-900 font-headline">
                     Order #{selectedDetailOrder['Order ID'] || selectedDetailOrder.orderId}
                   </h3>
+                  {(() => {
+                    const branch = detectFulfillmentBranch(selectedDetailOrder);
+                    if (!branch.isBranchFulfillment) return null;
+                    return (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                        {branch.branchName}
+                      </span>
+                    );
+                  })()}
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
                     WC: {selectedDetailOrder['Delivery Status'] || 'shipped'}
                   </span>
@@ -1705,6 +1798,12 @@ export function LiveOpsTab({
                   <span className="text-slate-600">COD Collected:</span>
                   <span className="font-bold text-slate-900">
                     ৳ {Number(selectedDetailOrder.collectedAmount || 0).toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600">Fulfillment Hub:</span>
+                  <span className="font-bold text-slate-800">
+                    {detectFulfillmentBranch(selectedDetailOrder).branchName}
                   </span>
                 </div>
                 {selectedDetailOrder['Consignment ID'] && (

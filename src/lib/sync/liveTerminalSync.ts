@@ -17,11 +17,23 @@ export type CourierDiscrepancyType =
   | 'RETURNED_BUT_SHIPPED'
   | 'DELIVERED_BUT_PROCESSING'
   | 'COD_MISMATCH'
+  | 'UNCOLLECTED_COD'
+  | 'DOUBLE_COLLECTION_RISK'
   | 'NONE';
+
+export type BranchFulfillmentCode = 'ONLINE' | 'MIRPUR' | 'CUMILLA' | 'WARI' | 'SYLHET' | 'EXCHANGE';
+
+export interface FulfillmentBranchInfo {
+  branchName: string;
+  branchCode: BranchFulfillmentCode;
+  isBranchFulfillment: boolean;
+  baseOrderId: string;
+}
 
 export interface CourierTrackingInfo {
   consignmentId: string;
   orderId: string;
+  baseOrderId?: string;
   courierStatus: StandardCourierStatus;
   rawStatus: string;
   collectedAmount: number;
@@ -34,6 +46,8 @@ export interface CourierTrackingInfo {
   hasDiscrepancy: boolean;
   discrepancyType: CourierDiscrepancyType;
   discrepancyMessage?: string;
+  fulfillmentBranch?: string;
+  isBranchFulfillment?: boolean;
 }
 
 export interface LiveTerminalStats {
@@ -48,6 +62,8 @@ export interface LiveTerminalStats {
   untrackedCount: number;
   discrepancyCount: number;
   totalCodCollected: number;
+  branchOrderCount?: number;
+  exchangeOrderCount?: number;
 }
 
 export interface DiscrepancyAlert {
@@ -57,6 +73,7 @@ export interface DiscrepancyAlert {
   type: CourierDiscrepancyType;
   message: string;
   consignmentId?: string;
+  fulfillmentBranch?: string;
 }
 
 export interface LiveTerminalSyncResult {
@@ -79,10 +96,22 @@ export function normalizeCourierStatus(rawStatus?: string): StandardCourierStatu
   if (!rawStatus) return 'Untracked';
   const s = String(rawStatus).toLowerCase().trim();
 
-  if (s.includes('delivered') && !s.includes('partial') && !s.includes('return')) {
+  if (
+    (s.includes('delivered') && !s.includes('partial') && !s.includes('return')) ||
+    s.includes('payment collected') ||
+    s.includes('cash collected') ||
+    s.includes('delivery completed') ||
+    s.includes('paid delivery') ||
+    s === 'paid'
+  ) {
     return 'Delivered';
   }
-  if (s.includes('partial') || s.includes('partial_delivered') || s.includes('partial return')) {
+  if (
+    s.includes('partial') ||
+    s.includes('partial_delivered') ||
+    s.includes('partial return') ||
+    s.includes('exchange')
+  ) {
     return 'Partial';
   }
   if (
@@ -90,7 +119,9 @@ export function normalizeCourierStatus(rawStatus?: string): StandardCourierStatu
     s.includes('rto') ||
     s.includes('cancelled') ||
     s.includes('canceled') ||
-    s.includes('fail')
+    s.includes('fail') ||
+    s.includes('damaged') ||
+    s.includes('rejected')
   ) {
     return 'Returned';
   }
@@ -101,7 +132,9 @@ export function normalizeCourierStatus(rawStatus?: string): StandardCourierStatu
     s.includes('sorting') ||
     s.includes('dispatched') ||
     s.includes('on hold') ||
-    s.includes('shipped')
+    s.includes('shipped') ||
+    s.includes('out for delivery') ||
+    s.includes('assigned')
   ) {
     return 'In Transit';
   }
@@ -113,13 +146,109 @@ export function normalizeCourierStatus(rawStatus?: string): StandardCourierStatu
 }
 
 /**
+ * Cleans an order ID (removes quotes, trailing spaces) while preserving branch suffixes.
+ */
+export function cleanOrderId(rawId: any): string {
+  if (!rawId) return '';
+  return String(rawId).replace(/["'\s]/g, '').toLowerCase();
+}
+
+/**
+ * Extracts base numeric order ID (e.g. '17263 m' -> '17263', 'D-17263' -> '17263').
+ */
+export function extractBaseOrderId(rawId: any): string {
+  if (!rawId) return '';
+  const cleaned = cleanOrderId(rawId);
+  // Strip exchange/duplicate prefixes like d-, dd-, ex-, exchange-
+  const withoutPrefix = cleaned.replace(/^(dd?|ex|exchange)[-_]?/i, '');
+  // Strip branch register suffixes like -m, -c, -w, -s or m, c, w, s
+  const baseNumeric = withoutPrefix.replace(/[-_]?[mcws]$/i, '');
+  return baseNumeric;
+}
+
+/**
+ * Detects fulfillment branch from order ID suffixes, notes, or consignment labels.
+ * Mirpur Outlet POS: '17263 m' (POS outlet ID 1)
+ * Cumilla Branch: '17263 c' (POS outlet ID 2)
+ * Wari Branch: '17263 w' (POS outlet ID 9)
+ * Sylhet Branch: '17263 s' (POS outlet IDs 7 & 8)
+ * Exchange: 'D-17263' or 'DD-17263'
+ * Central Warehouse: No suffix (e.g. '17263')
+ */
+export function detectFulfillmentBranch(orderIdOrRow: any): FulfillmentBranchInfo {
+  const raw = typeof orderIdOrRow === 'string'
+    ? orderIdOrRow
+    : String(orderIdOrRow?.['Order ID'] || orderIdOrRow?.orderId || orderIdOrRow?.['Consignment ID'] || '');
+
+  const cleaned = cleanOrderId(raw);
+  const baseOrderId = extractBaseOrderId(raw);
+
+  if (/^(dd?|ex|exchange)[-_]/i.test(cleaned) || /^d-\d+/i.test(raw.trim())) {
+    return {
+      branchName: 'Exchange Replacement',
+      branchCode: 'EXCHANGE',
+      isBranchFulfillment: true,
+      baseOrderId,
+    };
+  }
+
+  if (/[-_]?m$/i.test(cleaned) || /\s+m$/i.test(raw.trim())) {
+    return {
+      branchName: 'Mirpur Outlet POS',
+      branchCode: 'MIRPUR',
+      isBranchFulfillment: true,
+      baseOrderId,
+    };
+  }
+
+  if (/[-_]?c$/i.test(cleaned) || /\s+c$/i.test(raw.trim())) {
+    return {
+      branchName: 'Cumilla Branch',
+      branchCode: 'CUMILLA',
+      isBranchFulfillment: true,
+      baseOrderId,
+    };
+  }
+
+  if (/[-_]?w$/i.test(cleaned) || /\s+w$/i.test(raw.trim())) {
+    return {
+      branchName: 'Wari Branch',
+      branchCode: 'WARI',
+      isBranchFulfillment: true,
+      baseOrderId,
+    };
+  }
+
+  if (/[-_]?s$/i.test(cleaned) || /\s+s$/i.test(raw.trim())) {
+    return {
+      branchName: 'Sylhet Branch',
+      branchCode: 'SYLHET',
+      isBranchFulfillment: true,
+      baseOrderId,
+    };
+  }
+
+  return {
+    branchName: 'Central Warehouse (Online)',
+    branchCode: 'ONLINE',
+    isBranchFulfillment: false,
+    baseOrderId,
+  };
+}
+
+/**
  * Detects discrepancies between WooCommerce store status and Pathao courier status.
  */
 export function detectCourierDiscrepancy(
   wcStatus: string,
   courierStatus: StandardCourierStatus,
   orderAmount: number,
-  collectedAmount: number
+  collectedAmount: number,
+  options?: {
+    paymentMethod?: string;
+    isCod?: boolean;
+    isPrepaid?: boolean;
+  }
 ): { hasDiscrepancy: boolean; type: CourierDiscrepancyType; message?: string } {
   const normWc = String(wcStatus || '').toLowerCase().trim();
 
@@ -147,13 +276,42 @@ export function detectCourierDiscrepancy(
     };
   }
 
-  // 3. Financial Discrepancy: Delivered with COD mismatch (difference > 150 TK)
-  if (courierStatus === 'Delivered' && orderAmount > 0 && collectedAmount > 0) {
-    if (Math.abs(orderAmount - collectedAmount) > 150) {
+  // 3. Financial Discrepancies
+  if (courierStatus === 'Delivered') {
+    const pm = String(options?.paymentMethod || '').toLowerCase();
+    const isPrepaid = options?.isPrepaid ?? (
+      /bkash|nagad|rocket|card|bank|ssl|sslcommerz|prepaid|advance|online/i.test(pm)
+    );
+    const isCod = options?.isCod ?? (
+      !isPrepaid && (/cod|cash/i.test(pm) || orderAmount > 0)
+    );
+
+    // 3A. Delivered with COD mismatch (difference > 150 TK)
+    if (orderAmount > 0 && collectedAmount > 0) {
+      if (Math.abs(orderAmount - collectedAmount) > 150) {
+        return {
+          hasDiscrepancy: true,
+          type: 'COD_MISMATCH',
+          message: `COD mismatch: Store billed ৳${orderAmount.toLocaleString()}, but Pathao collected ৳${collectedAmount.toLocaleString()}.`,
+        };
+      }
+    }
+
+    // 3B. Uncollected COD: COD order delivered, but Pathao recorded 0 collected
+    if (options !== undefined && isCod && orderAmount > 150 && collectedAmount === 0) {
       return {
         hasDiscrepancy: true,
-        type: 'COD_MISMATCH',
-        message: `COD mismatch: Store billed ৳${orderAmount.toLocaleString()}, but Pathao collected ৳${collectedAmount.toLocaleString()}.`,
+        type: 'UNCOLLECTED_COD',
+        message: `Uncollected COD: Order is Cash on Delivery (৳${orderAmount.toLocaleString()}) and marked delivered, but Pathao reported ৳0 collected.`,
+      };
+    }
+
+    // 3C. Double Collection Risk: Prepaid order, but courier collected money from customer at doorstep
+    if (isPrepaid && collectedAmount > 100) {
+      return {
+        hasDiscrepancy: true,
+        type: 'DOUBLE_COLLECTION_RISK',
+        message: `Double Collection Risk: Order was prepaid online, but Pathao collected ৳${collectedAmount.toLocaleString()} at doorstep.`,
       };
     }
   }
@@ -162,14 +320,6 @@ export function detectCourierDiscrepancy(
     hasDiscrepancy: false,
     type: 'NONE',
   };
-}
-
-/**
- * Cleans an order ID (removes quotes, trailing suffixes, POS prefixes) for reliable courier cross-matching.
- */
-export function cleanOrderId(rawId: any): string {
-  if (!rawId) return '';
-  return String(rawId).replace(/["'\s]/g, '').toLowerCase();
 }
 
 /**
@@ -258,6 +408,8 @@ export async function syncLiveTerminalData(options: {
             for (const po of pathaoOrders) {
               const consId = String(po.consignment_id || po.order_consignment_id || '').trim();
               const rawOid = cleanOrderId(po.merchant_order_id || po.order_id);
+              const baseOid = extractBaseOrderId(rawOid);
+              const branchInfo = detectFulfillmentBranch(po.merchant_order_id || po.order_id);
               const rawStatus = po.order_status || '';
               const status = normalizeCourierStatus(rawStatus);
               const collected = parseFloat(po.collected_amount || po.order_amount) || 0;
@@ -267,6 +419,7 @@ export async function syncLiveTerminalData(options: {
               const tracking: CourierTrackingInfo = {
                 consignmentId: consId,
                 orderId: rawOid,
+                baseOrderId: baseOid,
                 courierStatus: status,
                 rawStatus,
                 collectedAmount: collected,
@@ -278,10 +431,15 @@ export async function syncLiveTerminalData(options: {
                 updatedAt: po.order_status_updated_at || po.order_created_at,
                 hasDiscrepancy: false,
                 discrepancyType: 'NONE',
+                fulfillmentBranch: branchInfo.branchName,
+                isBranchFulfillment: branchInfo.isBranchFulfillment,
               };
 
               if (consId) courierTrackingMap[consId.toLowerCase()] = tracking;
               if (rawOid) courierTrackingMap[`oid_${rawOid}`] = tracking;
+              if (baseOid && baseOid !== rawOid && !courierTrackingMap[`oid_${baseOid}`]) {
+                courierTrackingMap[`oid_${baseOid}`] = tracking;
+              }
             }
           }
         }
@@ -296,12 +454,15 @@ export async function syncLiveTerminalData(options: {
     for (const po of (baselineData as any).pathaoDelivery) {
       const consId = String(po['Order consignment id'] || po.consignment_id || '').trim();
       const rawOid = cleanOrderId(po['Merchant order id'] || po.order_id);
+      const baseOid = extractBaseOrderId(rawOid);
       if (!consId && !rawOid) continue;
 
       const existingByCons = consId ? courierTrackingMap[consId.toLowerCase()] : undefined;
       const existingByOid = rawOid ? courierTrackingMap[`oid_${rawOid}`] : undefined;
+      const existingByBase = baseOid ? courierTrackingMap[`oid_${baseOid}`] : undefined;
 
-      if (!existingByCons && !existingByOid) {
+      if (!existingByCons && !existingByOid && !existingByBase) {
+        const branchInfo = detectFulfillmentBranch(po['Merchant order id'] || po.order_id);
         const rawStatus = po['Order status'] || po.order_status || '';
         const status = normalizeCourierStatus(rawStatus);
         const collected = parseFloat(po['Collected amount'] || po.collected_amount || 0) || 0;
@@ -310,6 +471,7 @@ export async function syncLiveTerminalData(options: {
         const tracking: CourierTrackingInfo = {
           consignmentId: consId,
           orderId: rawOid,
+          baseOrderId: baseOid,
           courierStatus: status,
           rawStatus,
           collectedAmount: collected,
@@ -321,10 +483,15 @@ export async function syncLiveTerminalData(options: {
           updatedAt: po['Order status updated at'] || po['Order created at'],
           hasDiscrepancy: false,
           discrepancyType: 'NONE',
+          fulfillmentBranch: branchInfo.branchName,
+          isBranchFulfillment: branchInfo.isBranchFulfillment,
         };
 
         if (consId) courierTrackingMap[consId.toLowerCase()] = tracking;
         if (rawOid) courierTrackingMap[`oid_${rawOid}`] = tracking;
+        if (baseOid && baseOid !== rawOid && !courierTrackingMap[`oid_${baseOid}`]) {
+          courierTrackingMap[`oid_${baseOid}`] = tracking;
+        }
       }
     }
   }
@@ -338,11 +505,15 @@ export async function syncLiveTerminalData(options: {
   let pendingPickupCount = 0;
   let untrackedCount = 0;
   let totalCodCollected = 0;
+  let branchOrderCount = 0;
+  let exchangeOrderCount = 0;
 
   const seenOrders = new Set<string>();
 
   const enrichedOrders: RawOrderRow[] = rawOrders.map((row) => {
+    const branchInfo = detectFulfillmentBranch(row['Order ID'] || row.orderId);
     const rawOid = cleanOrderId(row['Order ID'] || row.orderId);
+    const baseOid = branchInfo.baseOrderId || extractBaseOrderId(rawOid) || rawOid;
     const consId = String(
       row['Consignment ID'] ||
         row.consignmentId ||
@@ -351,10 +522,11 @@ export async function syncLiveTerminalData(options: {
         ''
     ).trim();
 
-    // Find courier tracking record by consignment ID or order ID
+    // Find courier tracking record by consignment ID, exact order ID, or base order ID
     let tracking =
       (consId ? courierTrackingMap[consId.toLowerCase()] : undefined) ||
-      (rawOid ? courierTrackingMap[`oid_${rawOid}`] : undefined);
+      (rawOid ? courierTrackingMap[`oid_${rawOid}`] : undefined) ||
+      (baseOid ? courierTrackingMap[`oid_${baseOid}`] : undefined);
 
     let courierStatus: StandardCourierStatus = tracking ? tracking.courierStatus : 'Untracked';
     let effectiveConsId = tracking?.consignmentId || consId || '';
@@ -363,8 +535,17 @@ export async function syncLiveTerminalData(options: {
 
     const wcStatus = String(row['Delivery Status'] || row.status || 'shipped');
     const orderAmount = Number(row['Order Amount'] || row['Item Cost'] || 0);
+    const paymentMethod = String(
+      row['Payment Method'] ||
+      (row as any).payment_method ||
+      (row as any).paymentMethod ||
+      (row as any)['Cash on delivery'] ||
+      ''
+    );
 
-    const discCheck = detectCourierDiscrepancy(wcStatus, courierStatus, orderAmount, collectedAmount);
+    const discCheck = detectCourierDiscrepancy(wcStatus, courierStatus, orderAmount, collectedAmount, {
+      paymentMethod,
+    });
 
     if (discCheck.hasDiscrepancy && !seenOrders.has(rawOid)) {
       discrepancies.push({
@@ -374,11 +555,19 @@ export async function syncLiveTerminalData(options: {
         type: discCheck.type,
         message: discCheck.message || '',
         consignmentId: effectiveConsId,
+        fulfillmentBranch: branchInfo.branchName,
       });
     }
 
     if (!seenOrders.has(rawOid)) {
       seenOrders.add(rawOid);
+
+      if (branchInfo.isBranchFulfillment) {
+        branchOrderCount++;
+      }
+      if (branchInfo.branchCode === 'EXCHANGE') {
+        exchangeOrderCount++;
+      }
 
       if (courierStatus !== 'Untracked') {
         handedOverCount++;
@@ -409,6 +598,10 @@ export async function syncLiveTerminalData(options: {
       discrepancyMessage: discCheck.message,
       collectedAmount,
       courierDeliveryFee: fee,
+      fulfillmentBranch: branchInfo.branchName,
+      branchCode: branchInfo.branchCode,
+      isBranchFulfillment: branchInfo.isBranchFulfillment,
+      baseOrderId: baseOid,
     };
   });
 
@@ -428,6 +621,8 @@ export async function syncLiveTerminalData(options: {
     untrackedCount,
     discrepancyCount: discrepancies.length,
     totalCodCollected,
+    branchOrderCount,
+    exchangeOrderCount,
   };
 
   const provenance = createDataProvenance(

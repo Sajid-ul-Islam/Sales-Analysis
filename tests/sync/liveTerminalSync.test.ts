@@ -3,6 +3,8 @@ import {
   normalizeCourierStatus,
   detectCourierDiscrepancy,
   cleanOrderId,
+  extractBaseOrderId,
+  detectFulfillmentBranch,
   syncLiveTerminalData,
 } from '@/lib/sync/liveTerminalSync';
 
@@ -53,6 +55,24 @@ describe('Live Terminal Synchronization & Courier Reconciliation Engine', () => 
       expect(disc.message).toContain('COD mismatch');
     });
 
+    it('flags UNCOLLECTED_COD when Cash on Delivery order is delivered but collected amount is 0', () => {
+      const disc = detectCourierDiscrepancy('completed', 'Delivered', 2850, 0, {
+        paymentMethod: 'Cash on delivery (COD)',
+      });
+      expect(disc.hasDiscrepancy).toBe(true);
+      expect(disc.type).toBe('UNCOLLECTED_COD');
+      expect(disc.message).toContain('Uncollected COD');
+    });
+
+    it('flags DOUBLE_COLLECTION_RISK when prepaid order had cash collected at doorstep', () => {
+      const disc = detectCourierDiscrepancy('completed', 'Delivered', 3200, 3200, {
+        paymentMethod: 'bKash Online Payment',
+      });
+      expect(disc.hasDiscrepancy).toBe(true);
+      expect(disc.type).toBe('DOUBLE_COLLECTION_RISK');
+      expect(disc.message).toContain('Double Collection Risk');
+    });
+
     it('returns no discrepancy when store and courier statuses are in harmony', () => {
       const disc = detectCourierDiscrepancy('completed', 'Delivered', 2400, 2400);
       expect(disc.hasDiscrepancy).toBe(false);
@@ -72,6 +92,78 @@ describe('Live Terminal Synchronization & Courier Reconciliation Engine', () => 
       expect(cleanOrderId('  17263 m  ')).toBe('17263m');
       expect(cleanOrderId(18200)).toBe('18200');
       expect(cleanOrderId(null)).toBe('');
+    });
+  });
+
+  describe('extractBaseOrderId', () => {
+    it('strips branch register suffixes (m, c, w, s)', () => {
+      expect(extractBaseOrderId('17263 m')).toBe('17263');
+      expect(extractBaseOrderId('17263-c')).toBe('17263');
+      expect(extractBaseOrderId('17263_w')).toBe('17263');
+      expect(extractBaseOrderId('17263 s')).toBe('17263');
+      expect(extractBaseOrderId('17263m')).toBe('17263');
+    });
+
+    it('strips exchange and duplicate prefixes (d-, dd-, ex-)', () => {
+      expect(extractBaseOrderId('D-17263')).toBe('17263');
+      expect(extractBaseOrderId('DD-17263')).toBe('17263');
+      expect(extractBaseOrderId('ex-17263')).toBe('17263');
+    });
+
+    it('handles null, undefined, or empty gracefully', () => {
+      expect(extractBaseOrderId(null)).toBe('');
+      expect(extractBaseOrderId(undefined)).toBe('');
+      expect(extractBaseOrderId('')).toBe('');
+    });
+  });
+
+  describe('detectFulfillmentBranch', () => {
+    it('identifies Mirpur Outlet POS (suffix m)', () => {
+      const branch = detectFulfillmentBranch('17263 m');
+      expect(branch.branchCode).toBe('MIRPUR');
+      expect(branch.branchName).toBe('Mirpur Outlet POS');
+      expect(branch.isBranchFulfillment).toBe(true);
+      expect(branch.baseOrderId).toBe('17263');
+    });
+
+    it('identifies Cumilla Branch (suffix c)', () => {
+      const branch = detectFulfillmentBranch('17263 c');
+      expect(branch.branchCode).toBe('CUMILLA');
+      expect(branch.branchName).toBe('Cumilla Branch');
+      expect(branch.isBranchFulfillment).toBe(true);
+      expect(branch.baseOrderId).toBe('17263');
+    });
+
+    it('identifies Wari Branch (suffix w)', () => {
+      const branch = detectFulfillmentBranch('17263 w');
+      expect(branch.branchCode).toBe('WARI');
+      expect(branch.branchName).toBe('Wari Branch');
+      expect(branch.isBranchFulfillment).toBe(true);
+      expect(branch.baseOrderId).toBe('17263');
+    });
+
+    it('identifies Sylhet Branch (suffix s)', () => {
+      const branch = detectFulfillmentBranch('17263 s');
+      expect(branch.branchCode).toBe('SYLHET');
+      expect(branch.branchName).toBe('Sylhet Branch');
+      expect(branch.isBranchFulfillment).toBe(true);
+      expect(branch.baseOrderId).toBe('17263');
+    });
+
+    it('identifies Exchange Replacement (prefix D-)', () => {
+      const branch = detectFulfillmentBranch('D-17263');
+      expect(branch.branchCode).toBe('EXCHANGE');
+      expect(branch.branchName).toBe('Exchange Replacement');
+      expect(branch.isBranchFulfillment).toBe(true);
+      expect(branch.baseOrderId).toBe('17263');
+    });
+
+    it('defaults to Central Warehouse (Online) when no branch suffix is present', () => {
+      const branch = detectFulfillmentBranch('17263');
+      expect(branch.branchCode).toBe('ONLINE');
+      expect(branch.branchName).toBe('Central Warehouse (Online)');
+      expect(branch.isBranchFulfillment).toBe(false);
+      expect(branch.baseOrderId).toBe('17263');
     });
   });
 

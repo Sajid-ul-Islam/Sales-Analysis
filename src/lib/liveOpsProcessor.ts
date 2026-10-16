@@ -197,6 +197,9 @@ export interface DispatchCutoffMetrics {
   pendingToPackCount: number;
   packingVelocityRequired: number;
   urgencyLevel: 'ON_TRACK' | 'URGENT' | 'CRITICAL' | 'OVERDUE';
+  packingProgressPct?: number;
+  packedCount?: number;
+  totalTargetCount?: number;
 }
 
 export interface AllOrdersBreakdown {
@@ -398,7 +401,8 @@ export function generateWhatsAppConfirmationUrl(
 export function computeDispatchCutoff(
   processingCount: number,
   cutoffHour: 16 | 18 = 16,
-  nowDate: Date = new Date()
+  nowDate: Date = new Date(),
+  shippedCount: number = 0
 ): DispatchCutoffMetrics {
   // Convert current time to Bangladesh local time (UTC+6)
   const utc = nowDate.getTime() + nowDate.getTimezoneOffset() * 60000;
@@ -434,6 +438,11 @@ export function computeDispatchCutoff(
 
   const cutoffLabel = cutoffHour === 16 ? '4:00 PM BST' : '6:00 PM BST';
 
+  const totalTargetCount = shippedCount + processingCount;
+  const packingProgressPct = totalTargetCount > 0
+    ? Math.min(100, Math.round((shippedCount / totalTargetCount) * 100))
+    : (processingCount === 0 ? 100 : 0);
+
   return {
     cutoffHour,
     cutoffLabel,
@@ -444,6 +453,9 @@ export function computeDispatchCutoff(
     pendingToPackCount: processingCount,
     packingVelocityRequired: velocity,
     urgencyLevel,
+    packedCount: shippedCount,
+    totalTargetCount,
+    packingProgressPct,
   };
 }
 
@@ -882,7 +894,12 @@ export function processLiveOpsData(
   // 6. Compute Real-Time Dispatch Cut-off Metrics
   const cutoffHour = options.cutoffHour || 16;
   const cutoffTime = options.cutoffTimeOverride || new Date();
-  const dispatchCutoff = computeDispatchCutoff(allOrdersBreakdown.processingCount, cutoffHour, cutoffTime);
+  const dispatchCutoff = computeDispatchCutoff(
+    allOrdersBreakdown.processingCount,
+    cutoffHour,
+    cutoffTime,
+    allOrdersBreakdown.todayShippedCount
+  );
 
   return {
     selectedView: view,
