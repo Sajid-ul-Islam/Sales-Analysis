@@ -350,10 +350,19 @@ export async function syncLiveTerminalData(options: {
           perPage: 100,
           fetchAllPages: true,
           maxPages: 3,
+          orderBy: 'date',
+          order: 'desc',
           credentials: options.wcCredentials,
         });
         if (fetched && fetched.length > 0) {
-          rawOrders = formatWooCommerceToOrderRows(fetched);
+          const liveRows = formatWooCommerceToOrderRows(fetched);
+          if (Array.isArray(options.activeOrders) && options.activeOrders.length > 0) {
+            const liveOrderIds = new Set(liveRows.map((r) => cleanOrderId(r['Order ID'] || r.orderId)));
+            const nonOverlapping = options.activeOrders.filter((r) => !liveOrderIds.has(cleanOrderId(r['Order ID'] || r.orderId)));
+            rawOrders = [...liveRows, ...nonOverlapping];
+          } else {
+            rawOrders = liveRows;
+          }
         }
       }
     } catch (err) {

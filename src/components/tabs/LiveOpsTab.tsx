@@ -124,6 +124,7 @@ export function LiveOpsTab({
         body: JSON.stringify({
           activeOrders: activeDataset,
           limitConsignments: 35,
+          fetchLiveWc: true,
         }),
       });
 

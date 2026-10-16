@@ -51,6 +51,11 @@ export async function POST(req: Request) {
       status: body.status || 'any',
       after: body.after,
       before: body.before,
+      orderBy: body.orderBy || 'date',
+      order: body.order || 'desc',
+      search: body.search,
+      customer: body.customer,
+      datesAreGmt: body.datesAreGmt,
       fetchAllPages: body.fetchAllPages !== undefined ? body.fetchAllPages : true,
       maxPages: Math.min(body.maxPages || 10, 20),
       credentials,
@@ -63,6 +68,23 @@ export async function POST(req: Request) {
     const returnRows = isPrivileged ? formattedRows : sanitizeOrdersResponse(formattedRows);
     const provenance = createDataProvenance('live_api', rawOrders.length, !isPrivileged);
 
+    // 4. Real-Time Operational Breakdown
+    const statusBreakdown: Record<string, number> = {};
+    const branchBreakdown: Record<string, number> = {};
+    let posCount = 0;
+    let onlineCount = 0;
+    let totalRevenue = 0;
+
+    for (const r of formattedRows) {
+      const st = String(r['Delivery Status'] || r.status || 'processing').toLowerCase();
+      statusBreakdown[st] = (statusBreakdown[st] || 0) + 1;
+      const br = String(r.fulfillmentBranch || 'Online Store');
+      branchBreakdown[br] = (branchBreakdown[br] || 0) + 1;
+      if (r.isPos) posCount++;
+      else onlineCount++;
+      totalRevenue += Number(r['Item Cost'] || 0) * Number(r.Quantity || 1);
+    }
+
     return NextResponse.json({
       success: true,
       message: `Successfully fetched ${rawOrders.length} orders (${formattedRows.length} item line records) from WooCommerce.`,
@@ -70,6 +92,13 @@ export async function POST(req: Request) {
       lineItemsCount: formattedRows.length,
       orders: returnRows,
       rawOrders: rawOrders,
+      breakdown: {
+        byStatus: statusBreakdown,
+        byBranch: branchBreakdown,
+        posCount,
+        onlineCount,
+        totalRevenue: Math.round(totalRevenue),
+      },
       provenance,
     });
   } catch (error: any) {

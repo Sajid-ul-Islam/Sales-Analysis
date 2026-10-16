@@ -44,6 +44,7 @@ export async function POST(req: Request) {
       pathaoCredentials: body.pathaoCredentials,
       activeOrders: body.activeOrders,
       limitConsignments: body.limitConsignments || 25,
+      fetchLiveWc: body.fetchLiveWc !== undefined ? body.fetchLiveWc : true,
     });
 
     const isPrivileged = auth.role === 'admin';
