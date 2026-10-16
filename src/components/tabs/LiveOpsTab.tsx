@@ -33,6 +33,7 @@ import {
 import * as XLSX from 'xlsx';
 
 import { RawOrderRow } from '@/types';
+import { dispatchSyncNotification } from '@/components/notifications/SyncNotificationCenter';
 import {
   processLiveOpsData,
   LiveOpsReport,
@@ -179,6 +180,12 @@ export function LiveOpsTab({
           // Pass fetched data directly to parent so parent doesn't make an extra network request
           await onRefreshLive(data.orders, data.provenance);
         }
+        dispatchSyncNotification({
+          type: (data.discrepancies?.length || 0) > 0 ? 'discrepancy_detected' : 'orders_synced',
+          title: data.wcConnected ? 'Live WooCommerce & Hermes Synced' : 'Terminal Snapshot Loaded',
+          description: `${data.stats?.totalOrders || data.orders.length} orders synchronized (${data.orders.length} items). ${data.discrepancies?.length || 0} courier discrepancies identified.`,
+          targetTab: (data.discrepancies?.length || 0) > 0 ? 'tabCourierMismatch' : 'tabLiveOps'
+        });
       } else if (data && data.message) {
         setSyncStatusMsg(`Notice: ${data.message}`);
         if (data.wcConnected !== undefined) setWcConnected(data.wcConnected);
@@ -189,6 +196,12 @@ export function LiveOpsTab({
       setCountdown(60);
     } catch (e: any) {
       setSyncStatusMsg(`Sync notice: ${e?.message || 'Using current snapshot'}`);
+      dispatchSyncNotification({
+        type: 'error',
+        title: 'Live Sync Notice',
+        description: e?.message || 'Failed to complete live sync. Using current cached snapshot.',
+        targetTab: 'tabSettings'
+      });
     } finally {
       setLocalSyncing(false);
       isSyncingRef.current = false;

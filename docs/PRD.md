@@ -1,10 +1,10 @@
 # Product Requirements Document (PRD)
 ## DEEN Commerce — Sales & Return Reconciliation Engine
 
-**Version:** 2.2.0  
+**Version:** 2.4.0  
 **Status:** Approved & Implemented  
 **Owner:** DEEN Commerce Operations, Logistics & Finance Engineering  
-**Last Updated:** October 2026  
+**Last Updated:** October 2026 (Live Ops & AI Assistant Integration)  
 
 ---
 
@@ -185,6 +185,26 @@ The dashboard features **12 dedicated operational modules**:
   - One-click JSON diagnostic export and JSON configuration file import (instant restore of parameters and theme).
   - Activity Audit Log: Timestamped ledger tracking all theme updates, formula changes, and sync events.
 
+### 4.16 Live Operations Terminal & Real-Time Dispatch Engine
+- **Purpose**: Real-time warehouse operational terminal monitoring high-velocity fulfillment, active packing queues, and courier handover telemetry.
+- **Key Operational Features**:
+  1. **Status Modification Timestamp Tracking**: Uses `Date Modified` / `dateModified` to track precisely when orders transitioned from `processing`/`hold` to `completed`/`shipped`. Orders modified on the active operational date are verified as today's dispatches.
+  2. **Warehouse Fulfillment Queue**: Real-time backlog tracking all active orders in `processing` or `on-hold` status awaiting customer phone confirmation or warehouse packing.
+  3. **Today's Active Orders Pipeline**: Aggregates Today's Shipped Parcels + all orders currently in `processing` placed today.
+  4. **7-Day Rolling History & Interactive Date Strip**: Horizontal 7-day selector allowing operators to inspect any previous day's dispatches, category mix, and financial KPIs.
+  5. **Integer 7-Day Daily Baseline**: Rolling daily average baseline computed using strict rounded integers (`Math.round`), eliminating corrupting decimal representations.
+  6. **Executive Briefing Generator**: Automatically synthesizes operational summaries with one-click copy for WhatsApp, Slack, and executive updates.
+  7. **Real-Time Courier Telemetry (Pathao Hermes)**: Live tracking of parcel statuses (Delivered, In Transit, Returned, Pending Pickup, Untracked), courier handover rate, and real-time COD collected.
+
+### 4.17 DEEN Assistant: AI-Supported Reconciliation & Business Copilot
+- **Purpose**: Autonomous executive business analyst integrated into the dashboard, capable of answering queries regarding net sales, return losses, courier leakage, and live fulfillment in real-time.
+- **Key Capabilities**:
+  1. **Omni-Provider Architecture**: Powered by Google Gemini by default, with Bring Your Own Key (BYOK) modal supporting OpenAI (GPT-4o), Anthropic (Claude 3.5), and Groq (Llama 3).
+  2. **Live Ops & Fulfillment Grounding**: Deterministically feeds `LiveOpsAnalyticsSlice` into LLM prompts, eliminating hallucinations for today's sales, queue depth, courier telemetry, and 7-day rolling baselines.
+  3. **Offline Heuristic Knowledge Engine**: Gracefully synthesizes full executive summaries from deterministic algorithms and domain rules even when completely offline or without an API key.
+  4. **Agentic Action Proposals**: Proposes and executes bulk audit tagging (e.g. tagging high-risk RTO customers for advance fees, tagging Pathao courier COD discrepancies).
+  5. **Persistent History & Markdown Export**: Encrypts and saves chat history locally with one-click export to Markdown (`.md`).
+
 ---
 
 ## 5. Non-Functional Requirements
@@ -199,3 +219,38 @@ The dashboard features **12 dedicated operational modules**:
 3. **Deterministic Performance**:
    - Sub-second UI state filtering across 1,000+ line items using optimized React `useMemo` hooks.
    - Clean Next.js compilation (`npm run build`) completed in < 20 seconds.
+
+---
+
+## 6. User Experience (UX) Architecture & Ergonomic Enhancements
+
+To guarantee a best-in-class merchant and auditor experience across Desktop, Tablet, and Mobile devices:
+
+### 6.1 Omnipresent Command Palette (`Cmd + K` / `Ctrl + K`)
+- Instant keyboard-driven global modal accessible from any view.
+- Unified search indexing:
+  - **Orders**: Base Order ID, branch suffixes (`c`, `w`, `s`, `m`), Pathao consignment ID, tracking code.
+  - **Customers**: Phone number lookup (`017...`, `018...`, `019...`), customer name, risk classification.
+  - **SKUs & Categories**: Garment SKU code, product title, delivery conversion rate.
+  - **Quick Navigation & Actions**: 1-click jump to any of the 14 tabs, trigger live sync, toggle themes, export data.
+
+### 6.2 Real-Time Sync Observability & Live Notification Center
+- **Dynamic Header Status Badges**: Pulsing green dot for WooCommerce REST API, pulsing blue dot for Pathao Hermes Courier API, showing real-time connectivity and countdown to next auto-sync.
+- **Floating Toast System**: Non-intrusive notification toasts alerting users to newly synced orders, courier status transitions, and newly detected courier discrepancies.
+- **Notification Drawer**: Central history drawer preserving the last 25 operational sync events with direct links to inspected rows.
+
+### 6.3 Universal Date Range Engine Across All Modules
+- Global persistent header filter supporting: `Today`, `Yesterday`, `Last 7 Days`, `Last 30 Days`, `This Month (MTD)`, and `Custom Date Range`.
+- Period-over-period comparison mode ($\Delta \%$) across Executive Overview, Orders Ledger, SKU Performance, Customer Risk, and Territory Breakdown.
+
+### 6.4 Table Display Ergonomics & Virtualization
+- **Density Controls**: Three selectable display densities (`Compact` 32px, `Standard` 44px, `Relaxed` 56px) to accommodate warehouse tablets and desktop workstations.
+- **Column Visibility Manager**: Customizable column selector to focus on specific financial or operational columns.
+- **Virtual Windowing**: High-performance virtualization ensuring silky 60fps scrolling across 10,000+ orders without browser lag.
+
+### 6.5 Interactive AI Copilot Action Cards
+- In-chat actionable widgets: 1-click navigate to order in Orders Ledger, 1-click draft courier dispute email with pre-filled consignment evidence, and inline mini trendline visualizations.
+
+### 6.6 Offline Persistence & IndexedDB Caching
+- Browser IndexedDB caching of order snapshots and reconciliation states for instantaneous (<150ms) boot times and offline resilience during warehouse network interruptions.
+

@@ -1,10 +1,10 @@
 # Technical Requirements Document (TRD)
 ## DEEN Commerce — Sales & Return Reconciliation Engine
 
-**Version:** 2.2.0  
+**Version:** 2.4.0  
 **Stack:** Next.js 14 (App Router) · React 18 · TypeScript 5.6 · Tailwind CSS 3.4  
 **Runtime:** Node.js 18+ (Vercel Serverless / Edge compatible)  
-**Last Updated:** October 2026  
+**Last Updated:** October 2026 (Live Ops, AI Copilot & Experience Enhancements)  
 
 ---
 
@@ -160,6 +160,18 @@ Audits differences between courier records and merchant order records:
 - Loads local workspace Excel spreadsheets when available on local developer machines.
 - In serverless cloud environments (Vercel), detects absent files gracefully and returns empty arrays without throwing errors, prompting the user for drag-and-drop file ingestion.
 
+### 4.5 `/api/sync/live-terminal` (POST)
+- High-velocity dual-stream operational endpoint.
+- Fetches recent order batches (up to 300 orders / 400+ line items) directly from WooCommerce REST API, maps in-store POS register metadata, and resolves real-time consignment delivery telemetry from Pathao Hermes API.
+- Non-blocking error isolation: If courier lookup fails for a parcel, the order stream remains healthy with status marked as `Untracked`.
+- Prevents redundant calls by accepting live datasets directly into client state.
+
+### 4.6 `/api/ai/copilot` (POST)
+- Executive AI analyst and natural language reconciliation engine.
+- Supports multi-provider inference: Google Gemini 1.5/2.0 Flash (default server key) and client BYOK (OpenAI, Anthropic, Groq, OpenRouter).
+- Injects ground-truth `LiveOpsAnalyticsSlice` and focused analytical query facts, ensuring zero hallucinations for today's sales, queue depth, courier telemetry, and 7-day rolling baselines.
+- Heuristic fallback engine: Generates structured markdown executive briefings completely offline if no LLM key is configured.
+
 ---
 
 ## 5. Security & Environment Configuration
@@ -205,3 +217,48 @@ Version 2.6 introduces the centralized `SettingsTab.tsx` and `settingsStore.ts` 
    - One-click JSON diagnostic export and JSON configuration file import.
    - In-memory & `localStorage` Activity Audit Log tracking timestamped modifications.
    - Safe credential editing with masked client secrets and live status connectivity testing.
+
+---
+
+## 8. Experience Architecture & Technical Contracts
+
+### 8.1 Command Palette (`Cmd + K`) Indexing Contract
+```typescript
+export interface CommandPaletteItem {
+  id: string;
+  category: 'tabs' | 'orders' | 'customers' | 'skus' | 'actions';
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  icon?: string;
+  action: () => void;
+}
+```
+- In-memory trie and normalized string index built on dataset load/refresh.
+- Sub-5ms search latency across 5,000+ items with keyboard navigation handlers (`ArrowUp`, `ArrowDown`, `Enter`, `Escape`).
+
+### 8.2 Real-Time Sync Observability & Toast Event Pipeline
+```typescript
+export interface SyncToastEvent {
+  id: string;
+  type: 'orders_synced' | 'courier_updated' | 'discrepancy_detected' | 'error';
+  title: string;
+  description: string;
+  timestamp: string;
+  targetTab?: string;
+  targetOrderId?: string;
+}
+```
+- Light event-bus triggering non-intrusive floating toasts that auto-dismiss after 4 seconds.
+- Historical log persisted in `localStorage` / `sessionStorage` (last 25 entries).
+
+### 8.3 Universal Date Range Engine
+- Standard ISO 8601 interval filter: `[startDate: string, endDate: string]`.
+- Date range normalization handles both WooCommerce ISO dates (`2026-10-16T10:00:00`) and Excel serial integers (`45560.5`).
+- Period-over-period comparison calculates:
+  $$\Delta \% = \left(\frac{\text{Metric}_{\text{Current}} - \text{Metric}_{\text{Prior}}}{\text{Metric}_{\text{Prior}}}\right) \times 100$$
+
+### 8.4 IndexedDB Client Persistence Architecture
+- Stores order records and reconciliation outcomes in browser IndexedDB (`deen_analytics_db`).
+- Enables instant dashboard boot (<150ms) on page reload without waiting for remote server roundtrips.
+

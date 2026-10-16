@@ -50,3 +50,14 @@ Refer to detailed rules in [.agents/rules/order_rules.md](file:///c:/Users/deenb
 * All data tables must be wrapped in `overflow-x-auto` with `min-w-0` to guarantee zero layout blowout.
 * Inline SVG charts must specify explicit `width="44" height="44"` (or `48x48`) and `shrink-0` to prevent SVG viewport distortion.
 * Adhere strictly to the semantic color tokens documented in [docs/DESIGN.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/docs/DESIGN.md).
+
+### 6. Live Operations & Real-Time Dispatch Rules
+* **Status Modification Verification**: An order is verified as shipped on date $D$ if its status is `completed`, `shipped`, or `delivered`, and its modification timestamp (`Date Modified` / `dateModified`) matches date $D$.
+* **Warehouse Pack Queue**: Backlog of orders needing warehouse fulfillment or customer verification; strictly defined as all active orders in `processing` OR `hold` / `on-hold` status.
+* **Today's Active Orders Pipeline**: Defined as Today's Shipped Orders + all orders currently in `processing` placed today.
+* **7-Day Rolling Baseline Invariant**: All daily averages (items/day, orders/day, revenue/day, AOV) must evaluate strictly to whole rounded **integers** (`Math.round`), avoiding fractional decimals.
+
+### 7. AI Assistant Grounding & Copilot Invariants
+* **Zero Hallucination Mandate**: The AI copilot (`DEEN Assistant`) must strictly ground all sales numbers, queue counts, delivery statuses, and baseline comparisons in verified `LiveOpsAnalyticsSlice` facts.
+* **Offline Fallback Guarantee**: If external LLM API keys are unconfigured or unavailable, `/api/ai/copilot` must synthesize a complete, grounded executive briefing using deterministic knowledge rules and mathematical slices without failing.
+

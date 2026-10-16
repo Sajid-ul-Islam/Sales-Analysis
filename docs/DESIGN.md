@@ -1,10 +1,10 @@
 # Design System & CSS Architecture Document (DESIGN.md)
 ## DEEN Commerce — Sales & Return Reconciliation Engine
 
-**Version:** 2.2.0  
-**Design Theme:** Pristine Enterprise Light Theme with Vibrant Omni-Channel Accents  
-**Typography:** Plus Jakarta Sans & Inter  
-**Last Updated:** October 2026  
+**Version:** 2.4.0  
+**Design Theme:** Pristine Enterprise Light & Class-Based Dark Theme with Omni-Channel Accents  
+**Typography:** Plus Jakarta Sans, Inter, JetBrains Mono  
+**Last Updated:** October 2026 (Live Ops, Mobile-First & Command Palette Ergonomics)  
 
 ---
 
@@ -114,7 +114,31 @@ The interface combines **Plus Jakarta Sans** for headlines and numeric KPIs with
   2. Pathao Delivery Log (`Pathao sample delivery data.csv`)
   3. Returns Report (`returen.xlsx`)
   4. Partial Shipments (`Partial Orders.xlsx`)
-  5. Exchanges Sheet (`Exchanged.xlsx`)
+### 4.4 Dynamic Live Connection & Telemetry Status Badges
+- **Pulsing Indicator Dots**: Real-time heartbeat indicators for background sync connections:
+  - `🟢 WooCommerce API Live`: `inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse`
+  - `🔵 Pathao Hermes Live`: `inline-block w-2 h-2 rounded-full bg-blue-500 animate-pulse`
+- **Item Count Chips**: `px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-[#EB5A19] border border-orange-200`
+- **Sync Countdown & Freshness Indicator**: Subtle timestamp label formatted as relative time (`"Synced 12s ago"`).
+
+### 4.5 Adaptive Multi-Device Navigation Architecture
+- **Mobile (<768px)**: Sticky bottom navigation bar (`MobileBottomNav.tsx`) with 48px minimum touch targets for high-frequency tabs (Overview, Orders, Returns, Sync), plus an accessible off-canvas drawer trigger for extended tabs.
+- **Tablet (768px - 1024px)**: Collapsible icon rail (`w-16` / `w-20`) with floating tooltips, maximizing screen width for data-dense tables.
+- **Desktop (>=1024px)**: Persistent 256px (`w-64`) sidebar with brand header, workspace status pill, and account actions.
+
+### 4.6 Command Palette (`Cmd + K`) Visual Specs
+- **Modal Backdrop**: High-elevation `z-[100]` with `bg-slate-900/60 dark:bg-black/80 backdrop-blur-md` overlay.
+- **Palette Container**: Centered floating container (`max-w-2xl w-full mx-auto shadow-2xl rounded-2xl border border-slate-200 dark:border-[#222] bg-white dark:bg-[#0D0D0D]`).
+- **Keyboard Shortcut Badges**: Standardized semantic key caps (`<kbd class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 dark:bg-[#1E1E1E] text-slate-500 border border-slate-200 dark:border-[#333]">⌘K</kbd>`).
+- **Category Grouping**: Distinct section headers (`TABS`, `ORDERS`, `CUSTOMERS`, `SKUS`, `ACTIONS`) with dedicated icons and active focus highlights (`bg-[#EB5A19]/10 text-[#EB5A19] dark:bg-[#EB5A19]/20`).
+
+### 4.7 Toast & Notification UI Tokens
+- **Floating Alert Placement**: Fixed top-right / bottom-right notification stack (`fixed top-4 right-4 z-50 flex flex-col gap-2.5 max-w-sm pointer-events-none`).
+- **Card Styling**: `pointer-events-auto p-3.5 rounded-xl border shadow-lg bg-white dark:bg-[#141414] border-slate-200 dark:border-[#262626] flex items-start gap-3 animate-slideInRight`.
+- **Status Accents**:
+  - `Success`: Emerald border, emerald icon badge (`bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600`).
+  - `Warning / Discrepancy`: Amber border, amber icon badge (`bg-amber-50 dark:bg-amber-950/40 text-amber-600`).
+  - `Critical Error`: Rose border, rose icon badge (`bg-rose-50 dark:bg-rose-950/40 text-rose-600`).
 
 ---
 

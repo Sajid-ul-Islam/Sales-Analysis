@@ -23,7 +23,10 @@ import {
   MarketingAnalyticsTab,
   SettingsTab,
   WeekComparisonModal,
-  DraggableAssistantButton
+  DraggableAssistantButton,
+  CommandPaletteModal,
+  SyncNotificationCenter,
+  dispatchSyncNotification
 } from '@/components';
 import { CopilotDrawer } from '@/components/ai/CopilotDrawer';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
@@ -35,7 +38,7 @@ import {
   extractExchangesFromPathaoDelivery
 } from '@/lib/reconciliationEngine';
 import { exportReconciledExcel } from '@/lib/excelExport';
-import { loadSavedThemeSettings, applyThemeToDocument } from '@/lib/themeManager';
+import { loadSavedThemeSettings, saveThemeSettings, applyThemeToDocument } from '@/lib/themeManager';
 import { loadAppSettings } from '@/lib/settingsStore';
 import { DateScope, filterOrdersByDateScope, CustomDateRange, getDynamicDatasetTitle } from '@/lib/dateFilter';
 import { RawOrderRow, AgenticActionProposal, DatasetSnapshot } from '@/types';
@@ -160,6 +163,50 @@ export default function DashboardPage() {
 
   const [result, setResult] = useState<ReconciliationResult | null>(null);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isDark =
+        document.documentElement.classList.contains('dark') ||
+        document.body.classList.contains('dark-canvas') ||
+        Boolean(localStorage.getItem('deen_reconcile_theme_settings_v1')?.includes('"dark-canvas"'));
+      setIsDarkMode(isDark);
+
+      const handler = (e: any) => {
+        if (e.detail?.isDark !== undefined) {
+          setIsDarkMode(e.detail.isDark);
+        }
+      };
+      window.addEventListener('deen-theme-changed', handler);
+      return () => window.removeEventListener('deen-theme-changed', handler);
+    }
+  }, []);
+
+  const handleToggleTheme = () => {
+    const nextMode = !isDarkMode;
+    setIsDarkMode(nextMode);
+    if (typeof window !== 'undefined') {
+      const saved = loadSavedThemeSettings();
+      const updated = {
+        ...saved,
+        backgroundId: (nextMode ? 'dark-canvas' : 'super-white') as any,
+        darkModeCanvas: nextMode
+      };
+      saveThemeSettings(updated);
+      if (nextMode) {
+        document.documentElement.classList.add('dark');
+        document.body.classList.add('dark-canvas');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.body.classList.remove('dark-canvas');
+      }
+      window.dispatchEvent(new CustomEvent('deen-theme-changed', { detail: { isDark: nextMode } }));
+    }
+  };
 
   // Financial & Mathematical Model Parameters (Loaded from AppSettings)
   const [insideDeliveryFee, setInsideDeliveryFee] = useState<number>(50);
@@ -655,6 +702,13 @@ export default function DashboardPage() {
     computeReconciliation(filtered.filteredOrders, updatedReturns, updatedPartials, excludeAugust, excludePOS, updatedExchanges, updatedDelivery);
     setStatusMessage(`Live Cloud API Active: reconciled ${filtered.matchedOrders.toLocaleString()} orders (${filtered.label}) with ${rows.length} ${type === 'orders' ? 'WooCommerce items' : 'Pathao records'}.`);
 
+    dispatchSyncNotification({
+      type: type === 'orders' ? 'orders_synced' : 'courier_updated',
+      title: type === 'orders' ? 'WooCommerce Orders Synced' : 'Pathao Courier Synced',
+      description: `Reconciled ${filtered.matchedOrders.toLocaleString()} orders with ${rows.length} ${type === 'orders' ? 'WooCommerce items' : 'Pathao records'} (${filtered.label}).`,
+      targetTab: type === 'orders' ? 'tabOrders' : 'tabCourierMismatch'
+    });
+
     // Automated Cloud Sync: Non-blocking background persistence to Vercel Blob
     fetch('/api/blob/dataset', {
       method: 'POST',
@@ -823,6 +877,11 @@ export default function DashboardPage() {
           hasCloudData={cloudApiDataset !== null && cloudApiDataset.orders.length > 0}
           onToggleMobileMenu={() => setMobileMenuOpen(prev => !prev)}
           mobileOpen={mobileMenuOpen}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+          onOpenNotificationCenter={() => setIsNotificationCenterOpen(true)}
+          notificationCount={notificationCount}
+          isDarkMode={isDarkMode}
+          onToggleTheme={handleToggleTheme}
         />
 
         <main
@@ -1186,6 +1245,32 @@ export default function DashboardPage() {
           onApplyPeriod={handleDateScopeChange}
           activeScope={dateScope}
           activeCustomRange={customDateRange}
+        />
+
+        {/* Omnipresent Command Palette (⌘K / Ctrl+K) */}
+        <CommandPaletteModal
+          isOpen={isCommandPaletteOpen}
+          onClose={() => setIsCommandPaletteOpen(false)}
+          onSelectTab={(tabId, filter) => {
+            handleSelectTab(tabId);
+            if (filter && tabId === 'tabOrders') {
+              setLedgerStatusFilter('ALL');
+            }
+          }}
+          reconciliationResult={result}
+          liveOrders={rawOrders}
+          onTriggerSync={() => handleSelectTab('tabLiveOps')}
+          onToggleTheme={handleToggleTheme}
+          onToggleCopilot={() => setIsCopilotOpen(prev => !prev)}
+          onExportExcel={handleExport}
+        />
+
+        {/* Real-Time Sync & Logistics Notification Center & Event Drawer */}
+        <SyncNotificationCenter
+          isOpen={isNotificationCenterOpen}
+          onClose={() => setIsNotificationCenterOpen(false)}
+          onNavigateToTab={(tabId) => handleSelectTab(tabId)}
+          onCountChange={(count) => setNotificationCount(count)}
         />
 
         {/* DEEN Assistant Floating Action Trigger (Draggable & Repositionable) */}

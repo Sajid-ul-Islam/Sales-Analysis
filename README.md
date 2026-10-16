@@ -12,15 +12,17 @@ This application helps Deen Commerce track and reconcile:
 
 ## Features
 
-- **KPI Overview**: Key metrics at a glance with live delivery retention, courier cost recovery, and return loss
-- **Outlet Dispatch (Hub)**: Courier parcel dispatches, delivery retention rates, and returned consignment values across Online Store (Central Warehouse) and retail branch outlets (Mirpur POS `m`, Cumilla `c`, Wari `w`, Sylhet `s`)
-- **Outlet Sales (WooCommerce Live)**: Real-time sales revenue, units sold, and channel breakdown comparing the Online Store (Website) against in-store physical POS registers
-- **Status Matrix**: Visual grid of order statuses across delivery outcomes
-- **SKU Performance**: Distinct categories for Polo, T-shirt, Jacket, and Sweatshirt with Excel export
-- **Territory Breakdown**: Regional performance (Inside Dhaka vs Outside Dhaka)
-- **Unit Economics**: Profitability analysis per order and transaction
-- **Orders Ledger**: Searchable, filterable master order ledger with parcel badges and modal inspector
-- **Excel Export**: Multi-sheet formatted Excel reports with strict business status columns
+- **Live Operations Terminal**: Real-time warehouse fulfillment stream synced directly with WooCommerce REST API and Pathao Hermes Courier API, status modification tracking (`Date Modified`), pack queue (`processing` + `hold`), today's orders, 7-day rolling history with date picker, integer-only 7-day daily baseline, and one-click WhatsApp/Slack executive briefing.
+- **DEEN Assistant (AI Copilot)**: Autonomous natural language business and reconciliation analyst powered by Gemini & BYOK (OpenAI, Claude, Groq), grounded in real-time operational slices and domain knowledge rules with offline heuristic synthesis and agentic bulk actions.
+- **KPI Overview**: Key metrics at a glance with live delivery retention, courier cost recovery, and return loss.
+- **Outlet Dispatch (Hub)**: Courier parcel dispatches, delivery retention rates, and returned consignment values across Online Store (Central Warehouse) and retail branch outlets (Mirpur POS `m`, Cumilla `c`, Wari `w`, Sylhet `s`).
+- **Outlet Sales (WooCommerce Live)**: Real-time sales revenue, units sold, and channel breakdown comparing the Online Store (Website) against in-store physical POS registers.
+- **Status Matrix**: Visual grid of order statuses across delivery outcomes.
+- **SKU Performance**: Distinct categories for Polo, T-shirt, Jacket, and Sweatshirt with Excel export.
+- **Territory Breakdown**: Regional performance (Inside Dhaka vs Outside Dhaka).
+- **Unit Economics**: Profitability analysis per order and transaction.
+- **Orders Ledger**: Searchable, filterable master order ledger with parcel badges and modal inspector.
+- **Excel Export**: Multi-sheet formatted Excel reports with strict business status columns.
 
 ## Tech Stack
 
@@ -97,9 +99,11 @@ Detailed architectural and business specifications:
 
 | Route | Method | Description |
 |-------|--------|-------------|
+| `/api/sync/live-terminal` | POST | High-speed dual-stream sync fetching WooCommerce orders & Pathao Hermes telemetry |
+| `/api/ai/copilot` | POST | AI copilot inference engine with live ops grounding, offline fallback, and BYOK |
 | `/api/sync/pathao` | POST | Fetch live consignments from Pathao Hermes API, cross-check returns & COD |
 | `/api/sync/woocommerce` | POST | Fetch orders from WooCommerce REST API (paginated, up to 5 pages) |
-| `/api/sync/status` | POST | Sync status updates |
+| `/api/sync/status` | GET/POST | Health-check & sync status diagnostics |
 | `/api/sample-data` | GET | Load pre-built September workspace dataset for demo/testing |
 
 ## Reconciliation Engine

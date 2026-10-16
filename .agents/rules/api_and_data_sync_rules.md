@@ -52,3 +52,22 @@ Credentials in `src/lib/secrets.ts` must resolve in strict order:
 1. Process environment variables (`process.env.WOOCOMMERCE_...`, `process.env.PATHAO_...`)
 2. Local `secrets.toml` or `.env.local` when running in local Node environment
 3. Safe empty string fallback `""` when neither is configured.
+
+---
+
+## 4. Live Terminal Sync & Reentrancy Prevention Rules
+
+### 4.1 Sync Concurrency Guard & Rate-Limit Protection
+* All client-side polling and manual triggers must enforce an `isSyncingRef` concurrency guard.
+* Minimum sync interval: 60 seconds for automated polling.
+* Exponential backoff: If HTTP 429 (Rate Limit) is encountered, pause polling for at least 120 seconds.
+* Never include mutated datasets in `useCallback` dependency arrays of sync handlers, preventing infinite re-trigger loops.
+
+### 4.2 Single-Flight Data Propagation
+* `LiveOpsTab.tsx` passes synced order rows directly to `page.tsx`'s state via `onRefreshLive(orders, provenance)`.
+* `page.tsx` must absorb the live array directly into top-level state without executing redundant `/api/sync/live-terminal` network calls.
+
+### 4.3 POS Outlet Metadata Preservation
+* Orders originating from physical store POS registers have standard numeric IDs (e.g. `17966`) without letter suffixes.
+* The branch detection waterfall must inspect `_sip_outlet_id`, `fulfillmentBranch`, and `outletId` properties first before defaulting to Online Store (Central Warehouse).
+

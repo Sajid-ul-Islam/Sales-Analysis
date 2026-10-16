@@ -35,15 +35,27 @@
 | 11 | WCAG AA Touch Targets & A11y | Minimum 44x44px touch targets on buttons/tabs, visible keyboard focus rings | M4 | ORIGINAL_REQUEST §R4 |
 | 12 | Dual-Engine Fail-Safe CSS | Inlined critical CSS resets + Tailwind CDN + dual PostCSS config | M4 | AGENTS.md §5 |
 | 13 | E2E & Hardening Test Suite | 4-tier requirement-driven test suite verifying layout responsiveness, frozen columns, KPI grids, theming, and regression integrity | M5 | Acceptance Criteria |
+| 14 | Live Operations Terminal | Real-time WooCommerce & Pathao Hermes sync, status modification tracking, pack queue, today's orders, 7D baseline | M6 | Live Operations Engine |
+| 15 | DEEN Assistant AI Copilot | Autonomous executive assistant grounded in live ops, domain knowledge RAG, BYOK provider switcher, agentic tagging | M7 | AI Copilot Integration |
+| 16 | Omnipresent Command Palette | Global `Cmd+K` / `Ctrl+K` modal searching tabs, orders, customers, and SKUs with keyboard navigation | E1 | Overall Experience |
+| 17 | Live Sync Notification Center | Floating toast event pipeline and header status indicator for real-time order and courier events | E2 | Overall Experience |
+| 18 | Universal Date Range Engine | Global temporal filter across all 12 modules with period comparison math ($\Delta \%$) | E3 | Overall Experience |
+| 19 | Table Ergonomics & Density | Selectable table density (Compact / Standard / Relaxed) and column visibility customization | E4 | Overall Experience |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| M1 | Adaptive Multi-Device Navigation | Implement `MobileBottomNav.tsx`, responsive collapsible icon rail in `Sidebar.tsx`, and slide-over drawer with >=48px touch targets | None | PLANNED |
-| M2 | Responsive Tables with Frozen Columns | Implement `overflow-x-auto min-w-0`, `sticky left-0` on primary ID columns, opaque background layering, and scroll hints across all tables | None | PLANNED |
-| M3 | Responsive KPI Cards & Charts | Harmonize KPI overview grid (1-col mobile, 2-col tablet, 4-6 desktop), update typography, and enforce fluid SVG constraints | None | PLANNED |
-| M4 | Design System, Theming & Accessibility | Configure `darkMode: "class"`, add theme toggle in Header, ensure >=44px touch targets across UI, and reinforce fail-safe CSS | M1 | PLANNED |
-| M5 | Final E2E Test Suite & Adversarial Hardening | Comprehensive test coverage for all tiers (T1-T4 + T5 hardening), zero regressions, type-check, lint, build pass | M1, M2, M3, M4 | PLANNED |
+| M1 | Adaptive Multi-Device Navigation | Implement `MobileBottomNav.tsx`, responsive collapsible icon rail in `Sidebar.tsx`, and slide-over drawer with >=48px touch targets | None | COMPLETED |
+| M2 | Responsive Tables with Frozen Columns | Implement `overflow-x-auto min-w-0`, `sticky left-0` on primary ID columns, opaque background layering, and scroll hints across all tables | None | COMPLETED |
+| M3 | Responsive KPI Cards & Charts | Harmonize KPI overview grid (1-col mobile, 2-col tablet, 4-6 desktop), update typography, and enforce fluid SVG constraints | None | COMPLETED |
+| M4 | Design System, Theming & Accessibility | Configure `darkMode: "class"`, add theme toggle in Header, ensure >=44px touch targets across UI, and reinforce fail-safe CSS | M1 | COMPLETED |
+| M5 | Final E2E Test Suite & Adversarial Hardening | Comprehensive test coverage for all tiers (T1-T4 + T5 hardening), zero regressions, type-check, lint, build pass | M1, M2, M3, M4 | COMPLETED |
+| M6 | Live Operations & Real-Time Sync | WooCommerce REST batch sync, Pathao Hermes live tracking, status modification tracking, pack queue, 7D rolling baseline | None | COMPLETED |
+| M7 | AI Assistant Live Ops Integration | Ground DEEN Assistant in real-time orders, courier telemetry, 7D baseline, offline heuristics fallback, agentic tags | M6 | COMPLETED |
+| E1 | Command Palette (`Cmd + K`) | Universal modal search across tabs, orders, customers, SKUs, and quick actions with keyboard shortcuts | None | IN PROGRESS |
+| E2 | Live Sync Notification Center | Floating toast alert pipeline for background sync events (new orders, courier updates, discrepancies) | M6 | PLANNED |
+| E3 | Universal Date Range Engine | Header date range bar applying across all 12 modules with period comparison deltas | None | PLANNED |
+| E4 | Table Density & Virtualization | Display density switcher (Compact/Standard/Relaxed), column visibility, and high-performance virtual windowing | M2 | PLANNED |
 
 ## Interface Contracts
 

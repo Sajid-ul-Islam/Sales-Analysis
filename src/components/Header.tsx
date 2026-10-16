@@ -11,7 +11,9 @@ import {
   X,
   Sun,
   Moon,
-  MoreVertical
+  MoreVertical,
+  Bell,
+  Command
 } from 'lucide-react';
 import { DateScope, DateScopeCounts, CustomDateRange, FileWeek } from '@/lib/dateFilter';
 import { DateRangeSelector } from '@/components/DateRangeSelector';
@@ -23,6 +25,9 @@ export interface HeaderProps {
   onResetBaseline?: () => void;
   dataSourceName?: string;
   onSearch?: (term: string) => void;
+  onOpenCommandPalette?: () => void;
+  onOpenNotificationCenter?: () => void;
+  notificationCount?: number;
   activeSourceMode?: 'UPLOAD' | 'API';
   onSwitchSourceMode?: (mode: 'UPLOAD' | 'API') => void;
   hasCloudData?: boolean;
@@ -50,6 +55,9 @@ export function Header({
   onResetBaseline,
   dataSourceName,
   onSearch,
+  onOpenCommandPalette,
+  onOpenNotificationCenter,
+  notificationCount = 0,
   activeSourceMode = 'UPLOAD',
   onSwitchSourceMode,
   hasCloudData = false,
@@ -126,12 +134,16 @@ export function Header({
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault();
-        searchRef.current?.focus();
+        if (onOpenCommandPalette) {
+          onOpenCommandPalette();
+        } else {
+          searchRef.current?.focus();
+        }
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [onOpenCommandPalette]);
 
   const handleThemeToggle = () => {
     if (onToggleTheme) {
@@ -190,9 +202,14 @@ export function Header({
             type="text"
             value={searchTerm}
             onChange={handleSearchChange}
-            placeholder="Search..."
+            onClick={() => {
+              if (onOpenCommandPalette && !searchTerm) {
+                onOpenCommandPalette();
+              }
+            }}
+            placeholder="Search or press ⌘K..."
             aria-label="Search orders, SKUs, customer phones"
-            className="w-full min-w-0 pl-9 pr-8 sm:pr-10 py-2 sm:py-2.5 min-h-[40px] sm:min-h-[44px] bg-slate-100/70 hover:bg-slate-100 focus:bg-white dark:bg-[#0D0D0D] dark:hover:bg-[#141414] dark:focus:bg-[#000000] text-xs border border-transparent hover:border-slate-200 dark:hover:border-[#222222] focus:border-slate-300 dark:focus:border-[#333333] rounded-xl placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all text-slate-800 dark:text-slate-100"
+            className="w-full min-w-0 pl-9 pr-8 sm:pr-14 py-2 sm:py-2.5 min-h-[40px] sm:min-h-[44px] bg-slate-100/70 hover:bg-slate-100 focus:bg-white dark:bg-[#0D0D0D] dark:hover:bg-[#141414] dark:focus:bg-[#000000] text-xs border border-transparent hover:border-slate-200 dark:hover:border-[#222222] focus:border-slate-300 dark:focus:border-[#333333] rounded-xl placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all text-slate-800 dark:text-slate-100"
           />
           {searchTerm ? (
             <button
@@ -204,9 +221,15 @@ export function Header({
               <X className="w-3.5 h-3.5" />
             </button>
           ) : (
-            <kbd className="hidden sm:inline-block absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-white/80 dark:bg-[#141414] border border-slate-200 dark:border-[#262626] rounded shadow-2xs pointer-events-none">
-              ⌘K
-            </kbd>
+            <button
+              type="button"
+              onClick={onOpenCommandPalette}
+              className="hidden sm:inline-flex items-center gap-0.5 absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-white/90 dark:bg-[#1A1A1A] border border-slate-200 dark:border-[#333] hover:border-orange-300 dark:hover:border-orange-500/50 rounded shadow-2xs cursor-pointer transition-colors"
+              title="Open Command Palette (⌘K)"
+            >
+              <Command className="w-2.5 h-2.5 text-[#EB5A19]" />
+              <span>K</span>
+            </button>
           )}
         </div>
       </div>
@@ -280,6 +303,22 @@ export function Header({
             <Download className="w-4 h-4 shrink-0" />
           </button>
 
+          {/* Real-Time Sync Notifications Trigger */}
+          {onOpenNotificationCenter && (
+            <button
+              type="button"
+              onClick={onOpenNotificationCenter}
+              className="relative inline-flex items-center justify-center p-2 min-w-[40px] min-h-[40px] rounded-xl text-slate-400 hover:text-[#EB5A19] dark:text-slate-400 dark:hover:text-[#EB5A19] hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+              title="View Real-Time Sync & Operations Notifications"
+              aria-label="View Real-Time Sync Notifications"
+            >
+              <Bell className="w-4 h-4 shrink-0" />
+              {notificationCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#EB5A19] ring-2 ring-white dark:ring-black animate-pulse" />
+              )}
+            </button>
+          )}
+
           {/* Quick Light/Dark Theme Toggle Action */}
           <button
             type="button"
@@ -341,6 +380,28 @@ export function Header({
                 >
                   <RefreshCw className="w-4 h-4 text-[#EB5A19] shrink-0" />
                   <span className="flex-1 text-left">Reload Baseline (1,026)</span>
+                </button>
+              )}
+
+              {/* Notifications Option */}
+              {onOpenNotificationCenter && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMoreMenuOpen(false);
+                    onOpenNotificationCenter();
+                  }}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Bell className="w-4 h-4 text-[#EB5A19] shrink-0" />
+                    <span>Sync Notifications</span>
+                  </div>
+                  {notificationCount > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#EB5A19] text-white">
+                      {notificationCount}
+                    </span>
+                  )}
                 </button>
               )}
 

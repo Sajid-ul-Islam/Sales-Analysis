@@ -81,3 +81,20 @@ $$\text{Net Courier Burden} = \text{Pathao Gross Charges} - \text{Paid Return Co
 * **True Net Operating Contribution Margin (CM3)**:
   $$\text{Net Contribution Margin (CM3)} = \text{CM2} - \text{Meta Ad Spend}$$
   $$\text{Net Margin Percentage} = \frac{\text{Net Contribution Margin}}{\text{Clean Realized Net Sales}} \times 100$$
+
+---
+
+## 5. 7-Day Rolling Daily Average Baseline Formulations
+
+### 5.1 Strict Integer Standard for Operational Baselines
+All 7-day average metrics must strictly evaluate to non-negative whole **integers**; fractional float counts are forbidden:
+$$\text{Avg7dItems} = \mathrm{round}\left(\frac{\sum_{i=1}^7 \text{Items}_i}{7}\right) \in \mathbb{Z}_{\ge 0}$$
+$$\text{Avg7dOrders} = \mathrm{round}\left(\frac{\sum_{i=1}^7 \text{Orders}_i}{7}\right) \in \mathbb{Z}_{\ge 0}$$
+$$\text{Avg7dRevenue} = \mathrm{round}\left(\frac{\sum_{i=1}^7 \text{Revenue}_i}{7}\right) \in \mathbb{Z}_{\ge 0}$$
+$$\text{Avg7dAov} = \mathrm{round}\left(\frac{\text{Avg7dRevenue}}{\max(1, \text{Avg7dOrders})}\right) \in \mathbb{Z}_{\ge 0}$$
+
+### 5.2 Period Comparison Delta Formulations
+Percentage variances vs. baseline are protected against zero denominators:
+$$\Delta \text{Volume}\% = \begin{cases} 0\% & \text{if } \text{Avg7dItems} = 0 \\ \mathrm{round}\left(\frac{\text{TodayItems} - \text{Avg7dItems}}{\text{Avg7dItems}} \times 100\right) & \text{otherwise} \end{cases}$$
+$$\Delta \text{Revenue}\% = \begin{cases} 0\% & \text{if } \text{Avg7dRevenue} = 0 \\ \mathrm{round}\left(\frac{\text{TodayRevenue} - \text{Avg7dRevenue}}{\text{Avg7dRevenue}} \times 100\right) & \text{otherwise} \end{cases}$$
+

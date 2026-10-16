@@ -71,3 +71,23 @@ The Excel export (`Reconciled Orders` ledger) features two distinct status colum
      * If order is **Partial** $\rightarrow$ kept items get `Delivered`, while returned items get `Returned`.
      * If order is **Exchange** $\rightarrow$ item gets `Exchange`.
 
+---
+
+## 5. Live Operations Order Pipeline Rules
+
+### A. Today's Shipped Orders
+* An order is classified as Shipped on target date $D$ if its status is `completed`, `shipped`, or `delivered`, AND its status modification timestamp (`Date Modified` / `dateModified`) matches date $D$.
+* If `Date Modified` is unavailable, fallback to `Order Date`.
+
+### B. Warehouse Fulfillment Queue
+* Defined as the active fulfillment backlog: all orders currently in `processing` OR `hold` / `on-hold` status.
+* Excludes completed, cancelled, or refunded orders.
+
+### C. Today's Active Orders
+* Defined as Today's Shipped Orders + all orders placed today with `processing` status awaiting packing.
+
+### D. 7-Day Rolling Daily Baseline
+* Rolling 7-day average metrics (items/day, orders/day, revenue/day, AOV) must always be rounded to whole integers:
+  $$\text{DailyAvg} = \mathrm{round}\left(\frac{\sum_{i=1}^7 \text{Metric}_i}{7}\right)$$
+
+
