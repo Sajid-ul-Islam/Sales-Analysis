@@ -4,24 +4,37 @@ These rules govern all styling, layout composition, and CSS architecture for the
 
 ---
 
-## 1. Dual-Engine Unbreakable Architecture (Fail-Safe CSS)
+## 1. Zero-CDN Next.js Compiled Architecture & Fail-Safe Resets
 
-To ensure CSS can **NEVER be broken by anything no matter what** (stale dev caches, build transitions, webpack 404s, or client hydration delays):
+To ensure optimal performance, accessibility, and resilience:
 
-1. **Layer 1 — Inline Critical Resets & Tokens in `layout.tsx`**:
-   - Fundamental variables (`--primary: #EB5A19`, `--brand-navy: #0F172A`), container resets, scrollbar styles, table overflow wrappers, and glow utilities are injected directly in `<head>` via an inline `<style id="critical-unbreakable-css">` tag.
-   - The browser has structural and chromatic styles available before any external file request.
+1. **Layer 1 — Essential Inlined Critical Resets in `layout.tsx`**:
+   - Fundamental variables (`--primary: #EB5A19`, `--primary-dark: #C8430E`, `--brand-navy: #0F172A`), container resets, scrollbar styles, table overflow wrappers, and glow utilities are injected directly in `<head>` via an inline `<style id="critical-unbreakable-css">` tag.
+   - An anti-FOUC theme initializer script (`#theme-initializer`) runs before DOM rendering to eliminate theme flicker.
 
-2. **Layer 2 — Standalone Tailwind CDN Runtime in `layout.tsx`**:
-   - `layout.tsx` loads `https://cdn.tailwindcss.com` along with a synchronized inline theme configuration matching `tailwind.config.ts`.
-   - If Next.js dev server ever returns a 404 on `layout.css` (e.g., when a production build alters `.next` while dev server is active), the client-side Tailwind engine instantly parses and renders every single utility class dynamically in the browser.
+2. **Layer 2 — Self-Hosted Variable Typography (`next/font/google`)**:
+   - `Inter` and `Plus_Jakarta_Sans` are downloaded at build time and inlined as CSS variables (`--font-sans` and `--font-headline`).
+   - Zero render-blocking Google Font network requests and zero font layout shifts (CLS = 0).
 
-3. **Layer 3 — Next.js PostCSS Pipeline (`globals.css`)**:
-   - Full Tailwind compilation via standard build pipeline.
-   - Dual PostCSS configurations (`postcss.config.js` and `postcss.config.mjs`) remain in the project root to satisfy all bundlers (Next.js, Turbopack, Webpack, Tailwind CLI).
+3. **Layer 3 — Next.js PostCSS Pipeline (`globals.css`) & Zero CDN**:
+   - Full Tailwind compilation ahead-of-time via PostCSS (`postcss.config.js` and `postcss.config.mjs`).
+   - Zero runtime CDN scripts (`cdn.tailwindcss.com` is completely removed), preventing layout shifts and JavaScript execution overhead.
 
-4. **Layer 4 — Stale Process Purge in `Launch_Dashboard.bat`**:
-   - `Launch_Dashboard.bat` automatically terminates any zombie node processes bound to port 3000 before launching `npm run dev`.
+4. **Layer 4 — Hierarchical Layered Dark Surfaces**:
+   - Pure `#000000` pitch-black canvas only.
+   - Cards, tables, modals, and sidebars utilize layered semantic depth tokens:
+     - `deepBlack.canvas` (#000000)
+     - `deepBlack.sidebar` (#050505)
+     - `deepBlack.card` (#0A0A0A)
+     - `deepBlack.elevated` (#121212)
+     - `deepBlack.hover` (#171717)
+     - `deepBlack.border` (#1F1F1F)
+   - Brute-force `!important` selector overrides are strictly prohibited.
+
+5. **Layer 5 — WCAG AA Contrast Standards & Typography Floor**:
+   - Small text using brand orange uses `primary-dark` (`#C8430E` / 4.6:1 contrast ratio against white) and `text-orange-400` in dark mode.
+   - Minimum 11px font floor across navigation and label chips.
+   - Reduced motion guard (`@media (prefers-reduced-motion: reduce)`) guarantees instant transitions for sensitive users.
 
 ---
 

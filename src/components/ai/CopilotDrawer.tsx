@@ -372,35 +372,35 @@ export function CopilotDrawer({
             <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider shrink-0">
               Context:
             </span>
-            <span className="text-xs font-bold text-[#EB5A19] dark:text-orange-400 truncate">
+            <span className="text-xs font-bold text-primary-dark dark:text-orange-400 truncate">
               {currentContext.label}
             </span>
-            <span className="hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-md bg-orange-100/70 dark:bg-orange-950/50 text-[#EB5A19] dark:text-orange-300 font-semibold border border-orange-200/50 dark:border-orange-900/50 shrink-0">
+            <span className="hidden sm:inline-block text-[11px] px-2 py-0.5 rounded-md bg-orange-100/70 dark:bg-orange-950/50 text-primary-dark dark:text-orange-300 font-semibold border border-orange-200/50 dark:border-orange-900/50 shrink-0">
               {currentContext.badge}
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate hidden sm:inline">
+          <span className="text-[11px] text-slate-400 dark:text-slate-500 truncate hidden sm:inline">
             Auto-adapted intelligence
           </span>
         </div>
 
         {/* Suggestion Chips Bar */}
-        <div className="px-4 py-2 bg-slate-50 dark:bg-[#080808] border-b border-slate-100 dark:border-[#1F1F1F] flex items-center justify-between gap-2 overflow-x-auto no-scrollbar shrink-0">
+        <div className="px-4 py-2 bg-slate-50 dark:bg-deepBlack-sidebar border-b border-slate-100 dark:border-deepBlack-border flex items-center justify-between gap-2 overflow-x-auto no-scrollbar shrink-0">
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-            <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 shrink-0">Suggestions:</span>
+            <span className="text-[11px] uppercase font-bold text-slate-400 dark:text-slate-500 shrink-0">Suggestions:</span>
             {currentContext.prompts.map((qp, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => handleSendQuery(qp)}
-                className="text-[11px] font-medium bg-white dark:bg-[#121212] hover:bg-orange-50 dark:hover:bg-[#1A1A1A] text-slate-700 dark:text-slate-200 hover:text-[#EB5A19] dark:hover:text-orange-300 px-2.5 py-1 rounded-full border border-slate-200 dark:border-[#262626] hover:border-orange-300 dark:hover:border-orange-500/30 shrink-0 shadow-2xs transition-colors flex items-center gap-1 active:scale-95 cursor-pointer"
+                className="text-[11px] font-medium bg-white dark:bg-deepBlack-card hover:bg-orange-50 dark:hover:bg-deepBlack-hover text-slate-700 dark:text-slate-200 hover:text-primary-dark dark:hover:text-orange-300 px-2.5 py-1 rounded-full border border-slate-200 dark:border-deepBlack-border hover:border-orange-300 dark:hover:border-orange-500/30 shrink-0 shadow-2xs transition-colors flex items-center gap-1 active:scale-95 cursor-pointer"
               >
                 <span>{qp}</span>
                 <ArrowRight className="w-2.5 h-2.5 text-slate-400 dark:text-slate-500" />
               </button>
             ))}
 
-            <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 shrink-0 pl-1 border-l border-slate-200 dark:border-slate-800">
+            <span className="text-[11px] uppercase font-bold text-emerald-600 dark:text-emerald-400 shrink-0 pl-1 border-l border-slate-200 dark:border-slate-800">
               Live Ops:
             </span>
             <button
@@ -432,13 +432,13 @@ export function CopilotDrawer({
               <span>📈 7-Day Baseline</span>
             </button>
 
-            <span className="text-[10px] uppercase font-bold text-[#EB5A19] shrink-0 pl-1 border-l border-slate-200 dark:border-slate-800">
+            <span className="text-[11px] uppercase font-bold text-primary-dark dark:text-orange-400 shrink-0 pl-1 border-l border-slate-200 dark:border-slate-800">
               Agentic:
             </span>
             <button
               type="button"
               onClick={() => handleSendQuery("Tag all orders with courier variance > 100 as 'Pathao Discrepancy'")}
-              className="text-[11px] font-medium bg-orange-50/80 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/40 text-[#EB5A19] dark:text-orange-300 px-2.5 py-1 rounded-full border border-orange-200 dark:border-orange-800/60 shrink-0 shadow-2xs transition-colors flex items-center gap-1 active:scale-95 cursor-pointer"
+              className="text-[11px] font-medium bg-orange-50/80 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/40 text-primary-dark dark:text-orange-300 px-2.5 py-1 rounded-full border border-orange-200 dark:border-orange-800/60 shrink-0 shadow-2xs transition-colors flex items-center gap-1 active:scale-95 cursor-pointer"
             >
               <span>🏷️ Tag Pathao Discrepancies</span>
             </button>
@@ -462,10 +462,10 @@ export function CopilotDrawer({
             <button
               type="button"
               onClick={() => setShowHistoryChips(prev => !prev)}
-              className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border flex items-center gap-1 shrink-0 transition-colors cursor-pointer ${
+              className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border flex items-center gap-1 shrink-0 transition-colors cursor-pointer ${
                 showHistoryChips
-                  ? 'bg-orange-50 dark:bg-[#1A1A1A] text-[#EB5A19] dark:text-orange-300 border-orange-200 dark:border-orange-500/30'
-                  : 'bg-white dark:bg-[#121212] text-slate-500 dark:text-slate-400 border-slate-200 dark:border-[#262626]'
+                  ? 'bg-orange-50 dark:bg-deepBlack-hover text-primary-dark dark:text-orange-300 border-orange-200 dark:border-orange-500/30'
+                  : 'bg-white dark:bg-deepBlack-card text-slate-500 dark:text-slate-400 border-slate-200 dark:border-deepBlack-border'
               }`}
               title="Toggle previous questions from local storage"
             >
@@ -477,9 +477,9 @@ export function CopilotDrawer({
 
         {/* Re-usable Previous Queries Tray (from local storage) */}
         {showHistoryChips && previousQueries.length > 0 && (
-          <div className="px-4 py-2 bg-slate-100/70 dark:bg-[#0D0D0D] border-b border-slate-200 dark:border-[#1F1F1F] flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0 animate-fadeIn">
-            <span className="text-[10px] uppercase font-bold text-slate-600 dark:text-slate-400 shrink-0 flex items-center gap-1">
-              <RotateCcw className="w-3 h-3 text-[#EB5A19] dark:text-orange-400" />
+          <div className="px-4 py-2 bg-slate-100/70 dark:bg-deepBlack-sidebar border-b border-slate-200 dark:border-deepBlack-border flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0 animate-fadeIn">
+            <span className="text-[11px] uppercase font-bold text-slate-600 dark:text-slate-400 shrink-0 flex items-center gap-1">
+              <RotateCcw className="w-3 h-3 text-primary-dark dark:text-orange-400" />
               <span>Past Queries:</span>
             </span>
             {previousQueries.slice(0, 5).map((qText, qIdx) => (
@@ -489,7 +489,7 @@ export function CopilotDrawer({
                 onClick={() => {
                   setInputQuery(qText);
                 }}
-                className="text-[10px] font-medium bg-white dark:bg-[#141414] hover:bg-orange-50 dark:hover:bg-[#1F1F1F] text-slate-800 dark:text-slate-200 hover:text-[#EB5A19] dark:hover:text-orange-300 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-[#262626] hover:border-orange-300 dark:hover:border-orange-500/30 shrink-0 shadow-2xs transition-colors truncate max-w-[200px] cursor-pointer"
+                className="text-[11px] font-medium bg-white dark:bg-deepBlack-card hover:bg-orange-50 dark:hover:bg-deepBlack-hover text-slate-800 dark:text-slate-200 hover:text-primary-dark dark:hover:text-orange-300 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-deepBlack-border hover:border-orange-300 dark:hover:border-orange-500/30 shrink-0 shadow-2xs transition-colors truncate max-w-[200px] cursor-pointer"
                 title={`Click to re-use: "${qText}"`}
               >
                 &ldquo;{qText}&rdquo;
@@ -499,7 +499,7 @@ export function CopilotDrawer({
         )}
 
         {/* Chat Messages Log with Rich Markdown Formatting */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50/30 dark:bg-[#050505] text-xs">
+        <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50/30 dark:bg-deepBlack-canvas text-xs">
           {messages.map((m) => {
             const isUser = m.sender === 'user';
             return (
@@ -508,7 +508,7 @@ export function CopilotDrawer({
                 className={`flex gap-2.5 ${isUser ? 'justify-end' : 'justify-start'} group`}
               >
                 {!isUser && (
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-b from-[#f26322] to-[#EB5A19] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-b from-[#f26322] to-primary text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
                     <Bot className="w-4 h-4 text-white" />
                   </div>
                 )}
@@ -516,8 +516,8 @@ export function CopilotDrawer({
                 <div
                   className={`max-w-[88%] rounded-2xl p-4 shadow-2xs leading-relaxed relative ${
                     isUser
-                      ? 'bg-[#EB5A19] text-white rounded-tr-xs shadow-xs'
-                      : 'bg-white dark:bg-[#0D0D0D] border border-slate-200 dark:border-[#1F1F1F] text-slate-800 dark:text-slate-100 rounded-tl-xs shadow-xs'
+                      ? 'bg-primary text-white rounded-tr-xs shadow-xs'
+                      : 'bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border text-slate-800 dark:text-slate-100 rounded-tl-xs shadow-xs'
                   }`}
                 >
                   {/* Rich Markdown Formatter */}
@@ -525,14 +525,14 @@ export function CopilotDrawer({
 
                   {/* Applied Business Rules & Policies Badge */}
                   {!isUser && m.appliedRules && m.appliedRules.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100 dark:border-[#1F1F1F]">
-                      <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100 dark:border-deepBlack-border">
+                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                         Rules Applied:
                       </span>
                       {m.appliedRules.map((rule, rIdx) => (
                         <span
                           key={rIdx}
-                          className="text-[9px] font-semibold px-2 py-0.5 rounded-md bg-orange-50 dark:bg-orange-950/40 text-[#EB5A19] dark:text-orange-400 border border-orange-200/60 dark:border-orange-900/40"
+                          className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-orange-50 dark:bg-orange-950/40 text-primary-dark dark:text-orange-400 border border-orange-200/60 dark:border-orange-900/40"
                         >
                           {rule}
                         </span>
@@ -545,14 +545,14 @@ export function CopilotDrawer({
                     <div className="mt-3 p-3.5 rounded-xl bg-orange-50/70 dark:bg-orange-950/30 border border-orange-200/90 dark:border-orange-800/40 text-xs">
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <div className="flex items-center gap-1.5">
-                          <div className="w-5 h-5 rounded-md bg-[#EB5A19] text-white flex items-center justify-center font-bold text-[10px]">
+                          <div className="w-5 h-5 rounded-md bg-primary text-white flex items-center justify-center font-bold text-[10px]">
                             ⚡
                           </div>
                           <span className="font-bold text-navy-deep dark:text-orange-200 text-xs">
                             {m.agenticAction.type === 'CLEAR_TAGS' ? 'Clear Tags Proposal' : 'Agentic Dataset Action Proposed'}
                           </span>
                         </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white dark:bg-[#1A1A1A] border border-orange-300 dark:border-orange-700 text-[#EB5A19]">
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white dark:bg-deepBlack-card border border-orange-300 dark:border-orange-700 text-primary-dark dark:text-orange-400">
                           {m.agenticAction.affectedCount} orders affected
                         </span>
                       </div>
@@ -567,14 +567,14 @@ export function CopilotDrawer({
                           {m.agenticAction.previewOrders.slice(0, 4).map((p, pIdx) => (
                             <span
                               key={pIdx}
-                              className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-white dark:bg-[#141414] border border-slate-200 dark:border-[#333] text-slate-700 dark:text-slate-200"
+                              className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-white dark:bg-deepBlack-hover border border-slate-200 dark:border-deepBlack-border text-slate-700 dark:text-slate-200"
                               title={`${p.customerName}: ${p.reason}`}
                             >
                               #{p.orderId}
                             </span>
                           ))}
                           {m.agenticAction.affectedCount > 4 && (
-                            <span className="text-[10px] text-slate-400 self-center">
+                            <span className="text-[11px] text-slate-400 self-center">
                               +{m.agenticAction.affectedCount - 4} more
                             </span>
                           )}
@@ -593,7 +593,7 @@ export function CopilotDrawer({
                             <button
                               type="button"
                               onClick={() => handleExecuteAgenticAction(m.id, m.agenticAction!)}
-                              className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-[#EB5A19] hover:bg-[#d44e13] shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-primary hover:bg-primary-hover shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                             >
                               <Tag className="w-3.5 h-3.5" />
                               <span>{m.agenticAction.type === 'CLEAR_TAGS' ? 'Clear Tags from Dataset' : 'Apply to Excel Dataset'}</span>
@@ -602,7 +602,7 @@ export function CopilotDrawer({
                               <button
                                 type="button"
                                 onClick={() => onNavigateToTab('tabOrders')}
-                                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-navy-deep hover:bg-white dark:hover:bg-[#1A1A1A] border border-slate-200 dark:border-[#333] transition-colors cursor-pointer"
+                                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-navy-deep hover:bg-white dark:hover:bg-deepBlack-hover border border-slate-200 dark:border-deepBlack-border transition-colors cursor-pointer"
                               >
                                 View in Orders
                               </button>
@@ -657,7 +657,7 @@ export function CopilotDrawer({
                 </div>
 
                 {isUser && (
-                  <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-[#1F1F1F] text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-deepBlack-hover text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0 mt-0.5">
                     <User className="w-4 h-4" />
                   </div>
                 )}
@@ -667,12 +667,12 @@ export function CopilotDrawer({
 
           {isLoading && (
             <div className="flex items-center gap-2.5 text-slate-500 dark:text-slate-400 text-xs py-3 pl-2 animate-pulse">
-              <div className="w-7 h-7 rounded-lg bg-orange-50 dark:bg-[#141414] border border-orange-200/80 dark:border-[#262626] flex items-center justify-center text-[#EB5A19] dark:text-orange-400">
-                <Sparkles className="w-4 h-4 animate-spin text-[#EB5A19] dark:text-orange-400" />
+              <div className="w-7 h-7 rounded-lg bg-orange-50 dark:bg-deepBlack-card border border-orange-200/80 dark:border-deepBlack-border flex items-center justify-center text-primary-dark dark:text-orange-400">
+                <Sparkles className="w-4 h-4 animate-spin text-primary-dark dark:text-orange-400" />
               </div>
               <div>
                 <span className="font-bold text-slate-800 dark:text-slate-200 block">DEEN Assistant is analyzing...</span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500">Auditing territory ratio, SKUs & COD margins</span>
+                <span className="text-[11px] text-slate-400 dark:text-slate-500">Auditing territory ratio, SKUs & COD margins</span>
               </div>
             </div>
           )}
@@ -686,7 +686,7 @@ export function CopilotDrawer({
             e.preventDefault();
             handleSendQuery();
           }}
-          className="p-3.5 border-t border-slate-200 dark:border-[#1F1F1F] bg-white dark:bg-[#0A0A0A] flex items-center gap-2 shadow-sm"
+          className="p-3.5 border-t border-slate-200 dark:border-deepBlack-border bg-white dark:bg-deepBlack-card flex items-center gap-2 shadow-sm"
         >
           <input
             type="text"
@@ -694,12 +694,12 @@ export function CopilotDrawer({
             value={inputQuery}
             onChange={(e) => setInputQuery(e.target.value)}
             disabled={isLoading}
-            className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-[#262626] bg-white dark:bg-[#0D0D0D] text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#EB5A19]/20 focus:border-[#EB5A19] disabled:bg-slate-50 dark:disabled:bg-[#141414] shadow-inner"
+            className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-deepBlack-border bg-white dark:bg-deepBlack-sidebar text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:bg-slate-50 dark:disabled:bg-deepBlack-hover shadow-inner"
           />
           <button
             type="submit"
             disabled={isLoading || !inputQuery.trim()}
-            className="px-4 py-2.5 rounded-xl bg-[#EB5A19] hover:bg-[#d44e13] disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
           >
             <Send className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Ask</span>

@@ -80,7 +80,7 @@ export function MobileBottomNav({
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#000000]/95 backdrop-blur-md border-t border-slate-200/90 dark:border-[#1F1F1F] shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom,0px)] select-none transition-colors duration-200"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-deepBlack-canvas/95 backdrop-blur-md border-t border-slate-200/90 dark:border-deepBlack-border shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom,0px)] select-none transition-colors duration-200"
       aria-label="Mobile Navigation"
       role="navigation"
     >
@@ -89,9 +89,9 @@ export function MobileBottomNav({
         <button
           type="button"
           onClick={() => onSelectTab('tabExecutive')}
-          className={`group relative flex flex-col items-center justify-center min-h-[48px] min-w-[48px] h-full w-full py-1.5 px-0.5 select-none transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EB5A19] focus-visible:ring-inset cursor-pointer ${
+          className={`group relative flex flex-col items-center justify-center min-h-[48px] min-w-[48px] h-full w-full py-1.5 px-0.5 select-none transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark dark:focus-visible:ring-orange-400 focus-visible:ring-inset cursor-pointer ${
             activeTab === 'tabExecutive'
-              ? 'text-[#EB5A19] dark:text-[#EB5A19] font-bold'
+              ? 'text-primary-dark dark:text-orange-400 font-bold'
               : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium'
           }`}
           aria-label="Overview tab"
@@ -106,7 +106,7 @@ export function MobileBottomNav({
           <div className="relative">
             <LayoutDashboard className={`w-5 h-5 shrink-0 transition-transform duration-150 ${activeTab === 'tabExecutive' ? 'scale-105' : 'group-hover:scale-105'}`} />
           </div>
-          <span className="text-[10px] mt-1 tracking-tight truncate max-w-[62px]">
+          <span className="text-[11px] mt-1 tracking-tight truncate max-w-[62px]">
             Overview
           </span>
         </button>
@@ -115,9 +115,9 @@ export function MobileBottomNav({
         <button
           type="button"
           onClick={() => onSelectTab('tabTerritory')}
-          className={`group relative flex flex-col items-center justify-center min-h-[48px] min-w-[48px] h-full w-full py-1.5 px-0.5 select-none transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EB5A19] focus-visible:ring-inset cursor-pointer ${
+          className={`group relative flex flex-col items-center justify-center min-h-[48px] min-w-[48px] h-full w-full py-1.5 px-0.5 select-none transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark dark:focus-visible:ring-orange-400 focus-visible:ring-inset cursor-pointer ${
             activeTab === 'tabTerritory'
-              ? 'text-[#EB5A19] dark:text-[#EB5A19] font-bold'
+              ? 'text-primary-dark dark:text-orange-400 font-bold'
               : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium'
           }`}
           aria-label="Territory Distribution tab"
@@ -132,7 +132,7 @@ export function MobileBottomNav({
           <div className="relative">
             <MapPin className={`w-5 h-5 shrink-0 transition-transform duration-150 ${activeTab === 'tabTerritory' ? 'scale-105' : 'group-hover:scale-105'}`} />
           </div>
-          <span className="text-[10px] mt-1 tracking-tight truncate max-w-[62px]">
+          <span className="text-[11px] mt-1 tracking-tight truncate max-w-[62px]">
             Territory
           </span>
         </button>
@@ -141,9 +141,9 @@ export function MobileBottomNav({
         <button
           type="button"
           onClick={() => onSelectTab('tabMarketingAnalytics')}
-          className={`group relative flex flex-col items-center justify-center min-h-[48px] min-w-[48px] h-full w-full py-1.5 px-0.5 select-none transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EB5A19] focus-visible:ring-inset cursor-pointer ${
+          className={`group relative flex flex-col items-center justify-center min-h-[48px] min-w-[48px] h-full w-full py-1.5 px-0.5 select-none transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark dark:focus-visible:ring-orange-400 focus-visible:ring-inset cursor-pointer ${
             activeTab === 'tabMarketingAnalytics'
-              ? 'text-[#EB5A19] dark:text-[#EB5A19] font-bold'
+              ? 'text-primary-dark dark:text-orange-400 font-bold'
               : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium'
           }`}
           aria-label="Ad Analytics and Marketing ROAS tab"
@@ -158,7 +158,7 @@ export function MobileBottomNav({
           <div className="relative">
             <BarChart3 className={`w-5 h-5 shrink-0 transition-transform duration-150 ${activeTab === 'tabMarketingAnalytics' ? 'scale-105' : 'group-hover:scale-105'}`} />
           </div>
-          <span className="text-[10px] mt-1 tracking-tight truncate max-w-[62px]">
+          <span className="text-[11px] mt-1 tracking-tight truncate max-w-[62px]">
             <span className="hidden xs:inline">Ad Analytics</span>
             <span className="xs:hidden">Ads</span>
           </span>
@@ -168,9 +168,9 @@ export function MobileBottomNav({
         <button
           type="button"
           onClick={() => onSelectTab('tabStatus')}
-          className={`group relative flex flex-col items-center justify-center min-h-[48px] min-w-[48px] h-full w-full py-1.5 px-0.5 select-none transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EB5A19] focus-visible:ring-inset cursor-pointer ${
+          className={`group relative flex flex-col items-center justify-center min-h-[48px] min-w-[48px] h-full w-full py-1.5 px-0.5 select-none transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark dark:focus-visible:ring-orange-400 focus-visible:ring-inset cursor-pointer ${
             activeTab === 'tabStatus'
-              ? 'text-[#EB5A19] dark:text-[#EB5A19] font-bold'
+              ? 'text-primary-dark dark:text-orange-400 font-bold'
               : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium'
           }`}
           aria-label="Status Matrix reconciliation tab"
@@ -185,7 +185,7 @@ export function MobileBottomNav({
           <div className="relative">
             <GitCompare className={`w-5 h-5 shrink-0 transition-transform duration-150 ${activeTab === 'tabStatus' ? 'scale-105' : 'group-hover:scale-105'}`} />
           </div>
-          <span className="text-[10px] mt-1 tracking-tight truncate max-w-[62px]">
+          <span className="text-[11px] mt-1 tracking-tight truncate max-w-[62px]">
             <span className="hidden xs:inline">Status Matrix</span>
             <span className="xs:hidden">Status</span>
           </span>
@@ -195,9 +195,9 @@ export function MobileBottomNav({
         <button
           type="button"
           onClick={onOpenDrawer}
-          className={`group relative flex flex-col items-center justify-center min-h-[48px] min-w-[48px] h-full w-full py-1.5 px-0.5 select-none transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EB5A19] focus-visible:ring-inset cursor-pointer ${
+          className={`group relative flex flex-col items-center justify-center min-h-[48px] min-w-[48px] h-full w-full py-1.5 px-0.5 select-none transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark dark:focus-visible:ring-orange-400 focus-visible:ring-inset cursor-pointer ${
             isExtendedModuleActive
-              ? 'text-[#EB5A19] dark:text-[#EB5A19] font-bold'
+              ? 'text-primary-dark dark:text-orange-400 font-bold'
               : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium'
           }`}
           aria-label="Open extended navigation drawer"
@@ -213,12 +213,12 @@ export function MobileBottomNav({
             <Menu className="w-5 h-5 shrink-0 transition-transform duration-150 group-hover:scale-105" />
             {(isExtendedModuleActive || returnCount > 0) && (
               <span
-                className="absolute -top-0.5 -right-1 w-2 h-2 rounded-full bg-[#EB5A19] ring-2 ring-white dark:ring-black"
+                className="absolute -top-0.5 -right-1 w-2 h-2 rounded-full bg-[#EB5A19] ring-2 ring-white dark:ring-deepBlack-canvas"
                 aria-hidden="true"
               />
             )}
           </div>
-          <span className="text-[10px] mt-1 tracking-tight truncate max-w-[62px]">
+          <span className="text-[11px] mt-1 tracking-tight truncate max-w-[62px]">
             More
           </span>
         </button>

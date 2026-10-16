@@ -17,6 +17,7 @@ const config: Config = {
         deepBlack: {
           DEFAULT: "#000000",
           pure: "#000000",
+          canvas: "#000000",
           surface: "#050505",
           card: "#0A0A0A",
           elevated: "#121212",
@@ -72,9 +73,9 @@ const config: Config = {
         }
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        headline: ["Plus Jakarta Sans", "Inter", "sans-serif"],
-        display: ["Plus Jakarta Sans", "Inter", "sans-serif"]
+        sans: ["var(--font-sans)", "Inter", "system-ui", "sans-serif"],
+        headline: ["var(--font-headline)", "Plus Jakarta Sans", "Inter", "sans-serif"],
+        display: ["var(--font-headline)", "Plus Jakarta Sans", "Inter", "sans-serif"]
       },
       boxShadow: {
         'card': '0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.04)',

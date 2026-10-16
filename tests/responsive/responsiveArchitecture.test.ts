@@ -325,8 +325,8 @@ describe('DEEN Commerce Responsive Architecture Test Suite (Tiers 1 - 4)', () =>
     });
 
     describe('F10: Class-Based Dark/Light Theming', () => {
-      it('F10.1: validates class-based dark mode configuration in layout.tsx', () => {
-        const content = readProjectFile('src/app/layout.tsx');
+      it('F10.1: validates class-based dark mode configuration in tailwind.config.ts', () => {
+        const content = readProjectFile('tailwind.config.ts');
         expect(content).toContain('darkMode: "class"');
       });
 
@@ -381,20 +381,20 @@ describe('DEEN Commerce Responsive Architecture Test Suite (Tiers 1 - 4)', () =>
       });
     });
 
-    describe('F12: Dual-Engine Fail-Safe CSS Architecture', () => {
+    describe('F12: Zero-CDN Next.js Compiled CSS & Fail-Safe Architecture', () => {
       it('F12.1: validates Layer 1 inlined critical CSS in layout.tsx (#critical-unbreakable-css)', () => {
         const content = readProjectFile('src/app/layout.tsx');
         expect(content).toContain('id="critical-unbreakable-css"');
       });
 
-      it('F12.2: validates Layer 2 standalone Tailwind CDN engine script in layout.tsx', () => {
+      it('F12.2: validates absence of runtime Tailwind CDN engine script in layout.tsx', () => {
         const content = readProjectFile('src/app/layout.tsx');
-        expect(content).toContain('src="https://cdn.tailwindcss.com"');
+        expect(content).not.toContain('cdn.tailwindcss.com');
       });
 
-      it('F12.3: validates Layer 2 inline Tailwind configuration script (#tailwind-failsafe-config)', () => {
+      it('F12.3: validates anti-FOUC theme initializer script (#theme-initializer) in layout.tsx', () => {
         const content = readProjectFile('src/app/layout.tsx');
-        expect(content).toContain('id="tailwind-failsafe-config"');
+        expect(content).toContain('id="theme-initializer"');
       });
 
       it('F12.4: verifies dual PostCSS configuration files exist (postcss.config.js & .mjs)', () => {

@@ -341,10 +341,10 @@ export function CommandPaletteModal({
       />
 
       {/* Modal Container */}
-      <div className="relative w-full max-w-2xl bg-white dark:bg-[#0D0D0D] rounded-2xl shadow-2xl border border-slate-200 dark:border-[#222222] overflow-hidden flex flex-col max-h-[75vh] sm:max-h-[80vh] z-10 animate-slideDown">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-deepBlack-card rounded-2xl shadow-2xl border border-slate-200 dark:border-deepBlack-border overflow-hidden flex flex-col max-h-[75vh] sm:max-h-[80vh] z-10 animate-slideDown">
         
         {/* Top Search Input Box */}
-        <div className="p-3.5 sm:p-4 border-b border-slate-200 dark:border-[#1F1F1F] flex items-center gap-3 bg-slate-50/50 dark:bg-[#0A0A0A]">
+        <div className="p-3.5 sm:p-4 border-b border-slate-200 dark:border-deepBlack-border flex items-center gap-3 bg-slate-50/50 dark:bg-deepBlack-sidebar">
           <Search className="w-5 h-5 text-slate-400 dark:text-slate-500 shrink-0" />
           <input
             ref={inputRef}
@@ -364,14 +364,14 @@ export function CommandPaletteModal({
               <X className="w-4 h-4" />
             </button>
           ) : (
-            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-200/70 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-slate-200/70 dark:bg-white/10 text-slate-600 dark:text-slate-300">
               ESC
             </span>
           )}
         </div>
 
         {/* Filter Category Pills */}
-        <div className="px-3 sm:px-4 py-2 bg-white dark:bg-[#0D0D0D] border-b border-slate-100 dark:border-[#1A1A1A] flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
+        <div className="px-3 sm:px-4 py-2 bg-white dark:bg-deepBlack-card border-b border-slate-100 dark:border-deepBlack-border flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
           {(['All', 'Actions', 'Tabs', 'Orders', 'Customers', 'SKUs'] as const).map((cat) => (
             <button
               key={cat}
@@ -379,8 +379,8 @@ export function CommandPaletteModal({
               onClick={() => setActiveCategory(cat)}
               className={`px-2.5 py-1 rounded-full text-xs font-semibold shrink-0 transition-colors cursor-pointer ${
                 activeCategory === cat
-                  ? 'bg-[#EB5A19] text-white shadow-2xs'
-                  : 'bg-slate-100 dark:bg-[#1A1A1A] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#252525]'
+                  ? 'bg-primary text-white shadow-2xs'
+                  : 'bg-slate-100 dark:bg-deepBlack-hover text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-deepBlack-border'
               }`}
             >
               {cat}
@@ -414,15 +414,15 @@ export function CommandPaletteModal({
                   className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl cursor-pointer transition-colors ${
                     isSelected
                       ? 'bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200/80 dark:border-orange-900/50 shadow-2xs'
-                      : 'hover:bg-slate-50 dark:hover:bg-[#141414] border border-transparent'
+                      : 'hover:bg-slate-50 dark:hover:bg-deepBlack-hover border border-transparent'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
                         isSelected
-                          ? 'bg-white dark:bg-[#1A1A1A] border-orange-300 dark:border-orange-800 shadow-2xs'
-                          : 'bg-slate-100 dark:bg-[#1A1A1A] border-slate-200 dark:border-[#2A2A2A]'
+                          ? 'bg-white dark:bg-deepBlack-card border-orange-300 dark:border-orange-800 shadow-2xs'
+                          : 'bg-slate-100 dark:bg-deepBlack-hover border-slate-200 dark:border-deepBlack-border'
                       }`}
                     >
                       {item.icon}
@@ -434,7 +434,7 @@ export function CommandPaletteModal({
                         </span>
                         {item.badge && (
                           <span
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 ${item.badgeColor}`}
+                            className={`px-1.5 py-0.5 rounded text-[11px] font-bold border shrink-0 ${item.badgeColor}`}
                           >
                             {item.badge}
                           </span>
@@ -450,7 +450,7 @@ export function CommandPaletteModal({
 
                   <div className="flex items-center gap-2 shrink-0 ml-2">
                     {isSelected && (
-                      <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold text-[#EB5A19] dark:text-orange-400">
+                      <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-primary-dark dark:text-orange-400">
                         <span>Select</span>
                         <CornerDownLeft className="w-3 h-3" />
                       </span>
@@ -464,20 +464,20 @@ export function CommandPaletteModal({
         </div>
 
         {/* Footer Shortcut Hints */}
-        <div className="px-4 py-2.5 bg-slate-50 dark:bg-[#070707] border-t border-slate-200 dark:border-[#1F1F1F] flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+        <div className="px-4 py-2.5 bg-slate-50 dark:bg-deepBlack-sidebar border-t border-slate-200 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1">
-              <kbd className="px-1 py-0.5 rounded bg-white dark:bg-[#1A1A1A] border border-slate-200 dark:border-[#333] font-mono text-[9px]">↑</kbd>
-              <kbd className="px-1 py-0.5 rounded bg-white dark:bg-[#1A1A1A] border border-slate-200 dark:border-[#333] font-mono text-[9px]">↓</kbd>
+              <kbd className="px-1 py-0.5 rounded bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border font-mono text-[10px]">↑</kbd>
+              <kbd className="px-1 py-0.5 rounded bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border font-mono text-[10px]">↓</kbd>
               <span>to navigate</span>
             </span>
             <span className="inline-flex items-center gap-1">
-              <kbd className="px-1 py-0.5 rounded bg-white dark:bg-[#1A1A1A] border border-slate-200 dark:border-[#333] font-mono text-[9px]">↵</kbd>
+              <kbd className="px-1 py-0.5 rounded bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border font-mono text-[10px]">↵</kbd>
               <span>to select</span>
             </span>
           </div>
           <span className="inline-flex items-center gap-1">
-            <kbd className="px-1 py-0.5 rounded bg-white dark:bg-[#1A1A1A] border border-slate-200 dark:border-[#333] font-mono text-[9px]">ESC</kbd>
+            <kbd className="px-1 py-0.5 rounded bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border font-mono text-[10px]">ESC</kbd>
             <span>to close</span>
           </span>
         </div>

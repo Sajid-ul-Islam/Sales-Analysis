@@ -89,10 +89,12 @@ export function Header({
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const saved = loadSavedThemeSettings();
       const isDark =
         document.documentElement.classList.contains('dark') ||
         document.body.classList.contains('dark-canvas') ||
-        Boolean(localStorage.getItem('deen_reconcile_theme_settings_v1')?.includes('"dark-canvas"'));
+        saved.darkModeCanvas ||
+        saved.backgroundId === 'dark-canvas';
       setInternalDarkMode(isDark);
     }
   }, []);
@@ -177,7 +179,7 @@ export function Header({
   };
 
   return (
-    <header className="sticky top-0 h-16 border-b border-slate-200 dark:border-[#1F1F1F] bg-white/95 dark:bg-[#000000]/95 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 shrink-0 z-20 shadow-xs transition-colors duration-200">
+    <header className="sticky top-0 h-16 border-b border-slate-200 dark:border-deepBlack-border bg-white/95 dark:bg-deepBlack-canvas/95 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 shrink-0 z-20 shadow-xs transition-colors duration-200">
       {/* Search Input Bar with Mobile Menu Toggle & ⌘K shortcut */}
       <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 mr-2 sm:mr-4">
         {onToggleMobileMenu && (
@@ -209,7 +211,7 @@ export function Header({
             }}
             placeholder="Search or press ⌘K..."
             aria-label="Search orders, SKUs, customer phones"
-            className="w-full min-w-0 pl-9 pr-8 sm:pr-14 py-2 sm:py-2.5 min-h-[40px] sm:min-h-[44px] bg-slate-100/70 hover:bg-slate-100 focus:bg-white dark:bg-[#0D0D0D] dark:hover:bg-[#141414] dark:focus:bg-[#000000] text-xs border border-transparent hover:border-slate-200 dark:hover:border-[#222222] focus:border-slate-300 dark:focus:border-[#333333] rounded-xl placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all text-slate-800 dark:text-slate-100"
+            className="w-full min-w-0 pl-9 pr-8 sm:pr-14 py-2 sm:py-2.5 min-h-[40px] sm:min-h-[44px] bg-slate-100/70 hover:bg-slate-100 focus:bg-white dark:bg-deepBlack-sidebar dark:hover:bg-deepBlack-card dark:focus:bg-deepBlack-canvas text-xs border border-transparent hover:border-slate-200 dark:hover:border-deepBlack-border focus:border-slate-300 dark:focus:border-slate-700 rounded-xl placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all text-slate-800 dark:text-slate-100"
           />
           {searchTerm ? (
             <button
@@ -224,10 +226,10 @@ export function Header({
             <button
               type="button"
               onClick={onOpenCommandPalette}
-              className="hidden sm:inline-flex items-center gap-0.5 absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-white/90 dark:bg-[#1A1A1A] border border-slate-200 dark:border-[#333] hover:border-orange-300 dark:hover:border-orange-500/50 rounded shadow-2xs cursor-pointer transition-colors"
+              className="hidden sm:inline-flex items-center gap-0.5 absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[11px] font-mono font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-white/90 dark:bg-deepBlack-hover border border-slate-200 dark:border-deepBlack-border hover:border-orange-300 dark:hover:border-orange-500/50 rounded shadow-2xs cursor-pointer transition-colors"
               title="Open Command Palette (⌘K)"
             >
-              <Command className="w-2.5 h-2.5 text-[#EB5A19]" />
+              <Command className="w-2.5 h-2.5 text-primary-dark dark:text-orange-400" />
               <span>K</span>
             </button>
           )}
@@ -237,13 +239,13 @@ export function Header({
       {/* Header Tools & Controls */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         {/* Segmented Data Source Mode Switcher */}
-        <div className="inline-flex items-center p-0.5 sm:p-1 rounded-xl bg-slate-100/90 dark:bg-[#141414] border border-slate-200/80 dark:border-[#222222] shrink-0">
+        <div className="inline-flex items-center p-0.5 sm:p-1 rounded-xl bg-slate-100/90 dark:bg-deepBlack-card border border-slate-200/80 dark:border-deepBlack-border shrink-0">
           <button
             type="button"
             onClick={() => onSwitchSourceMode?.('UPLOAD')}
             className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeSourceMode === 'UPLOAD'
-                ? 'bg-white dark:bg-[#222222] text-[#EB5A19] shadow-2xs font-bold'
+                ? 'bg-white dark:bg-deepBlack-hover text-primary-dark dark:text-orange-400 shadow-2xs font-bold'
                 : 'text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300'
             }`}
             title="Render from uploaded spreadsheets & offline manifests (.xlsx / .csv)"
@@ -259,7 +261,7 @@ export function Header({
             onClick={() => onSwitchSourceMode?.('API')}
             className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeSourceMode === 'API'
-                ? 'bg-white dark:bg-[#222222] text-emerald-600 dark:text-emerald-400 shadow-2xs font-bold'
+                ? 'bg-white dark:bg-deepBlack-hover text-emerald-600 dark:text-emerald-400 shadow-2xs font-bold'
                 : 'text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300'
             }`}
             title="Render from live WooCommerce & Pathao Hermes API"
@@ -276,14 +278,14 @@ export function Header({
 
         {/* Desktop & Tablet Actions Cluster (hidden on small mobile) */}
         <div className="hidden sm:flex items-center gap-1 shrink-0">
-          <div className="h-5 w-px bg-slate-200 dark:bg-[#1F1F1F] mx-1" />
+          <div className="h-5 w-px bg-slate-200 dark:bg-deepBlack-border mx-1" />
 
           {/* Reset Baseline Action */}
           {onResetBaseline && (
             <button
               type="button"
               onClick={onResetBaseline}
-              className="inline-flex items-center justify-center p-2 min-w-[40px] min-h-[40px] rounded-xl text-slate-400 hover:text-[#EB5A19] dark:text-slate-500 dark:hover:text-[#EB5A19] hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+              className="inline-flex items-center justify-center p-2 min-w-[40px] min-h-[40px] rounded-xl text-slate-400 hover:text-primary dark:text-slate-500 dark:hover:text-orange-400 hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
               title="Reload verified master baseline ledger"
               aria-label="Reload verified baseline dataset"
             >
@@ -308,13 +310,13 @@ export function Header({
             <button
               type="button"
               onClick={onOpenNotificationCenter}
-              className="relative inline-flex items-center justify-center p-2 min-w-[40px] min-h-[40px] rounded-xl text-slate-400 hover:text-[#EB5A19] dark:text-slate-400 dark:hover:text-[#EB5A19] hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+              className="relative inline-flex items-center justify-center p-2 min-w-[40px] min-h-[40px] rounded-xl text-slate-400 hover:text-primary dark:text-slate-400 dark:hover:text-orange-400 hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
               title="View Real-Time Sync & Operations Notifications"
               aria-label="View Real-Time Sync Notifications"
             >
               <Bell className="w-4 h-4 shrink-0" />
               {notificationCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#EB5A19] ring-2 ring-white dark:ring-black animate-pulse" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary ring-2 ring-white dark:ring-deepBlack-canvas animate-pulse" />
               )}
             </button>
           )}
@@ -349,8 +351,8 @@ export function Header({
           </button>
 
           {moreMenuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl bg-white dark:bg-[#111111] border border-slate-200 dark:border-[#222222] shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-              <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 Actions
               </div>
 
@@ -378,7 +380,7 @@ export function Header({
                   }}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
                 >
-                  <RefreshCw className="w-4 h-4 text-[#EB5A19] shrink-0" />
+                  <RefreshCw className="w-4 h-4 text-primary-dark dark:text-orange-400 shrink-0" />
                   <span className="flex-1 text-left">Reload Baseline (1,026)</span>
                 </button>
               )}
@@ -394,18 +396,18 @@ export function Header({
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-2.5">
-                    <Bell className="w-4 h-4 text-[#EB5A19] shrink-0" />
+                    <Bell className="w-4 h-4 text-primary-dark dark:text-orange-400 shrink-0" />
                     <span>Sync Notifications</span>
                   </div>
                   {notificationCount > 0 && (
-                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#EB5A19] text-white">
+                    <span className="px-1.5 py-0.5 rounded-full text-[11px] font-bold bg-primary text-white">
                       {notificationCount}
                     </span>
                   )}
                 </button>
               )}
 
-              <div className="h-px bg-slate-100 dark:bg-[#222222] my-1" />
+              <div className="h-px bg-slate-100 dark:border-deepBlack-border my-1" />
 
               {/* Theme Toggle Option */}
               <button

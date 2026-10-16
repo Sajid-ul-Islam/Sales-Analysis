@@ -142,22 +142,36 @@ The interface combines **Plus Jakarta Sans** for headlines and numeric KPIs with
 
 ---
 
-## 5. Unbreakable CSS Rules & Fail-Safe Patterns
+## 5. Modern Zero-CDN Architecture & Fail-Safe Patterns
 
-To guarantee that CSS rendering **never breaks under any condition**:
+To guarantee that CSS rendering is blazing fast, perfectly styled, and **never breaks under any condition**:
 
-1. **Dual-Engine Fail-Safe Rendering**:
-   - **Layer 1 (Inline Critical Resets & CSS Variables)**: Embedded directly into `<head>` inside `<style id="critical-unbreakable-css">` in `src/app/layout.tsx`. Guarantees fundamental box-sizing, typography resets, table overflows, scrollbars, and color variables are active before any external network request finishes.
-   - **Layer 2 (Standalone Client-Side Tailwind CDN Engine)**: Injected via `https://cdn.tailwindcss.com` with a synchronized JSON theme in `layout.tsx`. If Next.js dev server ever returns a 404 for `layout.css` due to cache invalidation, the browser dynamically renders all Tailwind utility classes on the fly.
-   - **Layer 3 (Compiled Production CSS Bundle)**: Maintained via Next.js standard build and `globals.css`.
+1. **Compiled Production PostCSS Architecture (Zero Runtime CDN)**:
+   - **Layer 1 (Essential Inline Critical Resets & Anti-FOUC)**: Embedded directly into `<head>` inside `<style id="critical-unbreakable-css">` and `<script id="theme-initializer">` in `src/app/layout.tsx`. Guarantees fundamental box-sizing, scrollbars, responsive table containment, and dark mode class initialization occur synchronously before the DOM is painted.
+   - **Layer 2 (Self-Hosted Google Fonts via `next/font/google`)**: Inter and Plus Jakarta Sans are downloaded at build time and injected via CSS variables (`--font-sans` and `--font-headline`). Zero external render-blocking font requests, zero layout shifts (CLS = 0).
+   - **Layer 3 (Compiled Production CSS Bundle)**: Maintained via Next.js standard build and `globals.css` with zero runtime CDN scripts (`cdn.tailwindcss.com` eliminated). Eliminates CSS precedence wars, flash-of-unstyled-content, and runtime JS overhead.
    - **Layer 4 (Port Conflict & Zombie Process Protection)**: `Launch_Dashboard.bat` automatically terminates any orphaned processes holding port 3000 before launching `npm run dev`.
-2. **Dual PostCSS Configuration**:
+2. **Layered Dark Mode Surface Depth**:
+   - Pure `#000000` pitch-black canvas for true OLED contrast.
+   - Component surfaces layer above canvas using semantic tokens:
+     - `deepBlack.canvas`: `#000000` (Main viewport backdrop)
+     - `deepBlack.sidebar`: `#050505` (Persistent sidebar & navigation rails)
+     - `deepBlack.card`: `#0A0A0A` (KPI cards, content panels, tables)
+     - `deepBlack.elevated`: `#121212` (Modals, popovers, table headers)
+     - `deepBlack.hover`: `#171717` (Interactive hover & selected rows)
+     - `deepBlack.border`: `#1F1F1F` (Subtle boundary borders)
+   - Eliminates brute-force `!important` selector chains and preserves natural elevation hierarchy.
+3. **WCAG AA Contrast Standards & Typography Floor**:
+   - Small text uses `primary-dark` (`#C8430E` / 4.6:1 contrast ratio against white) on light mode, and `text-orange-400` on dark mode.
+   - Minimum 11px font floor across navigation and label chips.
+   - Accessible `@media (prefers-reduced-motion: reduce)` declarations ensure instant transitions for sensitive users.
+4. **Dual PostCSS Configuration**:
    - `postcss.config.js` (CommonJS module export)
    - `postcss.config.mjs` (ESM default export)
    - Guarantees seamless compatibility across Next.js webpack, Turbopack, and Tailwind CLI.
-3. **Flex Child Containment (`min-w-0`)**:
+5. **Flex Child Containment (`min-w-0`)**:
    - All flexbox children holding text or tables include `min-w-0` to prevent flex items from overflowing past container boundaries.
-4. **Table & Ledger Responsive Protection**:
+6. **Table & Ledger Responsive Protection**:
    - Every tabular component is enclosed within `.table-container-responsive` (`overflow-x: auto`) to prevent viewport blowouts.
-5. **Explicit Inline SVG Dimensions**:
+7. **Explicit Inline SVG Dimensions**:
    - All SVG charts and meters specify explicit `width="44" height="44"` (or `48x48`) and `shrink-0` classes.

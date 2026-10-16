@@ -45,11 +45,14 @@ Refer to detailed rules in [.agents/rules/order_rules.md](file:///c:/Users/deenb
   * If order is **Exchange** -> `Exchange`
 
 ### 5. Unbreakable CSS & Styling Standards
-* Dual-engine fail-safe architecture: inlined critical resets/tokens and standalone Tailwind CDN in `src/app/layout.tsx` guarantees zero unstyled HTML regardless of dev server or build cache state.
-* Maintain dual PostCSS config (`postcss.config.js` and `postcss.config.mjs`) at all times.
-* All data tables must be wrapped in `overflow-x-auto` with `min-w-0` to guarantee zero layout blowout.
-* Inline SVG charts must specify explicit `width="44" height="44"` (or `48x48`) and `shrink-0` to prevent SVG viewport distortion.
-* Adhere strictly to the semantic color tokens documented in [docs/DESIGN.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/docs/DESIGN.md).
+* **Compiled Zero-CDN PostCSS Architecture**: Production CSS is compiled ahead-of-time through Next.js PostCSS (`postcss.config.js` and `postcss.config.mjs`) with zero runtime CDN scripts, eliminating render-blocking network requests and layout shifts.
+* **Essential Inlined Critical CSS**: Lightweight inlined resets (`box-sizing`, scrollbars, table containment, font smoothing, anti-FOUC theme initializer) in `src/app/layout.tsx` prevent any unstyled flash before async chunks hydrate.
+* **Self-Hosted Variable Fonts**: Uses `next/font/google` (`Inter` and `Plus_Jakarta_Sans` with CSS variables `--font-sans` and `--font-headline`) downloaded at build time with zero external Google font requests.
+* **Layered Dark Mode Surface Depth**: Pure `#000000` canvas only, with hierarchical elevation surfaces: `deepBlack.canvas` (#000000), `deepBlack.sidebar` (#050505), `deepBlack.card` (#0A0A0A), `deepBlack.elevated` (#121212), `deepBlack.hover` (#171717), and `deepBlack.border` (#1F1F1F). Brute-force `!important` overrides are forbidden.
+* **WCAG AA Contrast Standards**: High-contrast brand typography using `primary-dark` (`#C8430E` / 4.6:1 contrast ratio against white) on small text, and minimum 11px font floor across navigation and status chips.
+* **Data Table Containment**: All data tables must be wrapped in `overflow-x-auto` with `min-w-0` to guarantee zero layout blowout.
+* **Inline SVG Dimensions**: Inline SVG charts must specify explicit `width="44" height="44"` (or `48x48`) and `shrink-0` to prevent SVG viewport distortion.
+* **Reduced Motion Compliance**: Accessible `@media (prefers-reduced-motion: reduce)` declarations ensure instant transitions for users requesting reduced motion.
 
 ### 6. Live Operations & Real-Time Dispatch Rules
 * **Status Modification Verification**: An order is verified as shipped on date $D$ if its status is `completed`, `shipped`, or `delivered`, and its modification timestamp (`Date Modified` / `dateModified`) matches date $D$.
