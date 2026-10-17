@@ -24,48 +24,42 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
   // 7. Hoodie (2)
   // 8. Trousers (2)
   // 9. Denim Jacket (1)
+  // Order categories: Strictly from large to small by volume (units sold)
   const displayItems = useMemo(() => {
-    const orderPriority: Record<string, number> = {
-      'Jeans': 1,
-      'Twill Five Pockets': 2,
-      'Twill': 2,
-      'T-Shirt': 3,
-      'Casual': 4,
-      'Casual Shirt': 4,
-      'Polo': 5,
-      'Polo Shirt': 5,
-      'Cargo': 6,
-      'Cargo Trouser': 6,
-      'Hoodie': 7,
-      'Trousers': 8,
-      'Denim Jacket': 9,
-      'Jacket': 9,
-    };
-
-    return [...sourceItems].sort((a, b) => {
-      const pA = orderPriority[a.displayName] || orderPriority[a.name] || 99;
-      const pB = orderPriority[b.displayName] || orderPriority[b.name] || 99;
-      if (pA !== pB) return pA - pB;
-      return b.volume - a.volume;
-    }).slice(0, 9);
+    return [...sourceItems]
+      .sort((a, b) => {
+        if (b.volume !== a.volume) {
+          return b.volume - a.volume;
+        }
+        return b.revenue - a.revenue;
+      })
+      .slice(0, 9);
   }, [sourceItems]);
 
-  const maxVolume = 14;
-  const chartHeight = 250;
-  const chartWidth = 540;
+  const maxActualVolume = displayItems.reduce((max, item) => Math.max(max, item.volume), 0);
+  const maxVolume = Math.max(14, Math.ceil(maxActualVolume / 2) * 2);
+  const chartHeight = 310;
+  const chartWidth = 560;
   const paddingLeft = 40;
-  const paddingBottom = 65;
-  const paddingTop = 20;
+  const paddingBottom = 55;
+  const paddingTop = 22;
   const paddingRight = 48;
 
   const innerWidth = chartWidth - paddingLeft - paddingRight;
   const innerHeight = chartHeight - paddingTop - paddingBottom;
 
   const slotWidth = innerWidth / (displayItems.length || 1);
-  const barWidth = Math.min(36, slotWidth * 0.72);
+  const barWidth = Math.min(42, slotWidth * 0.76);
 
-  // Y-axis grid ticks (0, 2, 4, 6, 8, 10, 12, 14)
-  const yTicks = [0, 2, 4, 6, 8, 10, 12, 14];
+  // Y-axis grid ticks (e.g. 0, 2, 4, 6, 8, 10, 12, 14)
+  const yTicks = useMemo(() => {
+    const step = maxVolume <= 14 ? 2 : Math.ceil(maxVolume / 7 / 2) * 2;
+    const ticks: number[] = [];
+    for (let t = 0; t <= maxVolume; t += step) {
+      ticks.push(t);
+    }
+    return ticks;
+  }, [maxVolume]);
 
   const getYCoord = (vol: number) => {
     return paddingTop + innerHeight - (vol / maxVolume) * innerHeight;
@@ -78,6 +72,7 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
   const CANONICAL_BAR_COLORS: Record<string, string> = {
     'Jeans': '#f43f5e',
     'Twill Five Pockets': '#f97316',
+    'Twill': '#f97316',
     'T-Shirt': '#e11d48',
     'Casual': '#a855f7',
     'Polo': '#60a5fa',
@@ -93,7 +88,7 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
       <div className="w-full overflow-x-auto min-w-0">
         <svg
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-          className="w-full h-auto max-h-[300px] overflow-visible"
+          className="w-full h-auto max-h-[380px] overflow-visible"
         >
           {/* Y-axis gridlines and labels */}
           {yTicks.map((tick) => {
@@ -105,7 +100,8 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
                   y1={y}
                   x2={chartWidth - paddingRight}
                   y2={y}
-                  stroke="#e2e8f0"
+                  stroke="currentColor"
+                  className="stroke-slate-200 dark:stroke-[#222222] text-slate-200 dark:text-[#222222]"
                   strokeWidth="0.8"
                   strokeDasharray={tick === 0 ? undefined : '3 3'}
                 />
@@ -114,9 +110,9 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
                   y={y}
                   textAnchor="end"
                   dominantBaseline="central"
-                  fontSize="9"
-                  fill="#64748b"
-                  fontWeight="bold"
+                  fontSize="9.5"
+                  fill="currentColor"
+                  className="fill-slate-500 dark:fill-white text-slate-500 dark:text-white font-bold transition-colors"
                 >
                   {tick}
                 </text>
@@ -130,9 +126,9 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
             y={chartHeight / 2 - 15}
             textAnchor="middle"
             dominantBaseline="central"
-            fontSize="9"
-            fill="#64748b"
-            fontWeight="bold"
+            fontSize="10"
+            fill="currentColor"
+            className="fill-slate-500 dark:fill-white text-slate-500 dark:text-white font-bold transition-colors"
             transform={`rotate(-90, 12, ${chartHeight / 2 - 15})`}
           >
             Units Sold
@@ -145,7 +141,8 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
               y1={avgY}
               x2={chartWidth - paddingRight}
               y2={avgY}
-              stroke="#64748b"
+              stroke="currentColor"
+              className="stroke-slate-500 dark:stroke-slate-400 text-slate-500 dark:text-slate-400"
               strokeWidth="1.2"
               strokeDasharray="4 3"
               opacity="0.85"
@@ -155,9 +152,9 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
               y={avgY}
               textAnchor="start"
               dominantBaseline="central"
-              fontSize="8.5"
-              fill="#475569"
-              fontWeight="bold"
+              fontSize="9.5"
+              fill="currentColor"
+              className="fill-slate-600 dark:fill-white text-slate-600 dark:text-white font-bold transition-colors"
             >
               Avg: {effectiveAvg} un
             </text>
@@ -181,11 +178,17 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
 
             const isHovered = hoveredIdx === idx;
 
-            // X-axis label: If category is Jacket, render as Denim Jacket matching screenshot
-            const xLabel = item.displayName === 'Jacket' ? 'Denim Jacket' : item.displayName;
+            // X-axis label: Shorten "Twill Five Pockets" to "Twill", and show strictly "Jacket" (never "Denim Jacket")
+            const rawLabel = item.displayName || item.name;
+            let xLabel = rawLabel;
+            if (/^Twill(\s+Five\s+Pockets?|5\s*Pockets?)?$/i.test(rawLabel.trim())) {
+              xLabel = 'Twill';
+            } else if (/^Denim\s+Jacket$/i.test(rawLabel.trim()) || rawLabel.trim() === 'Jacket') {
+              xLabel = 'Jacket';
+            }
 
             // Bar color
-            const barFillColor = CANONICAL_BAR_COLORS[item.displayName] || CANONICAL_BAR_COLORS[item.name] || item.color;
+            const barFillColor = CANONICAL_BAR_COLORS[xLabel] || CANONICAL_BAR_COLORS[item.displayName] || CANONICAL_BAR_COLORS[item.name] || item.color;
 
             return (
               <g
@@ -201,7 +204,7 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
                     y={regY}
                     width={barWidth}
                     height={regHeight}
-                    rx={selVol > 0 ? 0 : 2}
+                    rx={selVol > 0 ? 0 : 3}
                     fill={barFillColor}
                     opacity={isHovered ? 1 : 0.95}
                     filter={isHovered ? 'brightness(1.08)' : undefined}
@@ -215,7 +218,7 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
                     y={selY}
                     width={barWidth}
                     height={selHeight}
-                    rx={2}
+                    rx={3}
                     fill="#facc15"
                     opacity={isHovered ? 1 : 0.95}
                     filter={isHovered ? 'brightness(1.08)' : undefined}
@@ -229,7 +232,7 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
                     y={selY + selHeight / 2}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize="8.5"
+                    fontSize="9.5"
                     fontWeight="bold"
                     fill="#713f12"
                   >
@@ -244,7 +247,7 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
                     y={regY + regHeight / 2}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize="8"
+                    fontSize="9.5"
                     fontWeight="bold"
                     fill="#ffffff"
                   >
@@ -255,13 +258,14 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
                 {/* X-axis Category Label (Rotated -45 degrees) */}
                 <text
                   x={x + barWidth / 2}
-                  y={bottomY + 10}
+                  y={bottomY + 12}
                   textAnchor="end"
                   dominantBaseline="central"
-                  fontSize="8.5"
-                  fontWeight={isHovered ? 'bold' : 'medium'}
-                  fill={isHovered ? '#0f172a' : '#475569'}
-                  transform={`rotate(-45, ${x + barWidth / 2}, ${bottomY + 10})`}
+                  fontSize="10"
+                  fontWeight={isHovered ? '900' : 'bold'}
+                  fill="currentColor"
+                  className={`${isHovered ? 'fill-slate-900 text-slate-900 font-black' : 'fill-slate-600 text-slate-600 font-bold'} dark:fill-white dark:text-white transition-colors`}
+                  transform={`rotate(-45, ${x + barWidth / 2}, ${bottomY + 12})`}
                 >
                   {xLabel}
                 </text>
@@ -280,7 +284,7 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
             }}
           >
             <div className="font-bold text-white flex items-center justify-between gap-2 border-b border-slate-800 pb-1 mb-1">
-              <span>{active.name}</span>
+              <span>{/^Denim\s+Jacket$/i.test((active.displayName || active.name).trim()) ? 'Jacket' : (/^Twill(\s+Five\s+Pockets?|5\s*Pockets?)?$/i.test((active.displayName || active.name).trim()) ? 'Twill' : (active.displayName || active.name))}</span>
               <span className="text-amber-400 font-black">{active.volume} units</span>
             </div>
             <div className="space-y-0.5 text-slate-300">

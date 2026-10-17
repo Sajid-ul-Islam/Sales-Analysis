@@ -55,6 +55,7 @@ export const DEEN_CACHE_KEYS = {
   PATHAO_SYNC: 'deen_cache_pathao_sync',
   WC_SYNC: 'deen_cache_wc_sync',
   AUDIT_LOGS: 'deen_cache_audit_logs',
+  LIVE_TERMINAL: 'deen_cache_live_terminal',
   SETTINGS: 'deen_app_settings_v2',
   THEME: 'deen_theme_settings_v2',
   OVERRIDES: 'deen_order_status_overrides_v1'
@@ -67,6 +68,7 @@ const CACHE_KEY_NAMES: Record<string, { name: string; tag: CacheTag }> = {
   deen_cache_reconciliation_result: { name: 'Reconciliation Engine Computed Snapshot', tag: 'reconciliation' },
   deen_cache_pathao_sync: { name: 'Pathao Courier API Sync Cache', tag: 'api' },
   deen_cache_wc_sync: { name: 'WooCommerce Store API Sync Cache', tag: 'api' },
+  deen_cache_live_terminal: { name: 'Live Orders Terminal Snapshot (WC & Hermes)', tag: 'api' },
   deen_cache_audit_logs: { name: 'Reconciliation Activity Audit Logs', tag: 'settings' },
   deen_app_settings_v2: { name: 'Application Parameters & Business Model Rules', tag: 'settings' },
   deen_theme_settings_v2: { name: 'Appearance, Custom Theme & Canvas Settings', tag: 'settings' },

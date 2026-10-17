@@ -172,29 +172,29 @@ export function InteractiveAreaTrendChart({
   const xTicks = points.filter((_, idx) => idx % stepInterval === 0 || idx === points.length - 1);
 
   return (
-    <div ref={containerRef} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-4">
+    <div ref={containerRef} className="bg-white dark:bg-black rounded-2xl border border-slate-200 dark:border-[#1F1F1F] p-5 shadow-2xs space-y-4">
       {/* Header bar with Summary Highlights */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#1F1F1F] pb-3">
         <div>
-          <h3 className="font-headline text-sm font-bold text-slate-900 tracking-tight">{title}</h3>
-          {subtitle && <p className="text-[11px] text-slate-500 mt-0.5">{subtitle}</p>}
+          <h3 className="font-headline text-sm font-bold text-slate-900 dark:text-white tracking-tight">{title}</h3>
+          {subtitle && <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
         </div>
 
         {/* Legend and Highlights */}
         <div className="flex items-center gap-3 flex-wrap text-xs">
-          <div className="flex items-center gap-1.5 font-semibold text-slate-700">
+          <div className="flex items-center gap-1.5 font-semibold text-slate-700 dark:text-white">
             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: primaryColor }} />
             <span>{primaryLabel}</span>
           </div>
 
           {secondaryLabel && (
-            <div className="flex items-center gap-1.5 font-semibold text-slate-700">
+            <div className="flex items-center gap-1.5 font-semibold text-slate-700 dark:text-white">
               <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: secondaryColor }} />
               <span>{secondaryLabel}</span>
             </div>
           )}
 
-          <div className="h-3 w-px bg-slate-200 mx-1 hidden sm:block" />
+          <div className="h-3 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block" />
 
           {/* Peak Badge */}
           {points[peakIdx] && (
@@ -203,7 +203,7 @@ export function InteractiveAreaTrendChart({
             </span>
           )}
 
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-white border border-transparent dark:border-[#222222]">
             Avg: {formatValue(avgVal)}/day
           </span>
         </div>
@@ -240,7 +240,8 @@ export function InteractiveAreaTrendChart({
                 y1={tick.y}
                 x2="776"
                 y2={tick.y}
-                stroke="#F1F5F9"
+                stroke="currentColor"
+                className="stroke-slate-100 dark:stroke-slate-800 text-slate-100 dark:text-slate-800"
                 strokeWidth="1"
                 strokeDasharray={i === yTicks.length - 1 ? 'none' : '3 3'}
               />
@@ -248,7 +249,7 @@ export function InteractiveAreaTrendChart({
                 x="42"
                 y={tick.y + 3}
                 textAnchor="end"
-                className="text-[10px] fill-slate-400 font-mono font-medium"
+                className="text-[10px] fill-slate-400 dark:fill-white font-mono font-medium transition-colors"
               >
                 {tick.label}
               </text>
@@ -299,7 +300,7 @@ export function InteractiveAreaTrendChart({
               x={p.x}
               y={height - 18}
               textAnchor="middle"
-              className="text-[10px] fill-slate-400 font-mono font-medium"
+              className="text-[10px] fill-slate-400 dark:fill-white font-mono font-medium transition-colors"
             >
               {p.date}
             </text>

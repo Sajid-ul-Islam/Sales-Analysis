@@ -69,7 +69,7 @@ export const DEFAULT_DEEN_OPS_CATEGORY_ITEMS: LiveCategoryItem[] = [
   },
   {
     name: 'Twill Five Pockets',
-    displayName: 'Twill Five Pockets',
+    displayName: 'Twill',
     revenue: 6058,
     volume: 5,
     selectsVolume: 0,
@@ -209,6 +209,7 @@ export interface DayHistorySummary {
   revenue: number;
   aov: number;
   orders: RawOrderRow[];
+  isFridayClosed?: boolean;
 }
 
 export interface ExecutiveBriefing {
@@ -588,6 +589,8 @@ export function processLiveOpsData(
     const isPrevDay = dIso === prevDateIso;
     const dateLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     const dayName = getDayName(d);
+    const isFriday = dayName.toLowerCase().startsWith('fri') || d.getDay() === 5;
+    const isFridayClosed = isFriday && dayOrdersCount === 0;
 
     last7DaysHistory.push({
       dateIso: dIso,
@@ -600,6 +603,7 @@ export function processLiveOpsData(
       revenue: Math.round(dayRev),
       aov: dayAov,
       orders: dayOrders,
+      isFridayClosed,
     });
 
     dailyStats.push({

@@ -57,6 +57,16 @@ import {
   CourierDiscrepancyType,
 } from '@/lib/sync/liveTerminalSync';
 import { loadAppSettings } from '@/lib/settingsStore';
+import { getCacheItem, setCacheItem, DEEN_CACHE_KEYS } from '@/lib/cacheManager';
+
+interface LiveTerminalCacheEnvelope {
+  orders: RawOrderRow[];
+  stats: LiveTerminalStats;
+  discrepancies: DiscrepancyAlert[];
+  wcConnected: boolean;
+  pathaoConnected: boolean;
+  lastSyncTime: string;
+}
 
 interface LiveOpsTabProps {
   orders: RawOrderRow[];
@@ -72,7 +82,7 @@ export function LiveOpsTab({
   isSyncing = false,
 }: LiveOpsTabProps) {
   // Navigation & View state
-  const [selectedView, setSelectedView] = useState<'Today Shipped' | "Today's Orders" | 'Last Day Shipped' | 'Queue'>('Today Shipped');
+  const [selectedView, setSelectedView] = useState<'Today Shipped' | "Today's Orders" | 'Queue'>('Today Shipped');
   const [onlineOnly, setOnlineOnly] = useState(true);
   const [showSubCategory, setShowSubCategory] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,13 +92,52 @@ export function LiveOpsTab({
   const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
   const [localSyncing, setLocalSyncing] = useState(false);
 
-  // Live Sync & Telemetry State
-  const [liveOrders, setLiveOrders] = useState<RawOrderRow[]>([]);
-  const [courierStats, setCourierStats] = useState<LiveTerminalStats | null>(null);
-  const [discrepancies, setDiscrepancies] = useState<DiscrepancyAlert[]>([]);
-  const [wcConnected, setWcConnected] = useState<boolean>(false);
-  const [pathaoConnected, setPathaoConnected] = useState<boolean>(false);
-  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+  // Live Sync & Telemetry State — SWR: Instant mount from local cache
+  const [liveOrders, setLiveOrders] = useState<RawOrderRow[]>(() => {
+    if (typeof window === 'undefined') return [];
+    const cached = getCacheItem<LiveTerminalCacheEnvelope>(DEEN_CACHE_KEYS.LIVE_TERMINAL);
+    return cached?.orders || [];
+  });
+  const [courierStats, setCourierStats] = useState<LiveTerminalStats | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const cached = getCacheItem<LiveTerminalCacheEnvelope>(DEEN_CACHE_KEYS.LIVE_TERMINAL);
+    return cached?.stats || null;
+  });
+  const [discrepancies, setDiscrepancies] = useState<DiscrepancyAlert[]>(() => {
+    if (typeof window === 'undefined') return [];
+    const cached = getCacheItem<LiveTerminalCacheEnvelope>(DEEN_CACHE_KEYS.LIVE_TERMINAL);
+    return cached?.discrepancies || [];
+  });
+  const [wcConnected, setWcConnected] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const cached = getCacheItem<LiveTerminalCacheEnvelope>(DEEN_CACHE_KEYS.LIVE_TERMINAL);
+    return !!cached?.wcConnected;
+  });
+  const [pathaoConnected, setPathaoConnected] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const cached = getCacheItem<LiveTerminalCacheEnvelope>(DEEN_CACHE_KEYS.LIVE_TERMINAL);
+    return !!cached?.pathaoConnected;
+  });
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const cached = getCacheItem<LiveTerminalCacheEnvelope>(DEEN_CACHE_KEYS.LIVE_TERMINAL);
+    return cached?.lastSyncTime || null;
+  });
+
+  // Track previous discrepancies count to only alert on genuinely new issues
+  const discrepanciesRef = React.useRef(discrepancies);
+  useEffect(() => {
+    discrepanciesRef.current = discrepancies;
+  }, [discrepancies]);
+
+  // Auto-dismiss transient sync message to remove UI clutter
+  useEffect(() => {
+    if (!syncStatusMsg) return;
+    const timer = setTimeout(() => {
+      setSyncStatusMsg(null);
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [syncStatusMsg]);
 
   // Inspection modal state
   const [selectedDetailOrder, setSelectedDetailOrder] = useState<RawOrderRow | null>(null);
@@ -119,12 +168,26 @@ export function LiveOpsTab({
 
   const activeCategoryItems = showSubCategory ? report.subCategoryItems : report.categoryItems;
 
+  // Filter out Friday if closed (0 dispatches). Show Friday only if open with shipped parcels.
+  // In Bangladesh fulfillment operations, orders placed on Friday are dispatched on Saturday.
+  const displayHistoryDays = useMemo(() => {
+    return report.last7DaysHistory.filter((day) => {
+      const isFriday = day.dayName.toLowerCase().startsWith('fri');
+      if (isFriday && (day.isFridayClosed || day.orderCount === 0)) {
+        return false;
+      }
+      return true;
+    });
+  }, [report.last7DaysHistory]);
+
   // Manual & Automated Trigger for Live Sync (WooCommerce REST API + Pathao Aladdin API)
-  const handleSyncNow = useCallback(async () => {
+  const handleSyncNow = useCallback(async (isManual: boolean = false) => {
     if (isSyncingRef.current) return;
     isSyncingRef.current = true;
-    setLocalSyncing(true);
-    setSyncStatusMsg('Syncing with WooCommerce REST API & Pathao Hermes API...');
+    if (isManual) {
+      setLocalSyncing(true);
+      setSyncStatusMsg('Syncing with WooCommerce REST API & Pathao Hermes API...');
+    }
     try {
       const appSettings = typeof window !== 'undefined' ? loadAppSettings() : null;
       const payload: any = {
@@ -170,55 +233,86 @@ export function LiveOpsTab({
         setDiscrepancies(data.discrepancies || []);
         setWcConnected(!!data.wcConnected);
         setPathaoConnected(!!data.pathaoConnected);
-        setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-        setSyncStatusMsg(
-          data.wcConnected
-            ? `Live Sync Active: ${data.stats.totalOrders} live WooCommerce orders synchronized (${data.orders.length} items, ${data.stats.discrepancyCount} discrepancies).`
-            : `Snapshot Active: ${data.stats.totalOrders} orders loaded (${data.orders.length} items).`
+        const syncTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        setLastSyncTime(syncTimeStr);
+
+        // Persist to local cache for 0ms instant reload on next tab visit
+        setCacheItem<LiveTerminalCacheEnvelope>(
+          DEEN_CACHE_KEYS.LIVE_TERMINAL,
+          {
+            orders: data.orders,
+            stats: data.stats,
+            discrepancies: data.discrepancies || [],
+            wcConnected: !!data.wcConnected,
+            pathaoConnected: !!data.pathaoConnected,
+            lastSyncTime: syncTimeStr
+          },
+          { ttlMs: 30 * 60 * 1000, tag: 'api' }
         );
+
+        if (isManual) {
+          setSyncStatusMsg(
+            data.wcConnected
+              ? `Live Sync Active: ${data.stats.totalOrders} live WooCommerce orders synchronized (${data.orders.length} items, ${data.stats.discrepancyCount} discrepancies).`
+              : `Snapshot Active: ${data.stats.totalOrders} orders loaded (${data.orders.length} items).`
+          );
+        }
+
         if (onRefreshLive) {
           // Pass fetched data directly to parent so parent doesn't make an extra network request
           await onRefreshLive(data.orders, data.provenance);
         }
-        dispatchSyncNotification({
-          type: (data.discrepancies?.length || 0) > 0 ? 'discrepancy_detected' : 'orders_synced',
-          title: data.wcConnected ? 'Live WooCommerce & Hermes Synced' : 'Terminal Snapshot Loaded',
-          description: `${data.stats?.totalOrders || data.orders.length} orders synchronized (${data.orders.length} items). ${data.discrepancies?.length || 0} courier discrepancies identified.`,
-          targetTab: (data.discrepancies?.length || 0) > 0 ? 'tabCourierMismatch' : 'tabLiveOps'
-        });
+
+        // Only dispatch floating notification on user-initiated manual click or when a new discrepancy appears
+        const prevDiscCount = discrepanciesRef.current?.length || 0;
+        const newDiscCount = data.discrepancies?.length || 0;
+        const hasNewDiscrepancy = newDiscCount > prevDiscCount;
+
+        if (isManual || hasNewDiscrepancy) {
+          dispatchSyncNotification({
+            type: newDiscCount > 0 ? 'discrepancy_detected' : 'orders_synced',
+            title: data.wcConnected ? 'Live WooCommerce & Hermes Synced' : 'Terminal Snapshot Loaded',
+            description: `${data.stats?.totalOrders || data.orders.length} orders synchronized (${data.orders.length} items). ${newDiscCount} courier discrepancies identified.`,
+            targetTab: newDiscCount > 0 ? 'tabCourierMismatch' : 'tabLiveOps'
+          });
+        }
       } else if (data && data.message) {
-        setSyncStatusMsg(`Notice: ${data.message}`);
+        if (isManual) setSyncStatusMsg(`Notice: ${data.message}`);
         if (data.wcConnected !== undefined) setWcConnected(data.wcConnected);
         if (data.pathaoConnected !== undefined) setPathaoConnected(data.pathaoConnected);
       } else {
-        setSyncStatusMsg('Operational snapshot active (WooCommerce REST API & Pathao Hermes).');
+        if (isManual) setSyncStatusMsg('Operational snapshot active (WooCommerce REST API & Pathao Hermes).');
       }
       setCountdown(60);
     } catch (e: any) {
-      setSyncStatusMsg(`Sync notice: ${e?.message || 'Using current snapshot'}`);
-      dispatchSyncNotification({
-        type: 'error',
-        title: 'Live Sync Notice',
-        description: e?.message || 'Failed to complete live sync. Using current cached snapshot.',
-        targetTab: 'tabSettings'
-      });
+      if (isManual) {
+        setSyncStatusMsg(`Sync notice: ${e?.message || 'Using current snapshot'}`);
+        dispatchSyncNotification({
+          type: 'error',
+          title: 'Live Sync Notice',
+          description: e?.message || 'Failed to complete live sync. Using current cached snapshot.',
+          targetTab: 'tabSettings'
+        });
+      }
     } finally {
-      setLocalSyncing(false);
+      if (isManual) {
+        setLocalSyncing(false);
+      }
       isSyncingRef.current = false;
     }
   }, [onRefreshLive]);
 
-  // Initial synchronization on mount to load courier telemetry
+  // SWR: Silent background revalidation on mount
   useEffect(() => {
-    handleSyncNow();
+    handleSyncNow(false);
   }, [handleSyncNow]);
 
-  // Auto-refresh timer
+  // Automated 60-second periodic background revalidation (quiet, no toast noise)
   useEffect(() => {
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          handleSyncNow();
+          handleSyncNow(false);
           return 60;
         }
         return prev - 1;
@@ -371,7 +465,7 @@ export function LiveOpsTab({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
               </span>
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-headline">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight font-headline">
                 Live Shipped & Orders Terminal
               </h1>
 
@@ -380,8 +474,8 @@ export function LiveOpsTab({
                 <span
                   className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all ${
                     wcConnected
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200/90 shadow-2xs'
-                      : 'bg-amber-50 text-amber-700 border-amber-200/90'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/90 dark:border-emerald-800/80 shadow-2xs'
+                      : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200/90 dark:border-amber-800/80'
                   }`}
                   title={wcConnected ? 'Connected to live WooCommerce REST API' : 'WooCommerce unconfigured or using snapshot'}
                 >
@@ -396,8 +490,8 @@ export function LiveOpsTab({
                 <span
                   className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all ${
                     pathaoConnected
-                      ? 'bg-blue-50 text-blue-700 border-blue-200/90 shadow-2xs'
-                      : 'bg-slate-100 text-slate-600 border-slate-200'
+                      ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200/90 dark:border-blue-800/80 shadow-2xs'
+                      : 'bg-slate-100 dark:bg-[#1A1A1A] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-[#222222]'
                   }`}
                   title={pathaoConnected ? 'Connected to Pathao Hermes courier API' : 'Pathao unconfigured or using local telemetry'}
                 >
@@ -410,7 +504,7 @@ export function LiveOpsTab({
                 </span>
 
                 {liveOrders.length > 0 && (
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200/90 flex items-center gap-1 shadow-2xs">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/90 dark:border-purple-800/80 flex items-center gap-1 shadow-2xs">
                     <Sparkles className="w-3 h-3 text-purple-500" />
                     <span>{liveOrders.length} Items Synced</span>
                   </span>
@@ -418,18 +512,18 @@ export function LiveOpsTab({
               </div>
             </div>
 
-            <p className="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
-              <span>Operational snapshot: <strong>{report.refDayName} ({report.referenceDate})</strong></span>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2 flex-wrap">
+              <span>Operational snapshot: <strong className="text-slate-700 dark:text-slate-200">{report.refDayName} ({report.referenceDate})</strong></span>
               <span>•</span>
-              <span>Baseline: <strong>7-Day Daily Avg ({report.avg7dMetrics.items} pkgs/day, ৳{report.avg7dMetrics.revenue.toLocaleString()})</strong></span>
+              <span>Baseline: <strong className="text-slate-700 dark:text-slate-200">7-Day Daily Avg ({report.avg7dMetrics.items} pkgs/day, ৳{report.avg7dMetrics.revenue.toLocaleString()})</strong></span>
               {lastSyncTime && (
                 <>
                   <span>•</span>
-                  <span className="text-slate-400">Synced at {lastSyncTime}</span>
+                  <span className="text-slate-400 dark:text-slate-500">Synced at {lastSyncTime}</span>
                 </>
               )}
               {report.isFallbackDate && (
-                <span className="text-amber-600 font-semibold bg-amber-50 px-1.5 py-0.5 rounded">
+                <span className="text-amber-600 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.5 rounded">
                   (Displaying latest recorded dispatches)
                 </span>
               )}
@@ -438,7 +532,7 @@ export function LiveOpsTab({
 
           <div className="flex items-center gap-2.5 flex-wrap">
             {/* View Mode Switcher Pills */}
-            <div className="inline-flex bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-bold">
+            <div className="inline-flex bg-slate-100 dark:bg-[#121212] p-1 rounded-2xl border border-slate-200 dark:border-[#1F1F1F] text-xs font-bold">
               <button
                 type="button"
                 onClick={() => {
@@ -447,8 +541,8 @@ export function LiveOpsTab({
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
                   selectedView === 'Today Shipped' && !selectedHistoricalDate
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <span>🚚</span>
@@ -464,32 +558,16 @@ export function LiveOpsTab({
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
                   selectedView === "Today's Orders" && !selectedHistoricalDate
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
                 title="Today's Orders = Shipped today + all orders with Processing status"
               >
                 <span>📦</span>
                 <span>Today&apos;s Orders</span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-200/60">
+                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-semibold border border-blue-200/60 dark:border-blue-800/60">
                   Active
                 </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedHistoricalDate(null);
-                  setSelectedView('Last Day Shipped');
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                  selectedView === 'Last Day Shipped' && !selectedHistoricalDate
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <span>🕘</span>
-                <span>Last Day Shipped</span>
               </button>
 
               <button
@@ -500,20 +578,20 @@ export function LiveOpsTab({
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
                   selectedView === 'Queue' && !selectedHistoricalDate
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <span>📋</span>
                 <span>Queue</span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700 font-semibold">
+                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-[#222222] text-slate-700 dark:text-slate-300 font-semibold">
                   {report.allOrdersBreakdown.processingCount + report.allOrdersBreakdown.holdCount}
                 </span>
               </button>
             </div>
 
             {/* Online Only Toggle */}
-            <label className="flex items-center gap-2 cursor-pointer bg-slate-50 border border-slate-200/80 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors">
+            <label className="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-[#0A0A0A] border border-slate-200/80 dark:border-[#1F1F1F] px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#171717] transition-colors">
               <input
                 type="checkbox"
                 checked={onlineOnly}
@@ -526,7 +604,7 @@ export function LiveOpsTab({
             {/* Live Dual Refresh Button */}
             <button
               type="button"
-              onClick={handleSyncNow}
+              onClick={() => handleSyncNow(true)}
               disabled={isActuallySyncing}
               className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 active:scale-95 transition-all shadow-xs disabled:opacity-50"
               title={`Next auto-sync in ${countdown}s`}
@@ -551,15 +629,15 @@ export function LiveOpsTab({
       </div>
 
       {/* ── 7-Day Dispatch History Strip ── */}
-      <div className="bg-white border border-slate-200/90 rounded-3xl p-3.5 sm:p-4 shadow-xs">
+      <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-3xl p-3.5 sm:p-4 shadow-xs">
         <div className="flex items-center justify-between gap-2 mb-2.5 px-1 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="text-sm">🗓️</span>
-            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+            <span className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">
               Last 7 Days Dispatch History
             </span>
-            <span className="text-[11px] text-slate-500 font-medium">
-              • Click any date to audit that day&apos;s shipped orders, charts &amp; executive briefing
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+              • Click any date to audit that day&apos;s shipped orders • Friday shown only when open with dispatches
             </span>
           </div>
           {selectedHistoricalDate && (
@@ -569,15 +647,21 @@ export function LiveOpsTab({
                 setSelectedHistoricalDate(null);
                 setSelectedView('Today Shipped');
               }}
-              className="text-[11px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200/80 transition-colors"
+              className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 rounded-lg border border-blue-200/80 dark:border-blue-800/60 transition-colors"
             >
               ↺ Reset to Today
             </button>
           )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
-          {report.last7DaysHistory.map((day) => {
+        <div
+          className={`grid gap-2 ${
+            displayHistoryDays.length <= 6
+              ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-6'
+              : 'grid-cols-2 sm:grid-cols-4 md:grid-cols-7'
+          }`}
+        >
+          {displayHistoryDays.map((day) => {
             const isSelected = selectedHistoricalDate
               ? selectedHistoricalDate === day.dateIso
               : day.isToday && selectedView === 'Today Shipped';
@@ -591,33 +675,33 @@ export function LiveOpsTab({
                 }}
                 className={`p-2.5 rounded-2xl border text-left transition-all ${
                   isSelected
-                    ? 'bg-blue-50/90 border-blue-400 ring-2 ring-blue-500/20 shadow-xs'
-                    : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                    ? 'bg-blue-50/90 dark:bg-blue-950/40 border-blue-400 dark:border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+                    : 'bg-slate-50/70 dark:bg-[#0A0A0A] border-slate-200 dark:border-[#1F1F1F] hover:bg-slate-100 dark:hover:bg-[#121212] hover:border-slate-300 dark:hover:border-slate-700'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className={`text-[11px] font-black ${isSelected ? 'text-blue-900' : 'text-slate-800'}`}>
+                  <span className={`text-[11px] font-black ${isSelected ? 'text-blue-900 dark:text-blue-300' : 'text-slate-800 dark:text-slate-100'}`}>
                     {day.dayName.slice(0, 3)}
                   </span>
                   {day.isToday && (
-                    <span className="text-[9px] font-bold bg-blue-100 text-blue-700 px-1 py-0.2 rounded-full">
+                    <span className="text-[9px] font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 px-1 py-0.2 rounded-full">
                       Today
                     </span>
                   )}
                   {day.isPrevDay && !day.isToday && (
-                    <span className="text-[9px] font-bold bg-slate-200 text-slate-700 px-1 py-0.2 rounded-full">
+                    <span className="text-[9px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1 py-0.2 rounded-full">
                       Prev
                     </span>
                   )}
                 </div>
-                <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                   {day.dateLabel.includes(',') ? day.dateLabel.split(',')[1].trim() : day.dateIso.slice(5)}
                 </div>
                 <div className="mt-1 flex items-baseline justify-between text-[11px]">
-                  <span className="font-bold text-slate-800">
+                  <span className="font-bold text-slate-800 dark:text-slate-100">
                     📦 {day.orderCount}
                   </span>
-                  <span className="font-semibold text-slate-600">
+                  <span className="font-semibold text-slate-600 dark:text-slate-400">
                     ৳{Math.round(day.revenue / 1000)}k
                   </span>
                 </div>
@@ -630,23 +714,23 @@ export function LiveOpsTab({
       {/* ── 5 Operational KPI Cards (Top Row: Pixel-Matched to DEEN-OPS Screenshot) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         {/* Card 1: SHIPPED ITEMS - TODAY */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+        <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
           <div className="flex items-start justify-between">
-            <span className="text-[10.5px] font-bold text-slate-600 uppercase tracking-wider">
+            <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
               {selectedView === "Today's Orders" ? "Today's Items - Total" : 'Shipped Items - Today'}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-sky-50/80 border border-sky-100 flex items-center justify-center text-sm shadow-2xs">
+            <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs">
               📦
             </div>
           </div>
 
           <div className="mt-1 mb-2">
-            <div className="text-3xl font-black text-slate-900 tracking-tight font-headline">
+            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline">
               {report.shippedItems.value}
             </div>
 
-            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-600 font-medium">
-              <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[10px]">
+            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+              <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#171717] text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
                 📊 {report.prevDayName}: {report.shippedItems.prevValue}
               </span>
             </div>
@@ -655,8 +739,8 @@ export function LiveOpsTab({
               <span
                 className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                   report.shippedItems.isPositive
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
-                    : 'bg-rose-50 text-rose-700 border-rose-200/80'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-800/80'
+                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200/80 dark:border-rose-800/80'
                 }`}
               >
                 {report.shippedItems.deltaFormatted}
@@ -676,23 +760,23 @@ export function LiveOpsTab({
         </div>
 
         {/* Card 2: SALES REVENUE */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+        <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
           <div className="flex items-start justify-between">
-            <span className="text-[10.5px] font-bold text-slate-600 uppercase tracking-wider">
+            <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
               {selectedView === "Today's Orders" ? "Today's Revenue - Total" : 'Sales Revenue - Today'}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-sky-50/80 border border-sky-100 flex items-center justify-center text-sky-600 font-bold text-sm shadow-2xs">
+            <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sky-600 dark:text-sky-400 font-bold text-sm shadow-2xs">
               ৳
             </div>
           </div>
 
           <div className="mt-1 mb-2">
-            <div className="text-3xl font-black text-slate-900 tracking-tight font-headline">
+            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline">
               {report.salesRevenue.value}
             </div>
 
-            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-600 font-medium">
-              <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[10px]">
+            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+              <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#171717] text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
                 📊 {report.prevDayName}: {report.salesRevenue.prevValue}
               </span>
             </div>
@@ -701,8 +785,8 @@ export function LiveOpsTab({
               <span
                 className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                   report.salesRevenue.isPositive
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
-                    : 'bg-rose-50 text-rose-700 border-rose-200/80'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-800/80'
+                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200/80 dark:border-rose-800/80'
                 }`}
               >
                 {report.salesRevenue.deltaFormatted}
@@ -722,23 +806,23 @@ export function LiveOpsTab({
         </div>
 
         {/* Card 3: SHIPPED ORDERS */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+        <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
           <div className="flex items-start justify-between">
-            <span className="text-[10.5px] font-bold text-slate-600 uppercase tracking-wider">
+            <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
               {selectedView === "Today's Orders" ? "Today's Orders - Total" : 'Shipped Orders - Today'}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-sky-50/80 border border-sky-100 flex items-center justify-center text-sm shadow-2xs">
+            <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs">
               🚚
             </div>
           </div>
 
           <div className="mt-1 mb-2">
-            <div className="text-3xl font-black text-slate-900 tracking-tight font-headline">
+            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline">
               {report.shippedOrders.value}
             </div>
 
-            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-600 font-medium">
-              <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[10px]">
+            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+              <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#171717] text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
                 📊 {report.prevDayName}: {report.shippedOrders.prevValue}
               </span>
             </div>
@@ -747,8 +831,8 @@ export function LiveOpsTab({
               <span
                 className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                   report.shippedOrders.isPositive
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
-                    : 'bg-rose-50 text-rose-700 border-rose-200/80'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-800/80'
+                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200/80 dark:border-rose-800/80'
                 }`}
               >
                 {report.shippedOrders.deltaFormatted}
@@ -768,23 +852,23 @@ export function LiveOpsTab({
         </div>
 
         {/* Card 4: BASKET SIZE */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+        <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
           <div className="flex items-start justify-between">
-            <span className="text-[10.5px] font-bold text-slate-600 uppercase tracking-wider">
+            <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
               Basket Size
             </span>
-            <div className="w-8 h-8 rounded-xl bg-sky-50/80 border border-sky-100 flex items-center justify-center text-sm shadow-2xs">
+            <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs">
               🛍️
             </div>
           </div>
 
           <div className="mt-1 mb-2">
-            <div className="text-3xl font-black text-slate-900 tracking-tight font-headline">
+            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline">
               {report.basketSize.value}
             </div>
 
-            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-600 font-medium">
-              <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[10px]">
+            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+              <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#171717] text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
                 📊 {report.prevDayName}: {report.basketSize.prevValue}
               </span>
             </div>
@@ -793,8 +877,8 @@ export function LiveOpsTab({
               <span
                 className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                   report.basketSize.isPositive
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
-                    : 'bg-rose-50 text-rose-700 border-rose-200/80'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-800/80'
+                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200/80 dark:border-rose-800/80'
                 }`}
               >
                 {report.basketSize.deltaFormatted}
@@ -814,18 +898,18 @@ export function LiveOpsTab({
         </div>
 
         {/* Card 5: CUSTOMER MIX */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+        <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
           <div className="flex items-start justify-between">
-            <span className="text-[10.5px] font-bold text-slate-600 uppercase tracking-wider">
+            <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
               Customer Mix
             </span>
-            <div className="w-8 h-8 rounded-xl bg-sky-50/80 border border-sky-100 flex items-center justify-center text-sm shadow-2xs">
+            <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs">
               👥
             </div>
           </div>
 
           <div className="mt-1 mb-2">
-            <div className="text-2xl sm:text-[24px] font-black text-slate-900 tracking-tight font-headline">
+            <div className="text-2xl sm:text-[24px] font-black text-slate-900 dark:text-white tracking-tight font-headline">
               {report.customerMix.newCount} New / {report.customerMix.retCount} Ret
             </div>
 
@@ -836,7 +920,7 @@ export function LiveOpsTab({
             </div>
 
             <div className="mt-1.5">
-              <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200/80">
+              <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-800/80">
                 {report.customerMix.deltaNew >= 0 ? '▲ +' : '▼ '}{report.customerMix.deltaNew} New vs 7D Avg ({report.customerMix.prevNew}N / {report.customerMix.prevRet}R)
               </span>
             </div>
@@ -860,7 +944,7 @@ export function LiveOpsTab({
         <div className="flex items-center justify-between flex-wrap gap-3 pt-1">
           <div className="flex items-center gap-2">
             <span className="text-xl">📊</span>
-            <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight font-headline">
+            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight font-headline">
               Performance Outlook & Category Analytics
             </h2>
           </div>
@@ -878,9 +962,9 @@ export function LiveOpsTab({
                   }`}
                 />
               </div>
-              <span className="text-xs font-bold text-slate-700">Show Sub-Category View</span>
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Show Sub-Category View</span>
             </label>
-            <span className="text-slate-400 hover:text-slate-600 cursor-help text-xs" title="Toggle between top-level store categories and detailed garment sub-types">
+            <span className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-help text-xs" title="Toggle between top-level store categories and detailed garment sub-types">
               (?)
             </span>
           </div>
@@ -891,19 +975,19 @@ export function LiveOpsTab({
           {/* Revenue Split Bar */}
           <div className="space-y-1.5 px-0.5">
             <div className="flex justify-between items-center text-[11px]">
-              <span className="text-emerald-700 font-bold flex items-center gap-1">
+              <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
                 <span>💎 Selects:</span>
                 <strong>৳ {report.selectsStats.selectsRevenue.toLocaleString()}</strong>
-                <span className="text-slate-500 font-normal">({report.selectsStats.selectsQty} pcs · {report.selectsStats.selectsRevShare}%)</span>
+                <span className="text-slate-500 dark:text-slate-400 font-normal">({report.selectsStats.selectsQty} pcs · {report.selectsStats.selectsRevShare}%)</span>
               </span>
-              <span className="text-blue-700 font-bold flex items-center gap-1">
-                <span className="text-slate-500 font-normal">({report.selectsStats.regularRevShare}% · {report.selectsStats.regularQty} pcs)</span>
+              <span className="text-blue-700 dark:text-blue-400 font-bold flex items-center gap-1">
+                <span className="text-slate-500 dark:text-slate-400 font-normal">({report.selectsStats.regularRevShare}% · {report.selectsStats.regularQty} pcs)</span>
                 <strong>৳ {report.selectsStats.regularRevenue.toLocaleString()}</strong>
                 <span>📦 Regular</span>
               </span>
             </div>
             {/* Visual Dual Progress Bar */}
-            <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden flex">
+            <div className="w-full bg-slate-200 dark:bg-[#1F1F1F] rounded-full h-1.5 overflow-hidden flex">
               <div
                 className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
                 style={{ width: `${report.selectsStats.selectsRevShare}%` }}
@@ -920,19 +1004,19 @@ export function LiveOpsTab({
           {/* Volume Split Bar */}
           <div className="space-y-1.5 px-0.5">
             <div className="flex justify-between items-center text-[11px]">
-              <span className="text-emerald-700 font-bold flex items-center gap-1">
+              <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
                 <span>💎 Selects:</span>
                 <strong>{report.selectsStats.selectsQty} pcs</strong>
-                <span className="text-slate-500 font-normal">({report.selectsStats.selectsQtyShare}% · ৳{report.selectsStats.selectsRevenue.toLocaleString()})</span>
+                <span className="text-slate-500 dark:text-slate-400 font-normal">({report.selectsStats.selectsQtyShare}% · ৳{report.selectsStats.selectsRevenue.toLocaleString()})</span>
               </span>
-              <span className="text-blue-700 font-bold flex items-center gap-1">
-                <span className="text-slate-500 font-normal">(৳{report.selectsStats.regularRevenue.toLocaleString()} · {report.selectsStats.regularQtyShare}%)</span>
+              <span className="text-blue-700 dark:text-blue-400 font-bold flex items-center gap-1">
+                <span className="text-slate-500 dark:text-slate-400 font-normal">(৳{report.selectsStats.regularRevenue.toLocaleString()} · {report.selectsStats.regularQtyShare}%)</span>
                 <strong>{report.selectsStats.regularQty} pcs</strong>
                 <span>📦 Regular</span>
               </span>
             </div>
             {/* Visual Dual Progress Bar */}
-            <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden flex">
+            <div className="w-full bg-slate-200 dark:bg-[#1F1F1F] rounded-full h-1.5 overflow-hidden flex">
               <div
                 className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
                 style={{ width: `${report.selectsStats.selectsQtyShare}%` }}
@@ -950,9 +1034,9 @@ export function LiveOpsTab({
         {/* Side-by-Side Charts (Donut & Volume Bar) - ALWAYS VISIBLE */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Left Chart: Revenue Share (TK) Donut */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+          <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs sm:text-sm font-black text-slate-800 tracking-tight font-headline flex items-center gap-1.5">
+              <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center gap-1.5">
                 <span>🔥</span>
                 <span>Revenue Share (TK)</span>
               </h3>
@@ -966,9 +1050,9 @@ export function LiveOpsTab({
           </div>
 
           {/* Right Chart: Sales Volume by Category Bar Chart */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+          <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs sm:text-sm font-black text-slate-800 tracking-tight font-headline flex items-center gap-1.5">
+              <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center gap-1.5">
                 <span>📦</span>
                 <span>Sales Volume by Category</span>
               </h3>

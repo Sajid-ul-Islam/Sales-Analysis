@@ -54,14 +54,14 @@ export function InteractiveDonutChart({
   const activeSlice = hoveredId ? segments.find((s) => s.id === hoveredId) : null;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-4">
+    <div className="bg-white dark:bg-black rounded-2xl border border-slate-200 dark:border-[#1F1F1F] p-5 shadow-2xs space-y-4">
       {(title || subtitle) && (
-        <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+        <div className="border-b border-slate-100 dark:border-[#1F1F1F] pb-3 flex items-center justify-between">
           <div>
-            {title && <h3 className="font-headline text-sm font-bold text-slate-900">{title}</h3>}
-            {subtitle && <p className="text-[11px] text-slate-500 mt-0.5">{subtitle}</p>}
+            {title && <h3 className="font-headline text-sm font-bold text-slate-900 dark:text-white">{title}</h3>}
+            {subtitle && <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
           </div>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-mono">
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-white font-mono border border-transparent dark:border-[#222222]">
             {formatValue(totalValue)}
           </span>
         </div>
@@ -82,7 +82,8 @@ export function InteractiveDonutChart({
               cy="18"
               r="15.9155"
               fill="transparent"
-              stroke="#F1F5F9"
+              stroke="currentColor"
+              className="stroke-slate-100 dark:stroke-[#222222] text-slate-100 dark:text-[#222222]"
               strokeWidth={strokeWidth}
             />
 
@@ -115,13 +116,13 @@ export function InteractiveDonutChart({
 
           {/* Center Callout Display */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center p-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 line-clamp-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-white line-clamp-1 transition-colors">
               {activeSlice ? activeSlice.label : centerTotalLabel}
             </span>
-            <span className="font-headline text-lg sm:text-xl font-extrabold text-slate-900 leading-tight">
+            <span className="font-headline text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white leading-tight transition-colors">
               {activeSlice ? formatValue(activeSlice.value) : formatValue(totalValue)}
             </span>
-            <span className="text-[10px] font-mono font-bold text-slate-500">
+            <span className="text-[10px] font-mono font-bold text-slate-500 dark:text-white transition-colors">
               {activeSlice ? `${activeSlice.sharePercent.toFixed(1)}%` : '100%'}
             </span>
           </div>
@@ -140,8 +141,8 @@ export function InteractiveDonutChart({
                   onMouseLeave={() => setHoveredId(null)}
                   className={`p-2 rounded-xl transition-all cursor-pointer border ${
                     isHovered
-                      ? 'bg-slate-50 border-slate-300 shadow-2xs'
-                      : 'border-transparent hover:bg-slate-50/60'
+                      ? 'bg-slate-50 dark:bg-slate-900/80 border-slate-300 dark:border-slate-700 shadow-2xs'
+                      : 'border-transparent hover:bg-slate-50/60 dark:hover:bg-slate-900/40'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -150,18 +151,18 @@ export function InteractiveDonutChart({
                         className="w-2.5 h-2.5 rounded-full shrink-0"
                         style={{ backgroundColor: seg.color }}
                       />
-                      <span className="font-semibold text-slate-800 truncate">{seg.label}</span>
+                      <span className="font-semibold text-slate-800 dark:text-white truncate transition-colors">{seg.label}</span>
                     </div>
                     <div className="text-right shrink-0 font-mono flex items-center gap-2">
-                      <span className="font-bold text-slate-900">{formatValue(seg.value)}</span>
-                      <span className="text-[11px] text-slate-400 font-medium w-10 text-right">
+                      <span className="font-bold text-slate-900 dark:text-white transition-colors">{formatValue(seg.value)}</span>
+                      <span className="text-[11px] text-slate-400 dark:text-slate-300 font-medium w-10 text-right">
                         {seg.sharePercent.toFixed(1)}%
                       </span>
                     </div>
                   </div>
 
                   {/* Micro Progress Bar */}
-                  <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden mt-1.5">
+                  <div className="w-full bg-slate-100 dark:bg-[#1F1F1F] h-1 rounded-full overflow-hidden mt-1.5">
                     <div
                       className="h-full rounded-full transition-all duration-300"
                       style={{

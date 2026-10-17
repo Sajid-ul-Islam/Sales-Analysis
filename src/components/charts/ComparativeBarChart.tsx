@@ -56,25 +56,25 @@ export function ComparativeBarChart({
   ];
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-4">
+    <div className="bg-white dark:bg-black rounded-2xl border border-slate-200 dark:border-[#1F1F1F] p-5 shadow-2xs space-y-4">
       {/* Header with Title, Legend & Orientation Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#1F1F1F] pb-3">
         <div>
-          <h3 className="font-headline text-sm font-bold text-slate-900 flex items-center gap-2">
+          <h3 className="font-headline text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Target className="w-4 h-4 text-primary" />
             {title}
           </h3>
-          {subtitle && <p className="text-[11px] text-slate-500 mt-0.5">{subtitle}</p>}
+          {subtitle && <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
         </div>
 
         <div className="flex items-center gap-3.5 flex-wrap">
           {/* Legend */}
           <div className="flex items-center gap-3 text-xs">
-            <div className="flex items-center gap-1.5 font-semibold text-slate-700">
+            <div className="flex items-center gap-1.5 font-semibold text-slate-700 dark:text-white">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
               <span>{secondaryLabel}</span>
             </div>
-            <div className="flex items-center gap-1.5 font-semibold text-slate-700">
+            <div className="flex items-center gap-1.5 font-semibold text-slate-700 dark:text-white">
               <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
               <span>{primaryLabel}</span>
             </div>
@@ -82,14 +82,14 @@ export function ComparativeBarChart({
 
           {/* Orientation Toggle Switcher */}
           {allowToggleOrientation && (
-            <div className="flex items-center p-0.5 bg-slate-100 rounded-lg border border-slate-200/80">
+            <div className="flex items-center p-0.5 bg-slate-100 dark:bg-[#121212] rounded-lg border border-slate-200/80 dark:border-[#1F1F1F]">
               <button
                 type="button"
                 onClick={() => setCurrentOrientation('vertical')}
                 className={`p-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
                   currentOrientation === 'vertical'
-                    ? 'bg-white text-slate-900 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900'
+                    ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-2xs'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
                 title="Perpendicular Vertical Column Chart"
               >
@@ -101,8 +101,8 @@ export function ComparativeBarChart({
                 onClick={() => setCurrentOrientation('horizontal')}
                 className={`p-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
                   currentOrientation === 'horizontal'
-                    ? 'bg-white text-slate-900 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900'
+                    ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-2xs'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
                 title="Horizontal Bar Chart"
               >
@@ -123,10 +123,10 @@ export function ComparativeBarChart({
             <div className="absolute inset-x-0 top-6 bottom-24 flex flex-col justify-between pointer-events-none z-0">
               {yTicks.map((tick, idx) => (
                 <div key={idx} className="flex items-center w-full">
-                  <span className="text-[10px] font-mono text-slate-400 w-11 text-right pr-2 shrink-0 select-none">
+                  <span className="text-[10px] font-mono text-slate-400 dark:text-white w-11 text-right pr-2 shrink-0 select-none transition-colors">
                     {tick.toLocaleString()}
                   </span>
-                  <div className="w-full border-b border-dashed border-slate-200/90 h-px" />
+                  <div className="w-full border-b border-dashed border-slate-200/90 dark:border-slate-800 h-px" />
                 </div>
               ))}
             </div>
@@ -163,7 +163,7 @@ export function ComparativeBarChart({
 
                         {/* Secondary Column: Retained Units (Emerald) */}
                         <div className="flex flex-col items-center h-full justify-end relative flex-1 max-w-[32px]">
-                          <span className="text-[10px] font-mono font-bold text-emerald-700 mb-1 opacity-90 group-hover:opacity-100 transition-opacity">
+                          <span className="text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400 mb-1 opacity-90 group-hover:opacity-100 transition-opacity">
                             {item.secondaryValue > 0 ? item.secondaryValue : ''}
                           </span>
                           <div
@@ -175,7 +175,7 @@ export function ComparativeBarChart({
 
                         {/* Primary Column: Returned Units (Orange) */}
                         <div className="flex flex-col items-center h-full justify-end relative flex-1 max-w-[32px]">
-                          <span className="text-[10px] font-mono font-bold text-orange-700 mb-1 opacity-90 group-hover:opacity-100 transition-opacity">
+                          <span className="text-[10px] font-mono font-bold text-orange-700 dark:text-orange-400 mb-1 opacity-90 group-hover:opacity-100 transition-opacity">
                             {item.primaryValue > 0 ? item.primaryValue : ''}
                           </span>
                           <div
@@ -187,13 +187,13 @@ export function ComparativeBarChart({
                       </div>
 
                       {/* X-Axis Baseline Rule */}
-                      <div className="w-full h-0.5 bg-slate-300 rounded-full mt-2" />
+                      <div className="w-full h-0.5 bg-slate-300 dark:bg-slate-700 rounded-full mt-2" />
 
                       {/* X-Axis Category Name, Retention Badge & Subtext */}
                       <div className="flex flex-col items-center text-center mt-2 w-full px-0.5">
                         <span
                           className={`text-xs font-bold truncate max-w-full transition-colors ${
-                            isHovered ? 'text-primary' : 'text-slate-800'
+                            isHovered ? 'text-primary' : 'text-slate-800 dark:text-white'
                           }`}
                           title={item.name}
                         >
@@ -207,7 +207,7 @@ export function ComparativeBarChart({
                         )}
 
                         {item.subText && (
-                          <span className="mt-0.5 text-[10px] font-mono text-slate-500 font-medium truncate max-w-full">
+                          <span className="mt-0.5 text-[10px] font-mono text-slate-500 dark:text-slate-300 font-medium truncate max-w-full">
                             {item.subText}
                           </span>
                         )}
@@ -234,7 +234,7 @@ export function ComparativeBarChart({
               >
                 <div className="flex items-center justify-between gap-2 text-xs">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-bold text-slate-900 truncate max-w-[280px] sm:max-w-md">
+                    <span className="font-bold text-slate-900 dark:text-white truncate max-w-[280px] sm:max-w-md transition-colors">
                       {item.name}
                     </span>
                     {item.status && (
@@ -260,27 +260,27 @@ export function ComparativeBarChart({
 
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-slate-400 w-16 shrink-0">{secondaryLabel}</span>
-                    <div className="w-full bg-slate-200/60 h-2.5 rounded-full overflow-hidden">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-300 w-16 shrink-0">{secondaryLabel}</span>
+                    <div className="w-full bg-slate-200/60 dark:bg-[#1A1A1A] h-2.5 rounded-full overflow-hidden">
                       <div
                         className="bg-emerald-500 h-full rounded-full transition-all duration-500"
                         style={{ width: `${secondaryPercent}%` }}
                       />
                     </div>
-                    <span className="font-mono text-xs font-bold text-emerald-700 w-24 text-right shrink-0">
+                    <span className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400 w-24 text-right shrink-0">
                       {formatValue(item.secondaryValue)}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-slate-400 w-16 shrink-0">{primaryLabel}</span>
-                    <div className="w-full bg-slate-200/60 h-2.5 rounded-full overflow-hidden">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-300 w-16 shrink-0">{primaryLabel}</span>
+                    <div className="w-full bg-slate-200/60 dark:bg-[#1A1A1A] h-2.5 rounded-full overflow-hidden">
                       <div
                         className="bg-orange-500 h-full rounded-full transition-all duration-500"
                         style={{ width: `${primaryPercent}%` }}
                       />
                     </div>
-                    <span className="font-mono text-xs font-bold text-slate-700 w-24 text-right shrink-0">
+                    <span className="font-mono text-xs font-bold text-slate-700 dark:text-white w-24 text-right shrink-0">
                       {formatValue(item.primaryValue)}
                     </span>
                   </div>

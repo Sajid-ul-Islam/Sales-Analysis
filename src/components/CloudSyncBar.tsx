@@ -79,6 +79,15 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
   const [metaStatus, setMetaStatus] = useState<any>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  // Auto-dismiss transient feedback message after 6s to eliminate UI noise
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => {
+      setMessage(null);
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [message]);
+
   // Real-time cache probes for current date window
   const wcCached = getSyncCache('woocommerce', startDate, endDate, orderStatus, forceLiveSync);
   const pathaoCached = getSyncCache('pathao', startDate, endDate, 'any', forceLiveSync);

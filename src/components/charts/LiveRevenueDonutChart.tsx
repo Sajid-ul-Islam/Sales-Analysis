@@ -47,6 +47,7 @@ const CANONICAL_SLICE_COLORS: Record<string, string> = {
   'Cargo': '#14b8a6',
   'Polo': '#6366f1',
   'Twill Five Pockets': '#f97316',
+  'Twill': '#f97316',
 };
 
 export function LiveRevenueDonutChart({
@@ -65,11 +66,11 @@ export function LiveRevenueDonutChart({
   const effectiveRevenue = totalRevenue > 0 ? totalRevenue : 43273;
   const effectiveSelectsShare = selectsShare > 0 ? selectsShare : 43.7;
 
-  // Donut geometry: Center = (140, 140), rOuter = 100, rInner = 60
+  // Donut geometry: Center = (140, 140), rOuter = 120, rInner = 68 (Expanded to dynamically fill container)
   const cx = 140;
   const cy = 140;
-  const rOuter = 100;
-  const rInner = 60;
+  const rOuter = 120;
+  const rInner = 68;
 
   // Order slices to match DEEN-OPS Screenshot layout
   const orderedSlices = useMemo(() => {
@@ -142,7 +143,7 @@ export function LiveRevenueDonutChart({
 
   return (
     <div className="relative flex flex-col items-center justify-center p-2 select-none w-full">
-      <div className="relative w-full max-w-[340px] aspect-square flex items-center justify-center">
+      <div className="relative w-full max-w-[420px] lg:max-w-[440px] aspect-square flex items-center justify-center">
         <svg
           viewBox="0 0 280 280"
           className="w-full h-full overflow-visible drop-shadow-xs"
@@ -152,9 +153,9 @@ export function LiveRevenueDonutChart({
               key={`donut-slice-${sp.idx}-${sp.slice.name}`}
               d={sp.d}
               fill={sp.fillColor}
-              stroke="#ffffff"
-              strokeWidth="2.5"
-              className="cursor-pointer transition-all duration-200"
+              stroke="currentColor"
+              strokeWidth="3"
+              className="cursor-pointer transition-all duration-200 stroke-white dark:stroke-black text-white dark:text-black"
               style={{
                 transformOrigin: '140px 140px',
                 transform: sp.isHovered ? 'scale(1.025)' : 'scale(1)',
@@ -169,7 +170,13 @@ export function LiveRevenueDonutChart({
           {slicePaths.map((sp) => {
             if (sp.sharePercent < 1.8) return null;
             const isSmall = sp.sharePercent < 5; // e.g. Jacket (4%), Trousers (2%)
-            const isTwill = sp.slice.displayName === 'Twill Five Pockets';
+            const rawName = sp.slice.displayName || sp.slice.name;
+            let sliceLabel = rawName;
+            if (/^Twill(\s+Five\s+Pockets?|5\s*Pockets?)?$/i.test(rawName.trim())) {
+              sliceLabel = 'Twill';
+            } else if (/^Denim\s+Jacket$/i.test(rawName.trim()) || rawName.trim() === 'Jacket') {
+              sliceLabel = 'Jacket';
+            }
 
             // Radial rotation for small slices (Jacket 4%, Trousers 2%) so single line fits along the spoke
             const angleDeg = (sp.midAngle * 180) / Math.PI;
@@ -186,12 +193,12 @@ export function LiveRevenueDonutChart({
                     y={sp.ly}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize="5.8"
+                    fontSize="7"
                     fontWeight="bold"
                     fill="#ffffff"
                     className="drop-shadow-sm font-sans"
                   >
-                    {sp.slice.displayName} {Math.round(sp.sharePercent)}%
+                    {sliceLabel} {Math.round(sp.sharePercent)}%
                   </text>
                 </g>
               );
@@ -204,22 +211,22 @@ export function LiveRevenueDonutChart({
               >
                 <text
                   x={sp.lx}
-                  y={sp.ly - (isTwill ? 4.5 : 4)}
+                  y={sp.ly - 5}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize={isTwill ? '6.5' : '7.5'}
+                  fontSize="9.5"
                   fontWeight="bold"
                   fill="#ffffff"
                   className="drop-shadow-sm font-sans"
                 >
-                  {sp.slice.displayName}
+                  {sliceLabel}
                 </text>
                 <text
                   x={sp.lx}
-                  y={sp.ly + (isTwill ? 4.5 : 5)}
+                  y={sp.ly + 6}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize={isTwill ? '8' : '8.5'}
+                  fontSize="11"
                   fontWeight="black"
                   fill="#ffffff"
                   className="drop-shadow-sm font-sans"
@@ -230,41 +237,49 @@ export function LiveRevenueDonutChart({
             );
           })}
 
-          {/* Center Donut Annotation (Exact replica of DEEN-OPS screenshot) */}
+          {/* Center Donut Annotation (Exact replica of DEEN-OPS screenshot, enlarged for clarity) */}
           <g pointerEvents="none">
-            <circle cx="140" cy="140" r="58" fill="#ffffff" />
+            <circle
+              cx="140"
+              cy="140"
+              r="66"
+              fill="currentColor"
+              className="fill-white dark:fill-black text-white dark:text-black transition-colors"
+            />
             <text
               x="140"
-              y="126"
+              y="124"
               textAnchor="middle"
               dominantBaseline="central"
-              fontSize="16"
+              fontSize="19"
               fontWeight="900"
-              fill="#0f172a"
-              className="font-headline tracking-tight"
+              fill="currentColor"
+              className="font-headline tracking-tight fill-slate-900 dark:fill-white text-slate-900 dark:text-white transition-colors"
             >
               ৳ {effectiveRevenue.toLocaleString()}
             </text>
             <text
               x="140"
-              y="142"
+              y="143"
               textAnchor="middle"
               dominantBaseline="central"
-              fontSize="7"
+              fontSize="8"
               fontWeight="bold"
-              fill="#64748b"
               letterSpacing="0.8"
+              fill="currentColor"
+              className="fill-slate-500 dark:fill-white text-slate-500 dark:text-white transition-colors"
             >
               TOTAL REVENUE
             </text>
             <text
               x="140"
-              y="156"
+              y="160"
               textAnchor="middle"
               dominantBaseline="central"
-              fontSize="8"
+              fontSize="9.5"
               fontWeight="bold"
-              fill="#0d9488"
+              fill="currentColor"
+              className="fill-teal-700 dark:fill-white text-teal-700 dark:text-white transition-colors"
             >
               💎 {effectiveSelectsShare}% Selects
             </text>
@@ -280,7 +295,7 @@ export function LiveRevenueDonutChart({
             }}
           >
             <div className="font-bold text-white flex items-center justify-between gap-2 border-b border-slate-800 pb-1 mb-1">
-              <span>{active.name}</span>
+              <span>{/^Denim\s+Jacket$/i.test((active.displayName || active.name).trim()) ? 'Jacket' : (/^Twill(\s+Five\s+Pockets?|5\s*Pockets?)?$/i.test((active.displayName || active.name).trim()) ? 'Twill' : (active.displayName || active.name))}</span>
               <span className="text-amber-400 font-black">{active.revenueShare}%</span>
             </div>
             <div className="space-y-0.5 text-slate-300">

@@ -300,23 +300,23 @@ export function PaymentMethodMixCard({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden flex flex-col">
+    <div className="bg-white dark:bg-black rounded-2xl border border-slate-200 dark:border-[#1F1F1F] shadow-2xs overflow-hidden flex flex-col">
       {/* Header Toolbar */}
-      <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-gradient-to-r from-white via-slate-50/50 to-white">
+      <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-[#1F1F1F] flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-gradient-to-r from-white via-slate-50/50 to-white dark:from-black dark:via-black dark:to-black">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-orange-100/70 text-orange-600 flex items-center justify-center font-bold shadow-2xs border border-orange-200/60 shrink-0">
             <ArrowRightLeft className="w-5 h-5 text-orange-600" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-headline text-sm sm:text-base font-bold text-slate-900">
+              <h3 className="font-headline text-sm sm:text-base font-bold text-slate-900 dark:text-white">
                 {title}
               </h3>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200/80">
                 {stats.ratioMultiplier} : 1 Ratio
               </span>
             </div>
-            <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
               {subtitle}
             </p>
           </div>
@@ -325,14 +325,14 @@ export function PaymentMethodMixCard({
         {/* Action Controls: Breakdown Mode & Metric Switchers */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Breakdown Filter: Binary (COD vs Online) vs Gateways (bKash / SSL) */}
-          <div className="flex items-center p-0.5 bg-slate-100 rounded-lg border border-slate-200 text-xs font-semibold">
+          <div className="flex items-center p-0.5 bg-slate-100 dark:bg-[#121212] rounded-lg border border-slate-200 dark:border-[#1F1F1F] text-xs font-semibold">
             <button
               type="button"
               onClick={() => setBreakdownMode('BINARY')}
               className={`px-2.5 py-1 rounded-md transition-all ${
                 breakdownMode === 'BINARY'
-                  ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-2xs font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               COD vs Online
@@ -342,8 +342,8 @@ export function PaymentMethodMixCard({
               onClick={() => setBreakdownMode('GATEWAYS')}
               className={`px-2.5 py-1 rounded-md transition-all ${
                 breakdownMode === 'GATEWAYS'
-                  ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-2xs font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               All Gateways (bKash / SSL)
@@ -351,14 +351,14 @@ export function PaymentMethodMixCard({
           </div>
 
           {/* Metric Filter: Orders vs Revenue */}
-          <div className="flex items-center p-0.5 bg-slate-100 rounded-lg border border-slate-200 text-xs font-semibold">
+          <div className="flex items-center p-0.5 bg-slate-100 dark:bg-[#121212] rounded-lg border border-slate-200 dark:border-[#1F1F1F] text-xs font-semibold">
             <button
               type="button"
               onClick={() => setMetricMode('ORDERS')}
               className={`px-2.5 py-1 rounded-md transition-all ${
                 metricMode === 'ORDERS'
-                  ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-2xs font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Orders
@@ -368,8 +368,8 @@ export function PaymentMethodMixCard({
               onClick={() => setMetricMode('REVENUE')}
               className={`px-2.5 py-1 rounded-md transition-all ${
                 metricMode === 'REVENUE'
-                  ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-2xs font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Revenue (৳)
@@ -394,7 +394,8 @@ export function PaymentMethodMixCard({
               cy="18"
               r="15.9155"
               fill="transparent"
-              stroke="#F1F5F9"
+              stroke="currentColor"
+              className="stroke-slate-100 dark:stroke-[#222222] text-slate-100 dark:text-[#222222]"
               strokeWidth="4"
             />
 
@@ -427,13 +428,13 @@ export function PaymentMethodMixCard({
 
           {/* Interactive Center Callout */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center p-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 line-clamp-1 max-w-[120px]">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-white line-clamp-1 max-w-[120px] transition-colors">
               {activeSlice ? activeSlice.shortLabel : `${stats.cod.orderShare.toFixed(0)}% COD : ${stats.online.orderShare.toFixed(0)}% Online`}
             </span>
-            <span className="font-headline text-lg sm:text-xl font-extrabold text-slate-900 leading-tight">
+            <span className="font-headline text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white leading-tight transition-colors">
               {activeSlice ? formatDisplay(activeSlice.value) : (metricMode === 'ORDERS' ? `${stats.totalOrderCount.toLocaleString()} Orders` : `৳${stats.totalRevenue.toLocaleString()}`)}
             </span>
-            <span className="text-[10px] font-mono font-bold text-slate-500">
+            <span className="text-[10px] font-mono font-bold text-slate-500 dark:text-white transition-colors">
               {activeSlice ? `${activeSlice.sharePercent.toFixed(1)}% Share` : 'Consolidated Mix'}
             </span>
           </div>
@@ -442,19 +443,19 @@ export function PaymentMethodMixCard({
         {/* Right: Detailed Legend & Comparative Return Risk Insights */}
         <div className="w-full flex-1 flex flex-col gap-3 min-w-0">
           {/* Proportional Dual-Split Bar */}
-          <div className="space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+          <div className="space-y-1.5 bg-slate-50 dark:bg-[#0A0A0A] p-3 rounded-xl border border-slate-200/80 dark:border-[#1F1F1F]">
             <div className="flex items-center justify-between text-xs font-bold">
-              <span className="text-orange-600 flex items-center gap-1.5">
+              <span className="text-orange-600 dark:text-orange-400 flex items-center gap-1.5">
                 <Banknote className="w-3.5 h-3.5" />
                 COD ({stats.cod.orderShare.toFixed(1)}%)
               </span>
-              <span className="text-sky-600 flex items-center gap-1.5">
+              <span className="text-sky-600 dark:text-sky-400 flex items-center gap-1.5">
                 <CreditCard className="w-3.5 h-3.5" />
                 Online Paid ({stats.online.orderShare.toFixed(1)}%)
               </span>
             </div>
 
-            <div className="w-full h-2.5 rounded-full overflow-hidden flex bg-slate-200 shadow-inner">
+            <div className="w-full h-2.5 rounded-full overflow-hidden flex bg-slate-200 dark:bg-[#1F1F1F] shadow-inner">
               <div
                 className="h-full bg-orange-500 transition-all duration-500"
                 style={{ width: `${stats.cod.orderShare}%` }}
@@ -467,7 +468,7 @@ export function PaymentMethodMixCard({
               />
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono pt-0.5">
+            <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-mono pt-0.5">
               <span>{stats.cod.count.toLocaleString()} orders • ৳{stats.cod.revenue.toLocaleString()}</span>
               <span>{stats.online.count.toLocaleString()} orders • ৳{stats.online.revenue.toLocaleString()}</span>
             </div>
@@ -484,8 +485,8 @@ export function PaymentMethodMixCard({
                   onMouseLeave={() => setHoveredSliceId(null)}
                   className={`p-2.5 rounded-xl transition-all cursor-pointer border ${
                     isHovered
-                      ? 'bg-slate-50 border-slate-400 shadow-2xs scale-[1.01]'
-                      : 'bg-white border-slate-200/90 hover:border-slate-300'
+                      ? 'bg-slate-50 dark:bg-[#141414] border-slate-400 dark:border-slate-600 shadow-2xs scale-[1.01]'
+                      : 'bg-white dark:bg-[#0A0A0A] border-slate-200/90 dark:border-[#1F1F1F] hover:border-slate-300 dark:hover:border-[#333333]'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-1.5">
@@ -494,20 +495,20 @@ export function PaymentMethodMixCard({
                         className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs"
                         style={{ backgroundColor: seg.color }}
                       />
-                      <span className="font-bold text-slate-900 truncate text-[11px] sm:text-xs">
+                      <span className="font-bold text-slate-900 dark:text-white truncate text-[11px] sm:text-xs">
                         {seg.label}
                       </span>
                     </div>
-                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 shrink-0">
+                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#171717] text-slate-700 dark:text-slate-300 shrink-0">
                       {seg.sharePercent.toFixed(1)}%
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-100 text-[11px]">
-                    <span className="font-semibold text-slate-700 font-mono">
+                  <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-100 dark:border-[#1F1F1F] text-[11px]">
+                    <span className="font-semibold text-slate-700 dark:text-slate-200 font-mono">
                       {formatDisplay(seg.value)}
                     </span>
-                    <span className={`text-[10px] font-bold ${seg.returnRate === 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    <span className={`text-[10px] font-bold ${seg.returnRate === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                       {seg.returnRate === 0 ? '0% Returns' : `${seg.returnRate.toFixed(1)}% RTO`}
                     </span>
                   </div>
@@ -517,16 +518,16 @@ export function PaymentMethodMixCard({
           </div>
 
           {/* Executive Return Risk Insight Card */}
-          <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200 flex items-start gap-2.5 text-xs text-emerald-900">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+          <div className="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 flex items-start gap-2.5 text-xs text-emerald-900 dark:text-emerald-300">
+            <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
             <div className="space-y-0.5">
               <span className="font-bold block">
                 Cash Flow Insight: Online Prepaid vs COD Return Variance
               </span>
-              <p className="text-[11px] text-emerald-800/90 leading-relaxed">
+              <p className="text-[11px] text-emerald-800/90 dark:text-emerald-300/90 leading-relaxed">
                 Online prepaid orders ({stats.online.count.toLocaleString()} orders) achieved a{' '}
-                <strong className="text-emerald-900 font-extrabold">{stats.online.returnRate.toFixed(1)}% return rate</strong> (100% retained cash flow), whereas COD orders experienced a{' '}
-                <strong className="text-rose-700 font-extrabold">{stats.cod.returnRate.toFixed(1)}% return rate</strong>. Increasing online payments directly reduces courier return freight losses.
+                <strong className="text-emerald-900 dark:text-emerald-200 font-extrabold">{stats.online.returnRate.toFixed(1)}% return rate</strong> (100% retained cash flow), whereas COD orders experienced a{' '}
+                <strong className="text-rose-700 dark:text-rose-400 font-extrabold">{stats.cod.returnRate.toFixed(1)}% return rate</strong>. Increasing online payments directly reduces courier return freight losses.
               </p>
             </div>
           </div>

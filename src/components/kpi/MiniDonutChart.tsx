@@ -30,7 +30,7 @@ export function MiniDonutChart({
   arcs,
   tooltip,
   centerText,
-  centerTextClass = 'text-slate-700 dark:text-slate-200',
+  centerTextClass = 'text-slate-700 dark:text-white',
   strokeLinecap,
   className = '',
 }: MiniDonutChartProps) {

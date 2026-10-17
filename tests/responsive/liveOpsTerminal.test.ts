@@ -74,6 +74,55 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       // In JS: Thursday is day 4
       expect(prevWorkday.getDay()).toBe(4);
     });
+
+    it('flags closed Friday (0 dispatches) with isFridayClosed: true and open Friday with false', () => {
+      // Reference date: Saturday 2026-10-17
+      // Friday was 2026-10-16
+      const mockOrders: Partial<RawOrderRow>[] = [
+        {
+          'Order ID': '9001',
+          'Date Modified': '2026-10-17T10:00:00Z',
+          'Delivery Status': 'shipped',
+          Quantity: 2,
+          'Order Amount': 3500,
+        },
+      ];
+
+      // 1. Case: Friday had 0 dispatches (warehouse closed)
+      const reportClosedFriday = processLiveOpsData(mockOrders as RawOrderRow[], {
+        view: 'Today Shipped',
+        customDate: '2026-10-17',
+      });
+      const fridaySummaryClosed = reportClosedFriday.last7DaysHistory.find((d) => d.dateIso === '2026-10-16');
+      expect(fridaySummaryClosed).toBeDefined();
+      expect(fridaySummaryClosed?.dayName).toBe('Friday');
+      expect(fridaySummaryClosed?.orderCount).toBe(0);
+      expect(fridaySummaryClosed?.isFridayClosed).toBe(true);
+
+      // 2. Case: Special open Friday with shipped parcels
+      const mockWithFridayDispatches: Partial<RawOrderRow>[] = [
+        ...mockOrders,
+        {
+          'Order ID': '9002',
+          'Date Modified': '2026-10-16T11:00:00Z',
+          'Delivery Status': 'shipped',
+          Quantity: 10,
+          'Order Amount': 15000,
+        },
+      ];
+      const reportOpenFriday = processLiveOpsData(mockWithFridayDispatches as RawOrderRow[], {
+        view: 'Today Shipped',
+        customDate: '2026-10-17',
+      });
+      const fridaySummaryOpen = reportOpenFriday.last7DaysHistory.find((d) => d.dateIso === '2026-10-16');
+      expect(fridaySummaryOpen).toBeDefined();
+      expect(fridaySummaryOpen?.orderCount).toBe(1);
+      expect(fridaySummaryOpen?.isFridayClosed).toBe(false);
+
+      // Saturday (non-Friday) is never flagged as closed Friday
+      const saturdaySummary = reportOpenFriday.last7DaysHistory.find((d) => d.dateIso === '2026-10-17');
+      expect(saturdaySummary?.isFridayClosed).toBe(false);
+    });
   });
 
   describe('Live Operations Processor Synthesis', () => {

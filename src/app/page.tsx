@@ -161,6 +161,15 @@ export default function DashboardPage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
+  // Auto-dismiss transient top status banner after 6s to remove permanent visual noise
+  useEffect(() => {
+    if (!statusMessage) return;
+    const timer = setTimeout(() => {
+      setStatusMessage(null);
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [statusMessage]);
+
   const [result, setResult] = useState<ReconciliationResult | null>(null);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
