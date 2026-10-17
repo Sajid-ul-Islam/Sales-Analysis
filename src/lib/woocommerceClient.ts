@@ -210,10 +210,19 @@ export function detectBranchFromOrder(order: any, meta: any[], orderId: string):
   );
   const outletId = outletMeta ? String(outletMeta.value).trim() : '';
 
-  const cleanId = String(orderId || order.id || order.number || '').trim().toLowerCase();
+  const cleanId = String(orderId || order?.id || order?.number || '').trim().toLowerCase();
+  const customerNote = String(order?.customer_note || (order as any)?.order_notes || (order as any)?.notes || '').toLowerCase();
+  const metaStrings = meta.map((m: any) => `${m.key}=${m.value}`).join(' ').toLowerCase();
 
-  // 1. Exchange Replacement: D-17263 / DD-17263 / ex-17263
-  if (/^(dd?|ex|exchange)[-_]/i.test(cleanId) || /^d-\d+/i.test(cleanId)) {
+  // 1. Exchange Replacement: D-17263 / DD-17263 / ex-17263 / "Exchange for #17839" / "Exchanged"
+  if (
+    /^(dd?|ex|exchange)[-_]/i.test(cleanId) ||
+    /^d-\d+/i.test(cleanId) ||
+    /exchange\s+for\s+#?\d+/i.test(customerNote) ||
+    /exchange\s+for\s+#?\d+/i.test(metaStrings) ||
+    /\bexchanged\b/i.test(customerNote) ||
+    meta.some((m: any) => /substatus|custom_status|status_label/i.test(m.key) && /exchange/i.test(String(m.value)))
+  ) {
     return {
       isPos: false,
       outletId: '',
@@ -485,6 +494,7 @@ export function formatWooCommerceToOrderRows(orders: any[]): RawOrderRow[] {
     const orderId = String(order.id || order.number || '');
     const dateCreated = order.date_created || '';
     const dateModified = order.date_modified || order.date_modified_gmt || dateCreated;
+    const dateCompleted = order.date_completed || order.date_completed_gmt || '';
     const customerName = `${order.billing?.first_name || ''} ${order.billing?.last_name || ''}`.trim() || order.shipping?.first_name || 'Customer';
     const rawPhone = order.billing?.phone || order.shipping?.phone || '';
     const { displayPhone, whatsappPhone } = cleanCustomerPhone(rawPhone);
@@ -506,6 +516,23 @@ export function formatWooCommerceToOrderRows(orders: any[]): RawOrderRow[] {
     const discountTotal = parseFloat(order.discount_total) || 0;
     const couponCodes = (order.coupon_lines || []).map((c: any) => c.code).filter(Boolean).join(', ');
 
+    // Extract substatus or custom order status badge (e.g. "Exchange for #17839" or "Exchanged")
+    let substatus = '';
+    for (const m of meta) {
+      const k = String(m.key || '').toLowerCase();
+      const v = String(m.value || '').trim();
+      if (/substatus|sub_status|custom_order_status|order_status_label|ywcos_custom_status/i.test(k) && v) {
+        substatus = v;
+        break;
+      }
+    }
+    if (!substatus) {
+      const notesText = `${order.customer_note || ''} ${(order as any).order_notes || ''}`;
+      const match = notesText.match(/exchange\s+for\s+#?\d+/i) || notesText.match(/\bexchanged\b/i);
+      if (match) substatus = match[0];
+    }
+    const isOrderExchangeRow = branchInfo.branchCode === 'EXCHANGE' || /exchange/i.test(substatus);
+
     const lineItems = order.line_items || [];
     if (lineItems.length === 0) {
       const prodName = 'Apparel Order';
@@ -522,10 +549,18 @@ export function formatWooCommerceToOrderRows(orders: any[]): RawOrderRow[] {
         'orderDate': dateCreated,
         'Date Modified': dateModified,
         'dateModified': dateModified,
+        'Date Completed': dateCompleted,
+        'dateCompleted': dateCompleted,
+        'date_completed': dateCompleted,
+        'Substatus': substatus,
+        'substatus': substatus,
+        'isExchange': isOrderExchangeRow,
         'Customer Name': customerName,
         'customerName': customerName,
+        'rawCustomerName': customerName,
         'Phone': displayPhone || rawPhone,
         'phone': displayPhone || rawPhone,
+        'rawPhone': displayPhone || rawPhone,
         'formattedPhone': whatsappPhone,
         'Email': email,
         'email': email,
@@ -598,10 +633,18 @@ export function formatWooCommerceToOrderRows(orders: any[]): RawOrderRow[] {
           'orderDate': dateCreated,
           'Date Modified': dateModified,
           'dateModified': dateModified,
+          'Date Completed': dateCompleted,
+          'dateCompleted': dateCompleted,
+          'date_completed': dateCompleted,
+          'Substatus': substatus,
+          'substatus': substatus,
+          'isExchange': isOrderExchangeRow,
           'Customer Name': customerName,
           'customerName': customerName,
+          'rawCustomerName': customerName,
           'Phone': displayPhone || rawPhone,
           'phone': displayPhone || rawPhone,
+          'rawPhone': displayPhone || rawPhone,
           'formattedPhone': whatsappPhone,
           'Email': email,
           'email': email,

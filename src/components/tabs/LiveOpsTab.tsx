@@ -40,6 +40,8 @@ import {
   isOrderProcessing,
   isOrderOnHold,
   isOrderShipped,
+  isOrderExchange,
+  extractExchangeInfo,
   generateWhatsAppConfirmationUrl,
   formatBangladeshPhoneNumber,
   parseOrderDate,
@@ -60,6 +62,11 @@ import {
 } from '@/lib/sync/liveTerminalSync';
 import { loadAppSettings } from '@/lib/settingsStore';
 import { getCacheItem, setCacheItem, DEEN_CACHE_KEYS } from '@/lib/cacheManager';
+import {
+  compareOrdersByNumber,
+  getExportCustomerName,
+  getExportPhoneNumber,
+} from '@/lib/excelExport';
 
 interface LiveTerminalCacheEnvelope {
   orders: RawOrderRow[];
@@ -89,7 +96,13 @@ export function LiveOpsTab({
   const [showSubCategory, setShowSubCategory] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
-  const [courierFilter, setCourierFilter] = useState<string>('ALL');
+  const [courierFilter, setCourierFilter] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      return p.get('courierFilter') || 'ALL';
+    }
+    return 'ALL';
+  });
   const [pipelineFilter, setPipelineFilter] = useState<'ALL' | 'PROCESSING' | 'HOLD' | 'SHIPPED_TODAY'>('ALL');
   const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
   const [localSyncing, setLocalSyncing] = useState(false);
@@ -146,7 +159,13 @@ export function LiveOpsTab({
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
 
   // 7-Day History selection & Executive Briefing State
-  const [selectedHistoricalDate, setSelectedHistoricalDate] = useState<string | null>(null);
+  const [selectedHistoricalDate, setSelectedHistoricalDate] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      return p.get('date') || null;
+    }
+    return null;
+  });
   const [briefingCopied, setBriefingCopied] = useState(false);
   const [activeAnalyticsView, setActiveAnalyticsView] = useState<'category' | 'spotlight'>('category');
 
@@ -183,8 +202,9 @@ export function LiveOpsTab({
       onlineOnly,
       customDate: selectedHistoricalDate || undefined,
       anchorDate: snapshotAnchorDate,
+      historicalOrders: orders,
     });
-  }, [activeDataset, selectedView, onlineOnly, selectedHistoricalDate, snapshotAnchorDate]);
+  }, [activeDataset, selectedView, onlineOnly, selectedHistoricalDate, snapshotAnchorDate, orders]);
 
   const activeCategoryItems = showSubCategory ? report.subCategoryItems : report.categoryItems;
 
@@ -341,14 +361,14 @@ export function LiveOpsTab({
     return () => clearInterval(timer);
   }, [handleSyncNow]);
 
-  // Filtered orders list for ledger table
+  // Filtered orders list for ledger table (Sorted by Order Number)
   const filteredOrders = useMemo(() => {
-    return report.activeOrders.filter((o) => {
+    const list = report.activeOrders.filter((o) => {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const oid = String(o['Order ID'] || o.orderId || '').toLowerCase();
-        const cname = String(o['Customer Name'] || '').toLowerCase();
-        const phone = String(o.Phone || '').toLowerCase();
+        const cname = String(getExportCustomerName(o) || o['Customer Name'] || '').toLowerCase();
+        const phone = String(getExportPhoneNumber(o) || o.Phone || '').toLowerCase();
         const item = String(o['Item Name'] || '').toLowerCase();
         const sku = String(o.SKU || '').toLowerCase();
         const cid = String(o['Consignment ID'] || o.consignmentId || '').toLowerCase();
@@ -370,7 +390,9 @@ export function LiveOpsTab({
       }
 
       if (courierFilter !== 'ALL') {
-        if (courierFilter === 'DISCREPANCY_ONLY') {
+        if (courierFilter === 'EXCHANGES_ONLY') {
+          if (!isOrderExchange(o)) return false;
+        } else if (courierFilter === 'DISCREPANCY_ONLY') {
           if (!o.hasDiscrepancy) return false;
         } else if (
           courierFilter === 'RETURNED_BUT_SHIPPED' ||
@@ -394,6 +416,8 @@ export function LiveOpsTab({
 
       return true;
     });
+
+    return list.sort(compareOrdersByNumber);
   }, [report.activeOrders, searchQuery, categoryFilter, courierFilter, selectedView, pipelineFilter]);
 
   // Unique categories for table filter dropdown
@@ -405,15 +429,16 @@ export function LiveOpsTab({
     return Array.from(set).sort();
   }, [report.activeOrders]);
 
-  // Export current table to Excel with full courier details
+  // Export current table to Excel with full courier details sorted by order number
   const handleExportExcel = () => {
-    const exportData = filteredOrders.map((o) => {
+    const sortedOrders = [...filteredOrders].sort(compareOrdersByNumber);
+    const exportData = sortedOrders.map((o) => {
       const isSelects = classifyProductLine(o['Item Name'], o.SKU, getCategoryForSales(o['Item Name'])) === 'DEEN Selects';
       return {
         'Order ID': o['Order ID'] || o.orderId,
         'Date': o['Order Date'],
-        'Customer Name': o['Customer Name'],
-        'Phone': o.Phone,
+        'Customer Name': getExportCustomerName(o),
+        'Phone': getExportPhoneNumber(o),
         'City': o.City,
         'Item Name': o['Item Name'],
         'SKU': o.SKU,
@@ -438,13 +463,14 @@ export function LiveOpsTab({
   };
 
   const handleExportCsv = () => {
-    const exportData = filteredOrders.map((o) => {
+    const sortedOrders = [...filteredOrders].sort(compareOrdersByNumber);
+    const exportData = sortedOrders.map((o) => {
       const isSelects = classifyProductLine(o['Item Name'], o.SKU, getCategoryForSales(o['Item Name'])) === 'DEEN Selects';
       return {
         'Order ID': o['Order ID'] || o.orderId,
         'Date': o['Order Date'],
-        'Customer Name': o['Customer Name'],
-        'Phone': o.Phone,
+        'Customer Name': getExportCustomerName(o),
+        'Phone': getExportPhoneNumber(o),
         'City': o.City,
         'Item Name': o['Item Name'],
         'SKU': o.SKU,
@@ -724,8 +750,16 @@ export function LiveOpsTab({
                   {day.dateLabel.includes(',') ? day.dateLabel.split(',')[1].trim() : day.dateIso.slice(5)}
                 </div>
                 <div className="mt-1 flex items-baseline justify-between text-[11px]">
-                  <span className="font-bold text-slate-800 dark:text-slate-100">
-                    📦 {day.orderCount}
+                  <span className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                    <span>📦 {day.orderCount}</span>
+                    {day.exchangeCount !== undefined && day.exchangeCount > 0 && (
+                      <span
+                        className="text-[9.5px] font-bold px-1.5 py-0.2 rounded-md bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60"
+                        title={`${day.exchangeCount} exchange replacement parcel(s)`}
+                      >
+                        🔄 {day.exchangeCount}
+                      </span>
+                    )}
                   </span>
                   <span className="font-semibold text-slate-600 dark:text-slate-400">
                     ৳{Math.round(day.revenue / 1000)}k
@@ -753,8 +787,25 @@ export function LiveOpsTab({
           </div>
 
           <div className="mt-1 mb-2">
-            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline">
-              {report.shippedItems.value}
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline">
+                {report.shippedItems.value}
+              </div>
+              {report.exchangeStats.itemsCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setCourierFilter((prev) => (prev === 'EXCHANGES_ONLY' ? 'ALL' : 'EXCHANGES_ONLY'))}
+                  className={`text-[11px] font-bold px-2 py-0.5 rounded-full border transition-all flex items-center gap-1 shadow-2xs ${
+                    courierFilter === 'EXCHANGES_ONLY'
+                      ? 'bg-purple-600 text-white border-purple-700 ring-2 ring-purple-500/30'
+                      : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/90 dark:border-purple-800/80 hover:bg-purple-100 dark:hover:bg-purple-900/50'
+                  }`}
+                  title={`${report.exchangeStats.itemsCount} exchange replacement piece(s). Click to filter.`}
+                >
+                  <span>🔄</span>
+                  <span>+{report.exchangeStats.itemsCount} exch pc{report.exchangeStats.itemsCount > 1 ? 's' : ''}</span>
+                </button>
+              )}
             </div>
 
             <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-medium">
@@ -849,8 +900,39 @@ export function LiveOpsTab({
           </div>
 
           <div className="mt-1 mb-2">
-            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline">
-              {report.shippedOrders.value}
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline">
+                {report.shippedOrders.value}
+              </div>
+              {report.exchangeStats.count > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setCourierFilter((prev) => (prev === 'EXCHANGES_ONLY' ? 'ALL' : 'EXCHANGES_ONLY'))}
+                  className={`text-[11px] font-bold px-2 py-0.5 rounded-full border transition-all flex items-center gap-1 shadow-2xs ${
+                    courierFilter === 'EXCHANGES_ONLY'
+                      ? 'bg-purple-600 text-white border-purple-700 ring-2 ring-purple-500/30'
+                      : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/90 dark:border-purple-800/80 hover:bg-purple-100 dark:hover:bg-purple-900/50'
+                  }`}
+                  title={`${report.exchangeStats.count} exchange replacement order(s) dispatched. Click to filter.`}
+                >
+                  <span>🔄</span>
+                  <span>+{report.exchangeStats.count} exch</span>
+                </button>
+              ) : report.exchangeStats.originalExchangedOrders.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setCourierFilter((prev) => (prev === 'EXCHANGES_ONLY' ? 'ALL' : 'EXCHANGES_ONLY'))}
+                  className={`text-[11px] font-bold px-2 py-0.5 rounded-full border transition-all flex items-center gap-1 shadow-2xs ${
+                    courierFilter === 'EXCHANGES_ONLY'
+                      ? 'bg-purple-600 text-white border-purple-700 ring-2 ring-purple-500/30'
+                      : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/90 dark:border-purple-800/80 hover:bg-purple-100 dark:hover:bg-purple-900/50'
+                  }`}
+                  title={`${report.exchangeStats.originalExchangedOrders.length} past order(s) updated to Exchanged today. Click to filter.`}
+                >
+                  <span>🔄</span>
+                  <span>{report.exchangeStats.originalExchangedOrders.length} swapped</span>
+                </button>
+              ) : null}
             </div>
 
             <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-medium">
@@ -1303,22 +1385,40 @@ export function LiveOpsTab({
             </div>
           </div>
 
-          {/* Discrepancy indicator pill */}
-          {courierStats && courierStats.discrepancyCount > 0 ? (
-            <button
-              type="button"
-              onClick={() => setCourierFilter('DISCREPANCY_ONLY')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-400/40 text-xs font-bold hover:bg-rose-500/30 transition-all animate-pulse"
-            >
-              <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
-              <span>{courierStats.discrepancyCount} Discrepancies Detected</span>
-            </button>
-          ) : (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Courier Statuses Reconciled</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            {report.exchangeStats && report.exchangeStats.count > 0 && (
+              <button
+                type="button"
+                onClick={() => setCourierFilter(courierFilter === 'EXCHANGES_ONLY' ? 'ALL' : 'EXCHANGES_ONLY')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                  courierFilter === 'EXCHANGES_ONLY'
+                    ? 'bg-purple-600 text-white border-purple-400 shadow-xs'
+                    : 'bg-purple-500/20 text-purple-300 border-purple-400/40 hover:bg-purple-500/30'
+                }`}
+                title="Exchanges are tracked separately and isolated from gross sales charts"
+              >
+                <span>🔄</span>
+                <span>{report.exchangeStats.count} Exchange Replacement(s)</span>
+              </button>
+            )}
+
+            {/* Discrepancy indicator pill */}
+            {courierStats && courierStats.discrepancyCount > 0 ? (
+              <button
+                type="button"
+                onClick={() => setCourierFilter('DISCREPANCY_ONLY')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-400/40 text-xs font-bold hover:bg-rose-500/30 transition-all animate-pulse"
+              >
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                <span>{courierStats.discrepancyCount} Discrepancies Detected</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Courier Statuses Reconciled</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 4 Telemetry Metrics */}
@@ -1449,7 +1549,7 @@ export function LiveOpsTab({
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-xs active:scale-95"
             >
               <Copy className="w-3.5 h-3.5" />
-              <span>{briefingCopied ? 'Copied to Clipboard! ✓' : 'Copy Briefing'}</span>
+              <span>{briefingCopied ? 'Copied WhatsApp Briefing! ✓' : 'Copy WhatsApp Briefing'}</span>
             </button>
 
             <button
@@ -1717,6 +1817,7 @@ export function LiveOpsTab({
             { id: 'In Transit', label: '🚚 In Transit' },
             { id: 'Returned', label: '⚠ Returned' },
             { id: 'Untracked', label: '○ Untracked' },
+            ...(report.exchangeStats && report.exchangeStats.count > 0 ? [{ id: 'EXCHANGES_ONLY', label: `🔄 Exchanges (${report.exchangeStats.count})` }] : []),
             { id: 'DISCREPANCY_ONLY', label: '🚨 Discrepancies Only' },
           ].map((pill) => (
             <button
@@ -1835,7 +1936,21 @@ export function LiveOpsTab({
                             <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
                           {(() => {
+                            const exInfo = extractExchangeInfo(row);
                             const branch = detectFulfillmentBranch(row);
+                            const isExchangeOrder = exInfo.isExchange || branch.branchCode === 'EXCHANGE';
+
+                            if (isExchangeOrder) {
+                              return (
+                                <span
+                                  className="inline-block self-start px-2 py-0.5 rounded-md text-[9.5px] font-bold tracking-tight bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800 font-sans shadow-2xs"
+                                  title={exInfo.type === 'replacement' ? `Replacement for #${exInfo.referencedOrderId}` : 'Exchanged Order'}
+                                >
+                                  {exInfo.displayTag || 'Exchange'}
+                                </span>
+                              );
+                            }
+
                             if (!branch.isBranchFulfillment) return null;
                             const badgeColor =
                               branch.branchCode === 'MIRPUR'
@@ -1846,17 +1961,13 @@ export function LiveOpsTab({
                                 ? 'bg-teal-100 text-teal-800 border-teal-200'
                                 : branch.branchCode === 'SYLHET'
                                 ? 'bg-indigo-100 text-indigo-800 border-indigo-200'
-                                : branch.branchCode === 'EXCHANGE'
-                                ? 'bg-rose-100 text-rose-800 border-rose-200'
                                 : 'bg-slate-100 text-slate-700 border-slate-200';
                             return (
                               <span
                                 className={`inline-block self-start px-1.5 py-0.2 rounded text-[9.5px] font-bold tracking-tight border font-sans ${badgeColor}`}
                                 title={`Fulfillment: ${branch.branchName}`}
                               >
-                                {branch.branchCode === 'EXCHANGE'
-                                  ? 'Exchange'
-                                  : branch.branchName.replace(' Branch', '').replace(' Outlet POS', ' POS')}
+                                {branch.branchName.replace(' Branch', '').replace(' Outlet POS', ' POS')}
                               </span>
                             );
                           })()}
@@ -1866,11 +1977,11 @@ export function LiveOpsTab({
                         {String(row['Order Date'] || '').slice(0, 16)}
                       </td>
                       <td className="py-2.5 px-3.5">
-                        <div className="font-bold text-slate-800 truncate max-w-[140px]" title={row['Customer Name']}>
-                          {row['Customer Name'] || 'Customer'}
+                        <div className="font-bold text-slate-800 truncate max-w-[140px]" title={getExportCustomerName(row) || row['Customer Name']}>
+                          {getExportCustomerName(row) || row['Customer Name'] || 'Customer'}
                         </div>
                         <div className="text-[11px] text-slate-400 font-mono">
-                          {row.Phone || 'N/A'}
+                          {getExportPhoneNumber(row) || row.Phone || 'N/A'}
                         </div>
                       </td>
                       <td className="py-2.5 px-3.5 max-w-[220px]">
@@ -2010,7 +2121,7 @@ export function LiveOpsTab({
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  Placed on {String(selectedDetailOrder['Order Date'] || '')} • Customer: {selectedDetailOrder['Customer Name']}
+                  Placed on {String(selectedDetailOrder['Order Date'] || '')} • Customer: {getExportCustomerName(selectedDetailOrder) || selectedDetailOrder['Customer Name']}
                 </p>
               </div>
 
@@ -2115,11 +2226,11 @@ export function LiveOpsTab({
               <div className="grid grid-cols-2 gap-2 text-slate-700">
                 <div>
                   <span className="text-slate-400 block text-[10px]">Name:</span>
-                  <span className="font-semibold">{selectedDetailOrder['Customer Name'] || 'Customer'}</span>
+                  <span className="font-semibold">{getExportCustomerName(selectedDetailOrder) || selectedDetailOrder['Customer Name'] || 'Customer'}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Phone:</span>
-                  <span className="font-semibold">{selectedDetailOrder.Phone || 'N/A'}</span>
+                  <span className="font-semibold">{getExportPhoneNumber(selectedDetailOrder) || selectedDetailOrder.Phone || 'N/A'}</span>
                 </div>
                 <div className="col-span-2">
                   <span className="text-slate-400 block text-[10px]">City / Area:</span>

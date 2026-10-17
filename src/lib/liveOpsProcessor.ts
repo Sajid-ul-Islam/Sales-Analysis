@@ -8,6 +8,7 @@
 import { RawOrderRow, ReconciledOrderRow } from '@/types';
 import { classifyProductLine, computeSelectsStats, SelectsStats } from './selectsAnalytics';
 import { getCategoryForSales, getSubCategoryForSales, getShortCategoryLabel, CATEGORY_COLOR_MAP } from './liveCategoryEngine';
+import { computeCustomerMix } from './customerRegistry';
 
 export const SHIPPED_STATUSES = new Set(['shipped', 'completed', 'wc-shipped', 'wc-completed', 'delivered']);
 export const CANCELLED_STATUSES = new Set(['cancelled', 'wc-cancelled', 'failed', 'wc-failed', 'refunded', 'trash']);
@@ -210,6 +211,7 @@ export interface DayHistorySummary {
   aov: number;
   orders: RawOrderRow[];
   isFridayClosed?: boolean;
+  exchangeCount?: number;
 }
 
 export interface ExecutiveBriefing {
@@ -276,6 +278,137 @@ export interface LiveOpsReport {
   activeOrders: RawOrderRow[];
   totalDispatchedItems: number;
   totalUniqueOrders: number;
+
+  // Dedicated Exchange Dispatches & Logistics Tracking
+  exchangeStats: ExchangeStats;
+}
+
+export interface ExchangeInfo {
+  isExchange: boolean;
+  type: 'replacement' | 'original_exchanged' | 'general_exchange';
+  referencedOrderId: string | null;
+  displayTag: string;
+}
+
+export interface ExchangeStats {
+  count: number;
+  itemsCount: number;
+  revenue: number;
+  orders: RawOrderRow[];
+  replacementOrders: RawOrderRow[];
+  originalExchangedOrders: RawOrderRow[];
+}
+
+export function getAllOrderNotes(order: RawOrderRow): string {
+  if (!order) return '';
+  return [
+    order['Order Notes'],
+    (order as any).orderNotes,
+    (order as any).customer_note,
+    (order as any).notes,
+    (order as any).note,
+    (order as any).rawNote,
+    (order as any).Substatus,
+    (order as any).substatus,
+    (order as any)['Sub-status'],
+    (order as any).tags,
+    (order as any).aiAuditTag,
+    (order as any).aiAuditNote,
+  ]
+    .filter(Boolean)
+    .map(String)
+    .join(' ');
+}
+
+/**
+ * Returns true if an order is an exchange, replacement, or swap parcel.
+ * Identifies:
+ * - Orders prefixed with D- or DD- (e.g. D-17839 or DD-17839)
+ * - Replacement orders created with note/substatus "Exchange for #17839"
+ * - Original orders marked as "Exchanged"
+ * - Courier consignments tagged with D- or exchange prefix
+ */
+export function isOrderExchange(order: RawOrderRow): boolean {
+  if (!order) return false;
+  if (order.isExchange === true) return true;
+  if (order.orderCategory === 'EXCHANGE') return true;
+
+  // 1. Order ID or Consignment Prefix (D-17839, DD-17839, ex-17839)
+  const orderId = String(order['Order ID'] || order.orderId || order.id || (order as any).orderNumber || '').trim();
+  const consignmentId = String(order['Consignment ID'] || (order as any).consignmentId || (order as any).tracking_number || '').trim();
+  if (/^(dd?|ex|exchange)[-_]/i.test(orderId) || /^d-\d+/i.test(orderId)) return true;
+  if (/^(dd?|ex|exchange)[-_]/i.test(consignmentId) || /^d-\d+/i.test(consignmentId)) return true;
+
+  // 2. Branch or fulfillment status
+  const branchCode = String(order.branchCode || (order as any).fulfillmentBranch || '').toUpperCase();
+  if (branchCode.includes('EXCHANGE')) return true;
+
+  // 3. Status strings
+  const deliveryStatus = String(order['Delivery Status'] || (order as any).status || (order as any).orderStatus || order.orderDeliveryStatus || order.itemDeliveryStatus || '').toLowerCase();
+  if (deliveryStatus.includes('exchange')) return true;
+
+  // 4. Notes, Substatus, Badges, Tags
+  const combinedNotes = getAllOrderNotes(order).toLowerCase();
+  if (
+    combinedNotes.includes('exchange') ||
+    combinedNotes.includes('exchanged') ||
+    combinedNotes.includes('replacement') ||
+    /\bdd?-\d+\b/i.test(combinedNotes)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Extracts granular exchange details: distinguishes replacement dispatches (#18085 for #17839)
+ * from original orders that were completed previously and updated to 'Exchanged'.
+ */
+export function extractExchangeInfo(order: RawOrderRow): ExchangeInfo {
+  if (!isOrderExchange(order)) {
+    return {
+      isExchange: false,
+      type: 'general_exchange',
+      referencedOrderId: null,
+      displayTag: '',
+    };
+  }
+
+  const orderId = String(order['Order ID'] || order.orderId || order.id || (order as any).orderNumber || '').trim();
+  const consignmentId = String(order['Consignment ID'] || (order as any).consignmentId || (order as any).tracking_number || '').trim();
+  const notes = getAllOrderNotes(order);
+
+  // Check for referenced order (e.g. "Exchange for #17839" or D-17839 or notes containing D-17381)
+  const refMatch = notes.match(/exchange\s+for\s+#?(\d+)/i) ||
+                   notes.match(/\bdd?-(\d+)\b/i) ||
+                   orderId.match(/^d+-(\d+)/i) ||
+                   consignmentId.match(/^d+-(\d+)/i);
+
+  if (refMatch) {
+    return {
+      isExchange: true,
+      type: 'replacement',
+      referencedOrderId: refMatch[1],
+      displayTag: `Exchange for #${refMatch[1]}`,
+    };
+  }
+
+  if (/\bexchanged\b/i.test(notes) || /exchanged/i.test(String(order['Delivery Status'] || ''))) {
+    return {
+      isExchange: true,
+      type: 'original_exchanged',
+      referencedOrderId: null,
+      displayTag: 'Exchanged',
+    };
+  }
+
+  return {
+    isExchange: true,
+    type: 'general_exchange',
+    referencedOrderId: null,
+    displayTag: 'Exchange',
+  };
 }
 
 /**
@@ -303,18 +436,38 @@ export function getDayName(date: Date): string {
 }
 
 export function getStatusModificationDate(order: RawOrderRow): Date | null {
-  const dateStr =
-    (order as any)['Date Modified'] ||
-    (order as any).dateModified ||
-    (order as any).date_modified ||
-    (order as any).date_modified_gmt ||
-    (order as any)['Status Modified Date'] ||
-    (order as any).status_modified_date ||
-    (order as any)['Date Completed'] ||
-    (order as any).date_completed ||
-    order['Order Date'] ||
-    (order as any).orderDate ||
-    '';
+  const status = String(order['Delivery Status'] || (order as any).status || (order as any).orderStatus || '').toLowerCase().trim();
+  const isCompleted = SHIPPED_STATUSES.has(status);
+
+  // If order is completed/shipped, its true shipped/completed date is 'Date Completed' if present!
+  // In WooCommerce REST API, Date Completed reflects the exact moment the status transitioned to completed,
+  // whereas Date Modified gets bumped on subsequent edits (such as staff tagging an order as "Exchanged").
+  const dateStr = isCompleted
+    ? ((order as any)['Date Completed'] ||
+       (order as any).date_completed ||
+       (order as any).dateCompleted ||
+       (order as any)['Status Modified Date'] ||
+       (order as any).status_modified_date ||
+       (order as any)['Date Modified'] ||
+       (order as any).dateModified ||
+       (order as any).date_modified ||
+       (order as any).date_modified_gmt ||
+       order['Order Date'] ||
+       (order as any).orderDate ||
+       '')
+    : ((order as any)['Date Modified'] ||
+       (order as any).dateModified ||
+       (order as any).date_modified ||
+       (order as any).date_modified_gmt ||
+       (order as any)['Status Modified Date'] ||
+       (order as any).status_modified_date ||
+       (order as any)['Date Completed'] ||
+       (order as any).date_completed ||
+       (order as any).dateCompleted ||
+       order['Order Date'] ||
+       (order as any).orderDate ||
+       '');
+
   if (!dateStr) return null;
   const d = new Date(dateStr);
   return isNaN(d.getTime()) ? null : d;
@@ -345,6 +498,29 @@ export function isOrderInQueue(order: RawOrderRow): boolean {
 
 export function isOrderShippedOnDate(order: RawOrderRow, targetDateIso: string): boolean {
   if (!isOrderShipped(order)) return false;
+
+  // An original order tagged "Exchanged" (like #17839) was shipped on an earlier date and modified today.
+  // It must never be counted as a new completed/shipped sale on targetDateIso!
+  const exInfo = extractExchangeInfo(order);
+  if (exInfo.type === 'original_exchanged') {
+    const completedStr = (order as any)['Date Completed'] || (order as any).date_completed || (order as any).dateCompleted;
+    if (completedStr) {
+      const cd = new Date(completedStr);
+      if (!isNaN(cd.getTime()) && formatDateToIsoDay(cd) !== targetDateIso) {
+        return false;
+      }
+    }
+    const orderDateStr = order['Order Date'] || (order as any).orderDate;
+    if (orderDateStr) {
+      const od = new Date(orderDateStr);
+      if (!isNaN(od.getTime()) && formatDateToIsoDay(od) !== targetDateIso) {
+        return false;
+      }
+    }
+    // If tagged 'original_exchanged', it represents an already-delivered past order that was exchanged
+    return false;
+  }
+
   const d = getStatusModificationDate(order);
   return Boolean(d && formatDateToIsoDay(d) === targetDateIso);
 }
@@ -416,10 +592,31 @@ export function generateWhatsAppConfirmationUrl(
     merchantBkash = '01712-345678 (Merchant)',
   } = options;
 
-  const rawPhone = order.Phone || (order as any).phone || (order as any).billing_phone || order['Customer Phone'];
+  const rawPhone =
+    (order as any).rawPhone ||
+    (order as any).raw_phone ||
+    (order as any).cleanPhone ||
+    (order as any).unmaskedPhone ||
+    (order as any).billing?.phone ||
+    (order as any).shipping?.phone ||
+    order.Phone ||
+    (order as any).phone ||
+    (order as any).billing_phone ||
+    order['Customer Phone'];
   const formattedPhone = formatBangladeshPhoneNumber(rawPhone);
   const orderId = order['Order ID'] || order.orderId || (order as any).id || 'N/A';
-  const customerName = order['Customer Name'] || (order as any).customerName || 'Customer';
+  let customerName =
+    (order as any).rawCustomerName ||
+    (order as any).raw_customer_name ||
+    (order as any).rawName ||
+    ((order as any).billing?.first_name ? `${(order as any).billing.first_name} ${(order as any).billing.last_name || ''}`.trim() : '') ||
+    order['Customer Name'] ||
+    (order as any).customerName ||
+    'Customer';
+  if (typeof customerName === 'string' && customerName.includes('***')) {
+    const fallback = (order as any).billing?.first_name || (order as any).shipping?.first_name;
+    if (fallback) customerName = fallback;
+  }
   const amount = order['Order Amount'] || (order as any).orderAmount || (order as any).total || 0;
   const items = order['Item Name'] || (order as any).itemName || 'Selected Items';
   const address = order.Address || (order as any).address || order.City || (order as any).city || 'your delivery address';
@@ -448,6 +645,7 @@ export function processLiveOpsData(
     onlineOnly?: boolean;
     customDate?: string;
     anchorDate?: string;
+    historicalOrders?: RawOrderRow[];
   } = {}
 ): LiveOpsReport {
   const view = options.view || 'Today Shipped';
@@ -562,7 +760,7 @@ export function processLiveOpsData(
     } else if (isOrderOnHold(o)) {
       holdCount++;
       holdAmt += amt;
-    } else if (isOrderShippedToday(o, refDateIso)) {
+    } else if (isOrderShippedToday(o, refDateIso) && !isOrderExchange(o)) {
       todayShippedCount++;
       todayShippedAmt += amt;
     }
@@ -579,11 +777,72 @@ export function processLiveOpsData(
     totalActiveAmount: procAmt + holdAmt + todayShippedAmt,
   };
 
+  // 3.5 Dedicated Exchange Detection & Accounting Isolation
+  // Identify exchange orders associated with the reference date:
+  // - Replacement orders shipped/created today (e.g. #18085 or D-17839)
+  // - Original orders modified on reference date with 'Exchanged' substatus (e.g. #17839)
+  const isTargetDate = (order: RawOrderRow, targetIso: string) => {
+    const d = getStatusModificationDate(order);
+    const dMod = (order as any)['Date Modified'] || (order as any).dateModified || (order as any).date_modified;
+    const dIso = d ? formatDateToIsoDay(d) : '';
+    const dModIso = dMod ? formatDateToIsoDay(new Date(dMod)) : '';
+    return dIso === targetIso || dModIso === targetIso;
+  };
+
+  const todayExchangeCandidates = source.filter((o) => isOrderExchange(o) && isTargetDate(o, refDateIso));
+
+  const replacementOrders: RawOrderRow[] = [];
+  const originalExchangedOrders: RawOrderRow[] = [];
+  const seenExchangeIds = new Set<string>();
+
+  for (const o of todayExchangeCandidates) {
+    const oid = String(o['Order ID'] || o.orderId || '');
+    if (oid && seenExchangeIds.has(oid)) continue;
+    if (oid) seenExchangeIds.add(oid);
+
+    const info = extractExchangeInfo(o);
+    if (info.type === 'original_exchanged') {
+      originalExchangedOrders.push(o);
+    } else {
+      replacementOrders.push(o);
+    }
+  }
+
+  // Also include any exchange orders currently in activeOrders
+  for (const o of activeOrders) {
+    if (isOrderExchange(o)) {
+      const oid = String(o['Order ID'] || o.orderId || '');
+      if (oid && !seenExchangeIds.has(oid)) {
+        seenExchangeIds.add(oid);
+        const info = extractExchangeInfo(o);
+        if (info.type === 'original_exchanged') {
+          originalExchangedOrders.push(o);
+        } else {
+          replacementOrders.push(o);
+        }
+      }
+    }
+  }
+
+  const exchangeStats: ExchangeStats = {
+    count: replacementOrders.length,
+    itemsCount: replacementOrders.reduce((sum, o) => sum + (Number(o.Quantity) || 1), 0),
+    revenue: replacementOrders.reduce((sum, o) => sum + getOrderRowAmount(o), 0),
+    orders: [...replacementOrders, ...originalExchangedOrders],
+    replacementOrders,
+    originalExchangedOrders,
+  };
+
+  // Separate Commercial Active Orders from Exchange Replacements
+  // Rule: Do NOT recount exchanged orders as new completed sales in revenue or charts
+  const commercialActiveOrders = activeOrders.filter((o) => !isOrderExchange(o));
+  const commercialPrevOrders = prevOrders.filter((o) => !isOrderExchange(o));
+
   // 4. Compute 5 Core KPI Metrics & 7-Day Rolling History
   const getUniqueOrderIds = (list: RawOrderRow[]) => new Set(list.map((o) => String(o['Order ID'] || o.orderId || ''))).size;
-  const activeItemsCount = activeOrders.reduce((sum, o) => sum + (Number(o.Quantity) || 1), 0);
-  const activeOrdersCount = getUniqueOrderIds(activeOrders);
-  const activeRevenue = activeOrders.reduce((sum, o) => sum + getOrderRowAmount(o), 0);
+  const activeItemsCount = commercialActiveOrders.reduce((sum, o) => sum + (Number(o.Quantity) || 1), 0);
+  const activeOrdersCount = getUniqueOrderIds(commercialActiveOrders);
+  const activeRevenue = commercialActiveOrders.reduce((sum, o) => sum + getOrderRowAmount(o), 0);
   const activeBasket = activeOrdersCount > 0 ? Math.round(activeRevenue / activeOrdersCount) : 0;
 
   // Build 7 calendar days ending on anchor (keeps 7-day strip stable and responsive)
@@ -601,10 +860,18 @@ export function processLiveOpsData(
     d.setDate(d.getDate() - i);
     const dIso = formatDateToIsoDay(d);
     const dayOrders = source.filter((o) => isOrderShippedOnDate(o, dIso));
-    const dayOrdersCount = getUniqueOrderIds(dayOrders);
-    const dayItemsCount = dayOrders.reduce((sum, o) => sum + (Number(o.Quantity) || 1), 0);
-    const dayRev = dayOrders.reduce((sum, o) => sum + getOrderRowAmount(o), 0);
+    const dayCommercialOrders = dayOrders.filter((o) => !isOrderExchange(o));
+    const dayOrdersCount = getUniqueOrderIds(dayCommercialOrders);
+    const dayItemsCount = dayCommercialOrders.reduce((sum, o) => sum + (Number(o.Quantity) || 1), 0);
+    const dayRev = dayCommercialOrders.reduce((sum, o) => sum + getOrderRowAmount(o), 0);
     const dayAov = dayOrdersCount > 0 ? Math.round(dayRev / dayOrdersCount) : 0;
+
+    // Detect exchange orders on this historical day
+    const dayExchanges = source.filter((o) => isOrderExchange(o) && isTargetDate(o, dIso));
+    const dayReplacements = dayExchanges.filter((o) => extractExchangeInfo(o).type !== 'original_exchanged');
+    const dayExCount = dIso === refDateIso
+      ? (exchangeStats.count > 0 ? exchangeStats.count : exchangeStats.originalExchangedOrders.length)
+      : (dayReplacements.length > 0 ? getUniqueOrderIds(dayReplacements) : getUniqueOrderIds(dayExchanges));
 
     const isToday = dIso === anchorDateIso;
     const isPrevDay = dIso === formatDateToIsoDay(getPreviousWorkingDay(anchor));
@@ -625,6 +892,7 @@ export function processLiveOpsData(
       aov: dayAov,
       orders: dayOrders,
       isFridayClosed,
+      exchangeCount: dayExCount,
     });
 
     dailyStats.push({
@@ -644,9 +912,9 @@ export function processLiveOpsData(
   const sum7dOrders = dailyStats.reduce((acc, s) => acc + s.orderCount, 0);
   const sum7dRevenue = dailyStats.reduce((acc, s) => acc + s.revenue, 0);
 
-  const prevItemsCount = prevOrders.reduce((sum, o) => sum + (Number(o.Quantity) || 1), 0);
-  const prevRevenue = prevOrders.reduce((sum, o) => sum + getOrderRowAmount(o), 0);
-  const prevOrdersCount = getUniqueOrderIds(prevOrders);
+  const prevItemsCount = commercialPrevOrders.reduce((sum, o) => sum + (Number(o.Quantity) || 1), 0);
+  const prevRevenue = commercialPrevOrders.reduce((sum, o) => sum + getOrderRowAmount(o), 0);
+  const prevOrdersCount = getUniqueOrderIds(commercialPrevOrders);
   const prevBasket = prevOrdersCount > 0 ? Math.round(prevRevenue / prevOrdersCount) : 0;
 
   const computedAvgItems = Math.round(sum7dItems / divisor);
@@ -681,56 +949,24 @@ export function processLiveOpsData(
   const deltaBasket = activeBasket - avg7dAov;
   const deltaBasketPct = avg7dAov > 0 ? Math.round((deltaBasket / avg7dAov) * 100) : null;
 
-  // Customer Mix (New vs Returning)
-  const refTime = refDate.getTime();
-  const historicalPhones = new Set<string>();
-  for (const { order: o, date: d } of ordersWithDates) {
-    if (d.getTime() < refTime) {
-      const phone = String(o.Phone || (o as any).phone || '').replace(/\D/g, '');
-      if (phone.length >= 10) historicalPhones.add(phone.slice(-10));
-    }
-  }
+  // 4. Authoritative Customer Mix (Lifetime Registry Integrated: Exact DEEN-OPS Parity)
+  const allOrdersPool = options.historicalOrders && options.historicalOrders.length > 0
+    ? [...orders, ...options.historicalOrders]
+    : orders;
 
-  const activeSeenOrders = new Set<string>();
-  let activeNew = 0;
-  let activeRet = 0;
-
-  for (const o of activeOrders) {
-    const oid = String(o['Order ID'] || o.orderId || '');
-    if (activeSeenOrders.has(oid)) continue;
-    activeSeenOrders.add(oid);
-
-    const phone = String(o.Phone || (o as any).phone || '').replace(/\D/g, '');
-    const cleanPhone = phone.slice(-10);
-    if (cleanPhone && historicalPhones.has(cleanPhone)) {
-      activeRet++;
-    } else {
-      activeNew++;
-    }
-  }
-
-  const totalActiveCust = activeNew + activeRet;
-  const newPct = totalActiveCust > 0 ? Math.round((activeNew / totalActiveCust) * 100) : 88;
-  const retPct = 100 - newPct;
-
-  const prevSeenOrders = new Set<string>();
-  let prevNew = 0;
-  let prevRet = 0;
-  for (const o of prevOrders) {
-    const oid = String(o['Order ID'] || o.orderId || '');
-    if (prevSeenOrders.has(oid)) continue;
-    prevSeenOrders.add(oid);
-
-    const phone = String(o.Phone || (o as any).phone || '').replace(/\D/g, '');
-    const cleanPhone = phone.slice(-10);
-    if (cleanPhone && historicalPhones.has(cleanPhone)) {
-      prevRet++;
-    } else {
-      prevNew++;
-    }
-  }
-  const deltaNew = activeNew - Math.round((avg7dOrders * avg7dNewPct) / 100);
-  const deltaNewPct = Math.round(((newPct - avg7dNewPct) / avg7dNewPct) * 100);
+  const historyDates = last7DaysHistory.map((h) => h.dateIso);
+  const customerMix = computeCustomerMix(commercialActiveOrders, refDateIso, allOrdersPool, {
+    avg7dOrders,
+    avg7dNewPct,
+    historyDates,
+  });
+  const activeNew = customerMix.newCount;
+  const activeRet = customerMix.retCount;
+  const newPct = customerMix.newPercent;
+  const retPct = customerMix.retPercent;
+  const deltaNew = customerMix.deltaNew;
+  const deltaNewPct = customerMix.deltaNewPercent;
+  const sparklineCust = customerMix.sparkline;
 
   // Sparklines using genuine 7-day data
   const sparklineItems = dailyStats.some((s) => s.itemCount > 0)
@@ -749,10 +985,8 @@ export function processLiveOpsData(
     ? dailyStats.map((s) => s.aov)
     : [1500, 1550, 1600, 1620, prevBasket || 1674, activeBasket || 1664];
 
-  const sparklineCust = [78, 80, 84, 82, 85, prevNew || 88, activeNew || 88];
-
-  // 5. DEEN Selects vs DEEN Regular Statistics
-  const itemsForSelects = activeOrders.map((o) => ({
+  // 5. DEEN Selects vs DEEN Regular Statistics (Commercial Sales Only)
+  const itemsForSelects = commercialActiveOrders.map((o) => ({
     itemName: o['Item Name'] || '',
     sku: o.SKU || '',
     itemCost: Number(o['Item Cost']) || 0,
@@ -761,7 +995,7 @@ export function processLiveOpsData(
   }));
   const selectsStats = computeSelectsStats(itemsForSelects);
 
-  // 6. Aggregate Categories and Sub-Categories
+  // 6. Aggregate Categories and Sub-Categories (Excludes Exchange Replacements)
   const catMap = new Map<
     string,
     { revenue: number; volume: number; selectsVolume: number; regularVolume: number; selectsRevenue: number; regularRevenue: number }
@@ -771,7 +1005,7 @@ export function processLiveOpsData(
     { revenue: number; volume: number; selectsVolume: number; regularVolume: number; selectsRevenue: number; regularRevenue: number }
   >();
 
-  for (const o of activeOrders) {
+  for (const o of commercialActiveOrders) {
     const name = o['Item Name'] || 'Apparel';
     const cat = getCategoryForSales(name);
     const subCat = getSubCategoryForSales(name, cat);
@@ -873,7 +1107,7 @@ export function processLiveOpsData(
     isSelects: boolean;
   }>();
 
-  for (const o of activeOrders) {
+  for (const o of commercialActiveOrders) {
     const rawName = String(o['Item Name'] || o.itemName || 'Unknown Item').trim();
     const sku = String(o.SKU || o.sku || '').trim();
     const key = sku ? `${sku}::${rawName}` : rawName;
@@ -949,25 +1183,83 @@ export function processLiveOpsData(
   const formattedDate = refDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
   const summaryPoints = [
-    `Dispatched ${activeItemsCount} items across ${activeOrdersCount} unique parcels with gross dispatch value of ৳ ${Math.round(activeRevenue).toLocaleString()} (AOV: ৳ ${activeBasket.toLocaleString()}).`,
+    `Dispatched ${activeItemsCount} items across ${activeOrdersCount} unique commercial parcels with gross dispatch value of ৳ ${Math.round(activeRevenue).toLocaleString()} (AOV: ৳ ${activeBasket.toLocaleString()}).`,
     `${vs7dVolumePct >= 0 ? 'Exceeded' : 'Trailing'} 7-day daily volume average by ${Math.abs(vs7dVolumePct)}% (7-day daily baseline: ${avg7dItems} items, ৳ ${avg7dRevenue.toLocaleString()}).`,
     `Top performing volume category is "${topCat.displayName}" contributing ${topCat.volume} units (৳ ${Math.round(topCat.revenue).toLocaleString()}).`,
     `DEEN Selects premium line accounted for ${selectsStats.selectsRevShare}% of revenue (৳ ${selectsStats.selectsRevenue.toLocaleString()} across ${selectsStats.selectsQty} items).`,
     `Customer acquisition: ${newPct}% new buyers vs ${retPct}% returning repeat customers.`,
   ];
 
-  const clipboardText = `📊 DEEN Operations Executive Briefing — ${formattedDate}\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `🚚 Dispatched Orders: ${activeOrdersCount} parcels (${activeItemsCount} items)\n` +
-    `💰 Gross Shipped Value: ৳ ${Math.round(activeRevenue).toLocaleString()}\n` +
-    `🎯 Average Order Value: ৳ ${activeBasket.toLocaleString()}\n` +
-    `📈 vs 7-Day Daily Avg: ${vs7dVolumePct >= 0 ? '+' : ''}${vs7dVolumePct}% units | ${vs7dRevenuePct >= 0 ? '+' : ''}${vs7dRevenuePct}% revenue (7D Baseline: ${avg7dItems} items, ৳ ${avg7dRevenue.toLocaleString()})\n` +
-    `🏆 Top Category: ${topCat.displayName} (${topCat.volume} units, ৳ ${Math.round(topCat.revenue).toLocaleString()})\n` +
-    `⭐ Top SKU: ${topProd.productName} (${topProd.unitsSold} units)\n` +
-    `💎 DEEN Selects Share: ${selectsStats.selectsRevShare}% (${selectsStats.selectsQty} items, ৳ ${selectsStats.selectsRevenue.toLocaleString()})\n` +
-    `👥 Customer Mix: ${newPct}% New / ${retPct}% Repeat\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `Generated by DEEN Live Operations Terminal`;
+  if (exchangeStats.count > 0) {
+    const details = exchangeStats.replacementOrders.map((o) => {
+      const info = extractExchangeInfo(o);
+      const oid = o['Order ID'] || o.orderId || '';
+      return info.referencedOrderId ? `#${oid} (Exchange for #${info.referencedOrderId})` : `#${oid}`;
+    }).join(', ');
+    summaryPoints.push(
+      `🔄 Exchange Logistics: ${exchangeStats.count} replacement parcel(s) dispatched (${details}; ${exchangeStats.itemsCount} items) — isolated from sales charts with zero revenue inflation.`
+    );
+  } else if (exchangeStats.originalExchangedOrders.length > 0) {
+    const oids = exchangeStats.originalExchangedOrders.map((o) => `#${o['Order ID'] || o.orderId}`).join(', ');
+    summaryPoints.push(
+      `🔄 Exchange Activity: ${exchangeStats.originalExchangedOrders.length} order(s) updated to Exchanged status (${oids}) — excluded from today's new sales dispatches.`
+    );
+  }
+
+  // Compute last shipped order and Pathao consignment ID
+  const sortedDispatches = [...activeOrders].sort((a, b) => {
+    const da = parseOrderDate(a)?.getTime() || 0;
+    const db = parseOrderDate(b)?.getTime() || 0;
+    return db - da;
+  });
+  const lastShippedOrder = sortedDispatches[0];
+  const lastShippedOid = lastShippedOrder ? String(lastShippedOrder['Order ID'] || lastShippedOrder.orderId || '') : 'N/A';
+  const orderWithConsignment = activeOrders.find((o) => o['Consignment ID'] || (o as any).consignmentId || (o as any).tracking_number);
+  const lastPathaoPrint = orderWithConsignment
+    ? String(orderWithConsignment['Consignment ID'] || (orderWithConsignment as any).consignmentId || (orderWithConsignment as any).tracking_number)
+    : (lastShippedOid !== 'N/A' ? `#${lastShippedOid}` : 'None');
+
+  // Breakdown of Ecom vs Outlet
+  const allShippedToday = orders.filter((o) => isOrderShippedOnDate(o, refDateIso));
+  const getUniqueCount = (list: RawOrderRow[]) => new Set(list.map((o) => String(o['Order ID'] || o.orderId || ''))).size;
+  const ecomCount = getUniqueCount(allShippedToday.filter(isOrderOnline));
+  const outletCount = getUniqueCount(allShippedToday.filter((o) => !isOrderOnline(o)));
+  const totalOrdersCount = ecomCount + outletCount || activeOrdersCount;
+
+  // Format Top 3 Products
+  const top3ProductsList = topProducts
+    .slice(0, 3)
+    .map((p) => `• ${p.productName}${p.sku && p.sku !== 'N/A' ? ` [${p.sku}]` : ''} (${Number(p.unitsSold || 0).toFixed(1)} pcs)`)
+    .join('\n');
+
+  const lastShippedClean = lastShippedOid.replace(/^#/, '');
+  const lastPathaoClean = String(lastPathaoPrint).replace(/^#/, '');
+
+  let clipboardText = `📊 *DEEN-OPS Executive Briefing*\n` +
+    `📅 ${formattedDate}\n\n` +
+    `💵 *Gross Revenue:* ৳${Math.round(activeRevenue).toLocaleString()}\n\n` +
+    `📦 *Shipped Items:* ${activeItemsCount}\n` +
+    `🛍️ *Avg Basket Value:* ৳${activeBasket.toLocaleString()}\n\n` +
+    `🏷️ *Collection Split:*\n` +
+    `💎 *DEEN Selects:* ৳${selectsStats.selectsRevenue.toLocaleString()} (${selectsStats.selectsQty} pcs · ${selectsStats.selectsRevShare}%)\n` +
+    `📦 *DEEN Regular:* ৳${selectsStats.regularRevenue.toLocaleString()} (${selectsStats.regularQty} pcs · ${selectsStats.regularRevShare}%)\n\n` +
+    `📋 *Last Shipped Order:* ${lastShippedClean}\n` +
+    `🖨️ *Last Pathao Print:* ${lastPathaoClean}\n\n` +
+    `🛒 *Total Orders:* ${totalOrdersCount}\n` +
+    `🔄 *Exchange:* ${exchangeStats.count}\n` +
+    `🚀 *Ecom:* ${ecomCount || activeOrdersCount}\n` +
+    `🏪 *Outlet:* ${outletCount}\n\n` +
+    `🔥 *Top Performing Products:*\n` +
+    `${top3ProductsList || '• None recorded'}`;
+
+  if (exchangeStats.count > 0) {
+    const details = exchangeStats.replacementOrders.map((o) => {
+      const info = extractExchangeInfo(o);
+      const oid = o['Order ID'] || o.orderId || '';
+      return info.referencedOrderId ? `#${oid} (for #${info.referencedOrderId})` : `#${oid}`;
+    }).join(', ');
+    clipboardText += `\n\n🔄 Exchanges Dispatched: ${exchangeStats.count} replacement parcel(s) [${details}] (${exchangeStats.itemsCount} items; tracked separately)`;
+  }
 
   const executiveBriefing: ExecutiveBriefing = {
     dateIso: refDateIso,
@@ -1048,18 +1340,7 @@ export function processLiveOpsData(
       sparkline: sparklineBasket,
     },
 
-    customerMix: {
-      newCount: activeNew,
-      retCount: activeRet,
-      newPercent: newPct,
-      retPercent: retPct,
-      prevNew: Math.round((avg7dOrders * avg7dNewPct) / 100),
-      prevRet: Math.round((avg7dOrders * (100 - avg7dNewPct)) / 100),
-      prevDayName: '7-Day Avg',
-      deltaNew,
-      deltaNewPercent: deltaNewPct,
-      sparkline: sparklineCust,
-    },
+    customerMix,
 
     last7DaysHistory,
     executiveBriefing,
@@ -1073,7 +1354,8 @@ export function processLiveOpsData(
     subCategoryItems,
     avgUnitsSold,
 
-    activeOrders,
+    exchangeStats,
+    activeOrders: [...commercialActiveOrders, ...replacementOrders],
     totalDispatchedItems: activeItemsCount,
     totalUniqueOrders: activeOrdersCount,
   };

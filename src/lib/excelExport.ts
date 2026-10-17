@@ -1,5 +1,106 @@
 import * as XLSX from 'xlsx';
 import { ReconciliationResult } from './reconciliationEngine';
+import { cleanCustomerPhone } from './woocommerceClient';
+
+/**
+ * Natural numerical order comparator for sorting orders.
+ * Orders like "17263", "17263 c", "17264", "D-17265" sort in natural numerical order.
+ */
+export function compareOrdersByNumber(a: any, b: any): number {
+  const idA = String(a?.['Order ID'] || a?.orderId || a?.orderNumber || a?.['WooCommerce Order #'] || a?.id || '').trim();
+  const idB = String(b?.['Order ID'] || b?.orderId || b?.orderNumber || b?.['WooCommerce Order #'] || b?.id || '').trim();
+
+  const numA = parseInt(idA.replace(/\D/g, ''), 10);
+  const numB = parseInt(idB.replace(/\D/g, ''), 10);
+
+  if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+    return numA - numB;
+  }
+
+  return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
+}
+
+/**
+ * Extracts the full, unmasked customer name for export manifests.
+ */
+export function getExportCustomerName(o: any): string {
+  if (!o) return 'Customer';
+  const candidates = [
+    o.rawCustomerName,
+    o['Customer Name'],
+    o.customerName,
+    o['Full Name (Shipping)'],
+    o['Billing Name'],
+    o.recipientName,
+    o['Recipient Name'],
+    o.billing?.first_name ? `${o.billing.first_name} ${o.billing.last_name || ''}`.trim() : undefined,
+    o.shipping?.first_name ? `${o.shipping.first_name} ${o.shipping.last_name || ''}`.trim() : undefined,
+    o.Name,
+    o.name,
+  ];
+
+  // 1. Prefer candidate without mask asterisks or redaction tokens
+  for (const c of candidates) {
+    if (typeof c === 'string') {
+      const val = c.trim();
+      if (val && !val.includes('***') && !val.includes('[REDACTED')) {
+        return val;
+      }
+    }
+  }
+
+  // 2. Fallback to whatever is non-empty
+  for (const c of candidates) {
+    if (typeof c === 'string') {
+      const val = c.trim();
+      if (val) return val;
+    }
+  }
+
+  return 'Customer';
+}
+
+/**
+ * Extracts the full, unmasked 11-digit phone number for export manifests.
+ */
+export function getExportPhoneNumber(o: any): string {
+  if (!o) return '';
+  const candidates = [
+    o.rawPhone,
+    o.formattedPhone,
+    o.Phone,
+    o.phone,
+    o['Phone (Shipping)'],
+    o['Billing Phone'],
+    o.recipientPhone,
+    o['Recipient Phone'],
+    o.billing?.phone,
+    o.shipping?.phone,
+    o.contact,
+  ];
+
+  // 1. Prefer unmasked candidate
+  for (const c of candidates) {
+    if (typeof c === 'string' || typeof c === 'number') {
+      const val = String(c).trim();
+      if (val && !val.includes('*') && !val.includes('[PHONE REDACTED]')) {
+        const { displayPhone } = cleanCustomerPhone(val);
+        if (displayPhone) return displayPhone;
+        return val;
+      }
+    }
+  }
+
+  // 2. Fallback to masked phone if no unmasked version exists
+  for (const c of candidates) {
+    if (typeof c === 'string' || typeof c === 'number') {
+      const val = String(c).trim();
+      if (val) return val;
+    }
+  }
+
+  return '';
+}
 
 export function exportReconciledExcel(result: ReconciliationResult, filenamePrefix: string = 'DEEN_Commerce_Reconciliation') {
   const wb = XLSX.utils.book_new();
@@ -51,8 +152,9 @@ export function exportReconciledExcel(result: ReconciliationResult, filenamePref
   const wsSummary = XLSX.utils.aoa_to_sheet(summaryAoa);
   XLSX.utils.book_append_sheet(wb, wsSummary, 'Executive Summary');
 
-  // 2. Reconciled Orders Ledger Sheet
-  const detailsData = result.reconciledOrders.map(r => {
+  // 2. Reconciled Orders Ledger Sheet (Sorted by Order Number)
+  const sortedReconciledOrders = [...result.reconciledOrders].sort(compareOrdersByNumber);
+  const detailsData = sortedReconciledOrders.map(r => {
     // 1. Order-level delivery status (all items of the same order get identical value: Delivered, Paid Return, Not Paid Return, Exchange, Partial)
     const orderDeliveryStatus = r.orderDeliveryStatus || (
       (r.orderCategory === 'EXCHANGE' || r.isExchange) ? 'Exchange' :
@@ -78,8 +180,8 @@ export function exportReconciledExcel(result: ReconciliationResult, filenamePref
       'Order Line Status': r.lineStatus,
       'Delivery Status': r.deliveryStatus,
       'Order Date': r.orderDate ? r.orderDate.toISOString().slice(0, 19).replace('T', ' ') : '',
-      'Customer Name': r.customerName,
-      'Phone': r.phone,
+      'Customer Name': getExportCustomerName(r),
+      'Phone': getExportPhoneNumber(r),
       'City': r.city,
       'Territory': r.districtArea,
       'SKU': r.sku,
@@ -112,14 +214,15 @@ export function exportReconciledExcel(result: ReconciliationResult, filenamePref
   const wsSku = XLSX.utils.json_to_sheet(skuData);
   XLSX.utils.book_append_sheet(wb, wsSku, 'SKU Performance');
 
-  // 4. Item-Wise Returns Sheet (Full Returns + Partial Returned Products)
-  const retData = result.returnedItems.map(i => ({
+  // 4. Item-Wise Returns Sheet (Full Returns + Partial Returned Products - Sorted by Order Number)
+  const sortedReturnedItems = [...result.returnedItems].sort(compareOrdersByNumber);
+  const retData = sortedReturnedItems.map(i => ({
     'Order ID': i.orderId,
     'Return Source': i.returnSource,
     'Delivery Status': i.deliveryStatus,
     'Order Date': i.orderDate ? i.orderDate.toISOString().slice(0, 19).replace('T', ' ') : '',
-    'Customer Name': i.customerName,
-    'Phone': i.phone,
+    'Customer Name': getExportCustomerName(i),
+    'Phone': getExportPhoneNumber(i),
     'Territory': i.districtArea,
     'SKU': i.sku,
     'Product Description': i.itemName,
@@ -131,10 +234,10 @@ export function exportReconciledExcel(result: ReconciliationResult, filenamePref
   const wsRet = XLSX.utils.json_to_sheet(retData);
   XLSX.utils.book_append_sheet(wb, wsRet, 'Item-Wise Returns');
 
-  // 5. Customer Risk Profiling Sheet (Part 2 Recommendation 5)
+  // 5. Customer Risk Profiling Sheet
   const riskData = result.customerRiskProfiles.map(c => ({
-    'Phone Number': c.phone,
-    'Customer Name': c.customerName,
+    'Phone Number': getExportPhoneNumber(c),
+    'Customer Name': getExportCustomerName(c),
     'Total Orders Placed': c.totalOrders,
     'Delivered Orders': c.deliveredOrders,
     'Partial Orders': c.partialOrders,
@@ -147,14 +250,15 @@ export function exportReconciledExcel(result: ReconciliationResult, filenamePref
   const wsRisk = XLSX.utils.json_to_sheet(riskData);
   XLSX.utils.book_append_sheet(wb, wsRisk, 'Customer Risk Intelligence');
 
-  // 6. Exchanged Orders Sheet
+  // 6. Exchanged Orders Sheet (Sorted by Order Number)
   if (result.exchangedOrders && result.exchangedOrders.length > 0) {
-    const exchangeData = result.exchangedOrders.map(e => ({
+    const sortedExchanges = [...result.exchangedOrders].sort(compareOrdersByNumber);
+    const exchangeData = sortedExchanges.map(e => ({
       'Order ID': e.orderId,
       'Raw Order ID': e.rawOrderId,
       'Consignment ID': e.consignmentId,
-      'Recipient Name': e.recipientName,
-      'Phone': e.phone,
+      'Recipient Name': getExportCustomerName(e),
+      'Phone': getExportPhoneNumber(e),
       'Destination / Address': e.address,
       'Delivery Status': e.deliveryStatus,
       'Items Quantity': e.quantity || 1,
@@ -170,13 +274,14 @@ export function exportReconciledExcel(result: ReconciliationResult, filenamePref
     XLSX.utils.book_append_sheet(wb, wsExchanges, 'Exchanged Orders');
   }
 
-  // 7. Courier & Pathao Mismatch Audit Sheet
+  // 7. Courier & Pathao Mismatch Audit Sheet (Sorted by Order Number)
   if (result.courierMismatches && result.courierMismatches.length > 0) {
-    const mismatchData = result.courierMismatches.map(m => ({
+    const sortedMismatches = [...result.courierMismatches].sort(compareOrdersByNumber);
+    const mismatchData = sortedMismatches.map(m => ({
       'Order ID': m.orderId,
       'Consignment ID': m.consignmentId || 'N/A',
-      'Customer Name': m.customerName,
-      'Phone': m.phone,
+      'Customer Name': getExportCustomerName(m),
+      'Phone': getExportPhoneNumber(m),
       'Excel Status': m.excelStatus,
       'Pathao Courier Status': m.pathaoStatus,
       'Expected COD (BDT)': m.expectedCod,
@@ -191,15 +296,15 @@ export function exportReconciledExcel(result: ReconciliationResult, filenamePref
     XLSX.utils.book_append_sheet(wb, wsMismatch, 'Courier Mismatches');
   }
 
-  // 8. AI Audited & Tagged Orders Sheet (Generated dynamically when AI tags are present)
-  const taggedOrders = result.reconciledOrders.filter(r => Boolean(r.aiAuditTag));
+  // 8. AI Audited & Tagged Orders Sheet (Sorted by Order Number)
+  const taggedOrders = [...result.reconciledOrders.filter(r => Boolean(r.aiAuditTag))].sort(compareOrdersByNumber);
   if (taggedOrders.length > 0) {
     const aiAuditData = taggedOrders.map(r => ({
       'Order ID': r.orderId,
       'AI Audit Tag': r.aiAuditTag || '',
       'AI Operational Notes': r.aiAuditNote || '',
-      'Customer Name': r.customerName,
-      'Phone': r.phone,
+      'Customer Name': getExportCustomerName(r),
+      'Phone': getExportPhoneNumber(r),
       'City': r.city,
       'Territory': r.districtArea,
       'Delivery Status': r.orderDeliveryStatus || r.deliveryStatus,

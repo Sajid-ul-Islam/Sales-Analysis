@@ -1,8 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { classifyProductLine, computeSelectsStats } from '@/lib/selectsAnalytics';
 import { getCategoryForSales, getSubCategoryForSales, getShortCategoryLabel } from '@/lib/liveCategoryEngine';
-import { getPreviousWorkingDay, processLiveOpsData, formatBangladeshPhoneNumber, generateWhatsAppConfirmationUrl } from '@/lib/liveOpsProcessor';
+import {
+  getPreviousWorkingDay,
+  processLiveOpsData,
+  formatBangladeshPhoneNumber,
+  generateWhatsAppConfirmationUrl,
+  isOrderExchange,
+  extractExchangeInfo,
+} from '@/lib/liveOpsProcessor';
 import { RawOrderRow } from '@/types';
+import { normalizePhone, normalizeEmail, normalizeName, normalizeCity } from '@/lib/customerRegistry';
 
 describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () => {
   describe('DEEN Selects vs DEEN Regular Classification', () => {
@@ -662,5 +670,352 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(wedEntry?.isToday).toBe(false);
     });
   });
+
+  describe('Exchange Order Isolation & Non-Recounting Engine (WooCommerce / Pathao Parity)', () => {
+    it('accurately identifies exchange orders, replacements, and original exchanged orders', () => {
+      // 1. Replacement order referencing original order (e.g. #18085 for #17839)
+      const replacementOrder: Partial<RawOrderRow> = {
+        'Order ID': '18085',
+        'Customer Name': 'Nasif Amer',
+        'Delivery Status': 'completed',
+        'Order Notes': 'Exchange for #17839',
+        Substatus: 'Exchange for #17839',
+      };
+      expect(isOrderExchange(replacementOrder as RawOrderRow)).toBe(true);
+      const repInfo = extractExchangeInfo(replacementOrder as RawOrderRow);
+      expect(repInfo.isExchange).toBe(true);
+      expect(repInfo.type).toBe('replacement');
+      expect(repInfo.referencedOrderId).toBe('17839');
+      expect(repInfo.displayTag).toBe('Exchange for #17839');
+
+      // 2. Pathao courier non-checkout consignment format (D-17839)
+      const pathaoExchangeOrder: Partial<RawOrderRow> = {
+        'Order ID': 'D-17839',
+        'Consignment ID': 'D-17839',
+        'Delivery Status': 'shipped',
+      };
+      expect(isOrderExchange(pathaoExchangeOrder as RawOrderRow)).toBe(true);
+      const pathaoInfo = extractExchangeInfo(pathaoExchangeOrder as RawOrderRow);
+      expect(pathaoInfo.type).toBe('replacement');
+      expect(pathaoInfo.referencedOrderId).toBe('17839');
+
+      // 3. Original order marked "Exchanged" (e.g. #17839)
+      const originalOrder: Partial<RawOrderRow> = {
+        'Order ID': '17839',
+        'Customer Name': 'Nasif Amer',
+        'Delivery Status': 'completed',
+        Substatus: 'Exchanged',
+      };
+      expect(isOrderExchange(originalOrder as RawOrderRow)).toBe(true);
+      const origInfo = extractExchangeInfo(originalOrder as RawOrderRow);
+      expect(origInfo.isExchange).toBe(true);
+      expect(origInfo.type).toBe('original_exchanged');
+      expect(origInfo.displayTag).toBe('Exchanged');
+    });
+
+    it('prevents historical order (#17839) from recounting today when modified to Exchanged status', () => {
+      const todayIso = '2026-10-17';
+      const mockOrders: Partial<RawOrderRow>[] = [
+        // Order 17839 was placed on Oct 14, completed Oct 15, and modified today with substatus "Exchanged"
+        {
+          'Order ID': '17839',
+          'Order Date': '2026-10-14T10:00:00Z',
+          'Date Completed': '2026-10-15T14:00:00Z',
+          'Date Modified': '2026-10-17T11:00:00Z',
+          'Customer Name': 'Nasif Amer',
+          'Item Name': 'DEEN Slim Jeans - 32',
+          Quantity: 1,
+          'Item Cost': 2800,
+          'Order Amount': 2800,
+          'Delivery Status': 'completed',
+          Substatus: 'Exchanged',
+          'Order Notes': 'Customer requested size swap',
+          'Order Source': 'Online',
+        },
+        // Order 18090 is a genuine commercial order completed today
+        {
+          'Order ID': '18090',
+          'Order Date': '2026-10-17T09:00:00Z',
+          'Date Completed': '2026-10-17T10:00:00Z',
+          'Date Modified': '2026-10-17T10:00:00Z',
+          'Customer Name': 'Tanvir Islam',
+          'Item Name': 'Vintage Denim Jacket',
+          Quantity: 1,
+          'Item Cost': 4500,
+          'Order Amount': 4500,
+          'Delivery Status': 'completed',
+          'Order Source': 'Online',
+        },
+      ];
+
+      const report = processLiveOpsData(mockOrders as RawOrderRow[], {
+        view: 'Today Shipped',
+        customDate: todayIso,
+        anchorDate: todayIso,
+      });
+
+      // 1. #17839 must NOT recount today as completed/shipped!
+      expect(report.shippedOrders.rawValue).toBe(1); // Only 18090
+      expect(report.shippedItems.rawValue).toBe(1);
+      expect(report.salesRevenue.rawValue).toBe(4500); // Only 4500 from 18090, NOT 7300
+
+      // 2. Charts must only contain genuine sales from 18090
+      const chartRev = report.categoryItems.reduce((acc, c) => acc + c.revenue, 0);
+      expect(chartRev).toBe(4500);
+
+      // 3. Exchange stats captures the original exchanged order
+      expect(report.exchangeStats.originalExchangedOrders.length).toBe(1);
+      expect(report.exchangeStats.originalExchangedOrders[0]['Order ID']).toBe('17839');
+    });
+
+    it('isolates replacement exchange order (#18085 for #17839) from charts and gross sales revenue', () => {
+      const todayIso = '2026-10-17';
+      const mockOrders: Partial<RawOrderRow>[] = [
+        // 1. Replacement order created today (#18085)
+        {
+          'Order ID': '18085',
+          'Order Date': '2026-10-17T11:00:00Z',
+          'Date Completed': '2026-10-17T11:30:00Z',
+          'Date Modified': '2026-10-17T11:30:00Z',
+          'Customer Name': 'Nasif Amer',
+          'Item Name': 'DEEN Slim Jeans - 34',
+          SKU: 'DN-J-34',
+          Quantity: 1,
+          'Item Cost': 2800,
+          'Order Amount': 2800,
+          'Delivery Status': 'completed',
+          Substatus: 'Exchange for #17839',
+          'Order Notes': 'Exchange for #17839 - replacement pair dispatched',
+          'Order Source': 'Online',
+        },
+        // 2. Regular commercial sale dispatched today (#18086)
+        {
+          'Order ID': '18086',
+          'Order Date': '2026-10-17T10:00:00Z',
+          'Date Completed': '2026-10-17T11:00:00Z',
+          'Date Modified': '2026-10-17T11:00:00Z',
+          'Customer Name': 'Habib Rahman',
+          'Item Name': 'Classic Polo Shirt Navy',
+          SKU: 'DN-POLO-01',
+          Quantity: 2,
+          'Item Cost': 1200,
+          'Order Amount': 2400,
+          'Delivery Status': 'completed',
+          'Order Source': 'Online',
+        },
+      ];
+
+      const report = processLiveOpsData(mockOrders as RawOrderRow[], {
+        view: 'Today Shipped',
+        customDate: todayIso,
+        anchorDate: todayIso,
+      });
+
+      // 1. Gross sales revenue & volume must NOT count the replacement order #18085
+      expect(report.salesRevenue.rawValue).toBe(2400); // strictly #18086
+      expect(report.shippedItems.rawValue).toBe(2); // strictly #18086
+      expect(report.shippedOrders.rawValue).toBe(1); // strictly #18086
+
+      // 2. Charts must NOT show #18085 Jeans as shipped sales
+      const jeansCat = report.categoryItems.find((c) => c.name === 'Jeans');
+      expect(jeansCat).toBeUndefined(); // Jeans was only in the exchange replacement
+
+      const poloCat = report.categoryItems.find((c) => c.name === 'Polo');
+      expect(poloCat).toBeDefined();
+      expect(poloCat?.revenue).toBe(2400);
+      expect(poloCat?.volume).toBe(2);
+
+      // 3. Dedicated exchange system accurately tracks the replacement order
+      expect(report.exchangeStats.count).toBe(1);
+      expect(report.exchangeStats.itemsCount).toBe(1);
+      expect(report.exchangeStats.replacementOrders.length).toBe(1);
+      expect(report.exchangeStats.replacementOrders[0]['Order ID']).toBe('18085');
+
+      // 4. Executive Briefing highlights the exchange replacement transparently
+      const briefingPoints = report.executiveBriefing.summaryPoints;
+      const exchangeBullet = briefingPoints.find((p) => p.includes('Exchange Logistics'));
+      expect(exchangeBullet).toBeDefined();
+      expect(exchangeBullet).toContain('#18085 (Exchange for #17839)');
+      expect(exchangeBullet).toContain('isolated from sales charts with zero revenue inflation');
+
+      // 5. Clipboard briefing contains exchange dispatches section
+      expect(report.executiveBriefing.clipboardText).toContain('Exchanges Dispatched: 1 replacement parcel(s) [#18085 (for #17839)]');
+
+      // 6. Orders ledger contains both orders with full exchange details
+      expect(report.activeOrders.length).toBe(2);
+      const repOrderInLedger = report.activeOrders.find((o) => (o['Order ID'] || o.orderId) === '18085');
+      expect(repOrderInLedger).toBeDefined();
+      expect(isOrderExchange(repOrderInLedger as RawOrderRow)).toBe(true);
+
+      // 7. 7-Day History strip records exchange count for today
+      const todaySummary = report.last7DaysHistory.find((d) => d.dateIso === todayIso);
+      expect(todaySummary).toBeDefined();
+      expect(todaySummary?.exchangeCount).toBe(1);
+    });
+  });
+
+  describe('DEEN-OPS Customer Mix & Multi-Bucket Identity Resolution', () => {
+    it('normalizes Bangladesh phone numbers, emails, and district city names', () => {
+      expect(normalizePhone('01712-447704')).toBe('01712447704');
+      expect(normalizePhone('+8801712447704')).toBe('01712447704');
+      expect(normalizePhone('8801712447704')).toBe('01712447704');
+      expect(normalizePhone('1712447704')).toBe('01712447704');
+      expect(normalizePhone('01700000000')).toBe('');
+
+      expect(normalizeEmail('  Customer.Deen@Gmail.com ')).toBe('customer.deen@gmail.com');
+      expect(normalizeName('Md. Tanvir Ahmed (Sunny)')).toBe('md tanvir ahmed sunny');
+      expect(normalizeCity('Chattogram')).toBe('chittagong');
+      expect(normalizeCity('Bogura')).toBe('bogra');
+    });
+
+    it('resolves returning customers via phone aliases, email, and name|city', () => {
+      const historicalOrders: Partial<RawOrderRow>[] = [
+        {
+          'Order ID': '1001',
+          'Order Date': '2026-10-10T10:00:00Z',
+          'Date Modified': '2026-10-10T10:00:00Z',
+          'Customer Name': 'Kazi Farhan',
+          Phone: '01819223344',
+          Email: 'farhan@deen.com',
+          City: 'Dhaka',
+          'Item Name': 'DEEN Casual Shirt',
+          Quantity: 1,
+          'Item Cost': 2100,
+          'Order Amount': 2100,
+          'Delivery Status': 'completed',
+        },
+        {
+          'Order ID': '1002',
+          'Order Date': '2026-10-11T10:00:00Z',
+          'Date Modified': '2026-10-11T10:00:00Z',
+          'Customer Name': 'Asif Iqbal',
+          Phone: '01711998877',
+          Email: 'asif@deen.com',
+          City: 'Sylhet',
+          'Item Name': 'DEEN Twill Pant',
+          Quantity: 1,
+          'Item Cost': 2500,
+          'Order Amount': 2500,
+          'Delivery Status': 'completed',
+        },
+      ];
+
+      // On Oct 15:
+      // 1. Farhan orders again with +880 international phone format (Returning via phone alias)
+      // 2. Asif orders again with different phone but same email (Returning via email priority)
+      // 3. New buyer (Shakib) places first order ever (New customer)
+      // 4. Anonymous Walk-in Customer (Excluded from customer mix)
+      const oct15Orders: Partial<RawOrderRow>[] = [
+        {
+          'Order ID': '1010',
+          'Order Date': '2026-10-15T12:00:00Z',
+          'Date Modified': '2026-10-15T12:00:00Z',
+          'Customer Name': 'Kazi Farhan',
+          Phone: '+8801819223344', // Different alias format
+          Email: '',
+          City: 'Dhaka',
+          'Item Name': 'DEEN Oversized Tee',
+          Quantity: 1,
+          'Item Cost': 1400,
+          'Order Amount': 1400,
+          'Delivery Status': 'shipped',
+        },
+        {
+          'Order ID': '1011',
+          'Order Date': '2026-10-15T14:00:00Z',
+          'Date Modified': '2026-10-15T14:00:00Z',
+          'Customer Name': 'Asif Iqbal',
+          Phone: '01999887766', // Different phone
+          Email: 'asif@deen.com', // Matching email
+          City: 'Sylhet',
+          'Item Name': 'DEEN Denim Jacket',
+          Quantity: 1,
+          'Item Cost': 3500,
+          'Order Amount': 3500,
+          'Delivery Status': 'shipped',
+        },
+        {
+          'Order ID': '1012',
+          'Order Date': '2026-10-15T16:00:00Z',
+          'Date Modified': '2026-10-15T16:00:00Z',
+          'Customer Name': 'Shakib Khan',
+          Phone: '01511223344',
+          Email: 'shakib@newbuyer.com',
+          City: 'Khulna',
+          'Item Name': 'DEEN Polo',
+          Quantity: 1,
+          'Item Cost': 1200,
+          'Order Amount': 1200,
+          'Delivery Status': 'shipped',
+        },
+        {
+          'Order ID': '1013',
+          'Order Date': '2026-10-15T17:00:00Z',
+          'Date Modified': '2026-10-15T17:00:00Z',
+          'Customer Name': 'Walk-in Customer',
+          Phone: '01700000000',
+          City: 'Mirpur',
+          'Item Name': 'DEEN Basic Tee',
+          Quantity: 1,
+          'Item Cost': 800,
+          'Order Amount': 800,
+          'Delivery Status': 'completed',
+        },
+      ];
+
+      const report = processLiveOpsData(oct15Orders as RawOrderRow[], {
+        view: 'Today Shipped',
+        onlineOnly: true,
+        customDate: '2026-10-15',
+        anchorDate: '2026-10-15',
+        historicalOrders: historicalOrders as RawOrderRow[],
+      });
+
+      // Exactly 3 unique online customers (Farhan, Asif, Shakib; Walk-in excluded)
+      expect(report.customerMix.retCount).toBe(2); // Farhan + Asif
+      expect(report.customerMix.newCount).toBe(1); // Shakib
+      expect(report.customerMix.retPercent).toBe(67); // 2/3 = 66.7% -> 67%
+      expect(report.customerMix.newPercent).toBe(33); // 1/3 = 33.3% -> 33%
+      expect(report.customerMix.sparkline.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('counts multi-item orders from the same customer as 1 unique customer', () => {
+      const multiItemOrders: Partial<RawOrderRow>[] = [
+        {
+          'Order ID': '5001',
+          'Order Date': '2026-10-15T10:00:00Z',
+          'Date Modified': '2026-10-15T10:00:00Z',
+          'Customer Name': 'Tariq Islam',
+          Phone: '01755112233',
+          'Item Name': 'DEEN Twill Pant - 32',
+          Quantity: 1,
+          'Item Cost': 2500,
+          'Order Amount': 5000,
+          'Delivery Status': 'shipped',
+        },
+        {
+          'Order ID': '5001', // Same order ID
+          'Order Date': '2026-10-15T10:00:00Z',
+          'Date Modified': '2026-10-15T10:00:00Z',
+          'Customer Name': 'Tariq Islam',
+          Phone: '01755112233',
+          'Item Name': 'DEEN Twill Pant - 34',
+          Quantity: 1,
+          'Item Cost': 2500,
+          'Order Amount': 5000,
+          'Delivery Status': 'shipped',
+        },
+      ];
+
+      const report = processLiveOpsData(multiItemOrders as RawOrderRow[], {
+        view: 'Today Shipped',
+        customDate: '2026-10-15',
+        anchorDate: '2026-10-15',
+      });
+
+      expect(report.customerMix.newCount + report.customerMix.retCount).toBe(1);
+    });
+  });
 });
+
 

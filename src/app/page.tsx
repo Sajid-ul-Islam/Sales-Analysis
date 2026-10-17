@@ -61,7 +61,15 @@ import { DataProvenanceInfo } from '@/lib/dataAudit';
 export type DataSourceMode = 'UPLOAD' | 'API';
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState('tabExecutive');
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const paramTab = new URLSearchParams(window.location.search).get('tab');
+      if (paramTab) return paramTab;
+      const cookieTab = getCookie(DEEN_COOKIE_KEYS.ACTIVE_TAB);
+      if (cookieTab) return cookieTab;
+    }
+    return 'tabExecutive';
+  });
   const [ledgerStatusFilter, setLedgerStatusFilter] = useState('ALL');
   const [ledgerTerritoryFilter, setLedgerTerritoryFilter] = useState('ALL');
   const [orderFiles, setOrderFiles] = useState<File[]>([]);
@@ -179,6 +187,17 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      if (tabParam) {
+        setActiveTab(tabParam);
+      } else {
+        const savedTab = getCookie(DEEN_COOKIE_KEYS.ACTIVE_TAB);
+        if (savedTab) {
+          setActiveTab(savedTab);
+        }
+      }
+
       const savedTheme = loadSavedThemeSettings();
       const isDark =
         document.documentElement.classList.contains('dark') ||

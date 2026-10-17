@@ -111,7 +111,11 @@ export function detectFulfillmentBranch(rawId: any, note?: any, storeName?: any)
 
 export function cleanPhoneNumber(raw: any): string {
   if (raw === null || raw === undefined) return '';
-  let s = String(raw).trim().replace(/\.0$/, '').replace(/[^0-9]/g, '');
+  let s = String(raw).trim().replace(/\.0$/, '');
+  if (s.includes('*')) {
+    return s;
+  }
+  s = s.replace(/[^0-9]/g, '');
   if (s.startsWith('880')) s = s.slice(2);
   else if (s.startsWith('88')) s = s.slice(2);
   if (s.length === 10 && s.startsWith('1')) s = '0' + s;
@@ -646,18 +650,23 @@ export function runReconciliationEngine(
     if (options.excludePOS && location === 'Outlet / POS') continue;
 
     const rawTotal = parseFloat(findCol(r, ['ordertotalamount', 'total', 'orderamount', 'amount']) || '0') || 0;
-    const phone = cleanPhoneNumber(findCol(r, ['phone', 'contact', 'billingphone', 'shippingphone']));
+    const phone = cleanPhoneNumber(findCol(r, ['rawphone', 'formattedphone', 'phone', 'contact', 'billingphone', 'shippingphone']));
 
-    if (!orderGroups.has(cleanOid)) {
+    const existingGroup = orderGroups.get(cleanOid);
+    if (!existingGroup) {
       orderGroups.set(cleanOid, {
-        items: [],
+        items: [r],
         orderTotalAmount: rawTotal,
         customerNote: note ? String(note) : null,
         location: location,
         phone: phone
       });
+    } else {
+      existingGroup.items.push(r);
+      if ((!existingGroup.phone || existingGroup.phone.includes('*')) && phone && !phone.includes('*')) {
+        existingGroup.phone = phone;
+      }
     }
-    orderGroups.get(cleanOid)!.items.push(r);
   }
 
   // 4. Second Pass: Reconcile Orders and Detect Delivers vs Partials vs Full Returns
@@ -843,8 +852,8 @@ export function runReconciliationEngine(
       const rawQty = Math.max(1, parseInt(findCol(r, ['quantity', 'qty']) || '1', 10) || 1);
       const itemCost = parseFloat(findCol(r, ['itemcost', 'cost', 'price']) || '0') || 0;
       const lineOrderAmount = parseFloat(findCol(r, ['ordertotalamount', 'total']) || '0') || (rawQty * itemCost);
-      const customerName = String(findCol(r, ['fullname', 'firstname', 'customername', 'name']) || 'Valued Customer').trim();
-      const phone = group.phone || cleanPhoneNumber(findCol(r, ['phone', 'contact']));
+      const customerName = String(findCol(r, ['rawcustomername', 'fullname', 'firstname', 'customername', 'name', 'billingname', 'shippingname']) || 'Valued Customer').trim();
+      const phone = group.phone || cleanPhoneNumber(findCol(r, ['rawphone', 'formattedphone', 'phone', 'contact']));
       const paymentMethod = String(findCol(r, ['paymentmethodtitle', 'paymentmethod', 'payment', 'paymenttitle', 'method', 'paymenttype']) || 'Cash on delivery').trim();
 
       if (orderDeliveryCategory === 'FULL_RETURN') {
@@ -1550,8 +1559,8 @@ export function runReconciliationEngine(
     }
 
     const firstItem = group.items[0];
-    const customerName = String(findCol(firstItem, ['fullname', 'firstname', 'customername', 'name']) || 'Valued Customer').trim();
-    const phone = group.phone || cleanPhoneNumber(findCol(firstItem, ['phone', 'contact']));
+    const customerName = String(findCol(firstItem, ['rawcustomername', 'fullname', 'firstname', 'customername', 'name', 'billingname', 'shippingname']) || 'Valued Customer').trim();
+    const phone = group.phone || cleanPhoneNumber(findCol(firstItem, ['rawphone', 'formattedphone', 'phone', 'contact']));
     const rawStatus = String(findCol(firstItem, ['status', 'orderstatus', 'deliverystatus']) || '').trim();
     const orderTotal = group.orderTotalAmount;
     const note = (group.customerNote || '').toLowerCase();

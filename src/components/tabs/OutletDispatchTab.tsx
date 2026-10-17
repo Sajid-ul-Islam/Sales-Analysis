@@ -30,6 +30,11 @@ import {
   Award
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import {
+  compareOrdersByNumber,
+  getExportCustomerName,
+  getExportPhoneNumber
+} from '@/lib/excelExport';
 
 interface OutletDispatchTabProps {
   orders: ReconciledOrderRow[];
@@ -301,7 +306,7 @@ export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
 
   // Filtered orders for the drilldown ledger
   const filteredOrders = useMemo(() => {
-    return orders.filter(o => {
+    const list = orders.filter(o => {
       const outlet = getOrderOutlet(o);
       if (selectedOutletFilter !== 'ALL' && outlet !== selectedOutletFilter) {
         return false;
@@ -318,8 +323,8 @@ export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
       if (searchTerm.trim()) {
         const term = searchTerm.toLowerCase();
         const matchesId = o.orderId.toLowerCase().includes(term);
-        const matchesCustomer = (o.customerName || '').toLowerCase().includes(term);
-        const matchesPhone = (o.phone || '').includes(term);
+        const matchesCustomer = (getExportCustomerName(o) || o.customerName || '').toLowerCase().includes(term);
+        const matchesPhone = (getExportPhoneNumber(o) || o.phone || '').includes(term);
         const matchesSku = (o.sku || '').toLowerCase().includes(term);
         const matchesCity = (o.city || '').toLowerCase().includes(term);
         const matchesItem = (o.itemName || '').toLowerCase().includes(term);
@@ -328,6 +333,8 @@ export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
 
       return true;
     });
+
+    return list.sort(compareOrdersByNumber);
   }, [orders, selectedOutletFilter, statusFilter, searchTerm]);
 
   // Pagination for ledger
@@ -364,15 +371,16 @@ export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
     const wsSummary = XLSX.utils.json_to_sheet(summaryData);
     XLSX.utils.book_append_sheet(wb, wsSummary, 'Outlet Parcel Performance');
 
-    // Sheet 2: Dispatched Orders Ledger
-    const ordersData = filteredOrders.map(o => ({
+    // Sheet 2: Dispatched Orders Ledger (Sorted by Order Number)
+    const sortedOrders = [...filteredOrders].sort(compareOrdersByNumber);
+    const ordersData = sortedOrders.map(o => ({
       'Order ID (Parcel)': o.orderId,
       'Outlet Fulfilled From': getOrderOutlet(o),
       'Branch Suffix': o.branchSuffix || 'Base',
       'Order Delivery Status': o.orderDeliveryStatus || 'Delivered',
       'Item Delivery Status': o.itemDeliveryStatus || 'Delivered',
-      'Customer Name': o.customerName,
-      'Phone': o.phone,
+      'Customer Name': getExportCustomerName(o),
+      'Phone': getExportPhoneNumber(o),
       'City': o.city,
       'Territory': o.districtArea,
       'SKU': o.sku,
@@ -1191,8 +1199,10 @@ export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
                           </div>
                         </td>
                         <td className="py-3 px-3">
-                          <div className="font-bold text-slate-800">{o.customerName || 'Valued Customer'}</div>
-                          <div className="text-[10px] text-slate-400">{o.city} • {o.districtArea}</div>
+                          <div className="font-bold text-slate-800">{getExportCustomerName(o) || o.customerName || 'Valued Customer'}</div>
+                          <div className="text-[10px] text-slate-400">
+                            {getExportPhoneNumber(o) ? `${getExportPhoneNumber(o)} • ` : ''}{o.city} • {o.districtArea}
+                          </div>
                         </td>
                         <td className="py-3 px-3">
                           <div className="font-mono text-slate-700 font-bold">{o.sku}</div>

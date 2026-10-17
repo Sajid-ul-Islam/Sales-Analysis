@@ -19,6 +19,11 @@ import {
   ShieldAlert,
   ArrowUpRight
 } from 'lucide-react';
+import {
+  compareOrdersByNumber,
+  getExportCustomerName,
+  getExportPhoneNumber,
+} from '@/lib/excelExport';
 
 interface CourierMismatchTabProps {
   mismatches: CourierMismatchRecord[];
@@ -36,7 +41,7 @@ export function CourierMismatchTab({
 
   // Filtered rows
   const filteredList = useMemo(() => {
-    return mismatches.filter((item) => {
+    const list = mismatches.filter((item) => {
       if (selectedFilter === 'CRITICAL' && item.severity !== 'CRITICAL') return false;
       if (selectedFilter === 'WARNING' && item.severity !== 'WARNING') return false;
       if (selectedFilter === 'MATCH' && item.severity !== 'MATCH') return false;
@@ -46,13 +51,15 @@ export function CourierMismatchTab({
         const q = searchTerm.toLowerCase();
         const matchesOid = item.orderId.toLowerCase().includes(q);
         const matchesCons = (item.consignmentId || '').toLowerCase().includes(q);
-        const matchesCust = item.customerName.toLowerCase().includes(q);
-        const matchesPhone = item.phone.includes(q);
+        const matchesCust = (getExportCustomerName(item) || item.customerName).toLowerCase().includes(q);
+        const matchesPhone = (getExportPhoneNumber(item) || item.phone).includes(q);
         const matchesDesc = item.description.toLowerCase().includes(q);
         if (!matchesOid && !matchesCons && !matchesCust && !matchesPhone && !matchesDesc) return false;
       }
       return true;
     });
+
+    return list.sort(compareOrdersByNumber);
   }, [mismatches, selectedFilter, searchTerm]);
 
   // Aggregate stats
@@ -409,10 +416,10 @@ export function CourierMismatchTab({
                     <td className="py-3 px-4">
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-900 truncate max-w-[140px]">
-                          {item.customerName}
+                          {getExportCustomerName(item) || item.customerName}
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono">
-                          {item.phone || 'N/A'}
+                          {getExportPhoneNumber(item) || item.phone || 'N/A'}
                         </span>
                       </div>
                     </td>

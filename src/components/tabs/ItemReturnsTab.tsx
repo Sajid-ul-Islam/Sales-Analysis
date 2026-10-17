@@ -4,6 +4,11 @@ import React, { useState, useMemo } from 'react';
 import { ReturnedItemRow } from '@/types';
 import { RotateCcw, Search, Layers, Split, Tag, ArrowUpRight } from 'lucide-react';
 import { AIReturnDiagnosisCard } from '@/components/after-sales/AIReturnDiagnosisCard';
+import {
+  compareOrdersByNumber,
+  getExportCustomerName,
+  getExportPhoneNumber,
+} from '@/lib/excelExport';
 
 interface ItemReturnsTabProps {
   returnedItems: ReturnedItemRow[];
@@ -15,12 +20,12 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
   const [territoryFilter, setTerritoryFilter] = useState('ALL');
 
   const filteredItems = useMemo(() => {
-    return returnedItems.filter(item => {
+    const list = returnedItems.filter(item => {
       if (searchTerm) {
         const q = searchTerm.toLowerCase();
         const mOid = item.orderId.toLowerCase().includes(q);
-        const mName = item.customerName.toLowerCase().includes(q);
-        const mPhone = item.phone.toLowerCase().includes(q);
+        const mName = (getExportCustomerName(item) || item.customerName || '').toLowerCase().includes(q);
+        const mPhone = (getExportPhoneNumber(item) || item.phone || '').toLowerCase().includes(q);
         const mSku = item.sku.toLowerCase().includes(q);
         const mItem = item.itemName.toLowerCase().includes(q);
         if (!mOid && !mName && !mPhone && !mSku && !mItem) return false;
@@ -35,6 +40,8 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
 
       return true;
     });
+
+    return list.sort(compareOrdersByNumber);
   }, [returnedItems, searchTerm, typeFilter, territoryFilter]);
 
   const totalCount = returnedItems.length;
@@ -303,8 +310,8 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
                       </td>
 
                       <td className="py-3.5 px-3.5">
-                        <div className="font-semibold text-slate-900 truncate max-w-[130px]">{item.customerName || 'Customer'}</div>
-                        <div className="text-[11px] text-slate-500 font-mono">{item.phone}</div>
+                        <div className="font-semibold text-slate-900 truncate max-w-[130px]">{getExportCustomerName(item) || item.customerName || 'Customer'}</div>
+                        <div className="text-[11px] text-slate-500 font-mono">{getExportPhoneNumber(item) || item.phone || 'N/A'}</div>
                       </td>
 
                       <td className="py-3.5 px-3.5 whitespace-nowrap">

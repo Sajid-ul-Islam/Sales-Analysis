@@ -119,7 +119,7 @@ export async function POST(req: Request) {
     }
 
     const formattedRows = formatPathaoToReturnRows(filteredData);
-    const isPrivileged = auth.role === 'admin';
+    const isPrivileged = auth.role === 'admin' || auth.role === 'operator' || auth.role === 'demo';
     const returnRows = isPrivileged ? formattedRows : sanitizeOrdersResponse(formattedRows);
     const provenance = createDataProvenance('live_api', formattedRows.length, !isPrivileged);
 

@@ -47,7 +47,7 @@ export async function POST(req: Request) {
       fetchLiveWc: body.fetchLiveWc !== undefined ? body.fetchLiveWc : true,
     });
 
-    const isPrivileged = auth.role === 'admin';
+    const isPrivileged = auth.role === 'admin' || auth.role === 'operator' || auth.role === 'demo';
     const sanitizedOrders = isPrivileged ? result.orders : sanitizeOrdersResponse(result.orders);
 
     return NextResponse.json({

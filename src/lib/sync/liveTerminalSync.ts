@@ -3,6 +3,7 @@ import { fetchWooCommerceOrders, formatWooCommerceToOrderRows, testWooCommerceCo
 import { batchFetchPathaoOrders, getPathaoToken, PathaoCredentials } from '@/lib/pathaoClient';
 import { getSecretsWithOverrides } from '@/lib/secrets';
 import { createDataProvenance } from '@/lib/dataAudit';
+import { buildTimelineIndex, extractCustomerBilling, classifyCustomer } from '@/lib/customerRegistry';
 import baselineData from '@/data/baselineSample.json';
 
 export type StandardCourierStatus =
@@ -211,8 +212,12 @@ export function detectFulfillmentBranch(orderIdOrRow: any): FulfillmentBranchInf
 
   const cleaned = cleanOrderId(raw);
   const baseOrderId = extractBaseOrderId(raw);
+  const objNotes = typeof orderIdOrRow === 'object' && orderIdOrRow !== null
+    ? `${orderIdOrRow['Order Notes'] || orderIdOrRow.orderNotes || orderIdOrRow.customer_note || ''} ${orderIdOrRow.Substatus || orderIdOrRow.substatus || ''}`.toLowerCase()
+    : '';
+  const hasExchangeNote = /exchange\s+for\s+#?\d+/i.test(objNotes) || /\bexchanged\b/i.test(objNotes) || /exchange/i.test(String(orderIdOrRow?.orderCategory || '')) || orderIdOrRow?.isExchange === true;
 
-  if (/^(dd?|ex|exchange)[-_]/i.test(cleaned) || /^d-\d+/i.test(raw.trim())) {
+  if (/^(dd?|ex|exchange)[-_]/i.test(cleaned) || /^d-\d+/i.test(raw.trim()) || hasExchangeNote) {
     return {
       branchName: 'Exchange Replacement',
       branchCode: 'EXCHANGE',
@@ -406,6 +411,20 @@ export async function syncLiveTerminalData(options: {
     } else if (baselineData && Array.isArray((baselineData as any).orders)) {
       rawOrders = (baselineData as any).orders;
     }
+  }
+
+  // ── Step 1B: Classify Customers (DEEN-OPS Customer Mix Grounding) ──
+  try {
+    const customerTimeline = buildTimelineIndex(rawOrders);
+    for (const row of rawOrders) {
+      const billing = extractCustomerBilling(row);
+      const orderDateIso = String(row['Order Date'] || row.orderDate || row['Date Modified'] || '');
+      const cls = classifyCustomer(billing, orderDateIso, customerTimeline);
+      (row as any).isReturningCustomer = cls === 'returning';
+      (row as any).customerType = cls;
+    }
+  } catch (err) {
+    console.warn('Customer classification in live terminal sync caught warning:', err);
   }
 
   // ── Step 2: Harvest Consignment & Merchant IDs ──

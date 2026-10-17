@@ -28,6 +28,11 @@ import {
 } from 'lucide-react';
 import { ReconciliationResult } from '@/lib/reconciliationEngine';
 import { RawOrderRow, ReconciledOrderRow } from '@/types';
+import {
+  compareOrdersByNumber,
+  getExportCustomerName,
+  getExportPhoneNumber,
+} from '@/lib/excelExport';
 
 export interface CommandPaletteModalProps {
   isOpen: boolean;
@@ -201,12 +206,14 @@ export function CommandPaletteModal({
     const seenOrderIds = new Set<string>();
     const orderItems: PaletteItem[] = [];
 
-    for (const order of orderPool) {
+    const sortedPool = [...orderPool].sort(compareOrdersByNumber);
+    for (const order of sortedPool) {
       const oid = String(order.orderId || order['Order ID'] || order.id || '');
       if (!oid || seenOrderIds.has(oid)) continue;
       seenOrderIds.add(oid);
 
-      const custName = String(order.customerName || order['Customer Name'] || order.customer || 'Customer');
+      const custName = getExportCustomerName(order);
+      const phone = getExportPhoneNumber(order);
       const amount = Number(order.orderAmount || order['Order Amount'] || order.total || 0);
       const status = String(order.deliveryStatus || order.orderDeliveryStatus || order.status || 'Pending');
       const branch = String(order.fulfillmentLocation || order.fulfillmentBranch || 'Online');
@@ -220,7 +227,7 @@ export function CommandPaletteModal({
         id: `order-${oid}`,
         category: 'Orders',
         title: `Order #${oid}`,
-        subtitle: `${custName} • ৳${amount.toLocaleString()} • ${branch}`,
+        subtitle: `${custName}${phone ? ` • ${phone}` : ''} • ৳${amount.toLocaleString()} • ${branch}`,
         badge: status,
         badgeColor: statusBadgeColor,
         icon: <ShoppingBag className="w-4 h-4 text-slate-600 dark:text-slate-400" />,

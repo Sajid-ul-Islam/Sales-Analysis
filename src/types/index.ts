@@ -36,6 +36,8 @@ export interface ReconciledOrderRow {
   aiAuditNote?: string; // AI audit description or reason
   requiresManualReview?: boolean; // True when subset-sum match is ambiguous or deviates from discrete targets
   decisionEvidence?: import('@/lib/subsetSumAuditor').DecisionEvidence; // Explainable evidence trail for the reconciliation outcome
+  rawCustomerName?: string;
+  rawPhone?: string;
 }
 
 export interface ReturnedItemRow {

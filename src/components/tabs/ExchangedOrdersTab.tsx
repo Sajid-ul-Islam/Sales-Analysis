@@ -19,6 +19,11 @@ import {
   FileCheck2,
   ArrowUpRight
 } from 'lucide-react';
+import {
+  compareOrdersByNumber,
+  getExportCustomerName,
+  getExportPhoneNumber,
+} from '@/lib/excelExport';
 
 interface ExchangedOrdersTabProps {
   exchangedOrders: ExchangedOrderRow[];
@@ -33,7 +38,7 @@ export function ExchangedOrdersTab({
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'MATCHED' | 'UNMATCHED' | 'DELIVERED'>('ALL');
 
   const filteredOrders = useMemo(() => {
-    return exchangedOrders.filter((order) => {
+    const list = exchangedOrders.filter((order) => {
       if (statusFilter === 'MATCHED' && !order.matchedInOrders) return false;
       if (statusFilter === 'UNMATCHED' && order.matchedInOrders) return false;
       if (statusFilter === 'DELIVERED' && !order.deliveryStatus.toLowerCase().includes('deliver')) return false;
@@ -42,14 +47,16 @@ export function ExchangedOrdersTab({
         const q = searchTerm.toLowerCase();
         const matchesOid = order.orderId.toLowerCase().includes(q) || order.rawOrderId.toLowerCase().includes(q);
         const matchesCons = order.consignmentId.toLowerCase().includes(q);
-        const matchesName = order.recipientName.toLowerCase().includes(q);
-        const matchesPhone = order.phone.includes(q);
+        const matchesName = (getExportCustomerName(order) || order.recipientName).toLowerCase().includes(q);
+        const matchesPhone = (getExportPhoneNumber(order) || order.phone).includes(q);
         const matchesAddr = order.address.toLowerCase().includes(q);
         const matchesStatus = order.deliveryStatus.toLowerCase().includes(q);
         if (!matchesOid && !matchesCons && !matchesName && !matchesPhone && !matchesAddr && !matchesStatus) return false;
       }
       return true;
     });
+
+    return list.sort(compareOrdersByNumber);
   }, [exchangedOrders, statusFilter, searchTerm]);
 
   // Aggregate Metrics
@@ -429,11 +436,11 @@ export function ExchangedOrdersTab({
                     {/* Recipient & Contact */}
                     <td className="py-3 px-3">
                       <div className="font-medium text-slate-900 truncate max-w-[150px]">
-                        {order.recipientName || 'Valued Customer'}
+                        {getExportCustomerName(order) || order.recipientName || 'Valued Customer'}
                       </div>
                       <div className="flex items-center gap-1 text-[11px] text-slate-500 font-mono mt-0.5">
                         <Phone className="w-3 h-3 text-slate-400" />
-                        <span>{order.phone || '—'}</span>
+                        <span>{getExportPhoneNumber(order) || order.phone || '—'}</span>
                       </div>
                     </td>
 

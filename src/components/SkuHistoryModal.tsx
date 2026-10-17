@@ -14,6 +14,11 @@ import {
   MapPin,
   Calendar
 } from 'lucide-react';
+import {
+  compareOrdersByNumber,
+  getExportCustomerName,
+  getExportPhoneNumber,
+} from '@/lib/excelExport';
 
 interface SkuHistoryModalProps {
   sku: string | null;
@@ -52,25 +57,27 @@ export function SkuHistoryModal({
   // Filter orders containing this SKU
   const matchedRows = allOrderItems.filter((o) => o.sku === sku);
 
-  const filteredRows = matchedRows.filter((r) => {
-    if (filterStatus === 'DELIVERED') {
-      if (r.itemDeliveryStatus !== 'Delivered' && r.orderCategory !== 'DELIVERED') return false;
-    } else if (filterStatus === 'RETURNED') {
-      if (r.itemDeliveryStatus !== 'Returned' && r.orderCategory !== 'FULL_RETURN') return false;
-    } else if (filterStatus === 'EXCHANGE') {
-      if (!r.isExchange && r.itemDeliveryStatus !== 'Exchange') return false;
-    }
+  const filteredRows = matchedRows
+    .filter((r) => {
+      if (filterStatus === 'DELIVERED') {
+        if (r.itemDeliveryStatus !== 'Delivered' && r.orderCategory !== 'DELIVERED') return false;
+      } else if (filterStatus === 'RETURNED') {
+        if (r.itemDeliveryStatus !== 'Returned' && r.orderCategory !== 'FULL_RETURN') return false;
+      } else if (filterStatus === 'EXCHANGE') {
+        if (!r.isExchange && r.itemDeliveryStatus !== 'Exchange') return false;
+      }
 
-    if (searchTerm) {
-      const q = searchTerm.toLowerCase();
-      const matchesOid = r.orderId.toLowerCase().includes(q);
-      const matchesCustomer = (r.customerName || '').toLowerCase().includes(q);
-      const matchesPhone = (r.phone || '').toLowerCase().includes(q);
-      if (!matchesOid && !matchesCustomer && !matchesPhone) return false;
-    }
+      if (searchTerm) {
+        const q = searchTerm.toLowerCase();
+        const matchesOid = r.orderId.toLowerCase().includes(q);
+        const matchesCustomer = (getExportCustomerName(r) || r.customerName || '').toLowerCase().includes(q);
+        const matchesPhone = (getExportPhoneNumber(r) || r.phone || '').toLowerCase().includes(q);
+        if (!matchesOid && !matchesCustomer && !matchesPhone) return false;
+      }
 
-    return true;
-  });
+      return true;
+    })
+    .sort(compareOrdersByNumber);
 
   const totalDispatched = matchedRows.reduce((sum, r) => sum + (r.quantity || 1), 0);
   const totalDelivered = matchedRows
@@ -219,8 +226,8 @@ export function SkuHistoryModal({
                         </td>
 
                         <td className="py-2.5 px-3">
-                          <span className="font-semibold text-slate-800 block">{r.customerName || 'Customer'}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">{r.phone}</span>
+                          <span className="font-semibold text-slate-800 block">{getExportCustomerName(r) || r.customerName || 'Customer'}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">{getExportPhoneNumber(r) || r.phone || 'N/A'}</span>
                         </td>
 
                         <td className="py-2.5 px-3">

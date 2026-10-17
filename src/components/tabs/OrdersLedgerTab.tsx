@@ -6,6 +6,11 @@ import { Search, ChevronLeft, ChevronRight, Eye, AlertCircle } from 'lucide-reac
 import { OrderDetailModal } from '@/components/OrderDetailModal';
 import { getManualOverrides, ManualOverride } from '@/lib/overrideStore';
 import { FulfillmentBadge, StatusBadge } from '@/components/common';
+import {
+  compareOrdersByNumber,
+  getExportCustomerName,
+  getExportPhoneNumber,
+} from '@/lib/excelExport';
 
 interface OrdersLedgerTabProps {
   orders: ReconciledOrderRow[];
@@ -65,13 +70,13 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
   }, []);
 
   const filteredOrders = useMemo(() => {
-    return orders.filter(o => {
+    const list = orders.filter(o => {
       // Search
       if (searchTerm) {
         const s = searchTerm.toLowerCase();
         const matchesOid = o.orderId.toLowerCase().includes(s);
-        const matchesName = o.customerName.toLowerCase().includes(s);
-        const matchesPhone = o.phone.toLowerCase().includes(s);
+        const matchesName = (getExportCustomerName(o) || o.customerName || '').toLowerCase().includes(s);
+        const matchesPhone = (getExportPhoneNumber(o) || o.phone || '').toLowerCase().includes(s);
         const matchesSku = o.sku.toLowerCase().includes(s);
         const matchesItem = o.itemName.toLowerCase().includes(s);
         const matchesBranch = (o.fulfillmentLocation || '').toLowerCase().includes(s);
@@ -114,6 +119,8 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
 
       return true;
     });
+
+    return list.sort(compareOrdersByNumber);
   }, [orders, searchTerm, statusFilter, branchFilter, territoryFilter, aiTagFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
@@ -421,8 +428,8 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                       </td>
 
                       <td className="py-3 px-3.5">
-                        <div className="font-semibold text-slate-900 truncate max-w-[140px]">{o.customerName || 'Customer'}</div>
-                        <div className="text-[11px] text-slate-500 font-mono">{o.phone}</div>
+                        <div className="font-semibold text-slate-900 truncate max-w-[140px]">{getExportCustomerName(o) || o.customerName || 'Customer'}</div>
+                        <div className="text-[11px] text-slate-500 font-mono">{getExportPhoneNumber(o) || o.phone || 'N/A'}</div>
                       </td>
 
                       <td className="py-3 px-3.5 whitespace-nowrap">

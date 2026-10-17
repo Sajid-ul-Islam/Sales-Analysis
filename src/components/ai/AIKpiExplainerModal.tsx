@@ -32,6 +32,7 @@ import {
   CourierMismatchRecord,
   AgenticActionProposal
 } from '@/types';
+import { getExportCustomerName, getExportPhoneNumber } from '@/lib/excelExport';
 
 export type KpiExplainerType =
   | 'dispatched'
@@ -166,8 +167,8 @@ export function AIKpiExplainerModal({
           affectedCount: metrics.highRiskOrders.length,
           previewOrders: metrics.highRiskOrders.slice(0, 4).map((o) => ({
             orderId: o.orderId,
-            customerName: o.customerName,
-            phone: o.phone,
+            customerName: getExportCustomerName(o) || o.customerName,
+            phone: getExportPhoneNumber(o) || o.phone,
             amount: o.orderAmount,
             status: o.orderDeliveryStatus || o.orderCategory,
             reason: 'Customer return rate > 50%',
@@ -242,8 +243,8 @@ export function AIKpiExplainerModal({
           affectedCount: s.partialOrders,
           previewOrders: orders.filter((o) => o.orderCategory === 'PARTIAL').slice(0, 4).map((o) => ({
             orderId: o.orderId,
-            customerName: o.customerName,
-            phone: o.phone,
+            customerName: getExportCustomerName(o) || o.customerName,
+            phone: getExportPhoneNumber(o) || o.phone,
             amount: o.orderAmount,
             status: 'Partial',
             reason: 'Multi-item split delivery',
@@ -437,8 +438,8 @@ export function AIKpiExplainerModal({
           affectedCount: metrics.criticalMismatches.length,
           previewOrders: metrics.criticalMismatches.slice(0, 4).map((m) => ({
             orderId: m.orderId,
-            customerName: m.customerName,
-            phone: m.phone,
+            customerName: getExportCustomerName(m) || m.customerName,
+            phone: getExportPhoneNumber(m) || m.phone,
             amount: m.expectedCod,
             status: m.pathaoStatus,
             reason: `Discrepancy: ৳${Math.abs(m.codDifference)} (${m.severity})`,

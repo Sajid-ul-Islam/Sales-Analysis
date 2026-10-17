@@ -31,6 +31,11 @@ import {
   CircleDollarSign
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import {
+  compareOrdersByNumber,
+  getExportCustomerName,
+  getExportPhoneNumber
+} from '@/lib/excelExport';
 import { DateRangeSelector } from '@/components/DateRangeSelector';
 import { DateScope, CustomDateRange, parseOrderDate } from '@/lib/dateFilter';
 import { classifyProductCategory } from '@/lib/reconciliationEngine';
@@ -348,8 +353,8 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
             id: cleanOid,
             orderNumber: cleanOid,
             dateCreated: dateStr,
-            customerName: r.customerName || 'In-Store Customer',
-            phone: r.phone || '',
+            customerName: getExportCustomerName(r) || r.customerName || 'In-Store Customer',
+            phone: getExportPhoneNumber(r) || r.phone || '',
             city: r.city || 'Dhaka',
             total: 0,
             status: r.deliveryStatus === 'Delivered' ? 'completed' : (r.deliveryStatus || 'completed').toLowerCase(),
@@ -516,8 +521,8 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
             id: oid,
             orderNumber: oid,
             dateCreated: r['Order Date'] || '',
-            customerName: r['Customer Name'] || 'In-Store Customer',
-            phone: r['Phone'] || '',
+            customerName: getExportCustomerName(r) || r['Customer Name'] || 'In-Store Customer',
+            phone: getExportPhoneNumber(r) || r['Phone'] || '',
             city: r['City'] || 'Dhaka',
             total,
             status: r['Delivery Status'] || 'completed',
@@ -977,7 +982,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
   // Search & table outlet filter for Orders Stream
   const filteredOrders = useMemo(() => {
-    return dateFilteredOrders.filter(o => {
+    const list = dateFilteredOrders.filter(o => {
       if (selectedOutletFilter !== 'ALL' && o.outletName !== selectedOutletFilter) {
         return false;
       }
@@ -989,8 +994,8 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
       if (searchTerm.trim()) {
         const term = searchTerm.toLowerCase();
         const matchesId = o.orderNumber.toLowerCase().includes(term);
-        const matchesCustomer = o.customerName.toLowerCase().includes(term);
-        const matchesPhone = o.phone.includes(term);
+        const matchesCustomer = (getExportCustomerName(o) || o.customerName).toLowerCase().includes(term);
+        const matchesPhone = (getExportPhoneNumber(o) || o.phone).includes(term);
         const matchesCity = o.city.toLowerCase().includes(term);
         const matchesItems = o.itemsSummary.toLowerCase().includes(term);
         return matchesId || matchesCustomer || matchesPhone || matchesCity || matchesItems;
@@ -998,6 +1003,8 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
       return true;
     });
+
+    return list.sort(compareOrdersByNumber);
   }, [dateFilteredOrders, selectedOutletFilter, statusFilter, searchTerm]);
 
   // Pagination for Orders Stream
@@ -1056,13 +1063,14 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
     const wsItem = XLSX.utils.json_to_sheet(itemData);
     XLSX.utils.book_append_sheet(wb, wsItem, 'Item Wise Sales');
 
-    // Sheet 4: In-Store POS Orders Stream
-    const ordersData = filteredOrders.map(o => ({
+    // Sheet 4: In-Store POS Orders Stream (Sorted by Order Number)
+    const sortedOrders = [...filteredOrders].sort(compareOrdersByNumber);
+    const ordersData = sortedOrders.map(o => ({
       'WooCommerce Order #': o.orderNumber,
       'Outlet Branch': o.outletName,
       'Order Date': o.dateCreated ? o.dateCreated.slice(0, 19).replace('T', ' ') : '',
-      'Customer Name': o.customerName,
-      'Phone': o.phone,
+      'Customer Name': getExportCustomerName(o),
+      'Phone': getExportPhoneNumber(o),
       'City': o.city,
       'Items Count': o.itemsCount,
       'Items Summary': o.itemsSummary,
@@ -2239,8 +2247,8 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                         </span>
                       </td>
                       <td className="py-3 px-3">
-                        <div className="font-bold text-slate-800">{o.customerName}</div>
-                        <div className="text-[10px] text-slate-400">{o.city} {o.phone ? `• ${o.phone}` : ''}</div>
+                        <div className="font-bold text-slate-800">{getExportCustomerName(o) || o.customerName}</div>
+                        <div className="text-[10px] text-slate-400">{o.city} {getExportPhoneNumber(o) || o.phone ? `• ${getExportPhoneNumber(o) || o.phone}` : ''}</div>
                       </td>
                       <td className="py-3 px-3">
                         <div className="text-slate-800 font-medium truncate max-w-xs">{o.itemsSummary}</div>

@@ -3,6 +3,7 @@ import path from 'path';
 import * as XLSX from 'xlsx';
 import fs from 'fs';
 import { sanitizeOrdersResponse } from '@/lib/auth/dataMasking';
+import { validateApiRequest } from '@/lib/auth/apiAuth';
 import { createDataProvenance } from '@/lib/dataAudit';
 import baselineData from '@/data/baselineSample.json';
 import { fetchDatasetFromBlob, isBlobConfigured } from '@/lib/blobStorage';
@@ -37,8 +38,11 @@ function parseExcelFile(filePath: string): any[] {
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const auth = validateApiRequest(req, { requiredRole: 'operator', allowDemo: true });
+    const isPrivileged = auth.authenticated && (auth.role === 'admin' || auth.role === 'operator' || auth.role === 'demo');
+
     // 1. TIER 1 CLOUD CHECK: Vercel Blob Storage (Method 3)
     // If BLOB_READ_WRITE_TOKEN is configured and a cloud dataset snapshot exists, serve it with 0ms delay!
     if (isBlobConfigured()) {
@@ -46,11 +50,11 @@ export async function GET() {
         const blobResult = await fetchDatasetFromBlob();
         if (blobResult.success && blobResult.dataset && (blobResult.dataset.orders?.length || 0) > 0) {
           const ds = blobResult.dataset;
-          const sanitizedOrders = sanitizeOrdersResponse(ds.orders || []);
-          const sanitizedReturns = sanitizeOrdersResponse(ds.returns || []);
-          const sanitizedPartials = sanitizeOrdersResponse(ds.partials || []);
-          const sanitizedExchanges = sanitizeOrdersResponse(ds.exchanges || []);
-          const sanitizedPathao = sanitizeOrdersResponse(ds.pathaoDelivery || []);
+          const sanitizedOrders = isPrivileged ? ds.orders : sanitizeOrdersResponse(ds.orders || []);
+          const sanitizedReturns = isPrivileged ? ds.returns : sanitizeOrdersResponse(ds.returns || []);
+          const sanitizedPartials = isPrivileged ? ds.partials : sanitizeOrdersResponse(ds.partials || []);
+          const sanitizedExchanges = isPrivileged ? ds.exchanges : sanitizeOrdersResponse(ds.exchanges || []);
+          const sanitizedPathao = isPrivileged ? ds.pathaoDelivery : sanitizeOrdersResponse(ds.pathaoDelivery || []);
 
           const provenance = createDataProvenance('vercel_blob', sanitizedOrders.length, true);
 
@@ -154,11 +158,11 @@ export async function GET() {
     console.log(`[API /api/sample-data] Loaded ${orders.length} orders, ${returns.length} returns, ${partials.length} partials, ${exchanges.length} exchanges, ${pathaoDelivery.length} pathao records (Any Fallback: ${isAnyFallbackUsed})`);
 
     // PII Sanitization across all exported sample records
-    const sanitizedOrders = sanitizeOrdersResponse(orders);
-    const sanitizedReturns = sanitizeOrdersResponse(returns);
-    const sanitizedPartials = sanitizeOrdersResponse(partials);
-    const sanitizedExchanges = sanitizeOrdersResponse(exchanges);
-    const sanitizedPathao = sanitizeOrdersResponse(pathaoDelivery);
+    const sanitizedOrders = isPrivileged ? orders : sanitizeOrdersResponse(orders);
+    const sanitizedReturns = isPrivileged ? returns : sanitizeOrdersResponse(returns);
+    const sanitizedPartials = isPrivileged ? partials : sanitizeOrdersResponse(partials);
+    const sanitizedExchanges = isPrivileged ? exchanges : sanitizeOrdersResponse(exchanges);
+    const sanitizedPathao = isPrivileged ? pathaoDelivery : sanitizeOrdersResponse(pathaoDelivery);
 
     const provenance = createDataProvenance(
       isAnyFallbackUsed ? 'baseline_bundled' : 'disk_spreadsheet',

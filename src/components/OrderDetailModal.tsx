@@ -24,6 +24,10 @@ import {
   ManualOverride
 } from '@/lib/overrideStore';
 import { FulfillmentBadge, StatusBadge } from '@/components/common';
+import {
+  getExportCustomerName,
+  getExportPhoneNumber,
+} from '@/lib/excelExport';
 
 interface OrderDetailModalProps {
   orderId: string | null;
@@ -159,10 +163,10 @@ export function OrderDetailModal({
                 <span>Customer Details</span>
               </div>
               <div className="space-y-1 text-xs">
-                <div className="font-bold text-navy-deep">{primary.customerName || 'N/A'}</div>
+                <div className="font-bold text-navy-deep">{getExportCustomerName(primary) || primary.customerName || 'N/A'}</div>
                 <div className="flex items-center gap-1.5 text-slate-600 font-mono">
                   <Phone className="w-3 h-3 text-slate-400" />
-                  <span>{primary.phone || 'N/A'}</span>
+                  <span>{getExportPhoneNumber(primary) || primary.phone || 'N/A'}</span>
                 </div>
               </div>
             </div>
