@@ -6,24 +6,24 @@ import { LiveCategoryItem, DEFAULT_DEEN_OPS_CATEGORY_ITEMS } from '@/lib/liveOps
 interface LiveVolumeBarChartProps {
   items: LiveCategoryItem[];
   avgUnitsSold: number;
+  selectedCategory?: string;
+  onSelectCategory?: (category: string) => void;
 }
 
-export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartProps) {
+export function LiveVolumeBarChart({
+  items,
+  avgUnitsSold,
+  selectedCategory,
+  onSelectCategory,
+}: LiveVolumeBarChartProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
-  // If items is empty or fallback data is needed, use canonical DEEN-OPS benchmark distribution
-  const sourceItems = items && items.length > 2 ? items : DEFAULT_DEEN_OPS_CATEGORY_ITEMS;
+  // If items has elements, use them; if empty with avgUnitsSold === 0, render empty state; otherwise fallback
+  const sourceItems = useMemo(() => {
+    const hasRealItems = Boolean(items && items.length > 0);
+    return hasRealItems ? items : (avgUnitsSold === 0 ? [] : DEFAULT_DEEN_OPS_CATEGORY_ITEMS);
+  }, [items, avgUnitsSold]);
 
-  // Order categories to match DEEN-OPS Screenshot X-axis sequence:
-  // 1. Jeans (14: 11 Reg + 3 Sel)
-  // 2. Twill Five Pockets (5)
-  // 3. T-Shirt (5)
-  // 4. Casual (4)
-  // 5. Polo (3)
-  // 6. Cargo (2)
-  // 7. Hoodie (2)
-  // 8. Trousers (2)
-  // 9. Denim Jacket (1)
   // Order categories: Strictly from large to small by volume (units sold)
   const displayItems = useMemo(() => {
     return [...sourceItems]
@@ -35,6 +35,22 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
       })
       .slice(0, 9);
   }, [sourceItems]);
+
+  if (sourceItems.length === 0) {
+    return (
+      <div className="relative flex flex-col items-center justify-center p-6 text-center select-none w-full min-h-[280px]">
+        <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-[#1A1A1A] flex items-center justify-center text-2xl mb-2 text-slate-400">
+          📊
+        </div>
+        <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
+          No volume data
+        </div>
+        <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+          Zero items dispatched for category analysis
+        </div>
+      </div>
+    );
+  }
 
   const maxActualVolume = displayItems.reduce((max, item) => Math.max(max, item.volume), 0);
   const maxVolume = Math.max(14, Math.ceil(maxActualVolume / 2) * 2);
@@ -187,13 +203,24 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
               xLabel = 'Jacket';
             }
 
+            const isSelected = Boolean(
+              selectedCategory &&
+              selectedCategory !== 'ALL' &&
+              (selectedCategory === item.name ||
+                selectedCategory === item.displayName ||
+                (selectedCategory === 'Twill' && /^Twill/i.test(rawLabel)) ||
+                (selectedCategory === 'Jacket' && /Jacket/i.test(rawLabel)))
+            );
+            const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);
+
             // Bar color
             const barFillColor = CANONICAL_BAR_COLORS[xLabel] || CANONICAL_BAR_COLORS[item.displayName] || CANONICAL_BAR_COLORS[item.name] || item.color;
 
             return (
               <g
                 key={`bar-${item.name}-${idx}`}
-                className="cursor-pointer transition-all duration-200"
+                className="cursor-pointer transition-all duration-300"
+                onClick={() => onSelectCategory && onSelectCategory(item.name)}
                 onMouseEnter={() => setHoveredIdx(idx)}
                 onMouseLeave={() => setHoveredIdx(null)}
               >
@@ -206,8 +233,8 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
                     height={regHeight}
                     rx={selVol > 0 ? 0 : 3}
                     fill={barFillColor}
-                    opacity={isHovered ? 1 : 0.95}
-                    filter={isHovered ? 'brightness(1.08)' : undefined}
+                    opacity={isDimmed ? 0.35 : (isHovered || isSelected ? 1 : 0.95)}
+                    filter={isHovered || isSelected ? 'brightness(1.1) drop-shadow(0 2px 6px rgba(0,0,0,0.2))' : undefined}
                   />
                 )}
 
@@ -220,8 +247,8 @@ export function LiveVolumeBarChart({ items, avgUnitsSold }: LiveVolumeBarChartPr
                     height={selHeight}
                     rx={3}
                     fill="#facc15"
-                    opacity={isHovered ? 1 : 0.95}
-                    filter={isHovered ? 'brightness(1.08)' : undefined}
+                    opacity={isDimmed ? 0.35 : (isHovered || isSelected ? 1 : 0.95)}
+                    filter={isHovered || isSelected ? 'brightness(1.1) drop-shadow(0 2px 6px rgba(0,0,0,0.2))' : undefined}
                   />
                 )}
 

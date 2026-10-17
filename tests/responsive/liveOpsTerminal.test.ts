@@ -573,5 +573,94 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(top2.unitsSold).toBe(2);
     });
   });
+
+  describe('Day Selection, Chart Data, and Hero KPI Synchronization', () => {
+    const multiDayOrders: Partial<RawOrderRow>[] = [
+      // Day 1: 2026-10-14 (Wednesday) - 2 orders, 3 items, ৳6,500
+      {
+        'Order ID': '101',
+        'Date Modified': '2026-10-14T10:00:00Z',
+        'Item Name': 'Vintage Denim Jacket',
+        Quantity: 1,
+        'Item Cost': 3500,
+        'Order Amount': 3500,
+        'Delivery Status': 'shipped',
+        'Order Source': 'Online',
+      },
+      {
+        'Order ID': '102',
+        'Date Modified': '2026-10-14T11:00:00Z',
+        'Item Name': 'Mens Twill Five Pocket Pant',
+        Quantity: 2,
+        'Item Cost': 1500,
+        'Order Amount': 3000,
+        'Delivery Status': 'shipped',
+        'Order Source': 'Online',
+      },
+      // Day 2: 2026-10-15 (Thursday) - 1 order, 4 items, ৳10,000
+      {
+        'Order ID': '103',
+        'Date Modified': '2026-10-15T12:00:00Z',
+        'Item Name': 'DEEN Slim Jeans',
+        Quantity: 4,
+        'Item Cost': 2500,
+        'Order Amount': 10000,
+        'Delivery Status': 'shipped',
+        'Order Source': 'Online',
+      },
+    ];
+
+    it('ensures Hero KPIs, 7-day strip, and chart data are perfectly identical for any audited day', () => {
+      const reportWed = processLiveOpsData(multiDayOrders as RawOrderRow[], {
+        view: 'Today Shipped',
+        customDate: '2026-10-14',
+        anchorDate: '2026-10-15',
+      });
+
+      // 1. Hero KPI Card values for Wednesday 2026-10-14
+      expect(reportWed.referenceDate).toBe('2026-10-14');
+      expect(reportWed.shippedOrders.rawValue).toBe(2);
+      expect(reportWed.shippedItems.rawValue).toBe(3);
+      expect(reportWed.salesRevenue.rawValue).toBe(6500);
+
+      // 2. 7-Day History strip entry for Wednesday matches Hero KPIs exactly
+      const wedSummary = reportWed.last7DaysHistory.find((d) => d.dateIso === '2026-10-14');
+      expect(wedSummary).toBeDefined();
+      expect(wedSummary?.orderCount).toBe(reportWed.shippedOrders.rawValue);
+      expect(wedSummary?.itemCount).toBe(reportWed.shippedItems.rawValue);
+      expect(wedSummary?.revenue).toBe(reportWed.salesRevenue.rawValue);
+
+      // 3. Category chart data sum matches Hero KPIs exactly
+      const totalChartRevenue = reportWed.categoryItems.reduce((acc, c) => acc + c.revenue, 0);
+      const totalChartVolume = reportWed.categoryItems.reduce((acc, c) => acc + c.volume, 0);
+      expect(totalChartRevenue).toBe(reportWed.salesRevenue.rawValue);
+      expect(totalChartVolume).toBe(reportWed.shippedItems.rawValue);
+
+      // 4. Slices contain real data, never falling back to dummy data
+      expect(reportWed.categoryItems.length).toBe(2);
+      expect(reportWed.categoryItems.map((c) => c.name)).toContain('Jacket');
+      expect(reportWed.categoryItems.map((c) => c.name)).toContain('Twill Five Pockets');
+    });
+
+    it('keeps 7-day dispatch history strip stable when inspecting past dates', () => {
+      const reportHistorical = processLiveOpsData(multiDayOrders as RawOrderRow[], {
+        view: 'Today Shipped',
+        customDate: '2026-10-14',
+        anchorDate: '2026-10-15',
+      });
+
+      // The 7-day history strip must be anchored on 2026-10-15 (today)
+      const dates = reportHistorical.last7DaysHistory.map((d) => d.dateIso);
+      expect(dates[dates.length - 1]).toBe('2026-10-15');
+      expect(dates).toContain('2026-10-14');
+
+      // The isToday flag is attached strictly to anchor date 2026-10-15, not the audited date
+      const todayEntry = reportHistorical.last7DaysHistory.find((d) => d.dateIso === '2026-10-15');
+      expect(todayEntry?.isToday).toBe(true);
+
+      const wedEntry = reportHistorical.last7DaysHistory.find((d) => d.dateIso === '2026-10-14');
+      expect(wedEntry?.isToday).toBe(false);
+    });
+  });
 });
 

@@ -42,6 +42,8 @@ import {
   isOrderShipped,
   generateWhatsAppConfirmationUrl,
   formatBangladeshPhoneNumber,
+  parseOrderDate,
+  formatDateToIsoDay,
 } from '@/lib/liveOpsProcessor';
 import { LiveRevenueDonutChart } from '@/components/charts/LiveRevenueDonutChart';
 import { LiveVolumeBarChart } from '@/components/charts/LiveVolumeBarChart';
@@ -157,14 +159,32 @@ export function LiveOpsTab({
   // Active dataset for processing (prefer live synced orders if available)
   const activeDataset = liveOrders.length > 0 ? liveOrders : orders;
 
+  // Determine current operational baseline anchor date from the dataset
+  const snapshotAnchorDate = useMemo(() => {
+    const ordersWithDates = (activeDataset || [])
+      .map((o) => ({ order: o, date: parseOrderDate(o) }))
+      .filter((x): x is { order: RawOrderRow; date: Date } => x.date !== null);
+
+    const now = new Date();
+    const todayIso = formatDateToIsoDay(now);
+    const hasOrdersToday = ordersWithDates.some((x) => formatDateToIsoDay(x.date) === todayIso);
+    if (hasOrdersToday) return todayIso;
+    if (ordersWithDates.length > 0) {
+      const sorted = [...ordersWithDates].sort((a, b) => b.date.getTime() - a.date.getTime());
+      return formatDateToIsoDay(sorted[0].date);
+    }
+    return todayIso;
+  }, [activeDataset]);
+
   // Process live operational data
   const report: LiveOpsReport = useMemo(() => {
     return processLiveOpsData(activeDataset, {
       view: selectedHistoricalDate ? 'Today Shipped' : selectedView,
       onlineOnly,
       customDate: selectedHistoricalDate || undefined,
+      anchorDate: snapshotAnchorDate,
     });
-  }, [activeDataset, selectedView, onlineOnly, selectedHistoricalDate]);
+  }, [activeDataset, selectedView, onlineOnly, selectedHistoricalDate, snapshotAnchorDate]);
 
   const activeCategoryItems = showSubCategory ? report.subCategoryItems : report.categoryItems;
 
@@ -646,6 +666,7 @@ export function LiveOpsTab({
               onClick={() => {
                 setSelectedHistoricalDate(null);
                 setSelectedView('Today Shipped');
+                setCategoryFilter('ALL');
               }}
               className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 rounded-lg border border-blue-200/80 dark:border-blue-800/60 transition-colors"
             >
@@ -670,8 +691,13 @@ export function LiveOpsTab({
                 key={day.dateIso}
                 type="button"
                 onClick={() => {
-                  setSelectedHistoricalDate(day.dateIso);
+                  if (day.isToday && selectedHistoricalDate === day.dateIso) {
+                    setSelectedHistoricalDate(null);
+                  } else {
+                    setSelectedHistoricalDate(day.dateIso);
+                  }
                   setSelectedView('Today Shipped');
+                  setCategoryFilter('ALL');
                 }}
                 className={`p-2.5 rounded-2xl border text-left transition-all ${
                   isSelected
@@ -717,7 +743,9 @@ export function LiveOpsTab({
         <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
           <div className="flex items-start justify-between">
             <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-              {selectedView === "Today's Orders" ? "Today's Items - Total" : 'Shipped Items - Today'}
+              {selectedHistoricalDate
+                ? `Shipped Items (${report.refDayName.slice(0, 3)} ${report.referenceDate.slice(5)})`
+                : (selectedView === "Today's Orders" ? "Today's Items - Total" : 'Shipped Items - Today')}
             </span>
             <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs">
               📦
@@ -763,7 +791,9 @@ export function LiveOpsTab({
         <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
           <div className="flex items-start justify-between">
             <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-              {selectedView === "Today's Orders" ? "Today's Revenue - Total" : 'Sales Revenue - Today'}
+              {selectedHistoricalDate
+                ? `Sales Revenue (${report.refDayName.slice(0, 3)} ${report.referenceDate.slice(5)})`
+                : (selectedView === "Today's Orders" ? "Today's Revenue - Total" : 'Sales Revenue - Today')}
             </span>
             <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sky-600 dark:text-sky-400 font-bold text-sm shadow-2xs">
               ৳
@@ -809,7 +839,9 @@ export function LiveOpsTab({
         <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
           <div className="flex items-start justify-between">
             <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-              {selectedView === "Today's Orders" ? "Today's Orders - Total" : 'Shipped Orders - Today'}
+              {selectedHistoricalDate
+                ? `Shipped Orders (${report.refDayName.slice(0, 3)} ${report.referenceDate.slice(5)})`
+                : (selectedView === "Today's Orders" ? "Today's Orders - Total" : 'Shipped Orders - Today')}
             </span>
             <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs">
               🚚
@@ -855,7 +887,7 @@ export function LiveOpsTab({
         <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
           <div className="flex items-start justify-between">
             <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-              Basket Size
+              {selectedHistoricalDate ? `Basket Size (${report.refDayName.slice(0, 3)})` : 'Basket Size'}
             </span>
             <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs">
               🛍️
@@ -901,7 +933,7 @@ export function LiveOpsTab({
         <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
           <div className="flex items-start justify-between">
             <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-              Customer Mix
+              {selectedHistoricalDate ? `Customer Mix (${report.refDayName.slice(0, 3)})` : 'Customer Mix'}
             </span>
             <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs">
               👥
@@ -942,10 +974,19 @@ export function LiveOpsTab({
       <div className="space-y-4">
         {/* Section Header */}
         <div className="flex items-center justify-between flex-wrap gap-3 pt-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xl">📊</span>
-            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight font-headline">
-              Performance Outlook & Category Analytics
+            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight font-headline flex items-center gap-2">
+              <span>Performance Outlook & Category Analytics</span>
+              {selectedHistoricalDate ? (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                  🗓️ {report.refDayName} ({report.referenceDate})
+                </span>
+              ) : (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#1A1A1A] text-slate-600 dark:text-slate-400">
+                  {selectedView === "Today's Orders" ? "Today's Active Orders" : "Today Shipped"}
+                </span>
+              )}
             </h2>
           </div>
 
@@ -1034,11 +1075,21 @@ export function LiveOpsTab({
         {/* Side-by-Side Charts (Donut & Volume Bar) - ALWAYS VISIBLE */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Left Chart: Revenue Share (TK) Donut */}
-          <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+          <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-5 shadow-xs flex flex-col justify-between transition-all duration-300">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center gap-1.5">
-                <span>🔥</span>
-                <span>Revenue Share (TK)</span>
+              <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center justify-between gap-1.5 w-full">
+                <span className="flex items-center gap-1.5">
+                  <span>🔥</span>
+                  <span>Revenue Share (TK)</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
+                    • {selectedHistoricalDate ? `${report.refDayName.slice(0, 3)} (${report.referenceDate.slice(5)})` : 'Today'}
+                  </span>
+                </span>
+                {categoryFilter !== 'ALL' && (
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                    Filter: {categoryFilter}
+                  </span>
+                )}
               </h3>
             </div>
 
@@ -1046,21 +1097,35 @@ export function LiveOpsTab({
               items={activeCategoryItems}
               totalRevenue={report.salesRevenue.rawValue}
               selectsShare={report.selectsStats.selectsRevShare}
+              selectedCategory={categoryFilter}
+              onSelectCategory={(cat) => setCategoryFilter((prev) => (prev === cat ? 'ALL' : cat))}
             />
           </div>
 
           {/* Right Chart: Sales Volume by Category Bar Chart */}
-          <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+          <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-5 shadow-xs flex flex-col justify-between transition-all duration-300">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center gap-1.5">
-                <span>📦</span>
-                <span>Sales Volume by Category</span>
+              <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center justify-between gap-1.5 w-full">
+                <span className="flex items-center gap-1.5">
+                  <span>📦</span>
+                  <span>Sales Volume by Category</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
+                    • {selectedHistoricalDate ? `${report.refDayName.slice(0, 3)} (${report.referenceDate.slice(5)})` : 'Today'}
+                  </span>
+                </span>
+                {categoryFilter !== 'ALL' && (
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                    Filter: {categoryFilter}
+                  </span>
+                )}
               </h3>
             </div>
 
             <LiveVolumeBarChart
               items={activeCategoryItems}
               avgUnitsSold={report.avgUnitsSold}
+              selectedCategory={categoryFilter}
+              onSelectCategory={(cat) => setCategoryFilter((prev) => (prev === cat ? 'ALL' : cat))}
             />
           </div>
         </div>

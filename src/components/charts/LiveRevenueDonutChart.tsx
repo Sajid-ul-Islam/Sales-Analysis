@@ -7,6 +7,8 @@ interface LiveRevenueDonutChartProps {
   items: LiveCategoryItem[];
   totalRevenue: number;
   selectsShare: number;
+  selectedCategory?: string;
+  onSelectCategory?: (category: string) => void;
 }
 
 // Canonical clockwise sequence matching the DEEN-OPS Screenshot degree-for-degree:
@@ -54,17 +56,25 @@ export function LiveRevenueDonutChart({
   items,
   totalRevenue,
   selectsShare,
+  selectedCategory,
+  onSelectCategory,
 }: LiveRevenueDonutChartProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
-  // If items is empty or fallback data is needed, use canonical DEEN-OPS benchmark distribution
-  const sourceItems = items && items.length > 2 ? items : DEFAULT_DEEN_OPS_CATEGORY_ITEMS;
+  // If items has elements, use them; if empty with totalRevenue === 0, render empty state; otherwise fallback
+  const hasRealItems = Boolean(items && items.length > 0);
+  const sourceItems = useMemo(() => {
+    return hasRealItems ? items : (totalRevenue === 0 ? [] : DEFAULT_DEEN_OPS_CATEGORY_ITEMS);
+  }, [items, hasRealItems, totalRevenue]);
 
   // Slices to render (up to 10)
   const topSlices: LiveCategoryItem[] = sourceItems.slice(0, 10);
-  const effectiveTotal = topSlices.reduce((sum, s) => sum + s.revenue, 0) || 43273;
-  const effectiveRevenue = totalRevenue > 0 ? totalRevenue : 43273;
-  const effectiveSelectsShare = selectsShare > 0 ? selectsShare : 43.7;
+  const sumSliceRevenue = topSlices.reduce((sum, s) => sum + s.revenue, 0);
+  const effectiveTotal = sumSliceRevenue > 0 ? sumSliceRevenue : (totalRevenue > 0 ? totalRevenue : 43273);
+  const effectiveRevenue = totalRevenue > 0 ? totalRevenue : (effectiveTotal > 0 ? effectiveTotal : (hasRealItems ? 0 : 43273));
+  const effectiveSelectsShare = selectsShare !== undefined && selectsShare !== null && selectsShare >= 0
+    ? selectsShare
+    : (sourceItems === DEFAULT_DEEN_OPS_CATEGORY_ITEMS ? 43.7 : 0);
 
   // Donut geometry: Center = (140, 140), rOuter = 120, rInner = 68 (Expanded to dynamically fill container)
   const cx = 140;
@@ -84,6 +94,22 @@ export function LiveRevenueDonutChart({
       return b.revenue - a.revenue;
     });
   }, [topSlices]);
+
+  if (sourceItems.length === 0 && effectiveRevenue === 0) {
+    return (
+      <div className="relative flex flex-col items-center justify-center p-6 text-center select-none w-full min-h-[280px]">
+        <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-[#1A1A1A] flex items-center justify-center text-2xl mb-2 text-slate-400">
+          📦
+        </div>
+        <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
+          No dispatches recorded
+        </div>
+        <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+          Zero shipments dispatched on this operational date
+        </div>
+      </div>
+    );
+  }
 
   // Slices start from 12 o'clock (-PI / 2) and go clockwise
   let currentAngle = -Math.PI / 2;
@@ -148,23 +174,38 @@ export function LiveRevenueDonutChart({
           viewBox="0 0 280 280"
           className="w-full h-full overflow-visible drop-shadow-xs"
         >
-          {slicePaths.map((sp) => (
-            <path
-              key={`donut-slice-${sp.idx}-${sp.slice.name}`}
-              d={sp.d}
-              fill={sp.fillColor}
-              stroke="currentColor"
-              strokeWidth="3"
-              className="cursor-pointer transition-all duration-200 stroke-white dark:stroke-black text-white dark:text-black"
-              style={{
-                transformOrigin: '140px 140px',
-                transform: sp.isHovered ? 'scale(1.025)' : 'scale(1)',
-                filter: sp.isHovered ? 'brightness(1.08) drop-shadow(0 4px 6px rgba(0,0,0,0.15))' : 'none',
-              }}
-              onMouseEnter={() => setHoveredIdx(sp.idx)}
-              onMouseLeave={() => setHoveredIdx(null)}
-            />
-          ))}
+          {slicePaths.map((sp) => {
+            const rawName = sp.slice.displayName || sp.slice.name;
+            const isSelected = Boolean(
+              selectedCategory &&
+              selectedCategory !== 'ALL' &&
+              (selectedCategory === sp.slice.name ||
+                selectedCategory === sp.slice.displayName ||
+                (selectedCategory === 'Twill' && /^Twill/i.test(rawName)) ||
+                (selectedCategory === 'Jacket' && /Jacket/i.test(rawName)))
+            );
+            const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);
+
+            return (
+              <path
+                key={`donut-slice-${sp.idx}-${sp.slice.name}`}
+                d={sp.d}
+                fill={sp.fillColor}
+                stroke="currentColor"
+                strokeWidth={isSelected ? '4' : '3'}
+                className="cursor-pointer transition-all duration-300 stroke-white dark:stroke-black text-white dark:text-black"
+                style={{
+                  transformOrigin: '140px 140px',
+                  transform: sp.isHovered || isSelected ? 'scale(1.035)' : 'scale(1)',
+                  filter: sp.isHovered || isSelected ? 'brightness(1.1) drop-shadow(0 4px 8px rgba(0,0,0,0.25))' : 'none',
+                  opacity: isDimmed ? 0.35 : 1,
+                }}
+                onClick={() => onSelectCategory && onSelectCategory(sp.slice.name)}
+                onMouseEnter={() => setHoveredIdx(sp.idx)}
+                onMouseLeave={() => setHoveredIdx(null)}
+              />
+            );
+          })}
 
           {/* Slices labels (Name and percentage inside slice) */}
           {slicePaths.map((sp) => {

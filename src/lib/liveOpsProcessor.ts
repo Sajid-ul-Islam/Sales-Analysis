@@ -232,6 +232,8 @@ export interface ExecutiveBriefing {
 export interface LiveOpsReport {
   selectedView: 'Today Shipped' | "Today's Orders" | 'Today Orders' | 'All Orders' | 'Last Day Shipped' | 'Queue';
   referenceDate: string; // YYYY-MM-DD
+  anchorDate: string; // YYYY-MM-DD
+  todayIso: string; // YYYY-MM-DD
   comparisonDate: string; // YYYY-MM-DD
   refDayName: string;
   prevDayName: string;
@@ -445,6 +447,7 @@ export function processLiveOpsData(
     view?: 'Today Shipped' | "Today's Orders" | 'Today Orders' | 'All Orders' | 'Last Day Shipped' | 'Queue';
     onlineOnly?: boolean;
     customDate?: string;
+    anchorDate?: string;
   } = {}
 ): LiveOpsReport {
   const view = options.view || 'Today Shipped';
@@ -463,16 +466,34 @@ export function processLiveOpsData(
 
   // If there are orders today, use today; otherwise find the latest date in the dataset
   const hasOrdersToday = ordersWithDates.some((x) => formatDateToIsoDay(x.date) === todayIso);
-  let refDate = now;
+  let defaultAnchorDate = now;
   let isFallbackDate = false;
 
-  if (options.customDate) {
-    refDate = new Date(options.customDate);
-  } else if (!hasOrdersToday && ordersWithDates.length > 0) {
+  if (!hasOrdersToday && ordersWithDates.length > 0) {
     // Sort descending to find newest date
     ordersWithDates.sort((a, b) => b.date.getTime() - a.date.getTime());
-    refDate = ordersWithDates[0].date;
+    defaultAnchorDate = ordersWithDates[0].date;
     isFallbackDate = true;
+  }
+
+  // Parse YYYY-MM-DD safely at noon local to prevent timezone boundaries
+  const parseSafeDate = (dateStr: string): Date => {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
+    }
+    return new Date(dateStr);
+  };
+
+  const anchor = options.anchorDate
+    ? parseSafeDate(options.anchorDate)
+    : (options.customDate ? parseSafeDate(options.customDate) : defaultAnchorDate);
+
+  const anchorDateIso = formatDateToIsoDay(anchor);
+
+  let refDate = anchor;
+  if (options.customDate) {
+    refDate = parseSafeDate(options.customDate);
   }
 
   const refDateIso = formatDateToIsoDay(refDate);
@@ -565,7 +586,7 @@ export function processLiveOpsData(
   const activeRevenue = activeOrders.reduce((sum, o) => sum + getOrderRowAmount(o), 0);
   const activeBasket = activeOrdersCount > 0 ? Math.round(activeRevenue / activeOrdersCount) : 0;
 
-  // Build 7 calendar days ending on refDate
+  // Build 7 calendar days ending on anchor (keeps 7-day strip stable and responsive)
   const last7DaysHistory: DayHistorySummary[] = [];
   const dailyStats: {
     dateIso: string;
@@ -576,7 +597,7 @@ export function processLiveOpsData(
   }[] = [];
 
   for (let i = 6; i >= 0; i--) {
-    const d = new Date(refDate);
+    const d = new Date(anchor);
     d.setDate(d.getDate() - i);
     const dIso = formatDateToIsoDay(d);
     const dayOrders = source.filter((o) => isOrderShippedOnDate(o, dIso));
@@ -585,8 +606,8 @@ export function processLiveOpsData(
     const dayRev = dayOrders.reduce((sum, o) => sum + getOrderRowAmount(o), 0);
     const dayAov = dayOrdersCount > 0 ? Math.round(dayRev / dayOrdersCount) : 0;
 
-    const isToday = dIso === refDateIso;
-    const isPrevDay = dIso === prevDateIso;
+    const isToday = dIso === anchorDateIso;
+    const isPrevDay = dIso === formatDateToIsoDay(getPreviousWorkingDay(anchor));
     const dateLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     const dayName = getDayName(d);
     const isFriday = dayName.toLowerCase().startsWith('fri') || d.getDay() === 5;
@@ -823,8 +844,12 @@ export function processLiveOpsData(
   const rawCatItems = buildItemsList(catMap, activeRevenue);
   const rawSubCatItems = buildItemsList(subCatMap, activeRevenue);
 
-  const categoryItems = rawCatItems.length > 0 ? rawCatItems : DEFAULT_DEEN_OPS_CATEGORY_ITEMS;
-  const subCategoryItems = rawSubCatItems.length > 0 ? rawSubCatItems : DEFAULT_DEEN_OPS_CATEGORY_ITEMS;
+  const categoryItems = rawCatItems.length > 0
+    ? rawCatItems
+    : (activeOrders.length === 0 && orders.length > 0 ? [] : DEFAULT_DEEN_OPS_CATEGORY_ITEMS);
+  const subCategoryItems = rawSubCatItems.length > 0
+    ? rawSubCatItems
+    : (activeOrders.length === 0 && orders.length > 0 ? [] : DEFAULT_DEEN_OPS_CATEGORY_ITEMS);
 
   // Compute average units benchmark for bar chart
   const activeItemsCountForAvg = categoryItems.reduce((acc, c) => acc + c.volume, 0);
@@ -964,6 +989,8 @@ export function processLiveOpsData(
   return {
     selectedView: view,
     referenceDate: refDateIso,
+    anchorDate: anchorDateIso,
+    todayIso: anchorDateIso,
     comparisonDate: prevDateIso,
     refDayName,
     prevDayName: '7-Day Avg',
