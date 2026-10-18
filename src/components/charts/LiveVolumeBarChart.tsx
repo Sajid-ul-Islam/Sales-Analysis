@@ -65,10 +65,10 @@ export function LiveVolumeBarChart({
     );
   }
 
-  const chartHeight = 310;
-  const chartWidth = 560;
-  const paddingLeft = 40;
-  const paddingBottom = 55;
+  const chartHeight = 340;
+  const chartWidth = 580;
+  const paddingLeft = 36;
+  const paddingBottom = 58;
   const paddingTop = 22;
   const paddingRight = 48;
 
@@ -76,7 +76,7 @@ export function LiveVolumeBarChart({
   const innerHeight = chartHeight - paddingTop - paddingBottom;
 
   const slotWidth = innerWidth / (displayItems.length || 1);
-  const barWidth = Math.min(42, slotWidth * 0.76);
+  const barWidth = Math.min(48, slotWidth * 0.82);
 
   const getYCoord = (vol: number) => {
     return paddingTop + innerHeight - (vol / maxVolume) * innerHeight;
@@ -103,11 +103,11 @@ export function LiveVolumeBarChart({
   };
 
   return (
-    <div className="relative flex flex-col p-2 select-none w-full">
+    <div className="relative flex flex-col p-1 select-none w-full">
       <div className="w-full overflow-x-auto min-w-0">
         <svg
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-          className="w-full h-auto max-h-[380px] overflow-visible"
+          className="w-full h-auto max-h-[420px] overflow-visible"
         >
           {/* Y-axis gridlines and labels */}
           {yTicks.map((tick) => {
@@ -129,9 +129,9 @@ export function LiveVolumeBarChart({
                   y={y}
                   textAnchor="end"
                   dominantBaseline="central"
-                  fontSize="9.5"
+                  fontSize="10"
                   fill="currentColor"
-                  className="fill-slate-500 dark:fill-white text-slate-500 dark:text-white font-bold transition-colors"
+                  className="fill-slate-500 dark:fill-white text-slate-500 dark:text-white font-black transition-colors"
                 >
                   {tick}
                 </text>
@@ -145,9 +145,9 @@ export function LiveVolumeBarChart({
             y={chartHeight / 2 - 15}
             textAnchor="middle"
             dominantBaseline="central"
-            fontSize="10"
+            fontSize="10.5"
             fill="currentColor"
-            className="fill-slate-500 dark:fill-white text-slate-500 dark:text-white font-bold transition-colors"
+            className="fill-slate-500 dark:fill-white text-slate-500 dark:text-white font-black transition-colors"
             transform={`rotate(-90, 12, ${chartHeight / 2 - 15})`}
           >
             Units Sold
@@ -162,7 +162,7 @@ export function LiveVolumeBarChart({
               y2={avgY}
               stroke="currentColor"
               className="stroke-slate-500 dark:stroke-slate-400 text-slate-500 dark:text-slate-400"
-              strokeWidth="1.2"
+              strokeWidth="1.5"
               strokeDasharray="4 3"
               opacity="0.85"
             />
@@ -171,9 +171,9 @@ export function LiveVolumeBarChart({
               y={avgY}
               textAnchor="start"
               dominantBaseline="central"
-              fontSize="9.5"
+              fontSize="10.5"
               fill="currentColor"
-              className="fill-slate-600 dark:fill-white text-slate-600 dark:text-white font-bold transition-colors"
+              className="fill-slate-700 dark:fill-white text-slate-700 dark:text-white font-black transition-colors"
             >
               Avg: {effectiveAvg} un
             </text>
@@ -274,19 +274,19 @@ export function LiveVolumeBarChart({
                   }}
                 >
                   <rect
-                    x={x + barWidth / 2 - 20}
-                    y={Math.min(selY, regY) - 22}
-                    width={40}
-                    height={18}
+                    x={x + barWidth / 2 - 23}
+                    y={Math.min(selY, regY) - 24}
+                    width={46}
+                    height={20}
                     rx={6}
                     className="fill-slate-900 dark:fill-white shadow-lg"
                   />
                   <text
                     x={x + barWidth / 2}
-                    y={Math.min(selY, regY) - 13}
+                    y={Math.min(selY, regY) - 14}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize="10.5"
+                    fontSize="11.5"
                     fontWeight="900"
                     className="fill-white dark:fill-slate-900 font-headline"
                   >
@@ -301,7 +301,7 @@ export function LiveVolumeBarChart({
                     y={selY + selHeight / 2}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize={isHovered ? "12" : "9.5"}
+                    fontSize={isHovered ? "13.5" : "11"}
                     fontWeight="900"
                     fill="#713f12"
                     pointerEvents="none"
@@ -322,7 +322,7 @@ export function LiveVolumeBarChart({
                     y={regY + regHeight / 2}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize={isHovered ? "12" : "9.5"}
+                    fontSize={isHovered ? "13.5" : "11"}
                     fontWeight="900"
                     fill="#ffffff"
                     pointerEvents="none"
@@ -351,7 +351,7 @@ export function LiveVolumeBarChart({
                     y={bottomY + 12}
                     textAnchor="end"
                     dominantBaseline="central"
-                    fontSize={isHovered ? "11.5" : "10"}
+                    fontSize={isHovered ? "12.5" : "11"}
                     fontWeight={isHovered ? '900' : 'bold'}
                     fill="currentColor"
                     className={`${

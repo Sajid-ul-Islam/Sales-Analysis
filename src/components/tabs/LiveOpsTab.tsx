@@ -1033,12 +1033,6 @@ export function LiveOpsTab({
             </div>
 
             <div className="mt-1.5">
-              <span className="inline-block text-[9.5px] font-black px-2 py-0.5 rounded-md bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-2xs tracking-wide">
-                {report.customerMix.newPercent}% New || {report.customerMix.retPercent}% Returning
-              </span>
-            </div>
-
-            <div className="mt-1.5">
               <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-800/80">
                 {report.customerMix.deltaNew >= 0 ? '▲ +' : '▼ '}{report.customerMix.deltaNew} New vs 7D Avg ({report.customerMix.prevNew}N / {report.customerMix.prevRet}R)
               </span>

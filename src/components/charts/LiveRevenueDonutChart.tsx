@@ -98,12 +98,12 @@ export function LiveRevenueDonutChart({
     ? selectsShare
     : (sourceItems === DEFAULT_DEEN_OPS_CATEGORY_ITEMS ? 43.7 : 0);
 
-  // Donut geometry: ViewBox = 320x320, Center = (160, 160), rOuter = 110, rInner = 64
-  // Leaves 50px outer breathing room for clear external leader callouts without clipping
-  const cx = 160;
-  const cy = 160;
-  const rOuter = 110;
-  const rInner = 64;
+  // Donut geometry: ViewBox = 340x340, Center = (170, 170), rOuter = 138, rInner = 74
+  // Maximizes chart capability and visual presence across card space
+  const cx = 170;
+  const cy = 170;
+  const rOuter = 138;
+  const rInner = 74;
 
   // Order slices to match DEEN-OPS Screenshot layout
   const orderedSlices = useMemo(() => {
@@ -176,7 +176,7 @@ export function LiveRevenueDonutChart({
     const lx = cx + rMid * Math.cos(midAngle);
     const ly = cy + rMid * Math.sin(midAngle);
 
-    const isSmall = slice.revenueShare < 6;
+    const isSmall = slice.revenueShare < 5;
     let smallOrder = 0;
     if (isSmall) {
       smallOrder = smallSliceCounter++;
@@ -202,11 +202,11 @@ export function LiveRevenueDonutChart({
   const active = hoveredIdx !== null ? orderedSlices[hoveredIdx] : null;
 
   return (
-    <div className="relative flex flex-col items-center justify-center p-2 select-none w-full">
+    <div className="relative flex flex-col items-center justify-center p-1 select-none w-full">
       {/* Donut Chart Container */}
-      <div className="relative w-full max-w-[420px] lg:max-w-[440px] aspect-square flex items-center justify-center">
+      <div className="relative w-full max-w-[480px] lg:max-w-[520px] aspect-square flex items-center justify-center">
         <svg
-          viewBox="0 0 320 320"
+          viewBox="0 0 340 340"
           className="w-full h-full overflow-visible drop-shadow-xs"
         >
           {/* Slice Paths */}
@@ -232,8 +232,8 @@ export function LiveRevenueDonutChart({
                   strokeWidth={isSelected ? '4' : '3'}
                   className="cursor-pointer transition-all duration-300 ease-out stroke-white dark:stroke-black text-white dark:text-black"
                   style={{
-                    transformOrigin: '160px 160px',
-                    transform: sp.isHovered || isSelected ? 'scale(1.055)' : 'scale(1)',
+                    transformOrigin: `${cx}px ${cy}px`,
+                    transform: sp.isHovered || isSelected ? 'scale(1.05)' : 'scale(1)',
                     filter: sp.isHovered || isSelected ? 'brightness(1.15) drop-shadow(0 6px 14px rgba(0,0,0,0.35))' : 'none',
                     opacity: isDimmed ? 0.35 : 1,
                   }}
@@ -281,7 +281,7 @@ export function LiveRevenueDonutChart({
             if (!sp.isSmall || !isCalloutVisible) return null;
 
             // Stagger radius offset to prevent adjacent small slices from overlapping each other
-            const radialOffset = sp.smallOrder % 2 === 0 ? 16 : 28;
+            const radialOffset = sp.smallOrder % 2 === 0 ? 12 : 20;
             const rLeaderEnd = rOuter + radialOffset;
 
             const isRightSide = Math.cos(sp.midAngle) >= 0;
@@ -291,7 +291,7 @@ export function LiveRevenueDonutChart({
             const xKnee = cx + rLeaderEnd * Math.cos(sp.midAngle);
             const yKnee = cy + rLeaderEnd * Math.sin(sp.midAngle);
 
-            const armLength = sp.isHovered ? 16 : 12;
+            const armLength = sp.isHovered ? 14 : 10;
             const xEnd = isRightSide ? xKnee + armLength : xKnee - armLength;
             const yEnd = yKnee;
 
@@ -372,25 +372,25 @@ export function LiveRevenueDonutChart({
               >
                 <text
                   x={sp.lx}
-                  y={sp.ly - 5}
+                  y={sp.ly - 7}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize={sp.isHovered ? '11.5' : '9.5'}
-                  fontWeight="bold"
+                  fontSize={sp.isHovered ? '13' : '11'}
+                  fontWeight="900"
                   fill="#ffffff"
-                  className="drop-shadow-md font-sans transition-all duration-200"
+                  className="drop-shadow-md font-headline transition-all duration-200"
                 >
                   {sliceLabel}
                 </text>
                 <text
                   x={sp.lx}
-                  y={sp.ly + 7}
+                  y={sp.ly + 8}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize={sp.isHovered ? '13.5' : '11'}
+                  fontSize={sp.isHovered ? '14' : '11.5'}
                   fontWeight="900"
                   fill="#ffffff"
-                  className="drop-shadow-md font-sans transition-all duration-200"
+                  className="drop-shadow-md font-headline transition-all duration-200"
                 >
                   {Math.round(sp.sharePercent)}%
                 </text>
@@ -401,9 +401,9 @@ export function LiveRevenueDonutChart({
           {/* Center Donut Annotation (Smooth dynamic interactive feedback on hover) */}
           <g pointerEvents="none" className="transition-all duration-300 ease-out">
             <circle
-              cx="160"
-              cy="160"
-              r="62"
+              cx={cx}
+              cy={cy}
+              r={rInner - 3}
               fill="currentColor"
               className="fill-white dark:fill-black text-white dark:text-black transition-colors duration-300"
             />
@@ -411,17 +411,17 @@ export function LiveRevenueDonutChart({
               <g
                 key={`center-active-${active.name}`}
                 style={{
-                  transformOrigin: '160px 160px',
+                  transformOrigin: `${cx}px ${cy}px`,
                   transform: 'scale(1.04)',
                   transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                 }}
               >
                 <text
-                  x="160"
-                  y="138"
+                  x={cx}
+                  y={cy - 22}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize="22"
+                  fontSize="24"
                   fontWeight="900"
                   fill="currentColor"
                   className="font-headline tracking-tight fill-slate-900 dark:fill-white transition-all duration-200"
@@ -429,11 +429,11 @@ export function LiveRevenueDonutChart({
                   ৳ {active.revenue.toLocaleString()}
                 </text>
                 <text
-                  x="160"
-                  y="160"
+                  x={cx}
+                  y={cy + 2}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize="11"
+                  fontSize="12"
                   fontWeight="900"
                   letterSpacing="0.8"
                   fill={CANONICAL_SLICE_COLORS[active.displayName] || CANONICAL_SLICE_COLORS[active.name] || '#f43f5e'}
@@ -442,11 +442,11 @@ export function LiveRevenueDonutChart({
                   {formatShortCategoryName(active.displayName || active.name)}
                 </text>
                 <text
-                  x="160"
-                  y="178"
+                  x={cx}
+                  y={cy + 23}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize="10"
+                  fontSize="10.5"
                   fontWeight="bold"
                   fill="currentColor"
                   className="fill-slate-600 dark:fill-slate-300 transition-colors duration-200"
@@ -458,17 +458,17 @@ export function LiveRevenueDonutChart({
               <g
                 key="center-default"
                 style={{
-                  transformOrigin: '160px 160px',
+                  transformOrigin: `${cx}px ${cy}px`,
                   transform: 'scale(1)',
                   transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                 }}
               >
                 <text
-                  x="160"
-                  y="142"
+                  x={cx}
+                  y={cy - 20}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize="20"
+                  fontSize="23"
                   fontWeight="900"
                   fill="currentColor"
                   className="font-headline tracking-tight fill-slate-900 dark:fill-white text-slate-900 dark:text-white transition-colors duration-200"
@@ -476,24 +476,24 @@ export function LiveRevenueDonutChart({
                   ৳ {effectiveRevenue.toLocaleString()}
                 </text>
                 <text
-                  x="160"
-                  y="161"
+                  x={cx}
+                  y={cy + 2}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize="8.5"
+                  fontSize="9.5"
                   fontWeight="bold"
-                  letterSpacing="0.8"
+                  letterSpacing="0.9"
                   fill="currentColor"
                   className="fill-slate-500 dark:fill-white text-slate-500 dark:text-white transition-colors duration-200"
                 >
                   TOTAL REVENUE
                 </text>
                 <text
-                  x="160"
-                  y="178"
+                  x={cx}
+                  y={cy + 22}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize="9.5"
+                  fontSize="10.5"
                   fontWeight="bold"
                   fill="currentColor"
                   className="fill-teal-700 dark:fill-white text-teal-700 dark:text-white transition-colors duration-200"
@@ -510,7 +510,8 @@ export function LiveRevenueDonutChart({
           <div
             className="absolute z-20 pointer-events-none bg-slate-950/95 dark:bg-black/95 text-white px-3.5 py-2.5 rounded-2xl text-xs shadow-2xl border border-slate-700/60 dark:border-[#333333] backdrop-blur-md min-w-[170px] transition-all duration-200 ease-out animate-in fade-in zoom-in-95"
             style={{
-              bottom: '6px',
+              top: '12px',
+              right: '12px',
             }}
           >
             <div className="font-headline font-black text-white text-xs sm:text-sm flex items-center justify-between gap-2 border-b border-slate-800 pb-1.5 mb-1.5">
@@ -533,54 +534,6 @@ export function LiveRevenueDonutChart({
             </div>
           </div>
         )}
-      </div>
-
-      {/* Interactive Category Breakdown & Quick-Filter Strip */}
-      <div className="mt-3 w-full flex flex-wrap items-center justify-center gap-1.5 px-1 max-w-[460px]">
-        {orderedSlices.map((slice, idx) => {
-          const rawName = slice.displayName || slice.name;
-          const shortName = formatShortCategoryName(rawName);
-          const color = CANONICAL_SLICE_COLORS[slice.displayName] || CANONICAL_SLICE_COLORS[slice.name] || slice.color;
-          const isSelected = Boolean(
-            selectedCategory &&
-            selectedCategory !== 'ALL' &&
-            (selectedCategory === slice.name ||
-              selectedCategory === slice.displayName ||
-              (selectedCategory === 'Twill' && /^Twill/i.test(rawName)) ||
-              (selectedCategory === 'Jacket' && /Jacket/i.test(rawName)))
-          );
-          const isHovered = hoveredIdx === idx;
-          const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);
-
-          return (
-            <button
-              key={`cat-chip-${idx}-${slice.name}`}
-              type="button"
-              onClick={() => onSelectCategory && onSelectCategory(slice.name)}
-              onMouseEnter={() => setHoveredIdx(idx)}
-              onMouseLeave={() => setHoveredIdx(null)}
-              title={`Click to filter by ${shortName} (${slice.revenueShare}% share, ৳${slice.revenue.toLocaleString()})`}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all duration-200 border cursor-pointer ${
-                isSelected
-                  ? 'bg-blue-50 dark:bg-blue-950/70 border-blue-400 dark:border-blue-500 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500/20 shadow-xs scale-105'
-                  : isHovered
-                    ? 'bg-slate-100 dark:bg-[#1A1A1A] border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white shadow-xs scale-102'
-                    : isDimmed
-                      ? 'bg-slate-50/50 dark:bg-[#0A0A0A] border-slate-200/50 dark:border-[#1F1F1F] text-slate-400 dark:text-slate-600 opacity-40'
-                      : 'bg-slate-50 dark:bg-[#121212] border-slate-200/80 dark:border-[#1F1F1F] text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'
-              }`}
-            >
-              <span
-                className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs"
-                style={{ backgroundColor: color }}
-              />
-              <span className="font-headline">{shortName}</span>
-              <span className="text-[10px] px-1 py-0.5 rounded-md bg-black/5 dark:bg-white/10 text-slate-600 dark:text-slate-300 font-black">
-                {Math.round(slice.revenueShare)}%
-              </span>
-            </button>
-          );
-        })}
       </div>
     </div>
   );
