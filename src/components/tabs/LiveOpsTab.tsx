@@ -503,272 +503,281 @@ export function LiveOpsTab({
 
   return (
     <div className="space-y-6">
-      {/* ── Operational Banner & Mode Navigation ── */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 p-5 shadow-xs space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+      {/* ── Unified Operational Command Deck ── */}
+      <div className="bg-white dark:bg-[#0A0A0A] rounded-3xl border border-slate-200/90 dark:border-[#1F1F1F] p-5 shadow-xs space-y-4 transition-all">
+
+        {/* Row 1: Identity & Primary Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#171717] pb-3.5">
+          {/* Terminal Identity & Live Badges */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+            </span>
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight font-headline">
+              Live Shipped & Orders Terminal
+            </h1>
+
+            {/* Sleek Compact Status Pills */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1.5 transition-colors ${
+                  wcConnected
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800/60'
+                    : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200/80 dark:border-amber-800/60'
+                }`}
+                title={wcConnected ? 'Connected to live WooCommerce REST API' : 'WooCommerce unconfigured or using snapshot'}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${wcConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
+                <span>{wcConnected ? 'WooCommerce API Live' : 'WC Snapshot'}</span>
               </span>
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight font-headline">
-                Live Shipped & Orders Terminal
-              </h1>
 
-              {/* Real-time Connection Status Badges */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all ${
-                    wcConnected
-                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/90 dark:border-emerald-800/80 shadow-2xs'
-                      : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200/90 dark:border-amber-800/80'
-                  }`}
-                  title={wcConnected ? 'Connected to live WooCommerce REST API' : 'WooCommerce unconfigured or using snapshot'}
-                >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      wcConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'
-                    }`}
-                  />
-                  <span>{wcConnected ? 'WooCommerce API Live' : 'WooCommerce Snapshot'}</span>
+              <span
+                className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1.5 bg-slate-50 dark:bg-[#141414] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-[#222222]"
+                title={pathaoConnected ? 'Connected to Pathao Hermes courier API' : 'Pathao unconfigured or using local telemetry'}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${pathaoConnected ? 'bg-blue-500' : 'bg-slate-400'}`} />
+                <span>{pathaoConnected ? 'Pathao Aladdin Live' : 'Pathao Telemetry (Sim)'}</span>
+              </span>
+
+              {liveOrders.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-purple-500" />
+                  <span>{liveOrders.length} Items Synced</span>
                 </span>
-
-                <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all ${
-                    pathaoConnected
-                      ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200/90 dark:border-blue-800/80 shadow-2xs'
-                      : 'bg-slate-100 dark:bg-[#1A1A1A] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-[#222222]'
-                  }`}
-                  title={pathaoConnected ? 'Connected to Pathao Hermes courier API' : 'Pathao unconfigured or using local telemetry'}
-                >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      pathaoConnected ? 'bg-blue-500 animate-pulse' : 'bg-slate-400'
-                    }`}
-                  />
-                  <span>{pathaoConnected ? 'Pathao Aladdin Live' : 'Pathao Telemetry (Sim)'}</span>
-                </span>
-
-                {liveOrders.length > 0 && (
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/90 dark:border-purple-800/80 flex items-center gap-1 shadow-2xs">
-                    <Sparkles className="w-3 h-3 text-purple-500" />
-                    <span>{liveOrders.length} Items Synced</span>
-                  </span>
-                )}
-              </div>
+              )}
             </div>
-
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2 flex-wrap">
-              <span>Operational snapshot: <strong className="text-slate-700 dark:text-slate-200">{report.refDayName} ({report.referenceDate})</strong></span>
-              <span>•</span>
-              <span>Baseline: <strong className="text-slate-700 dark:text-slate-200">7-Day Daily Avg ({report.avg7dMetrics.items} pkgs/day, ৳{report.avg7dMetrics.revenue.toLocaleString()})</strong></span>
-              {lastSyncTime && (
-                <>
-                  <span>•</span>
-                  <span className="text-slate-400 dark:text-slate-500">Synced at {lastSyncTime}</span>
-                </>
-              )}
-              {report.isFallbackDate && (
-                <span className="text-amber-600 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.5 rounded">
-                  (Displaying latest recorded dispatches)
-                </span>
-              )}
-            </p>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {/* View Mode Switcher Pills */}
-            <div className="inline-flex bg-slate-100 dark:bg-[#121212] p-1 rounded-2xl border border-slate-200 dark:border-[#1F1F1F] text-xs font-bold">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedHistoricalDate(null);
-                  setSelectedView('Today Shipped');
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                  selectedView === 'Today Shipped' && !selectedHistoricalDate
-                    ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <span>🚚</span>
-                <span>Today Shipped</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedHistoricalDate(null);
-                  setSelectedView("Today's Orders");
-                  setPipelineFilter('ALL');
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                  selectedView === "Today's Orders" && !selectedHistoricalDate
-                    ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-                title="Today's Orders = Shipped today + all orders with Processing status"
-              >
-                <span>📦</span>
-                <span>Today&apos;s Orders</span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-semibold border border-blue-200/60 dark:border-blue-800/60">
-                  Active
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedHistoricalDate(null);
-                  setSelectedView('Queue');
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                  selectedView === 'Queue' && !selectedHistoricalDate
-                    ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <span>📋</span>
-                <span>Queue</span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-[#222222] text-slate-700 dark:text-slate-300 font-semibold">
-                  {report.allOrdersBreakdown.processingCount + report.allOrdersBreakdown.holdCount}
-                </span>
-              </button>
-            </div>
-
-            {/* Online Only Toggle */}
-            <label className="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-[#0A0A0A] border border-slate-200/80 dark:border-[#1F1F1F] px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#171717] transition-colors">
-              <input
-                type="checkbox"
-                checked={onlineOnly}
-                onChange={(e) => setOnlineOnly(e.target.checked)}
-                className="rounded text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
-              />
+          {/* Primary Action Controls */}
+          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            {/* Online Only Filter Toggle Pill */}
+            <button
+              type="button"
+              onClick={() => setOnlineOnly(!onlineOnly)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                onlineOnly
+                  ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 shadow-2xs'
+                  : 'bg-slate-50 dark:bg-[#121212] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-[#1F1F1F] hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${onlineOnly ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`} />
               <span>Online Only</span>
-            </label>
+            </button>
 
-            {/* Live Dual Refresh Button */}
+            {/* Sync Button */}
             <button
               type="button"
               onClick={() => handleSyncNow(true)}
               disabled={isActuallySyncing}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 active:scale-95 transition-all shadow-xs disabled:opacity-50"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs hover:bg-slate-800 dark:hover:bg-slate-100 active:scale-95 transition-all shadow-xs disabled:opacity-50"
               title={`Next auto-sync in ${countdown}s`}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isActuallySyncing ? 'animate-spin' : ''}`} />
               <span>{isActuallySyncing ? 'Syncing...' : 'Sync Now (WC + Pathao)'}</span>
-              <span className="text-[10px] text-slate-400 font-mono">({countdown}s)</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">({countdown}s)</span>
             </button>
           </div>
         </div>
 
         {/* Sync status alert notification */}
         {syncStatusMsg && (
-          <div className="text-xs bg-slate-50 border border-slate-200 p-2.5 rounded-xl flex items-center justify-between text-slate-700">
+          <div className="text-xs bg-slate-50 dark:bg-[#121212] border border-slate-200 dark:border-[#222222] p-2.5 rounded-xl flex items-center justify-between text-slate-700 dark:text-slate-300">
             <span className="font-medium flex items-center gap-2">
               <Info className="w-3.5 h-3.5 text-blue-500 shrink-0" />
               <span>{syncStatusMsg}</span>
             </span>
-            <button onClick={() => setSyncStatusMsg(null)} className="text-slate-400 hover:text-slate-600 font-bold ml-2">✕</button>
+            <button onClick={() => setSyncStatusMsg(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold ml-2">✕</button>
           </div>
         )}
-      </div>
 
-      {/* ── 7-Day Dispatch History Strip ── */}
-      <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-3xl p-3.5 sm:p-4 shadow-xs">
-        <div className="flex items-center justify-between gap-2 mb-2.5 px-1 flex-wrap">
-          <div className="flex items-center gap-2">
-            <span className="text-sm">🗓️</span>
-            <span className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">
-              Last 7 Days Dispatch History
+        {/* Row 2: Operational Context & Segmented View Switcher */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          {/* Discrete Context Chips */}
+          <div className="flex items-center gap-2 flex-wrap text-xs">
+            {/* Reference Snapshot Date */}
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-[#141414] text-slate-700 dark:text-slate-300 font-semibold border border-slate-200/60 dark:border-[#222222]">
+              <span>🗓️</span>
+              <span>Operational snapshot: <strong className="text-slate-900 dark:text-white font-bold">{report.refDayName} ({report.referenceDate})</strong></span>
             </span>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-              • Click any date to audit that day&apos;s shipped orders • Friday shown only when open with dispatches
+
+            {/* 7-Day Baseline Pill */}
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-[#141414] text-slate-700 dark:text-slate-300 font-medium border border-slate-200/60 dark:border-[#222222]">
+              <span className="font-bold text-slate-900 dark:text-white">Baseline:</span>
+              <span>7-Day Daily Avg ({report.avg7dMetrics.items} pkgs/day, ৳{report.avg7dMetrics.revenue.toLocaleString()})</span>
             </span>
+
+            {/* Sync Time */}
+            {lastSyncTime && (
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 pl-1">
+                Synced at {lastSyncTime}
+              </span>
+            )}
+
+            {report.isFallbackDate && (
+              <span className="text-amber-600 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-lg border border-amber-200/80 dark:border-amber-800/60 text-[11px]">
+                (Displaying latest recorded dispatches)
+              </span>
+            )}
           </div>
-          {selectedHistoricalDate && (
+
+          {/* Segmented View Mode Switcher */}
+          <div className="inline-flex bg-slate-100 dark:bg-[#121212] p-1 rounded-2xl border border-slate-200/80 dark:border-[#1F1F1F] text-xs font-bold self-start md:self-auto shadow-2xs">
             <button
               type="button"
               onClick={() => {
                 setSelectedHistoricalDate(null);
                 setSelectedView('Today Shipped');
-                setCategoryFilter('ALL');
               }}
-              className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 rounded-lg border border-blue-200/80 dark:border-blue-800/60 transition-colors"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
+                selectedView === 'Today Shipped' && !selectedHistoricalDate
+                  ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
             >
-              ↺ Reset to Today
+              <span>🚚</span>
+              <span>Today Shipped</span>
             </button>
-          )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedHistoricalDate(null);
+                setSelectedView("Today's Orders");
+                setPipelineFilter('ALL');
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
+                selectedView === "Today's Orders" && !selectedHistoricalDate
+                  ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title="Today's Orders = Shipped today + all orders with Processing status"
+            >
+              <span>📦</span>
+              <span>Today&apos;s Orders</span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-semibold border border-blue-200/60 dark:border-blue-800/60">
+                Active
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedHistoricalDate(null);
+                setSelectedView('Queue');
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
+                selectedView === 'Queue' && !selectedHistoricalDate
+                  ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <span>📋</span>
+              <span>Queue</span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-[#262626] text-slate-700 dark:text-slate-300 font-semibold">
+                {report.allOrdersBreakdown.processingCount + report.allOrdersBreakdown.holdCount}
+              </span>
+            </button>
+          </div>
         </div>
 
-        <div
-          className={`grid gap-2 ${
-            displayHistoryDays.length <= 6
-              ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-6'
-              : 'grid-cols-2 sm:grid-cols-4 md:grid-cols-7'
-          }`}
-        >
-          {displayHistoryDays.map((day) => {
-            const isSelected = selectedHistoricalDate
-              ? selectedHistoricalDate === day.dateIso
-              : day.isToday && selectedView === 'Today Shipped';
-            return (
+        {/* Row 3: Integrated 7-Day Dispatch History Timeline */}
+        <div className="pt-3 border-t border-slate-100 dark:border-[#171717]">
+          <div className="flex items-center justify-between gap-2 mb-2 px-0.5 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                <span>🗓️</span>
+                <span>Last 7 Days Dispatch History</span>
+              </span>
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 hidden sm:inline">
+                • Click any date to audit that day&apos;s shipped orders • Friday shown only when open with dispatches
+              </span>
+            </div>
+
+            {selectedHistoricalDate && (
               <button
-                key={day.dateIso}
                 type="button"
                 onClick={() => {
-                  if (day.isToday && selectedHistoricalDate === day.dateIso) {
-                    setSelectedHistoricalDate(null);
-                  } else {
-                    setSelectedHistoricalDate(day.dateIso);
-                  }
+                  setSelectedHistoricalDate(null);
                   setSelectedView('Today Shipped');
                   setCategoryFilter('ALL');
                 }}
-                className={`p-2.5 rounded-2xl border text-left transition-all ${
-                  isSelected
-                    ? 'bg-blue-50/90 dark:bg-blue-950/40 border-blue-400 dark:border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
-                    : 'bg-slate-50/70 dark:bg-[#0A0A0A] border-slate-200 dark:border-[#1F1F1F] hover:bg-slate-100 dark:hover:bg-[#121212] hover:border-slate-300 dark:hover:border-slate-700'
-                }`}
+                className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 rounded-lg border border-blue-200/80 dark:border-blue-800/60 transition-colors"
               >
-                <div className="flex items-center justify-between">
-                  <span className={`text-[11px] font-black ${isSelected ? 'text-blue-900 dark:text-blue-300' : 'text-slate-800 dark:text-slate-100'}`}>
-                    {day.dayName.slice(0, 3)}
-                  </span>
-                  {day.isToday && (
-                    <span className="text-[9px] font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 px-1 py-0.2 rounded-full">
-                      Today
+                ↺ Reset to Today
+              </button>
+            )}
+          </div>
+
+          {/* Day Cards Grid */}
+          <div
+            className={`grid gap-2 ${
+              displayHistoryDays.length <= 6
+                ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-6'
+                : 'grid-cols-2 sm:grid-cols-4 md:grid-cols-7'
+            }`}
+          >
+            {displayHistoryDays.map((day) => {
+              const isSelected = selectedHistoricalDate
+                ? selectedHistoricalDate === day.dateIso
+                : day.isToday && selectedView === 'Today Shipped';
+              return (
+                <button
+                  key={day.dateIso}
+                  type="button"
+                  onClick={() => {
+                    if (day.isToday && selectedHistoricalDate === day.dateIso) {
+                      setSelectedHistoricalDate(null);
+                    } else {
+                      setSelectedHistoricalDate(day.dateIso);
+                    }
+                    setSelectedView('Today Shipped');
+                    setCategoryFilter('ALL');
+                  }}
+                  className={`p-2.5 rounded-2xl border text-left transition-all ${
+                    isSelected
+                      ? 'bg-blue-50/90 dark:bg-blue-950/40 border-blue-400 dark:border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+                      : 'bg-slate-50/70 dark:bg-[#121212] border-slate-200/80 dark:border-[#1F1F1F] hover:bg-slate-100 dark:hover:bg-[#171717] hover:border-slate-300 dark:hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[11px] font-black ${isSelected ? 'text-blue-900 dark:text-blue-300' : 'text-slate-800 dark:text-slate-100'}`}>
+                      {day.dayName.slice(0, 3)}
                     </span>
-                  )}
-                  {day.isPrevDay && !day.isToday && (
-                    <span className="text-[9px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1 py-0.2 rounded-full">
-                      Prev
-                    </span>
-                  )}
-                </div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                  {day.dateLabel.includes(',') ? day.dateLabel.split(',')[1].trim() : day.dateIso.slice(5)}
-                </div>
-                <div className="mt-1 flex items-baseline justify-between text-[11px]">
-                  <span className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                    <span>📦 {day.orderCount}</span>
-                    {day.exchangeCount !== undefined && day.exchangeCount > 0 && (
-                      <span
-                        className="text-[9.5px] font-bold px-1.5 py-0.2 rounded-md bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60"
-                        title={`${day.exchangeCount} exchange replacement parcel(s)`}
-                      >
-                        🔄 {day.exchangeCount}
+                    {day.isToday && (
+                      <span className="text-[9px] font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 px-1 py-0.2 rounded-full">
+                        Today
                       </span>
                     )}
-                  </span>
-                  <span className="font-semibold text-slate-600 dark:text-slate-400">
-                    ৳{Math.round(day.revenue / 1000)}k
-                  </span>
-                </div>
-              </button>
-            );
-          })}
+                    {day.isPrevDay && !day.isToday && (
+                      <span className="text-[9px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1 py-0.2 rounded-full">
+                        Prev
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                    {day.dateLabel.includes(',') ? day.dateLabel.split(',')[1].trim() : day.dateIso.slice(5)}
+                  </div>
+                  <div className="mt-1 flex items-baseline justify-between text-[11px]">
+                    <span className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                      <span>📦 {day.orderCount}</span>
+                      {day.exchangeCount !== undefined && day.exchangeCount > 0 && (
+                        <span
+                          className="text-[9.5px] font-bold px-1.5 py-0.2 rounded-md bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60"
+                          title={`${day.exchangeCount} exchange replacement parcel(s)`}
+                        >
+                          🔄 {day.exchangeCount}
+                        </span>
+                      )}
+                    </span>
+                    <span className="font-semibold text-slate-600 dark:text-slate-400">
+                      ৳{Math.round(day.revenue / 1000)}k
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
