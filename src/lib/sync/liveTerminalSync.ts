@@ -370,6 +370,7 @@ export async function syncLiveTerminalData(options: {
   limitConsignments?: number;
   fetchLiveWc?: boolean;
   skipNetwork?: boolean;
+  maxPages?: number;
 }): Promise<LiveTerminalSyncResult> {
   let wcConnected = false;
   let pathaoConnected = false;
@@ -383,10 +384,11 @@ export async function syncLiveTerminalData(options: {
       const wcTest = await testWooCommerceConnection(options.wcCredentials);
       if (wcTest.success) {
         wcConnected = true;
+        const maxPagesToFetch = options.maxPages || 6; // Default to 6 pages (600 orders) to cover full 7-day rolling window
         const fetched = await fetchWooCommerceOrders({
           perPage: 100,
           fetchAllPages: true,
-          maxPages: 3,
+          maxPages: maxPagesToFetch,
           orderBy: 'date',
           order: 'desc',
           credentials: options.wcCredentials,

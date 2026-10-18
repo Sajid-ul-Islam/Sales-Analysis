@@ -134,6 +134,11 @@ export function LiveOpsTab({
     discrepanciesRef.current = discrepancies;
   }, [discrepancies]);
 
+  const ordersRef = React.useRef(orders);
+  useEffect(() => {
+    ordersRef.current = orders;
+  }, [orders]);
+
   // Auto-dismiss transient sync message to remove UI clutter
   useEffect(() => {
     if (!syncStatusMsg) return;
@@ -222,6 +227,8 @@ export function LiveOpsTab({
       const payload: Record<string, unknown> = {
         limitConsignments: 35,
         fetchLiveWc: true,
+        maxPages: 6,
+        activeOrders: ordersRef.current && ordersRef.current.length > 0 ? ordersRef.current : undefined,
       };
 
       if (appSettings?.wcConsumerKey) {

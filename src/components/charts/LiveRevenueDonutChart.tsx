@@ -52,6 +52,26 @@ const CANONICAL_SLICE_COLORS: Record<string, string> = {
   'Twill': '#f97316',
 };
 
+function formatShortCategoryName(name: string): string {
+  const trimmed = name.trim();
+  if (/^Twill(\s+Five\s+Pockets?|5\s*Pockets?)?$/i.test(trimmed)) {
+    return 'Twill';
+  }
+  if (/^Denim\s+Jacket$/i.test(trimmed) || trimmed === 'Jacket') {
+    return 'Jacket';
+  }
+  if (/^Casual\s+Shirt$/i.test(trimmed)) {
+    return 'Casual';
+  }
+  if (/^Cargo\s+Trouser$/i.test(trimmed)) {
+    return 'Cargo';
+  }
+  if (/^Polo\s+Shirt$/i.test(trimmed)) {
+    return 'Polo';
+  }
+  return trimmed;
+}
+
 export function LiveRevenueDonutChart({
   items,
   totalRevenue,
@@ -76,11 +96,12 @@ export function LiveRevenueDonutChart({
     ? selectsShare
     : (sourceItems === DEFAULT_DEEN_OPS_CATEGORY_ITEMS ? 43.7 : 0);
 
-  // Donut geometry: Center = (140, 140), rOuter = 120, rInner = 68 (Expanded to dynamically fill container)
-  const cx = 140;
-  const cy = 140;
-  const rOuter = 120;
-  const rInner = 68;
+  // Donut geometry: ViewBox = 320x320, Center = (160, 160), rOuter = 110, rInner = 64
+  // Leaves 50px outer breathing room for clear external leader callouts without clipping
+  const cx = 160;
+  const cy = 160;
+  const rOuter = 110;
+  const rInner = 64;
 
   // Order slices to match DEEN-OPS Screenshot layout
   const orderedSlices = useMemo(() => {
@@ -113,6 +134,9 @@ export function LiveRevenueDonutChart({
 
   // Slices start from 12 o'clock (-PI / 2) and go clockwise
   let currentAngle = -Math.PI / 2;
+
+  // Track small slices count to stagger leader line lengths and prevent collision
+  let smallSliceCounter = 0;
 
   const slicePaths = orderedSlices.map((slice, idx) => {
     const share = slice.revenue / effectiveTotal;
@@ -150,6 +174,12 @@ export function LiveRevenueDonutChart({
     const lx = cx + rMid * Math.cos(midAngle);
     const ly = cy + rMid * Math.sin(midAngle);
 
+    const isSmall = slice.revenueShare < 6;
+    let smallOrder = 0;
+    if (isSmall) {
+      smallOrder = smallSliceCounter++;
+    }
+
     const fillColor = CANONICAL_SLICE_COLORS[slice.displayName] || CANONICAL_SLICE_COLORS[slice.name] || slice.color;
 
     return {
@@ -161,6 +191,8 @@ export function LiveRevenueDonutChart({
       fillColor,
       sharePercent: slice.revenueShare,
       isHovered: hoveredIdx === idx,
+      isSmall,
+      smallOrder,
       idx,
     };
   });
@@ -169,11 +201,13 @@ export function LiveRevenueDonutChart({
 
   return (
     <div className="relative flex flex-col items-center justify-center p-2 select-none w-full">
+      {/* Donut Chart Container */}
       <div className="relative w-full max-w-[420px] lg:max-w-[440px] aspect-square flex items-center justify-center">
         <svg
-          viewBox="0 0 280 280"
+          viewBox="0 0 320 320"
           className="w-full h-full overflow-visible drop-shadow-xs"
         >
+          {/* Slice Paths */}
           {slicePaths.map((sp) => {
             const rawName = sp.slice.displayName || sp.slice.name;
             const isSelected = Boolean(
@@ -187,69 +221,130 @@ export function LiveRevenueDonutChart({
             const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);
 
             return (
-              <path
-                key={`donut-slice-${sp.idx}-${sp.slice.name}`}
-                d={sp.d}
-                fill={sp.fillColor}
-                stroke="currentColor"
-                strokeWidth={isSelected ? '4' : '3'}
-                className="cursor-pointer transition-all duration-300 ease-out stroke-white dark:stroke-black text-white dark:text-black"
+              <g key={`donut-slice-group-${sp.idx}-${sp.slice.name}`}>
+                {/* Visible Annular Path */}
+                <path
+                  d={sp.d}
+                  fill={sp.fillColor}
+                  stroke="currentColor"
+                  strokeWidth={isSelected ? '4' : '3'}
+                  className="cursor-pointer transition-all duration-300 ease-out stroke-white dark:stroke-black text-white dark:text-black"
+                  style={{
+                    transformOrigin: '160px 160px',
+                    transform: sp.isHovered || isSelected ? 'scale(1.055)' : 'scale(1)',
+                    filter: sp.isHovered || isSelected ? 'brightness(1.15) drop-shadow(0 6px 14px rgba(0,0,0,0.35))' : 'none',
+                    opacity: isDimmed ? 0.35 : 1,
+                  }}
+                  onClick={() => onSelectCategory && onSelectCategory(sp.slice.name)}
+                  onMouseEnter={() => setHoveredIdx(sp.idx)}
+                  onMouseLeave={() => setHoveredIdx(null)}
+                />
+
+                {/* Generous touch/hover hit target for small slices to make hover/tap effortless */}
+                {sp.isSmall && (
+                  <path
+                    d={sp.d}
+                    fill="none"
+                    stroke="transparent"
+                    strokeWidth="18"
+                    className="cursor-pointer"
+                    onClick={() => onSelectCategory && onSelectCategory(sp.slice.name)}
+                    onMouseEnter={() => setHoveredIdx(sp.idx)}
+                    onMouseLeave={() => setHoveredIdx(null)}
+                  />
+                )}
+              </g>
+            );
+          })}
+
+          {/* Leader Lines and External Callout Labels for Small Slices (< 6%) */}
+          {slicePaths.map((sp) => {
+            if (!sp.isSmall || sp.sharePercent < 1.2) return null;
+            const rawName = sp.slice.displayName || sp.slice.name;
+            const sliceLabel = formatShortCategoryName(rawName);
+
+            // Stagger radius offset to prevent adjacent small slices from overlapping each other
+            const radialOffset = sp.smallOrder % 2 === 0 ? 15 : 26;
+            const rLeaderEnd = rOuter + radialOffset;
+
+            const isRightSide = Math.cos(sp.midAngle) >= 0;
+            const xAnchor = cx + (rOuter + 2) * Math.cos(sp.midAngle);
+            const yAnchor = cy + (rOuter + 2) * Math.sin(sp.midAngle);
+
+            const xKnee = cx + rLeaderEnd * Math.cos(sp.midAngle);
+            const yKnee = cy + rLeaderEnd * Math.sin(sp.midAngle);
+
+            const armLength = 12;
+            const xEnd = isRightSide ? xKnee + armLength : xKnee - armLength;
+            const yEnd = yKnee;
+
+            const textX = isRightSide ? xEnd + 3 : xEnd - 3;
+            const textY = yEnd;
+            const textAnchor = isRightSide ? 'start' : 'end';
+
+            const isSelected = Boolean(
+              selectedCategory &&
+              selectedCategory !== 'ALL' &&
+              (selectedCategory === sp.slice.name ||
+                selectedCategory === sp.slice.displayName ||
+                (selectedCategory === 'Twill' && /^Twill/i.test(rawName)) ||
+                (selectedCategory === 'Jacket' && /Jacket/i.test(rawName)))
+            );
+            const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);
+
+            return (
+              <g
+                key={`callout-small-${sp.idx}-${sp.slice.name}`}
+                className="cursor-pointer transition-all duration-200"
                 style={{
-                  transformOrigin: '140px 140px',
-                  transform: sp.isHovered || isSelected ? 'scale(1.045)' : 'scale(1)',
-                  filter: sp.isHovered || isSelected ? 'brightness(1.12) drop-shadow(0 6px 12px rgba(0,0,0,0.3))' : 'none',
                   opacity: isDimmed ? 0.35 : 1,
                 }}
                 onClick={() => onSelectCategory && onSelectCategory(sp.slice.name)}
                 onMouseEnter={() => setHoveredIdx(sp.idx)}
                 onMouseLeave={() => setHoveredIdx(null)}
-              />
+              >
+                {/* Leader line from outer arc edge out to external label */}
+                <path
+                  d={`M ${xAnchor} ${yAnchor} L ${xKnee} ${yKnee} L ${xEnd} ${yEnd}`}
+                  stroke={sp.fillColor}
+                  strokeWidth={sp.isHovered ? '2' : '1.5'}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                  className="transition-all duration-200"
+                />
+
+                {/* Dot at arc anchor point */}
+                <circle
+                  cx={xAnchor}
+                  cy={yAnchor}
+                  r={sp.isHovered ? '3' : '2'}
+                  fill={sp.fillColor}
+                  className="transition-all duration-200"
+                />
+
+                {/* External high-contrast label with rounded pill background for guaranteed contrast */}
+                <text
+                  x={textX}
+                  y={textY}
+                  textAnchor={textAnchor}
+                  dominantBaseline="central"
+                  fontSize={sp.isHovered ? '10' : '9'}
+                  fontWeight="900"
+                  fill="currentColor"
+                  className="fill-slate-800 dark:fill-white font-headline transition-all duration-200"
+                >
+                  {sliceLabel} {Math.round(sp.sharePercent)}%
+                </text>
+              </g>
             );
           })}
 
-          {/* Slices labels (Name and percentage inside slice) with smooth hover scaling */}
+          {/* Slices labels (Inside Slice) for Main Categories (>= 6% share) */}
           {slicePaths.map((sp) => {
-            if (sp.sharePercent < 1.8) return null;
-            const isSmall = sp.sharePercent < 5; // e.g. Jacket (4%), Trousers (2%)
+            if (sp.isSmall) return null; // Small slices are rendered with callouts above
             const rawName = sp.slice.displayName || sp.slice.name;
-            let sliceLabel = rawName;
-            if (/^Twill(\s+Five\s+Pockets?|5\s*Pockets?)?$/i.test(rawName.trim())) {
-              sliceLabel = 'Twill';
-            } else if (/^Denim\s+Jacket$/i.test(rawName.trim()) || rawName.trim() === 'Jacket') {
-              sliceLabel = 'Jacket';
-            }
-
-            // Radial rotation for small slices (Jacket 4%, Trousers 2%) so single line fits along the spoke
-            const angleDeg = (sp.midAngle * 180) / Math.PI;
-
-            if (isSmall) {
-              const hoverScale = sp.isHovered ? 1.35 : 1;
-              return (
-                <g
-                  key={`donut-label-${sp.idx}-${sp.slice.name}`}
-                  pointerEvents="none"
-                  style={{
-                    transformOrigin: `${sp.lx}px ${sp.ly}px`,
-                    transform: `rotate(${angleDeg}deg) scale(${hoverScale})`,
-                    transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
-                    opacity: selectedCategory && selectedCategory !== 'ALL' && !sp.isHovered ? 0.35 : 1,
-                  }}
-                >
-                  <text
-                    x={sp.lx}
-                    y={sp.ly}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fontSize={sp.isHovered ? "8.5" : "7"}
-                    fontWeight="900"
-                    fill="#ffffff"
-                    className="drop-shadow-md font-sans transition-all duration-200"
-                  >
-                    {sliceLabel} {Math.round(sp.sharePercent)}%
-                  </text>
-                </g>
-              );
-            }
+            const sliceLabel = formatShortCategoryName(rawName);
 
             const hoverScale = sp.isHovered ? 1.25 : 1;
             return (
@@ -268,7 +363,7 @@ export function LiveRevenueDonutChart({
                   y={sp.ly - 5}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize={sp.isHovered ? "11.5" : "9.5"}
+                  fontSize={sp.isHovered ? '11.5' : '9.5'}
                   fontWeight="bold"
                   fill="#ffffff"
                   className="drop-shadow-md font-sans transition-all duration-200"
@@ -280,7 +375,7 @@ export function LiveRevenueDonutChart({
                   y={sp.ly + 7}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize={sp.isHovered ? "13.5" : "11"}
+                  fontSize={sp.isHovered ? '13.5' : '11'}
                   fontWeight="900"
                   fill="#ffffff"
                   className="drop-shadow-md font-sans transition-all duration-200"
@@ -294,9 +389,9 @@ export function LiveRevenueDonutChart({
           {/* Center Donut Annotation (Smooth dynamic interactive feedback on hover) */}
           <g pointerEvents="none" className="transition-all duration-300 ease-out">
             <circle
-              cx="140"
-              cy="140"
-              r="66"
+              cx="160"
+              cy="160"
+              r="62"
               fill="currentColor"
               className="fill-white dark:fill-black text-white dark:text-black transition-colors duration-300"
             />
@@ -304,14 +399,14 @@ export function LiveRevenueDonutChart({
               <g
                 key={`center-active-${active.name}`}
                 style={{
-                  transformOrigin: '140px 140px',
+                  transformOrigin: '160px 160px',
                   transform: 'scale(1.04)',
                   transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                 }}
               >
                 <text
-                  x="140"
-                  y="120"
+                  x="160"
+                  y="138"
                   textAnchor="middle"
                   dominantBaseline="central"
                   fontSize="22"
@@ -322,8 +417,8 @@ export function LiveRevenueDonutChart({
                   ৳ {active.revenue.toLocaleString()}
                 </text>
                 <text
-                  x="140"
-                  y="142"
+                  x="160"
+                  y="160"
                   textAnchor="middle"
                   dominantBaseline="central"
                   fontSize="11"
@@ -332,15 +427,11 @@ export function LiveRevenueDonutChart({
                   fill={CANONICAL_SLICE_COLORS[active.displayName] || CANONICAL_SLICE_COLORS[active.name] || '#f43f5e'}
                   className="font-headline uppercase transition-colors duration-200"
                 >
-                  {/^Denim\s+Jacket$/i.test((active.displayName || active.name).trim())
-                    ? 'Jacket'
-                    : (/^Twill(\s+Five\s+Pockets?|5\s*Pockets?)?$/i.test((active.displayName || active.name).trim())
-                      ? 'Twill'
-                      : (active.displayName || active.name))}
+                  {formatShortCategoryName(active.displayName || active.name)}
                 </text>
                 <text
-                  x="140"
-                  y="160"
+                  x="160"
+                  y="178"
                   textAnchor="middle"
                   dominantBaseline="central"
                   fontSize="10"
@@ -355,14 +446,14 @@ export function LiveRevenueDonutChart({
               <g
                 key="center-default"
                 style={{
-                  transformOrigin: '140px 140px',
+                  transformOrigin: '160px 160px',
                   transform: 'scale(1)',
                   transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                 }}
               >
                 <text
-                  x="140"
-                  y="124"
+                  x="160"
+                  y="142"
                   textAnchor="middle"
                   dominantBaseline="central"
                   fontSize="20"
@@ -373,8 +464,8 @@ export function LiveRevenueDonutChart({
                   ৳ {effectiveRevenue.toLocaleString()}
                 </text>
                 <text
-                  x="140"
-                  y="143"
+                  x="160"
+                  y="161"
                   textAnchor="middle"
                   dominantBaseline="central"
                   fontSize="8.5"
@@ -386,8 +477,8 @@ export function LiveRevenueDonutChart({
                   TOTAL REVENUE
                 </text>
                 <text
-                  x="140"
-                  y="160"
+                  x="160"
+                  y="178"
                   textAnchor="middle"
                   dominantBaseline="central"
                   fontSize="9.5"
@@ -411,13 +502,7 @@ export function LiveRevenueDonutChart({
             }}
           >
             <div className="font-headline font-black text-white text-xs sm:text-sm flex items-center justify-between gap-2 border-b border-slate-800 pb-1.5 mb-1.5">
-              <span>
-                {/^Denim\s+Jacket$/i.test((active.displayName || active.name).trim())
-                  ? 'Jacket'
-                  : (/^Twill(\s+Five\s+Pockets?|5\s*Pockets?)?$/i.test((active.displayName || active.name).trim())
-                    ? 'Twill'
-                    : (active.displayName || active.name))}
-              </span>
+              <span>{formatShortCategoryName(active.displayName || active.name)}</span>
               <span className="text-amber-400 font-black text-sm">{active.revenueShare}%</span>
             </div>
             <div className="space-y-1 text-slate-300 text-xs">
@@ -436,6 +521,54 @@ export function LiveRevenueDonutChart({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Interactive Category Breakdown & Quick-Filter Strip */}
+      <div className="mt-3 w-full flex flex-wrap items-center justify-center gap-1.5 px-1 max-w-[460px]">
+        {orderedSlices.map((slice, idx) => {
+          const rawName = slice.displayName || slice.name;
+          const shortName = formatShortCategoryName(rawName);
+          const color = CANONICAL_SLICE_COLORS[slice.displayName] || CANONICAL_SLICE_COLORS[slice.name] || slice.color;
+          const isSelected = Boolean(
+            selectedCategory &&
+            selectedCategory !== 'ALL' &&
+            (selectedCategory === slice.name ||
+              selectedCategory === slice.displayName ||
+              (selectedCategory === 'Twill' && /^Twill/i.test(rawName)) ||
+              (selectedCategory === 'Jacket' && /Jacket/i.test(rawName)))
+          );
+          const isHovered = hoveredIdx === idx;
+          const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);
+
+          return (
+            <button
+              key={`cat-chip-${idx}-${slice.name}`}
+              type="button"
+              onClick={() => onSelectCategory && onSelectCategory(slice.name)}
+              onMouseEnter={() => setHoveredIdx(idx)}
+              onMouseLeave={() => setHoveredIdx(null)}
+              title={`Click to filter by ${shortName} (${slice.revenueShare}% share, ৳${slice.revenue.toLocaleString()})`}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all duration-200 border cursor-pointer ${
+                isSelected
+                  ? 'bg-blue-50 dark:bg-blue-950/70 border-blue-400 dark:border-blue-500 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500/20 shadow-xs scale-105'
+                  : isHovered
+                    ? 'bg-slate-100 dark:bg-[#1A1A1A] border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white shadow-xs scale-102'
+                    : isDimmed
+                      ? 'bg-slate-50/50 dark:bg-[#0A0A0A] border-slate-200/50 dark:border-[#1F1F1F] text-slate-400 dark:text-slate-600 opacity-40'
+                      : 'bg-slate-50 dark:bg-[#121212] border-slate-200/80 dark:border-[#1F1F1F] text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'
+              }`}
+            >
+              <span
+                className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs"
+                style={{ backgroundColor: color }}
+              />
+              <span className="font-headline">{shortName}</span>
+              <span className="text-[10px] px-1 py-0.5 rounded-md bg-black/5 dark:bg-white/10 text-slate-600 dark:text-slate-300 font-black">
+                {Math.round(slice.revenueShare)}%
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

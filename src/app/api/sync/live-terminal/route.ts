@@ -45,6 +45,7 @@ export async function POST(req: Request) {
       activeOrders: body.activeOrders,
       limitConsignments: body.limitConsignments || 25,
       fetchLiveWc: body.fetchLiveWc !== undefined ? body.fetchLiveWc : true,
+      maxPages: body.maxPages || 6,
     });
 
     const isPrivileged = auth.authenticated && (auth.role === 'admin' || auth.role === 'operator');
