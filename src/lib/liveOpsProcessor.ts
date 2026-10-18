@@ -229,6 +229,29 @@ export interface ExecutiveBriefing {
   newCustomerPct: number;
   summaryPoints: string[];
   clipboardText: string;
+  selectsStats?: {
+    selectsRevenue: number;
+    selectsQty: number;
+    selectsRevShare: number;
+    regularRevenue: number;
+    regularQty: number;
+    regularRevShare: number;
+  };
+  fulfillment?: {
+    lastShippedOrder: string;
+    lastPathaoPrint: string;
+  };
+  channelBreakdown?: {
+    totalOrders: number;
+    exchangeCount: number;
+    ecomCount: number;
+    outletCount: number;
+  };
+  top3Products?: {
+    name: string;
+    sku: string;
+    units: number;
+  }[];
 }
 
 export interface LiveOpsReport {
@@ -1235,7 +1258,7 @@ export function processLiveOpsData(
   const lastShippedClean = lastShippedOid.replace(/^#/, '');
   const lastPathaoClean = String(lastPathaoPrint).replace(/^#/, '');
 
-  let clipboardText = `📊 *DEEN-OPS Executive Briefing*\n` +
+  let clipboardText = `📊 *DEEN Sales Executive Briefing*\n` +
     `📅 ${formattedDate}\n\n` +
     `💵 *Gross Revenue:* ৳${Math.round(activeRevenue).toLocaleString()}\n\n` +
     `📦 *Shipped Items:* ${activeItemsCount}\n` +
@@ -1276,6 +1299,29 @@ export function processLiveOpsData(
     newCustomerPct: newPct,
     summaryPoints,
     clipboardText,
+    selectsStats: {
+      selectsRevenue: selectsStats.selectsRevenue,
+      selectsQty: selectsStats.selectsQty,
+      selectsRevShare: selectsStats.selectsRevShare,
+      regularRevenue: selectsStats.regularRevenue,
+      regularQty: selectsStats.regularQty,
+      regularRevShare: selectsStats.regularRevShare,
+    },
+    fulfillment: {
+      lastShippedOrder: lastShippedClean,
+      lastPathaoPrint: lastPathaoClean,
+    },
+    channelBreakdown: {
+      totalOrders: totalOrdersCount,
+      exchangeCount: exchangeStats.count,
+      ecomCount: ecomCount || activeOrdersCount,
+      outletCount: outletCount,
+    },
+    top3Products: topProducts.slice(0, 3).map((p) => ({
+      name: p.productName,
+      sku: p.sku && p.sku !== 'N/A' ? p.sku : '',
+      units: Number(p.unitsSold || 0),
+    })),
   };
 
   return {

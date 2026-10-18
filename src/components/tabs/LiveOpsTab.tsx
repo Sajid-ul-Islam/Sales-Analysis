@@ -167,6 +167,7 @@ export function LiveOpsTab({
     return null;
   });
   const [briefingCopied, setBriefingCopied] = useState(false);
+  const [briefingViewMode, setBriefingViewMode] = useState<'structured' | 'text'>('structured');
   const [activeAnalyticsView, setActiveAnalyticsView] = useState<'category' | 'spotlight'>('category');
 
   // Auto-refresh timer countdown (60s loop)
@@ -808,11 +809,7 @@ export function LiveOpsTab({
               )}
             </div>
 
-            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-medium">
-              <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#171717] text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
-                📊 {report.prevDayName}: {report.shippedItems.prevValue}
-              </span>
-            </div>
+
 
             <div className="mt-1.5">
               <span
@@ -856,11 +853,7 @@ export function LiveOpsTab({
               {report.salesRevenue.value}
             </div>
 
-            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-medium">
-              <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#171717] text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
-                📊 {report.prevDayName}: {report.salesRevenue.prevValue}
-              </span>
-            </div>
+
 
             <div className="mt-1.5">
               <span
@@ -935,11 +928,7 @@ export function LiveOpsTab({
               ) : null}
             </div>
 
-            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-medium">
-              <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#171717] text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
-                📊 {report.prevDayName}: {report.shippedOrders.prevValue}
-              </span>
-            </div>
+
 
             <div className="mt-1.5">
               <span
@@ -981,11 +970,7 @@ export function LiveOpsTab({
               {report.basketSize.value}
             </div>
 
-            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-medium">
-              <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#171717] text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
-                📊 {report.prevDayName}: {report.basketSize.prevValue}
-              </span>
-            </div>
+
 
             <div className="mt-1.5">
               <span
@@ -1524,7 +1509,7 @@ export function LiveOpsTab({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm sm:text-base font-black tracking-tight text-white font-headline">
-                  Executive Operations Briefing
+                  DEEN Sales Executive Briefing
                 </h3>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
                   {selectedHistoricalDate ? 'Historical Audit' : 'Live Status'}
@@ -1537,6 +1522,31 @@ export function LiveOpsTab({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            <div className="inline-flex p-0.5 rounded-xl bg-black/40 border border-slate-700/70">
+              <button
+                type="button"
+                onClick={() => setBriefingViewMode('structured')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                  briefingViewMode === 'structured'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Structured View
+              </button>
+              <button
+                type="button"
+                onClick={() => setBriefingViewMode('text')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                  briefingViewMode === 'text'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Briefing Text
+              </button>
+            </div>
+
             <button
               type="button"
               onClick={() => {
@@ -1549,7 +1559,7 @@ export function LiveOpsTab({
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-xs active:scale-95"
             >
               <Copy className="w-3.5 h-3.5" />
-              <span>{briefingCopied ? 'Copied WhatsApp Briefing! ✓' : 'Copy WhatsApp Briefing'}</span>
+              <span>{briefingCopied ? 'Copied Briefing! ✓' : 'Copy Briefing'}</span>
             </button>
 
             <button
@@ -1563,69 +1573,217 @@ export function LiveOpsTab({
           </div>
         </div>
 
-        {/* 4 Executive Metric Chips */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
-            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              Dispatched Volume
-            </span>
-            <div className="text-lg sm:text-xl font-black text-white font-headline mt-0.5">
-              {report.executiveBriefing.totalOrders} <span className="text-xs font-normal text-slate-400">orders</span>
+        {briefingViewMode === 'text' ? (
+          /* Text View: Pre-formatted briefing text matching copy output */
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-slate-300">
+              <span className="font-semibold text-slate-400">Exact Briefing Text (Formatted for Instant Sharing):</span>
+              <span className="text-[11px] text-indigo-300">Click below or use Copy Briefing button</span>
             </div>
-            <div className="text-[11px] text-slate-300">
-              {report.executiveBriefing.totalItems} items dispatched
-            </div>
+            <pre
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                  navigator.clipboard.writeText(report.executiveBriefing.clipboardText);
+                  setBriefingCopied(true);
+                  setTimeout(() => setBriefingCopied(false), 2500);
+                }
+              }}
+              className="bg-black/40 hover:bg-black/50 border border-white/10 rounded-2xl p-4 text-xs font-mono text-slate-200 whitespace-pre-wrap leading-relaxed cursor-pointer transition-colors shadow-inner selection:bg-indigo-600 selection:text-white"
+            >
+              {report.executiveBriefing.clipboardText}
+            </pre>
           </div>
+        ) : (
+          /* Structured View: Rich interactive cards representing every section of the Briefing */
+          <div className="space-y-4">
+            {/* Top 4 Core Performance Metric Chips */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  Dispatched Volume
+                </span>
+                <div className="text-lg sm:text-xl font-black text-white font-headline mt-0.5">
+                  {report.executiveBriefing.totalOrders} <span className="text-xs font-normal text-slate-400">orders</span>
+                </div>
+                <div className="text-[11px] text-slate-300">
+                  {report.executiveBriefing.totalItems} items dispatched
+                </div>
+              </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
-            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              Gross Value &amp; AOV
-            </span>
-            <div className="text-lg sm:text-xl font-black text-emerald-400 font-headline mt-0.5">
-              ৳ {report.executiveBriefing.totalRevenue.toLocaleString()}
-            </div>
-            <div className="text-[11px] text-slate-300">
-              AOV: ৳ {report.executiveBriefing.aov.toLocaleString()}
-            </div>
-          </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  Gross Value &amp; AOV
+                </span>
+                <div className="text-lg sm:text-xl font-black text-emerald-400 font-headline mt-0.5">
+                  ৳ {report.executiveBriefing.totalRevenue.toLocaleString()}
+                </div>
+                <div className="text-[11px] text-slate-300">
+                  AOV: ৳ {report.executiveBriefing.aov.toLocaleString()}
+                </div>
+              </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
-            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              vs 7-Day Daily Avg
-            </span>
-            <div className={`text-lg sm:text-xl font-black font-headline mt-0.5 ${(report.executiveBriefing.vs7dVolumePct || 0) >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-              {(report.executiveBriefing.vs7dVolumePct || 0) >= 0 ? '+' : ''}{report.executiveBriefing.vs7dVolumePct}% items
-            </div>
-            <div className="text-[11px] text-slate-300">
-              {(report.executiveBriefing.vs7dRevenuePct || 0) >= 0 ? '+' : ''}{report.executiveBriefing.vs7dRevenuePct}% revenue
-            </div>
-          </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  vs 7-Day Daily Avg
+                </span>
+                <div className={`text-lg sm:text-xl font-black font-headline mt-0.5 ${(report.executiveBriefing.vs7dVolumePct || 0) >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {(report.executiveBriefing.vs7dVolumePct || 0) >= 0 ? '+' : ''}{report.executiveBriefing.vs7dVolumePct}% items
+                </div>
+                <div className="text-[11px] text-slate-300">
+                  {(report.executiveBriefing.vs7dRevenuePct || 0) >= 0 ? '+' : ''}{report.executiveBriefing.vs7dRevenuePct}% revenue
+                </div>
+              </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
-            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              Top Category &amp; SKU
-            </span>
-            <div className="text-sm font-black text-sky-300 truncate mt-0.5" title={report.executiveBriefing.topCategory.name}>
-              {report.executiveBriefing.topCategory.name} ({report.executiveBriefing.topCategory.volume} pcs)
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  Top Category &amp; SKU
+                </span>
+                <div className="text-sm font-black text-sky-300 truncate mt-0.5" title={report.executiveBriefing.topCategory.name}>
+                  {report.executiveBriefing.topCategory.name} ({report.executiveBriefing.topCategory.volume} pcs)
+                </div>
+                <div className="text-[11px] text-slate-300 truncate" title={report.executiveBriefing.topProduct.name}>
+                  {report.executiveBriefing.topProduct.name}
+                </div>
+              </div>
             </div>
-            <div className="text-[11px] text-slate-300 truncate" title={report.executiveBriefing.topProduct.name}>
-              {report.executiveBriefing.topProduct.name}
-            </div>
-          </div>
-        </div>
 
-        {/* Executive Takeaway Bullet Points */}
-        <div className="bg-black/25 rounded-2xl p-3.5 border border-white/5 space-y-1.5 text-xs text-slate-200">
-          <div className="font-bold text-slate-300 text-[11px] uppercase tracking-wider mb-1">
-            Operational Highlights &amp; Analysis:
-          </div>
-          {report.executiveBriefing.summaryPoints.map((pt, idx) => (
-            <div key={idx} className="flex items-start gap-2">
-              <span className="text-indigo-400 text-xs leading-relaxed">•</span>
-              <span className="leading-relaxed">{pt}</span>
+            {/* Briefing Modules: Collection Split, Dispatch IDs, Channel Breakdown, Top Products */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+              {/* Module 1: 🏷️ Collection Split */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
+                    <span>🏷️</span> Collection Split
+                  </span>
+                  <span className="text-[11px] font-bold text-indigo-300">
+                    {report.executiveBriefing.selectsStats?.selectsRevShare ?? report.executiveBriefing.selectsSharePct}% Selects
+                  </span>
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300 flex items-center gap-1">💎 Selects:</span>
+                    <span className="font-bold text-indigo-300">
+                      ৳ {(report.executiveBriefing.selectsStats?.selectsRevenue ?? 0).toLocaleString()}
+                      <span className="text-[10px] font-normal text-slate-400 ml-1">
+                        ({report.executiveBriefing.selectsStats?.selectsQty ?? 0} pcs)
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300 flex items-center gap-1">📦 Regular:</span>
+                    <span className="font-bold text-slate-200">
+                      ৳ {(report.executiveBriefing.selectsStats?.regularRevenue ?? 0).toLocaleString()}
+                      <span className="text-[10px] font-normal text-slate-400 ml-1">
+                        ({report.executiveBriefing.selectsStats?.regularQty ?? 0} pcs)
+                      </span>
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-800 rounded-full h-1.5 flex overflow-hidden mt-1">
+                    <div
+                      className="bg-indigo-400 h-full"
+                      style={{ width: `${report.executiveBriefing.selectsStats?.selectsRevShare ?? report.executiveBriefing.selectsSharePct}%` }}
+                      title="DEEN Selects"
+                    />
+                    <div
+                      className="bg-slate-600 h-full"
+                      style={{ width: `${report.executiveBriefing.selectsStats?.regularRevShare ?? (100 - report.executiveBriefing.selectsSharePct)}%` }}
+                      title="DEEN Regular"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Module 2: 📋 Fulfillment Tracking */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-2">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
+                  <span>📋</span> Dispatch Tracking
+                </span>
+                <div className="space-y-1.5 text-xs">
+                  <div>
+                    <div className="text-[10px] text-slate-400">Last Shipped Order:</div>
+                    <div className="font-mono font-bold text-emerald-400 text-sm truncate">
+                      #{report.executiveBriefing.fulfillment?.lastShippedOrder || 'None'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-slate-400">Last Pathao Print:</div>
+                    <div className="font-mono font-bold text-indigo-300 text-sm truncate">
+                      {report.executiveBriefing.fulfillment?.lastPathaoPrint ? `${report.executiveBriefing.fulfillment.lastPathaoPrint}` : 'None'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Module 3: 🛒 Order Channel Breakdown */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
+                    <span>🛒</span> Channel Split
+                  </span>
+                  <span className="text-[11px] font-bold text-white">
+                    {report.executiveBriefing.channelBreakdown?.totalOrders ?? report.executiveBriefing.totalOrders} total
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5 pt-1 text-center">
+                  <div className="bg-white/5 rounded-xl p-1.5">
+                    <div className="text-[10px] text-slate-400">🚀 Ecom</div>
+                    <div className="font-bold text-sky-400 text-xs mt-0.5">
+                      {report.executiveBriefing.channelBreakdown?.ecomCount ?? report.executiveBriefing.totalOrders}
+                    </div>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-1.5">
+                    <div className="text-[10px] text-slate-400">🏪 Outlet</div>
+                    <div className="font-bold text-emerald-400 text-xs mt-0.5">
+                      {report.executiveBriefing.channelBreakdown?.outletCount ?? 0}
+                    </div>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-1.5">
+                    <div className="text-[10px] text-slate-400">🔄 Exch</div>
+                    <div className="font-bold text-amber-400 text-xs mt-0.5">
+                      {report.executiveBriefing.channelBreakdown?.exchangeCount ?? 0}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Module 4: 🔥 Top Performing Products */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-1.5">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
+                  <span>🔥</span> Top Products
+                </span>
+                <div className="space-y-1 text-xs">
+                  {report.executiveBriefing.top3Products && report.executiveBriefing.top3Products.length > 0 ? (
+                    report.executiveBriefing.top3Products.map((p, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-[11px]">
+                        <span className="truncate pr-1 text-slate-200" title={p.name}>
+                          <span className="text-amber-400 font-bold mr-1">#{idx + 1}</span> {p.name}
+                        </span>
+                        <span className="font-bold text-sky-300 shrink-0">
+                          {p.units.toFixed(1)} <span className="font-normal text-[10px] text-slate-400">pcs</span>
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-slate-400 text-xs">None recorded</div>
+                  )}
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
+
+            {/* Executive Takeaway Bullet Points */}
+            <div className="bg-black/25 rounded-2xl p-3.5 border border-white/5 space-y-1.5 text-xs text-slate-200">
+              <div className="font-bold text-slate-300 text-[11px] uppercase tracking-wider mb-1">
+                Operational Highlights &amp; Analysis:
+              </div>
+              {report.executiveBriefing.summaryPoints.map((pt, idx) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <span className="text-indigo-400 text-xs leading-relaxed">•</span>
+                  <span className="leading-relaxed">{pt}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Product Demand & Velocity Spotlight Leaderboard ── */}
