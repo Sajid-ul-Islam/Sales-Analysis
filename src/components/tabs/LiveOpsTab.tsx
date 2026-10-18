@@ -789,7 +789,7 @@ export function LiveOpsTab({
 
           <div className="mt-1 mb-2">
             <div className="flex items-baseline gap-2 flex-wrap">
-              <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline">
+              <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline group-hover:scale-[1.03] transition-transform duration-300 origin-left">
                 {report.shippedItems.value}
               </div>
               {report.exchangeStats.itemsCount > 0 && (
@@ -849,7 +849,7 @@ export function LiveOpsTab({
           </div>
 
           <div className="mt-1 mb-2">
-            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline">
+            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline group-hover:scale-[1.03] transition-transform duration-300 origin-left">
               {report.salesRevenue.value}
             </div>
 
@@ -894,7 +894,7 @@ export function LiveOpsTab({
 
           <div className="mt-1 mb-2">
             <div className="flex items-baseline gap-2 flex-wrap">
-              <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline">
+              <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline group-hover:scale-[1.03] transition-transform duration-300 origin-left">
                 {report.shippedOrders.value}
               </div>
               {report.exchangeStats.count > 0 ? (
@@ -966,7 +966,7 @@ export function LiveOpsTab({
           </div>
 
           <div className="mt-1 mb-2">
-            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline">
+            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline group-hover:scale-[1.03] transition-transform duration-300 origin-left">
               {report.basketSize.value}
             </div>
 
@@ -1008,7 +1008,7 @@ export function LiveOpsTab({
           </div>
 
           <div className="mt-1 mb-2">
-            <div className="text-2xl sm:text-[24px] font-black text-slate-900 dark:text-white tracking-tight font-headline">
+            <div className="text-2xl sm:text-[24px] font-black text-slate-900 dark:text-white tracking-tight font-headline group-hover:scale-[1.03] transition-transform duration-300 origin-left">
               {report.customerMix.newCount} New / {report.customerMix.retCount} Ret
             </div>
 
@@ -1081,21 +1081,21 @@ export function LiveOpsTab({
         {/* Dual Split Ratio Progress Bars (DEEN Selects vs DEEN Regular) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Revenue Split Bar */}
-          <div className="space-y-1.5 px-0.5">
+          <div className="space-y-1.5 px-0.5 group cursor-pointer">
             <div className="flex justify-between items-center text-[11px]">
-              <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
+              <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1 group-hover:scale-105 transition-transform duration-200 origin-left">
                 <span>💎 Selects:</span>
                 <strong>৳ {report.selectsStats.selectsRevenue.toLocaleString()}</strong>
                 <span className="text-slate-500 dark:text-slate-400 font-normal">({report.selectsStats.selectsQty} pcs · {report.selectsStats.selectsRevShare}%)</span>
               </span>
-              <span className="text-blue-700 dark:text-blue-400 font-bold flex items-center gap-1">
+              <span className="text-blue-700 dark:text-blue-400 font-bold flex items-center gap-1 group-hover:scale-105 transition-transform duration-200 origin-right">
                 <span className="text-slate-500 dark:text-slate-400 font-normal">({report.selectsStats.regularRevShare}% · {report.selectsStats.regularQty} pcs)</span>
                 <strong>৳ {report.selectsStats.regularRevenue.toLocaleString()}</strong>
                 <span>📦 Regular</span>
               </span>
             </div>
             {/* Visual Dual Progress Bar */}
-            <div className="w-full bg-slate-200 dark:bg-[#1F1F1F] rounded-full h-1.5 overflow-hidden flex">
+            <div className="w-full bg-slate-200 dark:bg-[#1F1F1F] rounded-full h-1.5 hover:h-2 transition-all duration-300 overflow-hidden flex cursor-pointer">
               <div
                 className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
                 style={{ width: `${report.selectsStats.selectsRevShare}%` }}
@@ -1110,21 +1110,21 @@ export function LiveOpsTab({
           </div>
 
           {/* Volume Split Bar */}
-          <div className="space-y-1.5 px-0.5">
+          <div className="space-y-1.5 px-0.5 group cursor-pointer">
             <div className="flex justify-between items-center text-[11px]">
-              <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
+              <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1 group-hover:scale-105 transition-transform duration-200 origin-left">
                 <span>💎 Selects:</span>
                 <strong>{report.selectsStats.selectsQty} pcs</strong>
                 <span className="text-slate-500 dark:text-slate-400 font-normal">({report.selectsStats.selectsQtyShare}% · ৳{report.selectsStats.selectsRevenue.toLocaleString()})</span>
               </span>
-              <span className="text-blue-700 dark:text-blue-400 font-bold flex items-center gap-1">
+              <span className="text-blue-700 dark:text-blue-400 font-bold flex items-center gap-1 group-hover:scale-105 transition-transform duration-200 origin-right">
                 <span className="text-slate-500 dark:text-slate-400 font-normal">(৳{report.selectsStats.regularRevenue.toLocaleString()} · {report.selectsStats.regularQtyShare}%)</span>
                 <strong>{report.selectsStats.regularQty} pcs</strong>
                 <span>📦 Regular</span>
               </span>
             </div>
             {/* Visual Dual Progress Bar */}
-            <div className="w-full bg-slate-200 dark:bg-[#1F1F1F] rounded-full h-1.5 overflow-hidden flex">
+            <div className="w-full bg-slate-200 dark:bg-[#1F1F1F] rounded-full h-1.5 hover:h-2 transition-all duration-300 overflow-hidden flex cursor-pointer">
               <div
                 className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
                 style={{ width: `${report.selectsStats.selectsQtyShare}%` }}

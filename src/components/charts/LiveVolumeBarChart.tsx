@@ -233,7 +233,12 @@ export function LiveVolumeBarChart({
                     rx={selVol > 0 ? 0 : 3}
                     fill={barFillColor}
                     opacity={isDimmed ? 0.35 : (isHovered || isSelected ? 1 : 0.95)}
-                    filter={isHovered || isSelected ? 'brightness(1.1) drop-shadow(0 2px 6px rgba(0,0,0,0.2))' : undefined}
+                    filter={isHovered || isSelected ? 'brightness(1.12) drop-shadow(0 4px 8px rgba(0,0,0,0.25))' : undefined}
+                    style={{
+                      transformOrigin: `${x + barWidth / 2}px ${bottomY}px`,
+                      transform: isHovered || isSelected ? 'scaleX(1.06) scaleY(1.02)' : 'scale(1)',
+                      transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
+                    }}
                   />
                 )}
 
@@ -247,84 +252,151 @@ export function LiveVolumeBarChart({
                     rx={3}
                     fill="#facc15"
                     opacity={isDimmed ? 0.35 : (isHovered || isSelected ? 1 : 0.95)}
-                    filter={isHovered || isSelected ? 'brightness(1.1) drop-shadow(0 2px 6px rgba(0,0,0,0.2))' : undefined}
+                    filter={isHovered || isSelected ? 'brightness(1.12) drop-shadow(0 4px 8px rgba(0,0,0,0.25))' : undefined}
+                    style={{
+                      transformOrigin: `${x + barWidth / 2}px ${bottomY}px`,
+                      transform: isHovered || isSelected ? 'scaleX(1.06) scaleY(1.02)' : 'scale(1)',
+                      transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
+                    }}
                   />
                 )}
 
-                {/* Inner text for Selects segment (e.g. '3' in yellow segment) */}
+                {/* Overhead Floating Volume Pill Badge (Smoothly appears on hover) */}
+                <g
+                  pointerEvents="none"
+                  style={{
+                    transformOrigin: `${x + barWidth / 2}px ${Math.min(selY, regY) - 10}px`,
+                    transform: isHovered ? 'scale(1) translateY(0)' : 'scale(0.7) translateY(6px)',
+                    opacity: isHovered ? 1 : 0,
+                    transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
+                >
+                  <rect
+                    x={x + barWidth / 2 - 20}
+                    y={Math.min(selY, regY) - 22}
+                    width={40}
+                    height={18}
+                    rx={6}
+                    className="fill-slate-900 dark:fill-white shadow-lg"
+                  />
+                  <text
+                    x={x + barWidth / 2}
+                    y={Math.min(selY, regY) - 13}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize="10.5"
+                    fontWeight="900"
+                    className="fill-white dark:fill-slate-900 font-headline"
+                  >
+                    {totalVol} un
+                  </text>
+                </g>
+
+                {/* Inner text for Selects segment (Smoothly enlarges on hover) */}
                 {selVol > 0 && (
                   <text
                     x={x + barWidth / 2}
                     y={selY + selHeight / 2}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize="9.5"
-                    fontWeight="bold"
+                    fontSize={isHovered ? "12" : "9.5"}
+                    fontWeight="900"
                     fill="#713f12"
+                    pointerEvents="none"
+                    style={{
+                      transformOrigin: `${x + barWidth / 2}px ${selY + selHeight / 2}px`,
+                      transform: isHovered ? 'scale(1.22)' : 'scale(1)',
+                      transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), font-size 0.2s ease',
+                    }}
                   >
                     {selVol}
                   </text>
                 )}
 
-                {/* Inner text for Regular segment (e.g. '11' in red segment, or '5', '4', '3', '2', '1') */}
+                {/* Inner text for Regular segment (Smoothly enlarges on hover) */}
                 {regVol > 0 && (
                   <text
                     x={x + barWidth / 2}
                     y={regY + regHeight / 2}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize="9.5"
-                    fontWeight="bold"
+                    fontSize={isHovered ? "12" : "9.5"}
+                    fontWeight="900"
                     fill="#ffffff"
+                    pointerEvents="none"
+                    className="drop-shadow-sm"
+                    style={{
+                      transformOrigin: `${x + barWidth / 2}px ${regY + regHeight / 2}px`,
+                      transform: isHovered ? 'scale(1.22)' : 'scale(1)',
+                      transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), font-size 0.2s ease',
+                    }}
                   >
                     {regVol}
                   </text>
                 )}
 
-                {/* X-axis Category Label (Rotated -45 degrees) */}
-                <text
-                  x={x + barWidth / 2}
-                  y={bottomY + 12}
-                  textAnchor="end"
-                  dominantBaseline="central"
-                  fontSize="10"
-                  fontWeight={isHovered ? '900' : 'bold'}
-                  fill="currentColor"
-                  className={`${isHovered ? 'fill-slate-900 text-slate-900 font-black' : 'fill-slate-600 text-slate-600 font-bold'} dark:fill-white dark:text-white transition-colors`}
-                  transform={`rotate(-45, ${x + barWidth / 2}, ${bottomY + 12})`}
+                {/* X-axis Category Label with Smooth Hover Scaling */}
+                <g
+                  pointerEvents="none"
+                  style={{
+                    transformOrigin: `${x + barWidth / 2}px ${bottomY + 12}px`,
+                    transform: `rotate(-45deg) scale(${isHovered ? 1.25 : 1})`,
+                    transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
                 >
-                  {xLabel}
-                </text>
+                  <text
+                    x={x + barWidth / 2}
+                    y={bottomY + 12}
+                    textAnchor="end"
+                    dominantBaseline="central"
+                    fontSize={isHovered ? "11.5" : "10"}
+                    fontWeight={isHovered ? '900' : 'bold'}
+                    fill="currentColor"
+                    className={`${
+                      isHovered
+                        ? 'fill-blue-600 text-blue-600 dark:fill-sky-400 dark:text-sky-400 font-black'
+                        : 'fill-slate-600 text-slate-600 font-bold'
+                    } dark:fill-white dark:text-white transition-colors duration-200`}
+                  >
+                    {xLabel}
+                  </text>
+                </g>
               </g>
             );
           })}
         </svg>
 
-        {/* Floating Tooltip */}
+        {/* Floating Tooltip - Elevated with larger typography and smooth transitions */}
         {active && (
           <div
-            className="absolute z-20 pointer-events-none bg-slate-900/95 text-white px-3 py-2 rounded-xl text-[11px] shadow-xl border border-slate-700/50 backdrop-blur-xs min-w-[150px] transition-all animate-in fade-in zoom-in-95 duration-150"
+            className="absolute z-20 pointer-events-none bg-slate-950/95 dark:bg-black/95 text-white px-3.5 py-2.5 rounded-2xl text-xs shadow-2xl border border-slate-700/60 dark:border-[#333333] backdrop-blur-md min-w-[170px] transition-all duration-200 ease-out animate-in fade-in zoom-in-95"
             style={{
               top: '12px',
               right: '12px',
             }}
           >
-            <div className="font-bold text-white flex items-center justify-between gap-2 border-b border-slate-800 pb-1 mb-1">
-              <span>{/^Denim\s+Jacket$/i.test((active.displayName || active.name).trim()) ? 'Jacket' : (/^Twill(\s+Five\s+Pockets?|5\s*Pockets?)?$/i.test((active.displayName || active.name).trim()) ? 'Twill' : (active.displayName || active.name))}</span>
-              <span className="text-amber-400 font-black">{active.volume} units</span>
+            <div className="font-headline font-black text-white text-xs sm:text-sm flex items-center justify-between gap-2 border-b border-slate-800 pb-1.5 mb-1.5">
+              <span>
+                {/^Denim\s+Jacket$/i.test((active.displayName || active.name).trim())
+                  ? 'Jacket'
+                  : (/^Twill(\s+Five\s+Pockets?|5\s*Pockets?)?$/i.test((active.displayName || active.name).trim())
+                    ? 'Twill'
+                    : (active.displayName || active.name))}
+              </span>
+              <span className="text-amber-400 font-black text-sm">{active.volume} units</span>
             </div>
-            <div className="space-y-0.5 text-slate-300">
-              <div className="flex justify-between">
-                <span>📦 Total Sold:</span>
-                <span className="font-bold text-sky-300">{active.volume} units</span>
+            <div className="space-y-1 text-slate-300 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">📦 Total Sold:</span>
+                <span className="font-black text-sky-400 text-xs sm:text-sm">{active.volume} units</span>
               </div>
-              <div className="flex justify-between">
-                <span>💎 Selects:</span>
-                <span className="font-semibold text-emerald-400">{active.selectsVolume} units</span>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">💎 Selects:</span>
+                <span className="font-bold text-emerald-400 text-xs sm:text-sm">{active.selectsVolume} units</span>
               </div>
-              <div className="flex justify-between">
-                <span>📦 Regular:</span>
-                <span className="font-semibold text-blue-300">{active.regularVolume} units</span>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">📦 Regular:</span>
+                <span className="font-semibold text-blue-300 text-xs">{active.regularVolume} units</span>
               </div>
             </div>
           </div>

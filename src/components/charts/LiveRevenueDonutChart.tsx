@@ -193,11 +193,11 @@ export function LiveRevenueDonutChart({
                 fill={sp.fillColor}
                 stroke="currentColor"
                 strokeWidth={isSelected ? '4' : '3'}
-                className="cursor-pointer transition-all duration-300 stroke-white dark:stroke-black text-white dark:text-black"
+                className="cursor-pointer transition-all duration-300 ease-out stroke-white dark:stroke-black text-white dark:text-black"
                 style={{
                   transformOrigin: '140px 140px',
-                  transform: sp.isHovered || isSelected ? 'scale(1.035)' : 'scale(1)',
-                  filter: sp.isHovered || isSelected ? 'brightness(1.1) drop-shadow(0 4px 8px rgba(0,0,0,0.25))' : 'none',
+                  transform: sp.isHovered || isSelected ? 'scale(1.045)' : 'scale(1)',
+                  filter: sp.isHovered || isSelected ? 'brightness(1.12) drop-shadow(0 6px 12px rgba(0,0,0,0.3))' : 'none',
                   opacity: isDimmed ? 0.35 : 1,
                 }}
                 onClick={() => onSelectCategory && onSelectCategory(sp.slice.name)}
@@ -207,7 +207,7 @@ export function LiveRevenueDonutChart({
             );
           })}
 
-          {/* Slices labels (Name and percentage inside slice) */}
+          {/* Slices labels (Name and percentage inside slice) with smooth hover scaling */}
           {slicePaths.map((sp) => {
             if (sp.sharePercent < 1.8) return null;
             const isSmall = sp.sharePercent < 5; // e.g. Jacket (4%), Trousers (2%)
@@ -223,21 +223,27 @@ export function LiveRevenueDonutChart({
             const angleDeg = (sp.midAngle * 180) / Math.PI;
 
             if (isSmall) {
+              const hoverScale = sp.isHovered ? 1.35 : 1;
               return (
                 <g
                   key={`donut-label-${sp.idx}-${sp.slice.name}`}
                   pointerEvents="none"
-                  transform={`rotate(${angleDeg}, ${sp.lx}, ${sp.ly})`}
+                  style={{
+                    transformOrigin: `${sp.lx}px ${sp.ly}px`,
+                    transform: `rotate(${angleDeg}deg) scale(${hoverScale})`,
+                    transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
+                    opacity: selectedCategory && selectedCategory !== 'ALL' && !sp.isHovered ? 0.35 : 1,
+                  }}
                 >
                   <text
                     x={sp.lx}
                     y={sp.ly}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize="7"
-                    fontWeight="bold"
+                    fontSize={sp.isHovered ? "8.5" : "7"}
+                    fontWeight="900"
                     fill="#ffffff"
-                    className="drop-shadow-sm font-sans"
+                    className="drop-shadow-md font-sans transition-all duration-200"
                   >
                     {sliceLabel} {Math.round(sp.sharePercent)}%
                   </text>
@@ -245,32 +251,39 @@ export function LiveRevenueDonutChart({
               );
             }
 
+            const hoverScale = sp.isHovered ? 1.25 : 1;
             return (
               <g
                 key={`donut-label-${sp.idx}-${sp.slice.name}`}
                 pointerEvents="none"
+                style={{
+                  transformOrigin: `${sp.lx}px ${sp.ly}px`,
+                  transform: `scale(${hoverScale})`,
+                  transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
+                  opacity: selectedCategory && selectedCategory !== 'ALL' && !sp.isHovered ? 0.35 : 1,
+                }}
               >
                 <text
                   x={sp.lx}
                   y={sp.ly - 5}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize="9.5"
+                  fontSize={sp.isHovered ? "11.5" : "9.5"}
                   fontWeight="bold"
                   fill="#ffffff"
-                  className="drop-shadow-sm font-sans"
+                  className="drop-shadow-md font-sans transition-all duration-200"
                 >
                   {sliceLabel}
                 </text>
                 <text
                   x={sp.lx}
-                  y={sp.ly + 6}
+                  y={sp.ly + 7}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize="11"
-                  fontWeight="black"
+                  fontSize={sp.isHovered ? "13.5" : "11"}
+                  fontWeight="900"
                   fill="#ffffff"
-                  className="drop-shadow-sm font-sans"
+                  className="drop-shadow-md font-sans transition-all duration-200"
                 >
                   {Math.round(sp.sharePercent)}%
                 </text>
@@ -278,79 +291,147 @@ export function LiveRevenueDonutChart({
             );
           })}
 
-          {/* Center Donut Annotation (Exact replica of DEEN-OPS screenshot, enlarged for clarity) */}
-          <g pointerEvents="none">
+          {/* Center Donut Annotation (Smooth dynamic interactive feedback on hover) */}
+          <g pointerEvents="none" className="transition-all duration-300 ease-out">
             <circle
               cx="140"
               cy="140"
               r="66"
               fill="currentColor"
-              className="fill-white dark:fill-black text-white dark:text-black transition-colors"
+              className="fill-white dark:fill-black text-white dark:text-black transition-colors duration-300"
             />
-            <text
-              x="140"
-              y="124"
-              textAnchor="middle"
-              dominantBaseline="central"
-              fontSize="19"
-              fontWeight="900"
-              fill="currentColor"
-              className="font-headline tracking-tight fill-slate-900 dark:fill-white text-slate-900 dark:text-white transition-colors"
-            >
-              ৳ {effectiveRevenue.toLocaleString()}
-            </text>
-            <text
-              x="140"
-              y="143"
-              textAnchor="middle"
-              dominantBaseline="central"
-              fontSize="8"
-              fontWeight="bold"
-              letterSpacing="0.8"
-              fill="currentColor"
-              className="fill-slate-500 dark:fill-white text-slate-500 dark:text-white transition-colors"
-            >
-              TOTAL REVENUE
-            </text>
-            <text
-              x="140"
-              y="160"
-              textAnchor="middle"
-              dominantBaseline="central"
-              fontSize="9.5"
-              fontWeight="bold"
-              fill="currentColor"
-              className="fill-teal-700 dark:fill-white text-teal-700 dark:text-white transition-colors"
-            >
-              💎 {effectiveSelectsShare}% Selects
-            </text>
+            {active ? (
+              <g
+                key={`center-active-${active.name}`}
+                style={{
+                  transformOrigin: '140px 140px',
+                  transform: 'scale(1.04)',
+                  transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                }}
+              >
+                <text
+                  x="140"
+                  y="120"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize="22"
+                  fontWeight="900"
+                  fill="currentColor"
+                  className="font-headline tracking-tight fill-slate-900 dark:fill-white transition-all duration-200"
+                >
+                  ৳ {active.revenue.toLocaleString()}
+                </text>
+                <text
+                  x="140"
+                  y="142"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize="11"
+                  fontWeight="900"
+                  letterSpacing="0.8"
+                  fill={CANONICAL_SLICE_COLORS[active.displayName] || CANONICAL_SLICE_COLORS[active.name] || '#f43f5e'}
+                  className="font-headline uppercase transition-colors duration-200"
+                >
+                  {/^Denim\s+Jacket$/i.test((active.displayName || active.name).trim())
+                    ? 'Jacket'
+                    : (/^Twill(\s+Five\s+Pockets?|5\s*Pockets?)?$/i.test((active.displayName || active.name).trim())
+                      ? 'Twill'
+                      : (active.displayName || active.name))}
+                </text>
+                <text
+                  x="140"
+                  y="160"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize="10"
+                  fontWeight="bold"
+                  fill="currentColor"
+                  className="fill-slate-600 dark:fill-slate-300 transition-colors duration-200"
+                >
+                  {active.revenueShare}% Share • {active.volume} pcs
+                </text>
+              </g>
+            ) : (
+              <g
+                key="center-default"
+                style={{
+                  transformOrigin: '140px 140px',
+                  transform: 'scale(1)',
+                  transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                }}
+              >
+                <text
+                  x="140"
+                  y="124"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize="20"
+                  fontWeight="900"
+                  fill="currentColor"
+                  className="font-headline tracking-tight fill-slate-900 dark:fill-white text-slate-900 dark:text-white transition-colors duration-200"
+                >
+                  ৳ {effectiveRevenue.toLocaleString()}
+                </text>
+                <text
+                  x="140"
+                  y="143"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize="8.5"
+                  fontWeight="bold"
+                  letterSpacing="0.8"
+                  fill="currentColor"
+                  className="fill-slate-500 dark:fill-white text-slate-500 dark:text-white transition-colors duration-200"
+                >
+                  TOTAL REVENUE
+                </text>
+                <text
+                  x="140"
+                  y="160"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize="9.5"
+                  fontWeight="bold"
+                  fill="currentColor"
+                  className="fill-teal-700 dark:fill-white text-teal-700 dark:text-white transition-colors duration-200"
+                >
+                  💎 {effectiveSelectsShare}% Selects
+                </text>
+              </g>
+            )}
           </g>
         </svg>
 
-        {/* Floating Tooltip */}
+        {/* Floating Tooltip - Elevated with larger typography and smooth transitions */}
         {active && (
           <div
-            className="absolute z-20 pointer-events-none bg-slate-900/95 text-white px-3 py-2 rounded-xl text-[11px] shadow-xl border border-slate-700/50 backdrop-blur-xs min-w-[150px] transition-all animate-in fade-in zoom-in-95 duration-150"
+            className="absolute z-20 pointer-events-none bg-slate-950/95 dark:bg-black/95 text-white px-3.5 py-2.5 rounded-2xl text-xs shadow-2xl border border-slate-700/60 dark:border-[#333333] backdrop-blur-md min-w-[170px] transition-all duration-200 ease-out animate-in fade-in zoom-in-95"
             style={{
-              bottom: '4px',
+              bottom: '6px',
             }}
           >
-            <div className="font-bold text-white flex items-center justify-between gap-2 border-b border-slate-800 pb-1 mb-1">
-              <span>{/^Denim\s+Jacket$/i.test((active.displayName || active.name).trim()) ? 'Jacket' : (/^Twill(\s+Five\s+Pockets?|5\s*Pockets?)?$/i.test((active.displayName || active.name).trim()) ? 'Twill' : (active.displayName || active.name))}</span>
-              <span className="text-amber-400 font-black">{active.revenueShare}%</span>
+            <div className="font-headline font-black text-white text-xs sm:text-sm flex items-center justify-between gap-2 border-b border-slate-800 pb-1.5 mb-1.5">
+              <span>
+                {/^Denim\s+Jacket$/i.test((active.displayName || active.name).trim())
+                  ? 'Jacket'
+                  : (/^Twill(\s+Five\s+Pockets?|5\s*Pockets?)?$/i.test((active.displayName || active.name).trim())
+                    ? 'Twill'
+                    : (active.displayName || active.name))}
+              </span>
+              <span className="text-amber-400 font-black text-sm">{active.revenueShare}%</span>
             </div>
-            <div className="space-y-0.5 text-slate-300">
-              <div className="flex justify-between">
-                <span>💰 Revenue:</span>
-                <span className="font-bold text-emerald-400">৳ {active.revenue.toLocaleString()}</span>
+            <div className="space-y-1 text-slate-300 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">💰 Revenue:</span>
+                <span className="font-black text-emerald-400 text-xs sm:text-sm">৳ {active.revenue.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between">
-                <span>📦 Volume:</span>
-                <span className="font-bold text-sky-300">{active.volume} units</span>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">📦 Volume:</span>
+                <span className="font-bold text-sky-300 text-xs sm:text-sm">{active.volume} units</span>
               </div>
-              <div className="flex justify-between">
-                <span>🏷️ Avg Price:</span>
-                <span className="font-medium text-slate-200">৳ {active.avgUnitPrice.toLocaleString()}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">🏷️ Avg Price:</span>
+                <span className="font-medium text-slate-200 text-xs">৳ {active.avgUnitPrice.toLocaleString()}</span>
               </div>
             </div>
           </div>
