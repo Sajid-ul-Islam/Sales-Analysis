@@ -53,7 +53,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
   describe('Category and Sub-Category Engine', () => {
     it('maps items to canonical DEEN categories', () => {
       expect(getCategoryForSales('Slim Fit Stretch Jeans')).toBe('Jeans');
-      expect(getCategoryForSales('Mens Twill Five Pocket Pant')).toBe('Twill Five Pockets');
+      expect(getCategoryForSales('Mens Twill Five Pocket Pant')).toBe('Twill');
       expect(getCategoryForSales('Classic Polo Shirt Navy')).toBe('Polo');
       expect(getCategoryForSales('Heavyweight Winter Hoodie')).toBe('Hoodie');
       expect(getCategoryForSales('Casual Full Sleeve Shirt')).toBe('FS Shirt');
@@ -68,7 +68,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
 
     it('extracts short concise category labels for charts', () => {
       expect(getShortCategoryLabel('Denim Jacket Winter Edition')).toBe('Denim Jacket');
-      expect(getShortCategoryLabel('Twill Five Pockets Casual')).toBe('Twill Five Pockets');
+      expect(getShortCategoryLabel('Twill Five Pockets Casual')).toBe('Twill');
       expect(getShortCategoryLabel('FS Shirt - Formal Executive')).toBe('Formal');
     });
   });
@@ -647,7 +647,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       // 4. Slices contain real data, never falling back to dummy data
       expect(reportWed.categoryItems.length).toBe(2);
       expect(reportWed.categoryItems.map((c) => c.name)).toContain('Jacket');
-      expect(reportWed.categoryItems.map((c) => c.name)).toContain('Twill Five Pockets');
+      expect(reportWed.categoryItems.map((c) => c.name)).toContain('Twill');
     });
 
     it('keeps 7-day dispatch history strip stable when inspecting past dates', () => {

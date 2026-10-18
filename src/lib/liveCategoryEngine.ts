@@ -40,8 +40,7 @@ export function getShortCategoryLabel(name: string): string {
   if (lower.includes('denim shirt')) return 'Denim Shirt';
   if (lower.includes('denim')) return 'Denim';
   if (lower.includes('flannel')) return 'Flannel';
-  if (lower.includes('five pocket') || lower.includes('5 pocket') || lower.includes('5-pocket')) return 'Twill Five Pockets';
-  if (lower.includes('twill')) return 'Twill';
+  if (lower.includes('five pocket') || lower.includes('5 pocket') || lower.includes('5-pocket') || lower.includes('twill')) return 'Twill';
   if (lower.includes('casual')) return 'Casual';
   if (lower.includes('corduroy')) return 'Corduroy';
   if (lower.includes('cuban')) return 'Cuban';
@@ -112,8 +111,7 @@ export function getCategoryForSales(name?: string | null): string {
     return 'HS Shirt';
   }
 
-  if (hasAny(['five pocket', '5 pocket', '5-pocket'], nameStr)) return 'Twill Five Pockets';
-  if (nameStr.includes('twill') || nameStr.includes('chino')) return 'Twill';
+  if (hasAny(['five pocket', '5 pocket', '5-pocket', 'twill', 'chino'], nameStr)) return 'Twill';
   if (nameStr.includes('cargo')) return 'Cargo';
   if (hasAny(['trousers', 'trouser', 'jogger', 'pants', 'gabardine'], nameStr)) return 'Trousers';
   if (nameStr.includes('boxer')) return 'Boxer';

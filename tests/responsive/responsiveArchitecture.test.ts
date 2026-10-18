@@ -143,11 +143,10 @@ describe('DEEN Commerce Responsive Architecture Test Suite (Tiers 1 - 4)', () =>
         expect(sidebarContent).toContain('animate-pulse');
       });
 
-      it('F4.3: verifies Operations Hub workspace subheader pill indicating source mode', () => {
+      it('F4.3: verifies streamlined sidebar header with brand logo and clean navigation', () => {
         const sidebarContent = readProjectFile('src/components/Sidebar.tsx');
-        expect(sidebarContent).toContain('Operations Hub');
-        expect(sidebarContent).toContain('Cloud API');
-        expect(sidebarContent).toContain('Excel Files');
+        expect(sidebarContent).toContain('DeenLogo');
+        expect(sidebarContent).not.toContain('Operations Hub');
       });
 
       it('F4.4: verifies active module navigation styling contract', () => {

@@ -76,7 +76,7 @@ export const DEFAULT_DEEN_OPS_CATEGORY_ITEMS: LiveCategoryItem[] = [
     color: '#f43f5e',
   },
   {
-    name: 'Twill Five Pockets',
+    name: 'Twill',
     displayName: 'Twill',
     revenue: 6058,
     volume: 5,

@@ -50,16 +50,13 @@ const CANONICAL_SLICE_COLORS: Record<string, string> = {
   'Polo': '#6366f1',
   'Twill Five Pockets': '#f97316',
   '5-Pocket Twill': '#f97316',
-  'Twill': '#ea580c',
+  'Twill': '#f97316',
   'Wallet': '#d97706',
 };
 
 function formatShortCategoryName(name: string): string {
   const trimmed = name.trim();
-  if (/^Twill\s+(Five\s+Pockets?|5\s*Pockets?)$/i.test(trimmed) || /^5\s*Pockets?$/i.test(trimmed)) {
-    return '5-Pocket Twill';
-  }
-  if (/^Twill$/i.test(trimmed)) {
+  if (/^Twill(\s+(Five\s+Pockets?|5\s*Pockets?))?$/i.test(trimmed) || /^5\s*Pockets?$/i.test(trimmed)) {
     return 'Twill';
   }
   if (/^Denim\s+Jacket$/i.test(trimmed) || trimmed === 'Jacket') {

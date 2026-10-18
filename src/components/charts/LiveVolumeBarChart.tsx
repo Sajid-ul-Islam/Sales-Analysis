@@ -90,7 +90,7 @@ export function LiveVolumeBarChart({
     'Jeans': '#f43f5e',
     'Twill Five Pockets': '#f97316',
     '5-Pocket Twill': '#f97316',
-    'Twill': '#ea580c',
+    'Twill': '#f97316',
     'T-Shirt': '#e11d48',
     'Casual': '#a855f7',
     'Polo': '#60a5fa',
@@ -195,12 +195,10 @@ export function LiveVolumeBarChart({
 
             const isHovered = hoveredIdx === idx;
 
-            // X-axis label: Shorten "Twill Five Pockets" to "5-Pocket Twill", and show strictly "Jacket" (never "Denim Jacket")
+            // X-axis label: Unify all Twill categories to strictly "Twill", and show strictly "Jacket" (never "Denim Jacket")
             const rawLabel = item.displayName || item.name;
             let xLabel = rawLabel;
-            if (/^Twill\s+(Five\s+Pockets?|5\s*Pockets?)$/i.test(rawLabel.trim()) || /^5\s*Pockets?$/i.test(rawLabel.trim())) {
-              xLabel = '5-Pocket Twill';
-            } else if (/^Twill$/i.test(rawLabel.trim())) {
+            if (/^Twill(\s+(Five\s+Pockets?|5\s*Pockets?))?$/i.test(rawLabel.trim()) || /^5\s*Pockets?$/i.test(rawLabel.trim())) {
               xLabel = 'Twill';
             } else if (/^Denim\s+Jacket$/i.test(rawLabel.trim()) || rawLabel.trim() === 'Jacket') {
               xLabel = 'Jacket';
