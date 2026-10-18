@@ -34,15 +34,16 @@ Refer to detailed rules in [.agents/rules/order_rules.md](file:///c:/Users/deenb
 * **Partial**: Multi-item orders with a mix of statuses (some accepted, some returned, or exchanged).
   * **Price & Delivery Charge Accounting**: The delivered/collected price may include a 50 TK or 90 TK delivery charge; the remainder is the price of received/kept items, and the leftover price is the price of returned items.
   * **Integer Rule**: Returned items quantity **cannot be a float (0.5 is strictly forbidden)**; it must always be an **integer value (1, 2, 3...)**.
-* **Exchanged**: Indicated by prefixes such as `D-17263` or `DD-17263`.
+* **Exchanged**: Indicated by prefixes such as `D-17263` or `DD-17263`, replacement notes, or non-checkout orders (`created_via: "admin"` / `"manual"` / `"no-checkout"`). In DEEN operations, non-checkout orders represent customer size/item exchange replacements created manually by store staff, and are strictly isolated from new commercial sales and processing queue counts.
 
-### 4. Excel Export Status Columns
+### 4. Excel Export Status Columns & Isolation
 * **Order Delivery Status**: Overall order status (`Delivered`, `Paid Return`, `Not Paid Return`, `Exchange`, `Partial`). Every item in the order gets this identical value.
 * **Item Delivery Status**: Item-specific status:
   * If order is **Delivered** -> `Delivered`
   * If order is **Paid Return** or **Not Paid Return** -> `Returned`
   * If order is **Partial** -> `Delivered` (kept item) or `Returned` (returned item)
   * If order is **Exchange** -> `Exchange`
+* **Commercial Export Isolation**: Shipped orders Excel export strictly excludes POS outlet orders and manual non-checkout exchange replacements from the commercial sales sheet (`Shipped Orders (Online)`). Replacements are cleanly isolated on `Exchanges & Non-Checkout`.
 
 ### 5. Unbreakable CSS & Styling Standards
 * **Compiled Zero-CDN PostCSS Architecture**: Production CSS is compiled ahead-of-time through Next.js PostCSS (`postcss.config.js` and `postcss.config.mjs`) with zero runtime CDN scripts, eliminating render-blocking network requests and layout shifts.

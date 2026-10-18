@@ -391,6 +391,42 @@ export function isOrderExchange(order: RawOrderRow): boolean {
     return true;
   }
 
+  // 5. No-Checkout / Non-Checkout Orders (Manual admin creation in WooCommerce for customer exchanges)
+  if (o.isNoCheckout === true || o.isNonCheckout === true) return true;
+
+  const createdVia = String(order['Created Via'] || o.created_via || o.createdVia || o.created_source || '').toLowerCase().trim();
+  if (
+    createdVia === 'admin' ||
+    createdVia === 'manual' ||
+    createdVia === 'no-checkout' ||
+    createdVia === 'no_checkout' ||
+    createdVia === 'non-checkout' ||
+    createdVia === 'non_checkout' ||
+    (Boolean(createdVia) && createdVia !== 'checkout' && createdVia !== 'store-api' && createdVia !== 'pos')
+  ) {
+    return true;
+  }
+
+  const paymentMethod = String(order['Payment Method'] || o.paymentMethod || o.payment_method || '').toLowerCase();
+  if (
+    paymentMethod.includes('no-checkout') ||
+    paymentMethod.includes('no_checkout') ||
+    paymentMethod.includes('no checkout') ||
+    paymentMethod.includes('non-checkout')
+  ) {
+    return true;
+  }
+
+  if (
+    combinedNotes.includes('no checkout') ||
+    combinedNotes.includes('no-checkout') ||
+    combinedNotes.includes('non-checkout') ||
+    combinedNotes.includes('non checkout') ||
+    combinedNotes.includes('without checkout')
+  ) {
+    return true;
+  }
+
   return false;
 }
 
@@ -437,11 +473,23 @@ export function extractExchangeInfo(order: RawOrderRow): ExchangeInfo {
     };
   }
 
+  const createdVia = String(order['Created Via'] || o.created_via || o.createdVia || '').toLowerCase().trim();
+  const notesLower = notes.toLowerCase();
+  const isNoCheckout =
+    o.isNoCheckout === true ||
+    o.isNonCheckout === true ||
+    createdVia === 'admin' ||
+    createdVia === 'manual' ||
+    createdVia.includes('no-checkout') ||
+    notesLower.includes('no checkout') ||
+    notesLower.includes('no-checkout') ||
+    notesLower.includes('non-checkout');
+
   return {
     isExchange: true,
-    type: 'general_exchange',
+    type: 'replacement',
     referencedOrderId: null,
-    displayTag: 'Exchange',
+    displayTag: isNoCheckout ? 'Exchange (No Checkout)' : 'Exchange',
   };
 }
 
@@ -547,7 +595,7 @@ export function isOrderOnHold(order: RawOrderRow): boolean {
 }
 
 export function isOrderInQueue(order: RawOrderRow): boolean {
-  return isOrderProcessing(order) || isOrderOnHold(order);
+  return (isOrderProcessing(order) || isOrderOnHold(order)) && !isOrderExchange(order);
 }
 
 export function isOrderShippedOnDate(order: RawOrderRow, targetDateIso: string): boolean {
@@ -587,9 +635,11 @@ export function isOrderShippedToday(order: RawOrderRow, targetDateIso: string): 
 /**
  * Validates if an order belongs to "Today's Orders" view.
  * User Rule: Today's Orders = (All Today's Shipped) + (All orders with Processing status)
+ * Non-checkout exchange orders are tracked separately in Exchange Logistics.
  */
 export function isTodayOrdersEligible(order: RawOrderRow, targetDateIso: string): boolean {
   if (!isOrderOnline(order)) return false;
+  if (isOrderExchange(order)) return false;
   const o = order as Record<string, unknown>;
   const status = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
   if (CANCELLED_STATUSES.has(status)) return false;
@@ -615,7 +665,11 @@ export function isOrderOnline(order: RawOrderRow): boolean {
   const isPos = Boolean(o.isPos || o.outletId);
   const src = String(order['Order Source'] || '').toLowerCase();
   const loc = String(o.fulfillmentLocation || '').toLowerCase();
-  return !isPos && src !== 'pos' && !loc.includes('pos');
+  const branch = String(o.branchCode || o.branch || '').toUpperCase();
+  const oid = String(order['Order ID'] || o.orderId || '').trim();
+  const isMirpurSuffix = /\b\d+\s*m\b|[-_\s]m$/i.test(oid) || /\d+m$/i.test(oid);
+  const isPosCreatedVia = String(o.created_via || '').toLowerCase().includes('pos');
+  return !isPos && src !== 'pos' && !loc.includes('pos') && !branch.includes('POS') && !isMirpurSuffix && !isPosCreatedVia;
 }
 
 export interface WhatsAppMessageOptions {
@@ -812,13 +866,14 @@ export function processLiveOpsData(
     seenPipelineOrders.add(oid);
 
     const amt = getOrderRowAmount(o);
-    if (isOrderProcessing(o)) {
+    const isEx = isOrderExchange(o);
+    if (isOrderProcessing(o) && !isEx) {
       procCount++;
       procAmt += amt;
-    } else if (isOrderOnHold(o)) {
+    } else if (isOrderOnHold(o) && !isEx) {
       holdCount++;
       holdAmt += amt;
-    } else if (isOrderShippedToday(o, refDateIso) && !isOrderExchange(o)) {
+    } else if (isOrderShippedToday(o, refDateIso) && !isEx) {
       todayShippedCount++;
       todayShippedAmt += amt;
     }
@@ -837,15 +892,17 @@ export function processLiveOpsData(
 
   // 3.5 Dedicated Exchange Detection & Accounting Isolation
   // Identify exchange orders associated with the reference date:
-  // - Replacement orders shipped/created today (e.g. #18085 or D-17839)
+  // - Replacement orders shipped/created today (e.g. #18085 or D-17839 or non-checkout orders)
   // - Original orders modified on reference date with 'Exchanged' substatus (e.g. #17839)
   const isTargetDate = (order: RawOrderRow, targetIso: string) => {
     const oRec = order as Record<string, unknown>;
     const d = getStatusModificationDate(order);
     const dMod = (oRec['Date Modified'] as string) || (oRec.dateModified as string) || (oRec.date_modified as string);
+    const dOrder = (order['Order Date'] as string) || (oRec.orderDate as string);
     const dIso = d ? formatDateToIsoDay(d) : '';
     const dModIso = dMod ? formatDateToIsoDay(new Date(dMod)) : '';
-    return dIso === targetIso || dModIso === targetIso;
+    const dOrderIso = dOrder ? formatDateToIsoDay(new Date(dOrder)) : '';
+    return dIso === targetIso || dModIso === targetIso || dOrderIso === targetIso;
   };
 
   const todayExchangeCandidates = source.filter((o) => isOrderExchange(o) && isTargetDate(o, refDateIso));
@@ -1260,15 +1317,18 @@ export function processLiveOpsData(
     );
   }
 
-  // Compute last shipped order and Pathao consignment ID
-  const sortedDispatches = [...activeOrders].sort((a, b) => {
+  // Strictly isolate commercial online checkout orders for executive briefing dispatches and telemetry
+  const commercialOnlineDispatches = commercialActiveOrders.filter(isOrderOnline);
+
+  // Compute last shipped order and Pathao consignment ID strictly from commercial online orders
+  const sortedDispatches = [...commercialOnlineDispatches].sort((a, b) => {
     const da = parseOrderDate(a)?.getTime() || 0;
     const db = parseOrderDate(b)?.getTime() || 0;
     return db - da;
   });
   const lastShippedOrder = sortedDispatches[0];
   const lastShippedOid = lastShippedOrder ? String(lastShippedOrder['Order ID'] || lastShippedOrder.orderId || '') : 'N/A';
-  const orderWithConsignment = activeOrders.find((o) => {
+  const orderWithConsignment = commercialOnlineDispatches.find((o) => {
     const oRec = o as Record<string, unknown>;
     return o['Consignment ID'] || oRec.consignmentId || oRec.tracking_number;
   });
@@ -1277,12 +1337,10 @@ export function processLiveOpsData(
     ? String(rowConsignment['Consignment ID'] || rowConsignment.consignmentId || rowConsignment.tracking_number)
     : (lastShippedOid !== 'N/A' ? `#${lastShippedOid}` : 'None');
 
-  // Breakdown of Ecom vs Outlet
-  const allShippedToday = orders.filter((o) => isOrderShippedOnDate(o, refDateIso));
-  const getUniqueCount = (list: RawOrderRow[]) => new Set(list.map((o) => String(o['Order ID'] || o.orderId || ''))).size;
-  const ecomCount = getUniqueCount(allShippedToday.filter(isOrderOnline));
-  const outletCount = getUniqueCount(allShippedToday.filter((o) => !isOrderOnline(o)));
-  const totalOrdersCount = ecomCount + outletCount || activeOrdersCount;
+  // Strict Rule: POS retail store orders and non-checkout exchange orders are excluded from commercial ecom briefing
+  const ecomCount = activeOrdersCount;
+  const outletCount = 0; // Excluded from executive briefing per rule
+  const totalOrdersCount = activeOrdersCount;
 
   // Format Top 3 Products
   const top3ProductsList = topProducts
@@ -1303,10 +1361,9 @@ export function processLiveOpsData(
     `📦 *DEEN Regular:* ৳${selectsStats.regularRevenue.toLocaleString()} (${selectsStats.regularQty} pcs · ${selectsStats.regularRevShare}%)\n\n` +
     `📋 *Last Shipped Order:* ${lastShippedClean}\n` +
     `🖨️ *Last Pathao Print:* ${lastPathaoClean}\n\n` +
-    `🛒 *Total Orders:* ${totalOrdersCount}\n` +
+    `🛒 *Total Orders:* ${activeOrdersCount}\n` +
     `🔄 *Exchange:* ${exchangeStats.count}\n` +
-    `🚀 *Ecom:* ${ecomCount || activeOrdersCount}\n` +
-    `🏪 *Outlet:* ${outletCount}\n\n` +
+    `🚀 *Ecom (Checkout):* ${activeOrdersCount}\n\n` +
     `🔥 *Top Performing Products:*\n` +
     `${top3ProductsList || '• None recorded'}`;
 
@@ -1347,10 +1404,10 @@ export function processLiveOpsData(
       lastPathaoPrint: lastPathaoClean,
     },
     channelBreakdown: {
-      totalOrders: totalOrdersCount,
+      totalOrders: activeOrdersCount,
       exchangeCount: exchangeStats.count,
-      ecomCount: ecomCount || activeOrdersCount,
-      outletCount: outletCount,
+      ecomCount: activeOrdersCount,
+      outletCount: 0,
     },
     top3Products: topProducts.slice(0, 3).map((p) => ({
       name: p.productName,

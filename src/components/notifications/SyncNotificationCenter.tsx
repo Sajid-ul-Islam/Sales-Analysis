@@ -109,8 +109,8 @@ export function SyncNotificationCenter({
 
   return (
     <>
-      {/* Floating Active Toasts (Bottom Right to prevent obstructing top navigation or filters) */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col-reverse gap-2 max-w-sm w-full pointer-events-none">
+      {/* Floating Active Toasts (Bottom Left side per user specification) */}
+      <div className="fixed bottom-6 left-6 z-50 flex flex-col-reverse gap-2 max-w-sm w-full pointer-events-none">
         {toasts.map((toast) => {
           const isError = toast.type === 'error';
           const isDiscrepancy = toast.type === 'discrepancy_detected';
@@ -133,7 +133,7 @@ export function SyncNotificationCenter({
           return (
             <div
               key={toast.id}
-              className={`pointer-events-auto p-3.5 rounded-xl border shadow-lg backdrop-blur-md flex items-start gap-3 transition-all animate-slideInRight ${borderTheme}`}
+              className={`pointer-events-auto p-3.5 rounded-xl border shadow-lg backdrop-blur-md flex items-start gap-3 transition-all animate-in fade-in slide-in-from-left-4 ${borderTheme}`}
             >
               {icon}
               <div className="flex-1 min-w-0">

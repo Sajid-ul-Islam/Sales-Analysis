@@ -11,6 +11,8 @@ import {
 } from '@/lib/liveOpsProcessor';
 import { RawOrderRow } from '@/types';
 import { normalizePhone, normalizeEmail, normalizeName, normalizeCity } from '@/lib/customerRegistry';
+import * as XLSX from 'xlsx';
+import { buildLiveShippedOrdersWorkbook } from '@/lib/excelExport';
 
 describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () => {
   describe('DEEN Selects vs DEEN Regular Classification', () => {
@@ -851,6 +853,226 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       const todaySummary = report.last7DaysHistory.find((d) => d.dateIso === todayIso);
       expect(todaySummary).toBeDefined();
       expect(todaySummary?.exchangeCount).toBe(1);
+    });
+
+    it('treats non-checkout / admin orders as exchanged orders and isolates them from commercial sales & processing queues', () => {
+      const todayIso = '2026-10-17';
+      const nonCheckoutOrder: Partial<RawOrderRow> = {
+        'Order ID': '18099',
+        'Order Date': '2026-10-17T11:00:00Z',
+        'Date Modified': '2026-10-17T11:00:00Z',
+        'Customer Name': 'Manual Exchange Customer',
+        'Delivery Status': 'processing',
+        created_via: 'admin',
+        'Order Source': 'Online',
+        'Item Name': 'Vintage Denim Jacket',
+        Quantity: 1,
+        'Item Cost': 4500,
+        'Order Amount': 4500,
+      };
+
+      // 1. Must be recognized as an exchange order
+      expect(isOrderExchange(nonCheckoutOrder as RawOrderRow)).toBe(true);
+      const exInfo = extractExchangeInfo(nonCheckoutOrder as RawOrderRow);
+      expect(exInfo.isExchange).toBe(true);
+      expect(exInfo.type).toBe('replacement');
+      expect(exInfo.displayTag).toBe('Exchange (No Checkout)');
+
+      // 2. In Today's Orders / Processing queue, non-checkout orders are NOT counted in commercial active orders
+      const commercialOrder: Partial<RawOrderRow> = {
+        'Order ID': '18100',
+        'Order Date': '2026-10-17T12:00:00Z',
+        'Date Modified': '2026-10-17T12:00:00Z',
+        'Customer Name': 'Regular Checkout Customer',
+        'Delivery Status': 'processing',
+        created_via: 'checkout',
+        'Order Source': 'Online',
+        'Item Name': 'DEEN Polo Navy - L',
+        Quantity: 1,
+        'Item Cost': 1800,
+        'Order Amount': 1800,
+      };
+
+      const report = processLiveOpsData([nonCheckoutOrder, commercialOrder] as RawOrderRow[], {
+        view: "Today's Orders",
+        customDate: todayIso,
+        anchorDate: todayIso,
+      });
+
+      // Commercial sales KPIs must only reflect the genuine checkout order (18100)
+      expect(report.totalUniqueOrders).toBe(1);
+      expect(report.totalDispatchedItems).toBe(1);
+      expect(report.salesRevenue.rawValue).toBe(1800);
+
+      // Processing pipeline count must NOT include the non-checkout exchange order
+      expect(report.allOrdersBreakdown.processingCount).toBe(1);
+      expect(report.allOrdersBreakdown.totalActiveCount).toBe(1);
+      expect(report.allOrdersBreakdown.totalActiveAmount).toBe(1800);
+
+      // Exchange system captures the non-checkout replacement order
+      expect(report.exchangeStats.count).toBe(1);
+      expect(report.exchangeStats.replacementOrders[0]['Order ID']).toBe('18099');
+
+      // Table displays both commercial order and replacement exchange order
+      expect(report.activeOrders.length).toBe(2);
+    });
+
+    it('strictly excludes POS and non-checkout exchange orders from Executive Briefing metrics and telemetry', () => {
+      const todayIso = '2026-10-17';
+      const commercialOrder: Partial<RawOrderRow> = {
+        'Order ID': '18100',
+        'Order Date': '2026-10-17T10:00:00Z',
+        'Date Modified': '2026-10-17T11:00:00Z',
+        'Customer Name': 'Ecom Online Customer',
+        Phone: '01711223344',
+        'Delivery Status': 'shipped',
+        created_via: 'checkout',
+        'Order Source': 'Online',
+        'Item Name': 'DEEN Signature Polo',
+        SKU: 'POLO-01',
+        Quantity: 1,
+        'Item Cost': 2200,
+        'Order Amount': 2200,
+        'Consignment ID': 'CID-ONLINE-100',
+      };
+
+      const posOrder: Partial<RawOrderRow> = {
+        'Order ID': '18101 m',
+        'Order Date': '2026-10-17T12:00:00Z',
+        'Date Modified': '2026-10-17T12:00:00Z',
+        'Customer Name': 'Outlet Walk-in Customer',
+        Phone: '01811223344',
+        'Delivery Status': 'shipped',
+        'Order Source': 'pos',
+        fulfillmentLocation: 'Mirpur Outlet POS',
+        isPos: true,
+        'Item Name': 'DEEN Jeans',
+        SKU: 'J-01',
+        Quantity: 1,
+        'Item Cost': 3000,
+        'Order Amount': 3000,
+      };
+
+      const nonCheckoutOrder: Partial<RawOrderRow> = {
+        'Order ID': '18099',
+        'Order Date': '2026-10-17T09:00:00Z',
+        'Date Modified': '2026-10-17T09:00:00Z',
+        'Customer Name': 'Exchange Replacement Customer',
+        Phone: '01911223344',
+        'Delivery Status': 'shipped',
+        created_via: 'admin',
+        'Order Source': 'Online',
+        'Item Name': 'DEEN Twill Pant',
+        SKU: 'TW-01',
+        Quantity: 1,
+        'Item Cost': 2500,
+        'Order Amount': 2500,
+      };
+
+      const report = processLiveOpsData(
+        [commercialOrder, posOrder, nonCheckoutOrder] as RawOrderRow[],
+        {
+          view: 'Today Shipped',
+          customDate: todayIso,
+          anchorDate: todayIso,
+        }
+      );
+
+      const briefing = report.executiveBriefing;
+      // 1. Total commercial orders & volume must ONLY reflect genuine online checkout order (18100)
+      expect(briefing.totalOrders).toBe(1);
+      expect(briefing.totalItems).toBe(1);
+      expect(briefing.totalRevenue).toBe(2200);
+
+      // 2. Channel split must show 1 ecom, 0 outlet, 1 exchange
+      expect(briefing.channelBreakdown.totalOrders).toBe(1);
+      expect(briefing.channelBreakdown.ecomCount).toBe(1);
+      expect(briefing.channelBreakdown.outletCount).toBe(0);
+      expect(briefing.channelBreakdown.exchangeCount).toBe(1);
+
+      // 3. Telemetry must be derived strictly from the commercial online order
+      expect(briefing.fulfillment.lastShippedOrder).toBe('18100');
+      expect(briefing.fulfillment.lastPathaoPrint).toBe('CID-ONLINE-100');
+
+      // 4. Clipboard text formatting must omit POS outlet and label Ecom as Checkout
+      expect(briefing.clipboardText).toContain('🛒 *Total Orders:* 1');
+      expect(briefing.clipboardText).toContain('🔄 *Exchange:* 1');
+      expect(briefing.clipboardText).toContain('🚀 *Ecom (Checkout):* 1');
+      expect(briefing.clipboardText).not.toContain('🏪 *Outlet:*');
+    });
+
+    it('strictly excludes POS and non-checkout exchange orders from commercial Excel export sheet', () => {
+      const todayIso = '2026-10-17';
+      const commercialOrder: Partial<RawOrderRow> = {
+        'Order ID': '18100',
+        'Order Date': '2026-10-17T10:00:00Z',
+        'Customer Name': 'Ecom Online Customer',
+        Phone: '01711223344',
+        'Delivery Status': 'shipped',
+        created_via: 'checkout',
+        'Order Source': 'Online',
+        'Item Name': 'DEEN Signature Polo',
+        SKU: 'POLO-01',
+        Quantity: 1,
+        'Item Cost': 2200,
+        'Order Amount': 2200,
+      };
+
+      const posOrder: Partial<RawOrderRow> = {
+        'Order ID': '18101 m',
+        'Order Date': '2026-10-17T12:00:00Z',
+        'Customer Name': 'Outlet Walk-in Customer',
+        'Delivery Status': 'shipped',
+        'Order Source': 'pos',
+        fulfillmentLocation: 'Mirpur Outlet POS',
+        isPos: true,
+        'Item Name': 'DEEN Jeans',
+        Quantity: 1,
+        'Item Cost': 3000,
+        'Order Amount': 3000,
+      };
+
+      const nonCheckoutOrder: Partial<RawOrderRow> = {
+        'Order ID': '18099',
+        'Order Date': '2026-10-17T09:00:00Z',
+        'Customer Name': 'Exchange Replacement Customer',
+        'Delivery Status': 'shipped',
+        created_via: 'admin',
+        'Order Source': 'Online',
+        'Item Name': 'DEEN Twill Pant',
+        Quantity: 1,
+        'Item Cost': 2500,
+        'Order Amount': 2500,
+      };
+
+      const ordersPool = [commercialOrder, posOrder, nonCheckoutOrder] as RawOrderRow[];
+      const report = processLiveOpsData(ordersPool, {
+        view: 'Today Shipped',
+        customDate: todayIso,
+        anchorDate: todayIso,
+      });
+
+      const wb = buildLiveShippedOrdersWorkbook(ordersPool, report);
+
+      // Sheet 1: Shipped Orders (Online) must contain ONLY the commercial online checkout order
+      expect(wb.SheetNames).toContain('Shipped Orders (Online)');
+      const commercialSheetData = XLSX.utils.sheet_to_json<Record<string, unknown>>(
+        wb.Sheets['Shipped Orders (Online)']
+      );
+      expect(commercialSheetData.length).toBe(1);
+      expect(commercialSheetData[0]['Order ID']).toBe('18100');
+      const exportedIds = commercialSheetData.map((r) => r['Order ID']);
+      expect(exportedIds).not.toContain('18101 m'); // POS excluded
+      expect(exportedIds).not.toContain('18099'); // Non-checkout excluded
+
+      // Sheet 2: Exchanges & Non-Checkout must isolate the exchange order
+      expect(wb.SheetNames).toContain('Exchanges & Non-Checkout');
+      const exchangeSheetData = XLSX.utils.sheet_to_json<Record<string, unknown>>(
+        wb.Sheets['Exchanges & Non-Checkout']
+      );
+      expect(exchangeSheetData.length).toBe(1);
+      expect(exchangeSheetData[0]['Replacement Order ID']).toBe('18099');
+      expect(exchangeSheetData[0]['Commercial Revenue Recognized']).toBe(0);
     });
   });
 

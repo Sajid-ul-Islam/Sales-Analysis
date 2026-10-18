@@ -70,20 +70,18 @@ export function LiveVolumeBarChart({
   const paddingLeft = 36;
   const paddingBottom = 58;
   const paddingTop = 22;
-  const paddingRight = 48;
+  const paddingRight = 36;
 
   const innerWidth = chartWidth - paddingLeft - paddingRight;
   const innerHeight = chartHeight - paddingTop - paddingBottom;
 
   const slotWidth = innerWidth / (displayItems.length || 1);
-  const barWidth = Math.min(48, slotWidth * 0.82);
+  const barWidth = Math.min(50, slotWidth * 0.84);
 
   const getYCoord = (vol: number) => {
     return paddingTop + innerHeight - (vol / maxVolume) * innerHeight;
   };
 
-  const effectiveAvg = avgUnitsSold > 0 ? avgUnitsSold : 3.8;
-  const avgY = getYCoord(effectiveAvg);
   const active = hoveredIdx !== null ? displayItems[hoveredIdx] : null;
 
   const CANONICAL_BAR_COLORS: Record<string, string> = {
@@ -152,32 +150,6 @@ export function LiveVolumeBarChart({
           >
             Units Sold
           </text>
-
-          {/* Average Benchmark Dashed Line (Avg: 3.8 un) */}
-          <g>
-            <line
-              x1={paddingLeft}
-              y1={avgY}
-              x2={chartWidth - paddingRight}
-              y2={avgY}
-              stroke="currentColor"
-              className="stroke-slate-500 dark:stroke-slate-400 text-slate-500 dark:text-slate-400"
-              strokeWidth="1.5"
-              strokeDasharray="4 3"
-              opacity="0.85"
-            />
-            <text
-              x={chartWidth - paddingRight + 4}
-              y={avgY}
-              textAnchor="start"
-              dominantBaseline="central"
-              fontSize="10.5"
-              fill="currentColor"
-              className="fill-slate-700 dark:fill-white text-slate-700 dark:text-white font-black transition-colors"
-            >
-              Avg: {effectiveAvg} un
-            </text>
-          </g>
 
           {/* Vertical Category Volume Bars */}
           {displayItems.map((item, idx) => {

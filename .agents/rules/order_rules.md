@@ -51,9 +51,14 @@ The Pathao Courier Order ID reflects the physical origin/fulfillment location of
   * Uses Knapsack / Subset-Sum dynamic programming to partition discrete whole garments into kept versus returned units.
 
 ### D. Exchanged
-* Denoted by prefixes such as `D-17263` or `DD-17263` on the parcel order ID.
+* Denoted by prefixes such as `D-17263` or `DD-17263` on the parcel order ID, or replacement notes (`Exchange for #17839`).
 * The prefix indicates an exchange replacement parcel dispatched to the customer for order `17263`.
 * Exchange parcel IDs must strip `D-` / `DD-` to link directly back to the original order ID while tagging the order as an exchange.
+* **Non-Checkout / No-Checkout Orders Rule**:
+  * Orders created without frontend web checkout (`created_via !== 'checkout'`, `created_via: 'admin'`, `created_via: 'manual'`, or tagged as `no-checkout`) are staff-created customer exchange replacements.
+  * These orders are **strictly treated as exchanged orders (`isExchange: true`)**.
+  * They must **NEVER be counted as new commercial sales** in sales revenue, dispatched items, order counts, or commercial processing/on-hold packing queues (`allOrdersBreakdown`).
+  * They are isolated from sales charts and tracked separately under **Exchange Logistics** (`exchangeStats`).
 
 ---
 
@@ -70,6 +75,10 @@ The Excel export (`Reconciled Orders` ledger) features two distinct status colum
      * If order is **Paid Return** or **Not Paid Return** $\rightarrow$ item gets `Returned`.
      * If order is **Partial** $\rightarrow$ kept items get `Delivered`, while returned items get `Returned`.
      * If order is **Exchange** $\rightarrow$ item gets `Exchange`.
+
+3. **POS & Non-Checkout Isolation in Excel Exports**:
+   * **Commercial Sheet (`Shipped Orders (Online)`)**: Strictly contains genuine online ecommerce checkout orders. Physical POS outlet orders (`isOrderOnline === false`) and manual non-checkout exchange replacements (`isOrderExchange === true`) are strictly excluded.
+   * **Exchanges Sheet (`Exchanges & Non-Checkout`)**: Replacement parcels and non-checkout orders are isolated on a dedicated secondary sheet with zero recognized commercial revenue.
 
 ---
 

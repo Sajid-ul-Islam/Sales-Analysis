@@ -1,6 +1,15 @@
 import * as XLSX from 'xlsx';
 import { ReconciliationResult } from './reconciliationEngine';
 import { cleanCustomerPhone } from './woocommerceClient';
+import { RawOrderRow } from '@/types';
+import {
+  isOrderExchange,
+  isOrderOnline,
+  extractExchangeInfo,
+  LiveOpsReport,
+} from './liveOpsProcessor';
+import { classifyProductLine } from './selectsAnalytics';
+import { getCategoryForSales, getSubCategoryForSales } from './liveCategoryEngine';
 
 /**
  * Natural numerical order comparator for sorting orders.
@@ -110,7 +119,11 @@ export function getExportPhoneNumber(o: unknown): string {
   return '';
 }
 
-export function exportReconciledExcel(result: ReconciliationResult, filenamePrefix: string = 'DEEN_Commerce_Reconciliation') {
+export function exportReconciledExcel(
+  result: ReconciliationResult,
+  filenamePrefix: string = 'DEEN_Commerce_Reconciliation',
+  options: { excludePos?: boolean } = {}
+) {
   const wb = XLSX.utils.book_new();
   const s = result.summary;
 
@@ -161,7 +174,13 @@ export function exportReconciledExcel(result: ReconciliationResult, filenamePref
   XLSX.utils.book_append_sheet(wb, wsSummary, 'Executive Summary');
 
   // 2. Reconciled Orders Ledger Sheet (Sorted by Order Number)
-  const sortedReconciledOrders = [...result.reconciledOrders].sort(compareOrdersByNumber);
+  let reconciledOrdersList = result.reconciledOrders;
+  if (options.excludePos) {
+    reconciledOrdersList = reconciledOrdersList.filter(
+      (r) => !String(r.fulfillmentLocation || '').toLowerCase().includes('pos')
+    );
+  }
+  const sortedReconciledOrders = [...reconciledOrdersList].sort(compareOrdersByNumber);
   const detailsData = sortedReconciledOrders.map(r => {
     // 1. Order-level delivery status (all items of the same order get identical value: Delivered, Paid Return, Not Paid Return, Exchange, Partial)
     const orderDeliveryStatus = r.orderDeliveryStatus || (
@@ -463,5 +482,113 @@ export function exportPerformanceReport(
   const prefix = viewMode === 'CATEGORY' ? 'DEEN_Category_Wise_Performance' : 'DEEN_Item_Wise_Performance';
   const finalFilename = `${prefix}_${dateStamp}.xlsx`;
 
+  saveWorkbook(wb, finalFilename);
+}
+
+export interface LiveShippedOrdersExportOptions {
+  isExchangesView?: boolean;
+  filenamePrefix?: string;
+}
+
+/**
+ * Builds the official multi-sheet Excel workbook for Live Shipped Orders.
+ * Invariant Rule: Strictly excludes POS retail store orders and non-checkout exchange orders from commercial sales.
+ * When replacement/non-checkout orders exist, they are isolated on a dedicated 'Exchanges & Non-Checkout' sheet
+ * with zero commercial revenue impact.
+ */
+export function buildLiveShippedOrdersWorkbook(
+  orders: RawOrderRow[],
+  report: LiveOpsReport,
+  options: LiveShippedOrdersExportOptions = {}
+): XLSX.WorkBook {
+  const wb = XLSX.utils.book_new();
+  const isExchangesView = Boolean(options.isExchangesView);
+
+  // 1. Determine commercial orders to export
+  // Invariant Rule: Strictly exclude POS outlet orders and non-checkout exchange orders from commercial sales
+  const commercialOrders = isExchangesView
+    ? orders.filter(isOrderExchange)
+    : orders.filter((o) => isOrderOnline(o) && !isOrderExchange(o));
+
+  const sortedOrders = [...commercialOrders].sort(compareOrdersByNumber);
+
+  const exportData = sortedOrders.map((o) => {
+    const itemName = String(o['Item Name'] || '');
+    const sku = String(o.SKU || '');
+    const cat = getCategoryForSales(itemName);
+    const subCat = getSubCategoryForSales(itemName, cat);
+    const isSelects = classifyProductLine(itemName, sku, cat) === 'DEEN Selects';
+
+    return {
+      'Order ID': o['Order ID'] || o.orderId,
+      'Date': o['Order Date'],
+      'Customer Name': getExportCustomerName(o),
+      'Phone': getExportPhoneNumber(o),
+      'City': o.City,
+      'Item Name': itemName,
+      'SKU': sku,
+      'Category': cat,
+      'Sub-Category': subCat,
+      'Collection Line': isSelects ? 'DEEN Selects' : 'DEEN Regular',
+      'Quantity': Number(o.Quantity) || 1,
+      'Unit Cost (TK)': Number(o['Item Cost']) || 0,
+      'Order Amount (TK)': Number(o['Order Amount']) || 0,
+      'WooCommerce Status': String(o['Delivery Status'] || (o as Record<string, unknown>).status || 'shipped'),
+      'Pathao Courier Status': String(o['Courier Status'] || o.courierStatus || 'Untracked'),
+      'Pathao Consignment ID': String(o['Consignment ID'] || o.consignmentId || 'N/A'),
+      'Collected Amount (TK)': Number(o.collectedAmount) || 0,
+      'Courier Discrepancy': o.hasDiscrepancy ? `Yes (${o.discrepancyType})` : 'None',
+    };
+  });
+
+  const mainSheetName = isExchangesView ? 'Exchanges Only' : 'Shipped Orders (Online)';
+  const wsMain = XLSX.utils.json_to_sheet(exportData);
+  XLSX.utils.book_append_sheet(wb, wsMain, mainSheetName);
+
+  // 2. Dedicated Sheet 2: Exchanges & Non-Checkout Replacements (if not already in exchanges view)
+  if (!isExchangesView) {
+    const exchangePool = report?.exchangeStats?.replacementOrders?.length
+      ? report.exchangeStats.replacementOrders
+      : orders.filter(isOrderExchange);
+
+    if (exchangePool.length > 0) {
+      const sortedExchanges = [...exchangePool].sort(compareOrdersByNumber);
+      const exData = sortedExchanges.map((o) => {
+        const info = extractExchangeInfo(o);
+        const itemName = String(o['Item Name'] || '');
+        const sku = String(o.SKU || '');
+        return {
+          'Replacement Order ID': o['Order ID'] || o.orderId,
+          'Original Order ID': info.referencedOrderId || 'N/A',
+          'Exchange Tag': info.displayTag || 'Exchange',
+          'Date': o['Order Date'],
+          'Customer Name': getExportCustomerName(o),
+          'Phone': getExportPhoneNumber(o),
+          'City': o.City,
+          'Item Name': itemName,
+          'SKU': sku,
+          'Quantity': Number(o.Quantity) || 1,
+          'Courier Status': String(o['Courier Status'] || o.courierStatus || 'Untracked'),
+          'Pathao Consignment ID': String(o['Consignment ID'] || o.consignmentId || 'N/A'),
+          'Commercial Revenue Recognized': 0, // Invariant: zero revenue inflation
+          'Operational Notes': 'Customer exchange replacement parcel created manually via staff admin (zero new revenue)',
+        };
+      });
+      const wsExchanges = XLSX.utils.json_to_sheet(exData);
+      XLSX.utils.book_append_sheet(wb, wsExchanges, 'Exchanges & Non-Checkout');
+    }
+  }
+
+  return wb;
+}
+
+export function exportLiveShippedOrdersExcel(
+  orders: RawOrderRow[],
+  report: LiveOpsReport,
+  options: LiveShippedOrdersExportOptions = {}
+) {
+  const wb = buildLiveShippedOrdersWorkbook(orders, report, options);
+  const prefix = options.filenamePrefix || 'DEEN_Live_Shipped_Orders';
+  const finalFilename = `${prefix}_${report.referenceDate}.xlsx`;
   saveWorkbook(wb, finalFilename);
 }

@@ -20,6 +20,7 @@ export interface WcMetaItem {
 export interface WcOrder {
   id?: number | string;
   number?: string;
+  created_via?: string;
   status?: string;
   date_created?: string;
   date_modified?: string;
@@ -273,14 +274,44 @@ export function detectBranchFromOrder(order: WcOrder, meta: WcMetaItem[], orderI
   const cleanId = String(orderId || order?.id || order?.number || '').trim().toLowerCase();
   const customerNote = String(order?.customer_note || order?.order_notes || (order?.notes as string) || '').toLowerCase();
   const metaStrings = meta.map((m: WcMetaItem) => `${m.key}=${m.value}`).join(' ').toLowerCase();
+  const paymentMethodText = `${order?.payment_method || ''} ${order?.payment_method_title || ''}`.toLowerCase();
 
-  // 1. Exchange Replacement: D-17263 / DD-17263 / ex-17263 / "Exchange for #17839" / "Exchanged"
+  // Extract created_via source (orders placed without web checkout are staff-created exchange orders)
+  const rawCreatedVia = String(order?.created_via || '').toLowerCase().trim();
+  let metaCreatedVia = '';
+  for (const m of meta) {
+    if (m.key === '_created_via' || m.key === 'created_via') {
+      metaCreatedVia = String(m.value || '').toLowerCase().trim();
+      break;
+    }
+  }
+  const effectiveCreatedVia = rawCreatedVia || metaCreatedVia;
+  const isNoCheckout =
+    effectiveCreatedVia === 'admin' ||
+    effectiveCreatedVia === 'manual' ||
+    effectiveCreatedVia.includes('no-checkout') ||
+    effectiveCreatedVia.includes('no_checkout') ||
+    effectiveCreatedVia.includes('non-checkout') ||
+    (Boolean(effectiveCreatedVia) && !isPosMeta && !outletId && effectiveCreatedVia !== 'checkout' && effectiveCreatedVia !== 'store-api' && effectiveCreatedVia !== 'pos');
+
+  const hasNoCheckoutNotice =
+    isNoCheckout ||
+    customerNote.includes('no checkout') ||
+    customerNote.includes('no-checkout') ||
+    customerNote.includes('non-checkout') ||
+    customerNote.includes('without checkout') ||
+    paymentMethodText.includes('no checkout') ||
+    paymentMethodText.includes('no-checkout') ||
+    paymentMethodText.includes('non-checkout');
+
+  // 1. Exchange Replacement: D-17263 / DD-17263 / ex-17263 / "Exchange for #17839" / "Exchanged" / No-Checkout orders
   if (
     /^(dd?|ex|exchange)[-_]/i.test(cleanId) ||
     /^d-\d+/i.test(cleanId) ||
     /exchange\s+for\s+#?\d+/i.test(customerNote) ||
     /exchange\s+for\s+#?\d+/i.test(metaStrings) ||
     /\bexchanged\b/i.test(customerNote) ||
+    hasNoCheckoutNotice ||
     meta.some((m: WcMetaItem) => /substatus|custom_status|status_label/i.test(m.key || '') && /exchange/i.test(String(m.value)))
   ) {
     return {
@@ -591,7 +622,41 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
       const match = notesText.match(/exchange\s+for\s+#?\d+/i) || notesText.match(/\bexchanged\b/i);
       if (match) substatus = match[0];
     }
-    const isOrderExchangeRow = branchInfo.branchCode === 'EXCHANGE' || /exchange/i.test(substatus);
+
+    // Extract created_via source
+    const rawCreatedVia = String(order.created_via || '').toLowerCase().trim();
+    let metaCreatedVia = '';
+    for (const m of meta) {
+      if (m.key === '_created_via' || m.key === 'created_via') {
+        metaCreatedVia = String(m.value || '').toLowerCase().trim();
+        break;
+      }
+    }
+    const effectiveCreatedVia = rawCreatedVia || metaCreatedVia;
+    const isNoCheckout =
+      effectiveCreatedVia === 'admin' ||
+      effectiveCreatedVia === 'manual' ||
+      effectiveCreatedVia.includes('no-checkout') ||
+      effectiveCreatedVia.includes('no_checkout') ||
+      effectiveCreatedVia.includes('non-checkout') ||
+      (Boolean(effectiveCreatedVia) && !branchInfo.isPos && effectiveCreatedVia !== 'checkout' && effectiveCreatedVia !== 'store-api' && effectiveCreatedVia !== 'pos');
+
+    const notesLower = `${order.customer_note || ''} ${order.order_notes || ''}`.toLowerCase();
+    const paymentMethodLower = `${order.payment_method || ''} ${order.payment_method_title || ''}`.toLowerCase();
+    const hasNoCheckoutNotice =
+      isNoCheckout ||
+      notesLower.includes('no checkout') ||
+      notesLower.includes('no-checkout') ||
+      notesLower.includes('non-checkout') ||
+      notesLower.includes('without checkout') ||
+      paymentMethodLower.includes('no checkout') ||
+      paymentMethodLower.includes('no-checkout');
+
+    const isOrderExchangeRow = branchInfo.branchCode === 'EXCHANGE' || /exchange/i.test(substatus) || hasNoCheckoutNotice;
+    if (!substatus && (hasNoCheckoutNotice || branchInfo.branchCode === 'EXCHANGE')) {
+      substatus = hasNoCheckoutNotice ? 'Exchange (No Checkout)' : 'Exchange Replacement';
+    }
+    const orderCreatedVia = effectiveCreatedVia || (branchInfo.isPos ? 'pos' : (hasNoCheckoutNotice ? 'admin' : 'checkout'));
 
     const lineItems = order.line_items || [];
     if (lineItems.length === 0) {
@@ -661,6 +726,10 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
         'Outlet ID': branchInfo.outletId,
         'fulfillmentBranch': branchInfo.fulfillmentBranch,
         'branchCode': branchInfo.branchCode,
+        'Created Via': orderCreatedVia,
+        'created_via': orderCreatedVia,
+        'createdVia': orderCreatedVia,
+        'isNoCheckout': hasNoCheckoutNotice,
         'Shipping Fee': shippingFee,
         'shippingFee': shippingFee,
         'Discount Total': discountTotal,
@@ -749,6 +818,10 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
           'Outlet ID': branchInfo.outletId,
           'fulfillmentBranch': branchInfo.fulfillmentBranch,
           'branchCode': branchInfo.branchCode,
+          'Created Via': orderCreatedVia,
+          'created_via': orderCreatedVia,
+          'createdVia': orderCreatedVia,
+          'isNoCheckout': hasNoCheckoutNotice,
           'Shipping Fee': shippingFee,
           'shippingFee': shippingFee,
           'Discount Total': discountTotal,

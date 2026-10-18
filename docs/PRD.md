@@ -60,7 +60,7 @@ The dashboard features **12 dedicated operational modules**:
   - `Paid Return`: Customer returned parcel, but delivery fee or return fee was collected via COD.
   - `Not Paid Return`: Full return with zero collection.
   - `Partial`: Customer accepted a subset of items and returned the remainder.
-  - `Exchange`: Sizing swap order indicated by `D-` or `DD-` prefix.
+  - `Exchange`: Sizing swap or product replacement indicated by `D-` or `DD-` prefix, replacement notes (`Exchange for #17839`), or non-checkout orders (`created_via: "admin"` / `"manual"` / `"no-checkout"`). In DEEN operations, non-checkout orders represent customer exchange replacements created manually by store staff, and are isolated from new sales revenue and processing queue counts.
 
 ### 4.3 Outlet Dispatch Hub
 - **Purpose**: Tracks parcel dispatches, delivery retention rates, and returned consignment values across fulfillment nodes.

@@ -32,6 +32,7 @@ import {
   isOrderOnHold,
   isOrderShipped,
   isOrderExchange,
+  isOrderOnline,
   extractExchangeInfo,
   generateWhatsAppConfirmationUrl,
   parseOrderDate,
@@ -54,6 +55,7 @@ import {
   compareOrdersByNumber,
   getExportCustomerName,
   getExportPhoneNumber,
+  exportLiveShippedOrdersExcel,
 } from '@/lib/excelExport';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 import { DataProvenanceInfo } from '@/lib/dataAudit';
@@ -374,6 +376,16 @@ export function LiveOpsTab({
   // Filtered orders list for ledger table (Sorted by Order Number)
   const filteredOrders = useMemo(() => {
     const list = report.activeOrders.filter((o) => {
+      // Rule: Exclude POS outlet orders from online operations view
+      if (!isOrderOnline(o)) return false;
+
+      // Rule: Exclude exchange replacements (and non-checkout orders) from standard commercial view unless 'EXCHANGES_ONLY' is selected
+      if (courierFilter === 'EXCHANGES_ONLY') {
+        if (!isOrderExchange(o)) return false;
+      } else {
+        if (isOrderExchange(o)) return false;
+      }
+
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const oid = String(o['Order ID'] || o.orderId || '').toLowerCase();
@@ -399,10 +411,8 @@ export function LiveOpsTab({
         if (cat !== categoryFilter) return false;
       }
 
-      if (courierFilter !== 'ALL') {
-        if (courierFilter === 'EXCHANGES_ONLY') {
-          if (!isOrderExchange(o)) return false;
-        } else if (courierFilter === 'DISCREPANCY_ONLY') {
+      if (courierFilter !== 'ALL' && courierFilter !== 'EXCHANGES_ONLY') {
+        if (courierFilter === 'DISCREPANCY_ONLY') {
           if (!o.hasDiscrepancy) return false;
         } else if (
           courierFilter === 'RETURNED_BUT_SHIPPED' ||
@@ -430,50 +440,32 @@ export function LiveOpsTab({
     return list.sort(compareOrdersByNumber);
   }, [report.activeOrders, searchQuery, categoryFilter, courierFilter, selectedView, pipelineFilter]);
 
-  // Unique categories for table filter dropdown
+  // Unique categories for table filter dropdown (pure online commercial items)
   const uniqueCategories = useMemo(() => {
     const set = new Set<string>();
     for (const o of report.activeOrders) {
-      set.add(getCategoryForSales(String(o['Item Name'] || '')));
+      if (isOrderOnline(o) && !isOrderExchange(o)) {
+        set.add(getCategoryForSales(String(o['Item Name'] || '')));
+      }
     }
     return Array.from(set).sort();
   }, [report.activeOrders]);
 
   // Export current table to Excel with full courier details sorted by order number
+  // Strictly excludes POS and non-checkout exchange orders from commercial sales sheet
   const handleExportExcel = () => {
-    const sortedOrders = [...filteredOrders].sort(compareOrdersByNumber);
-    const exportData = sortedOrders.map((o) => {
-      const isSelects = classifyProductLine(String(o['Item Name'] || ''), String(o.SKU || ''), getCategoryForSales(String(o['Item Name'] || ''))) === 'DEEN Selects';
-      return {
-        'Order ID': o['Order ID'] || o.orderId,
-        'Date': o['Order Date'],
-        'Customer Name': getExportCustomerName(o),
-        'Phone': getExportPhoneNumber(o),
-        'City': o.City,
-        'Item Name': String(o['Item Name'] || ''),
-        'SKU': String(o.SKU || ''),
-        'Category': getCategoryForSales(String(o['Item Name'] || '')),
-        'Sub-Category': getSubCategoryForSales(String(o['Item Name'] || '')),
-        'Collection Line': isSelects ? 'DEEN Selects' : 'DEEN Regular',
-        'Quantity': Number(o.Quantity) || 1,
-        'Unit Cost (TK)': Number(o['Item Cost']) || 0,
-        'Order Amount (TK)': Number(o['Order Amount']) || 0,
-        'WooCommerce Status': String(o['Delivery Status'] || (o as Record<string, unknown>).status || 'shipped'),
-        'Pathao Courier Status': String(o['Courier Status'] || o.courierStatus || 'Untracked'),
-        'Pathao Consignment ID': String(o['Consignment ID'] || o.consignmentId || 'N/A'),
-        'Collected Amount (TK)': Number(o.collectedAmount) || 0,
-        'Courier Discrepancy': o.hasDiscrepancy ? `Yes (${o.discrepancyType})` : 'None',
-      };
+    exportLiveShippedOrdersExcel(report.activeOrders, report, {
+      isExchangesView: courierFilter === 'EXCHANGES_ONLY',
     });
-
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Shipped Orders & Telemetry');
-    XLSX.writeFile(wb, `DEEN_Live_Shipped_Orders_${report.referenceDate}.xlsx`);
   };
 
   const handleExportCsv = () => {
-    const sortedOrders = [...filteredOrders].sort(compareOrdersByNumber);
+    const isExchangesView = courierFilter === 'EXCHANGES_ONLY';
+    const targetOrders = isExchangesView
+      ? report.activeOrders.filter(isOrderExchange)
+      : filteredOrders.filter((o) => isOrderOnline(o) && !isOrderExchange(o));
+
+    const sortedOrders = [...targetOrders].sort(compareOrdersByNumber);
     const exportData = sortedOrders.map((o) => {
       const itemName = String(o['Item Name'] || '');
       const sku = String(o.SKU || '');
@@ -1738,22 +1730,16 @@ export function LiveOpsTab({
                     {report.executiveBriefing.channelBreakdown?.totalOrders ?? report.executiveBriefing.totalOrders} total
                   </span>
                 </div>
-                <div className="grid grid-cols-3 gap-1.5 pt-1 text-center">
-                  <div className="bg-white/5 rounded-xl p-1.5">
-                    <div className="text-[10px] text-slate-400">🚀 Ecom</div>
-                    <div className="font-bold text-sky-400 text-xs mt-0.5">
+                <div className="grid grid-cols-2 gap-2 pt-1 text-center">
+                  <div className="bg-white/5 rounded-xl p-2">
+                    <div className="text-[10px] text-slate-400">🚀 Ecom (Checkout)</div>
+                    <div className="font-bold text-sky-400 text-sm mt-0.5">
                       {report.executiveBriefing.channelBreakdown?.ecomCount ?? report.executiveBriefing.totalOrders}
                     </div>
                   </div>
-                  <div className="bg-white/5 rounded-xl p-1.5">
-                    <div className="text-[10px] text-slate-400">🏪 Outlet</div>
-                    <div className="font-bold text-emerald-400 text-xs mt-0.5">
-                      {report.executiveBriefing.channelBreakdown?.outletCount ?? 0}
-                    </div>
-                  </div>
-                  <div className="bg-white/5 rounded-xl p-1.5">
-                    <div className="text-[10px] text-slate-400">🔄 Exch</div>
-                    <div className="font-bold text-amber-400 text-xs mt-0.5">
+                  <div className="bg-white/5 rounded-xl p-2">
+                    <div className="text-[10px] text-slate-400">🔄 Exchanges</div>
+                    <div className="font-bold text-amber-400 text-sm mt-0.5">
                       {report.executiveBriefing.channelBreakdown?.exchangeCount ?? 0}
                     </div>
                   </div>

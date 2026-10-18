@@ -1565,7 +1565,8 @@ export function runReconciliationEngine(
     const rawStatus = String(findCol(firstItem, ['status', 'orderstatus', 'deliverystatus']) || '').trim();
     const orderTotal = group.orderTotalAmount;
     const note = (group.customerNote || '').toLowerCase();
-    const isExchange = note.includes('exchange') || note.includes('swap') || rawStatus.toLowerCase().includes('exchange') || exchList.length > 0;
+    const isNoCheckoutOrder = note.includes('no checkout') || note.includes('no-checkout') || note.includes('non-checkout') || Boolean(firstItem?.isNoCheckout);
+    const isExchange = note.includes('exchange') || note.includes('swap') || rawStatus.toLowerCase().includes('exchange') || exchList.length > 0 || isNoCheckoutOrder || Boolean(firstItem?.isExchange);
 
     let excelStatus = 'Delivered';
     if (partInfo || rawStatus.toLowerCase().includes('partial')) {

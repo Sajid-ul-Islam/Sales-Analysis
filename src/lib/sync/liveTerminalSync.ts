@@ -218,7 +218,30 @@ export function detectFulfillmentBranch(orderIdOrRow: unknown): FulfillmentBranc
   const objNotes = rowObj
     ? `${rowObj['Order Notes'] || rowObj.orderNotes || rowObj.customer_note || ''} ${rowObj.Substatus || rowObj.substatus || ''}`.toLowerCase()
     : '';
-  const hasExchangeNote = /exchange\s+for\s+#?\d+/i.test(objNotes) || /\bexchanged\b/i.test(objNotes) || /exchange/i.test(String(rowObj?.orderCategory || '')) || rowObj?.isExchange === true;
+  const createdVia = rowObj
+    ? String(rowObj['Created Via'] || rowObj.created_via || rowObj.createdVia || '').toLowerCase().trim()
+    : '';
+  const isNoCheckout = Boolean(
+    rowObj?.isNoCheckout === true ||
+    rowObj?.isNonCheckout === true ||
+    createdVia === 'admin' ||
+    createdVia === 'manual' ||
+    createdVia.includes('no-checkout') ||
+    createdVia.includes('no_checkout') ||
+    createdVia.includes('non-checkout') ||
+    (Boolean(createdVia) && createdVia !== 'checkout' && createdVia !== 'store-api' && createdVia !== 'pos') ||
+    objNotes.includes('no checkout') ||
+    objNotes.includes('no-checkout') ||
+    objNotes.includes('non-checkout') ||
+    objNotes.includes('without checkout')
+  );
+
+  const hasExchangeNote =
+    /exchange\s+for\s+#?\d+/i.test(objNotes) ||
+    /\bexchanged\b/i.test(objNotes) ||
+    /exchange/i.test(String(rowObj?.orderCategory || '')) ||
+    rowObj?.isExchange === true ||
+    isNoCheckout;
 
   if (/^(dd?|ex|exchange)[-_]/i.test(cleaned) || /^d-\d+/i.test(raw.trim()) || hasExchangeNote) {
     return {
