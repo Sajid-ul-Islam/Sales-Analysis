@@ -43,6 +43,7 @@ import {
   exportChatTranscriptMarkdown,
   CopilotChatMessage
 } from '@/lib/chatHistory';
+import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 import { getTabContext } from '@/lib/ai/contextualPrompts';
 import { detectAgenticIntent } from '@/lib/ai/agenticActions';
 import { AgenticActionProposal } from '@/types';
@@ -177,7 +178,7 @@ export function CopilotDrawer({
       const currentBYOK = loadBYOKConfig();
       const res = await fetch('/api/ai/copilot', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getClientAuthHeaders(),
         body: JSON.stringify({
           query: q,
           summary,

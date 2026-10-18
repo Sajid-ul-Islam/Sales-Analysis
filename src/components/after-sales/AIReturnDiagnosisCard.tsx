@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { loadBYOKConfig, BYOKConfig } from '@/lib/byok';
 import { BYOKModal } from '@/components/ai/BYOKModal';
+import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 
 interface AIReturnDiagnosisCardProps {
   returnedItems: ReturnedItemRow[];
@@ -68,7 +69,7 @@ export function AIReturnDiagnosisCard({ returnedItems }: AIReturnDiagnosisCardPr
       const currentBYOK = loadBYOKConfig();
       const res = await fetch('/api/ai/after-sales/return-diagnosis', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getClientAuthHeaders(),
         body: JSON.stringify({
           returnedItems: returnedItems.slice(0, 30),
           byok: currentBYOK.isActive ? currentBYOK : undefined,

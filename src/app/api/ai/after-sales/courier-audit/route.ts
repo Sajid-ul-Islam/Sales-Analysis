@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateAICompletion } from '@/lib/geminiClient';
+import { validateApiRequest } from '@/lib/auth/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,14 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { mismatches = [], summary, byok } = body;
+
+    const hasByok = Boolean(byok?.apiKey && String(byok.apiKey).trim().length > 5);
+    if (!hasByok) {
+      const auth = validateApiRequest(req, { requiredRole: 'operator', allowDemo: false });
+      if (!auth.authenticated) {
+        return NextResponse.json({ error: auth.message }, { status: auth.statusCode });
+      }
+    }
 
     const sampleMismatches = mismatches.slice(0, 25).map((m: any) => ({
       orderId: m.orderId,

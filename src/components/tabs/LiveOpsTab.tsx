@@ -67,6 +67,7 @@ import {
   getExportCustomerName,
   getExportPhoneNumber,
 } from '@/lib/excelExport';
+import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 
 interface LiveTerminalCacheEnvelope {
   orders: RawOrderRow[];
@@ -254,7 +255,7 @@ export function LiveOpsTab({
 
       const res = await fetch('/api/sync/live-terminal', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getClientAuthHeaders(),
         body: JSON.stringify(payload),
       });
 

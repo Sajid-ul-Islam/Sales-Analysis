@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateAICompletion } from '@/lib/geminiClient';
+import { validateApiRequest } from '@/lib/auth/apiAuth';
+import { maskPhoneNumber, maskCustomerName } from '@/lib/auth/dataMasking';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,12 +36,20 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { profiles = [], summary, byok } = body;
 
+    const hasByok = Boolean(byok?.apiKey && String(byok.apiKey).trim().length > 5);
+    if (!hasByok) {
+      const auth = validateApiRequest(req, { requiredRole: 'operator', allowDemo: false });
+      if (!auth.authenticated) {
+        return NextResponse.json({ error: auth.message }, { status: auth.statusCode });
+      }
+    }
+
     const highRiskProfiles = profiles
       .filter((p: any) => p.riskTier === 'HIGH_RISK' || p.returnRate >= 50)
       .slice(0, 15)
       .map((p: any) => ({
-        phone: p.phone,
-        name: p.customerName,
+        phone: maskPhoneNumber(p.phone),
+        name: maskCustomerName(p.customerName),
         totalOrders: p.totalOrders,
         returned: p.returnedOrders,
         delivered: p.deliveredOrders,

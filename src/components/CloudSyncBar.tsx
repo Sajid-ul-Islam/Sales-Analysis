@@ -33,6 +33,7 @@ import {
   isHistoricalDateRange,
   formatCacheAge
 } from '@/lib/apiCache';
+import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 
 export interface CloudSyncBarProps {
   onDataSynced: (type: 'orders' | 'returns', rows: RawOrderRow[], provenance?: DataProvenanceInfo) => void;
@@ -113,7 +114,9 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
 
   const checkBlobStatus = React.useCallback(async () => {
     try {
-      const res = await fetch('/api/blob/status');
+      const res = await fetch('/api/blob/status', {
+        headers: getClientAuthHeaders(),
+      });
       const data = await res.json();
       setBlobStatus(data.status ? { configured: data.configured, latestBlob: data.status.latestBlob } : { configured: Boolean(data.configured) });
     } catch {
@@ -132,10 +135,12 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
       const res = Object.keys(payload).length > 0
         ? await fetch('/api/sync/status', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getClientAuthHeaders(),
             body: JSON.stringify(payload)
           })
-        : await fetch('/api/sync/status');
+        : await fetch('/api/sync/status', {
+            headers: getClientAuthHeaders(),
+          });
 
       const data = await res.json();
       setPathaoStatus(data.pathao);
@@ -218,7 +223,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
       const ds = activeDataset || { orders: activeOrders || [] };
       const res = await fetch('/api/blob/dataset', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getClientAuthHeaders(),
         body: JSON.stringify(ds),
       });
       const data = await res.json();
@@ -240,7 +245,9 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
     setLoadingFromBlob(true);
     setMessage('Fetching latest dataset from Vercel Blob...');
     try {
-      const res = await fetch('/api/blob/dataset');
+      const res = await fetch('/api/blob/dataset', {
+        headers: getClientAuthHeaders(),
+      });
       const data = await res.json();
       if (data.success && data.dataset) {
         if (onLoadFullDataset) {
@@ -282,7 +289,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
       const creds = getClientCredentials();
       const res = await fetch('/api/sync/pathao', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getClientAuthHeaders(),
         body: JSON.stringify({
           startDate,
           endDate,
@@ -333,7 +340,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
       const creds = getClientCredentials();
       const res = await fetch('/api/sync/woocommerce', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getClientAuthHeaders(),
         body: JSON.stringify({
           after: `${startDate}T00:00:00`,
           before: `${endDate}T23:59:59`,
@@ -411,7 +418,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
         setMessage(`Step 1/2: Querying WooCommerce REST API for orders (${startDate} to ${endDate})...`);
         const wcRes = await fetch('/api/sync/woocommerce', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getClientAuthHeaders(),
           body: JSON.stringify({
             after: `${startDate}T00:00:00`,
             before: `${endDate}T23:59:59`,
@@ -443,7 +450,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
         setMessage(`Step 2/2: Correlating Pathao courier status for ${ordersForPathao.length} WooCommerce orders (${startDate} to ${endDate})...`);
         const pathaoRes = await fetch('/api/sync/pathao', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getClientAuthHeaders(),
           body: JSON.stringify({
             startDate,
             endDate,

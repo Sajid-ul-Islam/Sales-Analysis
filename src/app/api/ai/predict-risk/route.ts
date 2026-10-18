@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateAICompletion } from '@/lib/geminiClient';
 import { RTO_PREDICTION_SYSTEM_PROMPT } from '@/lib/ai/prompts';
+import { validateApiRequest } from '@/lib/auth/apiAuth';
+import { maskCustomerName, maskPhoneNumber, maskAddress } from '@/lib/auth/dataMasking';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Operator Authentication Check
+    const auth = validateApiRequest(req, { requiredRole: 'operator', allowDemo: false });
+    if (!auth.authenticated) {
+      return NextResponse.json({ error: auth.message }, { status: auth.statusCode });
+    }
+
     const body = await req.json();
     const { order } = body;
 
@@ -14,10 +22,10 @@ export async function POST(req: NextRequest) {
     }
 
     const orderPrompt = `Order ID: ${order.orderId || 'N/A'}
-Customer: ${order.customerName || 'N/A'}
-Phone: ${order.phone || 'N/A'}
+Customer: ${maskCustomerName(order.customerName) || 'N/A'}
+Phone: ${maskPhoneNumber(order.phone) || 'N/A'}
 City: ${order.city || 'N/A'}
-Shipping Address: ${order.address || 'N/A'}
+Shipping Address: ${maskAddress(order.address, order.city) || 'N/A'}
 Customer Note: "${order.customerNote || ''}"
 Order Amount: ৳${order.orderAmount || 0}
 Line Items: ${Array.isArray(order.items) ? order.items.map((it: any) => `${it.itemName || ''} (Size: ${it.size || ''}, Qty: ${it.quantity || 1})`).join('; ') : 'N/A'}`;

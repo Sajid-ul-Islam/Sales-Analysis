@@ -28,6 +28,7 @@ import {
   saveBYOKConfig,
   clearBYOKConfig,
 } from '@/lib/byok';
+import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 
 interface BYOKModalProps {
   isOpen: boolean;
@@ -106,7 +107,7 @@ export function BYOKModal({ isOpen, onClose, onSaved }: BYOKModalProps) {
     try {
       const res = await fetch('/api/ai/byok/test', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getClientAuthHeaders(),
         body: JSON.stringify({
           apiKey: cleanKey,
           provider: selectedProvider,

@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server';
 import { fetchDatasetFromBlob, uploadDatasetToBlob, isBlobConfigured } from '@/lib/blobStorage';
 import { batchFetchPathaoOrders, formatPathaoToReturnRows } from '@/lib/pathaoClient';
 import { fetchWooCommerceOrders, formatWooCommerceToOrderRows } from '@/lib/woocommerceClient';
+import { validateApiRequest } from '@/lib/auth/apiAuth';
 import baselineData from '@/data/baselineSample.json';
 import { DatasetSnapshot, RawOrderRow } from '@/types';
+import { getDhakaDaysAgoIso, getDhakaTodayIso } from '@/lib/timezone';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // 60s max execution time for Vercel Cron
@@ -17,10 +19,10 @@ export const maxDuration = 60; // 60s max execution time for Vercel Cron
  * 4. Merge updates with historical records and persist to Vercel Blob.
  */
 export async function GET(req: Request) {
-  // 1. Verify Vercel Cron Secret (if configured)
-  const authHeader = req.headers.get('authorization');
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ success: false, message: 'Unauthorized cron invocation' }, { status: 401 });
+  // 1. Mandatory Admin / Cron Authentication Check
+  const auth = validateApiRequest(req, { requiredRole: 'admin', allowDemo: false, allowCronSecret: true });
+  if (!auth.authenticated) {
+    return NextResponse.json({ success: false, message: 'Unauthorized: Valid Admin secret or CRON_SECRET required.' }, { status: 401 });
   }
 
   const log: string[] = [];
@@ -58,10 +60,10 @@ export async function GET(req: Request) {
       log.push(`Loaded base from bundled baseline: ${baseDataset.orders.length} orders`);
     }
 
-    // 3. Step A: Incremental WooCommerce Sync (Recent 7 days)
+    // 3. Step A: Incremental WooCommerce Sync (Recent 7 days in Asia/Dhaka)
     let newWcOrdersCount = 0;
     try {
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+      const sevenDaysAgo = getDhakaDaysAgoIso(7);
       const rawWc = await fetchWooCommerceOrders({
         after: `${sevenDaysAgo}T00:00:00`,
         perPage: 50,
@@ -157,7 +159,7 @@ export async function GET(req: Request) {
     // 5. Step C: Save Merged Snapshot to Vercel Blob
     let blobSaved = false;
     baseDataset.syncedAt = new Date().toISOString();
-    baseDataset.sourceName = `Cron Automated Snapshot (${new Date().toLocaleDateString('en-GB')})`;
+    baseDataset.sourceName = `Cron Automated Snapshot (${getDhakaTodayIso()})`;
 
     if (isBlobConfigured()) {
       const upload = await uploadDatasetToBlob(baseDataset, { createTimestampArchive: false });

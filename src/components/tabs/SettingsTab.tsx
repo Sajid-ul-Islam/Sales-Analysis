@@ -81,6 +81,7 @@ import { loadBYOKConfig, BYOKConfig } from '@/lib/byok';
 import { BYOKModal } from '@/components/ai/BYOKModal';
 import { DataProvenanceInfo } from '@/lib/dataAudit';
 import { resetAssistantPosition } from '@/lib/draggableAssistant';
+import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 
 interface SettingsTabProps {
   excludeAugust: boolean;
@@ -254,10 +255,12 @@ export function SettingsTab({
       const res = Object.keys(payload).length > 0
         ? await fetch('/api/sync/status', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getClientAuthHeaders(),
             body: JSON.stringify(payload)
           })
-        : await fetch('/api/sync/status');
+        : await fetch('/api/sync/status', {
+            headers: getClientAuthHeaders(),
+          });
 
       const data = await res.json();
       setPathaoStatus(data.pathao);
@@ -564,7 +567,7 @@ export function SettingsTab({
     try {
       const res = await fetch('/api/sync/woocommerce', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getClientAuthHeaders(),
         body: JSON.stringify({
           startDate,
           endDate,
@@ -617,7 +620,7 @@ export function SettingsTab({
     try {
       const res = await fetch('/api/sync/pathao', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getClientAuthHeaders(),
         body: JSON.stringify({
           startDate,
           endDate,

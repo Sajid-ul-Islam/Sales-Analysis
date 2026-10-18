@@ -38,6 +38,7 @@ import {
 import { GA4FullReport } from '@/lib/ga4Client';
 import { MetaFullReport, MetaCampaignSummary } from '@/lib/metaClient';
 import { SummaryMetrics } from '@/types';
+import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 import { DateScope, CustomDateRange, DateScopeCounts } from '@/lib/dateFilter';
 import { DateRangeSelector } from '@/components/DateRangeSelector';
 import {
@@ -107,7 +108,9 @@ export function MarketingAnalyticsTab({
 
   const loadAnalyticsData = useCallback(async (range: string, tokenOverride?: string) => {
     try {
-      const overviewRes = await fetch(`/api/analytics/overview?range=${range}`);
+      const overviewRes = await fetch(`/api/analytics/overview?range=${range}`, {
+        headers: getClientAuthHeaders(),
+      });
       const data = await overviewRes.json();
       if (data.success) {
         setGa4Report(data.ga4);
@@ -143,7 +146,7 @@ export function MarketingAnalyticsTab({
     try {
       const res = await fetch('/api/analytics/meta', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getClientAuthHeaders(),
         body: JSON.stringify({ token: customToken.trim(), preset: 'last_30d', metaAdCost: configuredMetaCost }),
       });
       const data = await res.json();

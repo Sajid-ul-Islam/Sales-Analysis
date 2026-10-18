@@ -1,10 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getBlobStorageStatus, isBlobConfigured } from '@/lib/blobStorage';
+import { validateApiRequest } from '@/lib/auth/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    // 1. Operator Authentication Check
+    const auth = validateApiRequest(req, { requiredRole: 'operator', allowDemo: false });
+    if (!auth.authenticated) {
+      return NextResponse.json({
+        configured: false,
+        statusCode: auth.statusCode,
+        message: auth.message,
+      }, { status: auth.statusCode });
+    }
+
     const configured = isBlobConfigured();
     if (!configured) {
       return NextResponse.json({
@@ -25,6 +36,7 @@ export async function GET() {
     return NextResponse.json({
       configured: false,
       error: err?.message || 'Error checking Vercel Blob status',
-    });
+    }, { status: 500 });
   }
 }
+

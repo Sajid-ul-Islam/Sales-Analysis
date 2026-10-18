@@ -57,6 +57,7 @@ import {
   DEEN_CACHE_KEYS
 } from '@/lib/cacheManager';
 import { DataProvenanceInfo } from '@/lib/dataAudit';
+import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 
 export type DataSourceMode = 'UPLOAD' | 'API';
 
@@ -336,7 +337,9 @@ export default function DashboardPage() {
 
     // 2. Fetch baseline from local API and cache in browser memory
     try {
-      const res = await fetch('/api/sample-data');
+      const res = await fetch('/api/sample-data', {
+        headers: getClientAuthHeaders(),
+      });
       const data = await res.json();
       if (data.success && data.ordersCount > 0) {
         if (data.provenance) {
@@ -676,7 +679,7 @@ export default function DashboardPage() {
       // Automated Cloud Sync: Non-blocking background persistence to Vercel Blob
       fetch('/api/blob/dataset', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getClientAuthHeaders(),
         body: JSON.stringify(uploadedSnapshot),
       })
       .then(r => r.json())
@@ -742,7 +745,7 @@ export default function DashboardPage() {
     // Automated Cloud Sync: Non-blocking background persistence to Vercel Blob
     fetch('/api/blob/dataset', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getClientAuthHeaders(),
       body: JSON.stringify(snapshot),
     })
     .then(r => r.json())
@@ -1061,7 +1064,7 @@ export default function DashboardPage() {
                 try {
                   const res = await fetch('/api/sync/live-terminal', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getClientAuthHeaders(),
                     body: JSON.stringify({ limitConsignments: 35, fetchLiveWc: true }),
                   });
                   const contentType = res.headers.get('content-type') || '';
@@ -1166,7 +1169,7 @@ export default function DashboardPage() {
                       try {
                         const res = await fetch('/api/sync/pathao', {
                           method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
+                          headers: getClientAuthHeaders(),
                           body: JSON.stringify({ limit: 50 })
                         });
                         const contentType = res.headers.get('content-type') || '';

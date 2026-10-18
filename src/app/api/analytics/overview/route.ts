@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchFullGA4Analytics } from '@/lib/ga4Client';
 import { fetchFullMetaAnalytics } from '@/lib/metaClient';
+import { validateApiRequest } from '@/lib/auth/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  // 1. Operator Auth Check
+  const auth = validateApiRequest(request, { requiredRole: 'operator', allowDemo: false });
+  if (!auth.authenticated) {
+    return NextResponse.json({ success: false, error: auth.message }, { status: auth.statusCode });
+  }
+
   const searchParams = request.nextUrl.searchParams;
   const range = searchParams.get('range') || '30d';
 

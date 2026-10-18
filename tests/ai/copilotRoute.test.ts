@@ -159,11 +159,15 @@ describe('/api/ai/copilot Live Ops Integration', () => {
     expect(data.appliedRules.some((rule: string) => rule.includes('Baseline') || rule.includes('Shipped'))).toBe(true);
   });
 
-  it('passes liveOpsContext and query facts to LLM prompt when LLM is active', async () => {
+  it('passes liveOpsContext and query facts to LLM prompt when LLM is active with valid operator auth', async () => {
+    process.env.ADMIN_API_SECRET = 'secret_admin_key_123';
     mockGenerateAICompletion.mockResolvedValue('### Executive Response\nToday shipped revenue reached ৳1,850 across 1 orders.');
 
     const req = new NextRequest('http://localhost:3000/api/ai/copilot', {
       method: 'POST',
+      headers: {
+        authorization: 'Bearer secret_admin_key_123',
+      },
       body: JSON.stringify({
         query: "What are today's sales and revenue?",
         summary: mockSummary,
@@ -188,5 +192,31 @@ describe('/api/ai/copilot Live Ops Integration', () => {
     expect(callArgs.prompt).toContain("Today's Shipped Orders:");
     expect(callArgs.prompt).toContain("Live Warehouse Fulfillment Queue:");
     expect(callArgs.prompt).toContain("Real-Time Courier Telemetry");
+  });
+
+  it('prevents anonymous callers from consuming server LLM keys and falls back to deterministic briefing', async () => {
+    mockGenerateAICompletion.mockResolvedValue('### This should NOT be called by anonymous users');
+
+    const req = new NextRequest('http://localhost:3000/api/ai/copilot', {
+      method: 'POST',
+      body: JSON.stringify({
+        query: "What are today's sales?",
+        summary: mockSummary,
+        activeTab: 'tabLiveOps',
+        tabLabel: 'Live Terminal',
+        analyticsSlices: {
+          liveOps: liveOpsSlice
+        }
+      })
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
+    // LLM must NOT be called for anonymous users without BYOK
+    expect(mockGenerateAICompletion).not.toHaveBeenCalled();
+    expect(data.source).toBe('offline_knowledge_fallback');
+    expect(data.answer).toContain("Today's Dispatched Volume");
   });
 });

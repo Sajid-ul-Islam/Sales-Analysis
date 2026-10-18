@@ -40,6 +40,7 @@ import { DateRangeSelector } from '@/components/DateRangeSelector';
 import { DateScope, CustomDateRange, parseOrderDate } from '@/lib/dateFilter';
 import { classifyProductCategory } from '@/lib/reconciliationEngine';
 import { cleanProductMainName, extractMasterSku } from './ExecutiveOverviewTab';
+import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 
 interface OutletSalesTabProps {
   orders?: ReconciledOrderRow[];
@@ -430,7 +431,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
       const res = await fetch('/api/sync/woocommerce', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getClientAuthHeaders(),
         body: JSON.stringify({
           perPage,
           maxPages: pagesToFetch,

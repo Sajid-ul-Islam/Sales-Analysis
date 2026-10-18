@@ -1,4 +1,5 @@
 import { DatasetSnapshot } from '@/types';
+import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 
 /**
  * DEEN Commerce — Client-side JSON Dataset Exporter (Method 1)
@@ -47,7 +48,7 @@ export async function saveDatasetToLocalDisk(
   try {
     const res = await fetch('/api/sample-data', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getClientAuthHeaders(),
       body: JSON.stringify(dataset),
     });
     return await res.json();

@@ -9,8 +9,8 @@ export const maxDuration = 60; // Allow up to 60s for multi-page order fetch and
 
 export async function POST(req: Request) {
   try {
-    // 1. API Authentication & Role Check
-    const auth = validateApiRequest(req, { requiredRole: 'operator', allowDemo: true });
+    // 1. API Authentication & Role Check - Operator or Admin only
+    const auth = validateApiRequest(req, { requiredRole: 'operator', allowDemo: false });
     if (!auth.authenticated) {
       return NextResponse.json(
         {
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
 
     // 2. Sliding Window Rate Limiting (30 requests per minute)
     const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'internal_caller';
-    const rateCheck = checkRateLimit(`sync_live_terminal_${clientIp}`, 30, 60000);
+    const rateCheck = await checkRateLimit(`sync_live_terminal_${clientIp}`, 30, 60000);
     if (!rateCheck.allowed) {
       return NextResponse.json(
         {
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
       fetchLiveWc: body.fetchLiveWc !== undefined ? body.fetchLiveWc : true,
     });
 
-    const isPrivileged = auth.role === 'admin' || auth.role === 'operator' || auth.role === 'demo';
+    const isPrivileged = auth.authenticated && (auth.role === 'admin' || auth.role === 'operator');
     const sanitizedOrders = isPrivileged ? result.orders : sanitizeOrdersResponse(result.orders);
 
     return NextResponse.json({

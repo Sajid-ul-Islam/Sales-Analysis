@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchFullMetaAnalytics, testMetaConnection } from '@/lib/metaClient';
+import { validateApiRequest } from '@/lib/auth/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  // 1. Operator Auth Check
+  const auth = validateApiRequest(request, { requiredRole: 'operator', allowDemo: false });
+  if (!auth.authenticated) {
+    return NextResponse.json({ success: false, error: auth.message }, { status: auth.statusCode });
+  }
+
   const searchParams = request.nextUrl.searchParams;
   const preset = searchParams.get('preset') || 'last_30d';
   const customToken = searchParams.get('token') || undefined;
@@ -19,6 +26,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // 1. Operator Auth Check
+  const auth = validateApiRequest(request, { requiredRole: 'operator', allowDemo: false });
+  if (!auth.authenticated) {
+    return NextResponse.json({ success: false, error: auth.message }, { status: auth.statusCode });
+  }
+
   try {
     const body = await request.json().catch(() => ({}));
     const preset = body.preset || 'last_30d';

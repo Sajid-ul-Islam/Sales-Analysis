@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { loadBYOKConfig, BYOKConfig } from '@/lib/byok';
 import { BYOKModal } from '@/components/ai/BYOKModal';
+import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 
 interface AICourierDisputeCardProps {
   mismatches: CourierMismatchRecord[];
@@ -72,7 +73,7 @@ export function AICourierDisputeCard({ mismatches }: AICourierDisputeCardProps) 
       const currentBYOK = loadBYOKConfig();
       const res = await fetch('/api/ai/after-sales/courier-audit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getClientAuthHeaders(),
         body: JSON.stringify({
           mismatches: mismatches.slice(0, 30),
           byok: currentBYOK.isActive ? currentBYOK : undefined,

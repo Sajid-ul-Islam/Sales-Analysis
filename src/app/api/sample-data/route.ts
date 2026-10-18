@@ -40,8 +40,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
-    const auth = validateApiRequest(req, { requiredRole: 'operator', allowDemo: true });
-    const isPrivileged = auth.authenticated && (auth.role === 'admin' || auth.role === 'operator' || auth.role === 'demo');
+    const auth = validateApiRequest(req, { requiredRole: 'readonly', allowDemo: true });
+    const isPrivileged = auth.authenticated && (auth.role === 'admin' || auth.role === 'operator');
 
     // 1. TIER 1 CLOUD CHECK: Vercel Blob Storage (Method 3)
     // If BLOB_READ_WRITE_TOKEN is configured and a cloud dataset snapshot exists, serve it with 0ms delay!
@@ -56,12 +56,11 @@ export async function GET(req: Request) {
           const sanitizedExchanges = isPrivileged ? ds.exchanges : sanitizeOrdersResponse(ds.exchanges || []);
           const sanitizedPathao = isPrivileged ? ds.pathaoDelivery : sanitizeOrdersResponse(ds.pathaoDelivery || []);
 
-          const provenance = createDataProvenance('vercel_blob', sanitizedOrders.length, true);
+          const provenance = createDataProvenance('vercel_blob', sanitizedOrders.length, !isPrivileged);
 
           return NextResponse.json({
             success: true,
             source: 'vercel_blob',
-            blobUrl: blobResult.url,
             ordersPath: 'deen_dataset_latest.json (Vercel Blob)',
             returnsPath: 'deen_dataset_latest.json (Vercel Blob)',
             partialsPath: 'deen_dataset_latest.json (Vercel Blob)',
@@ -204,6 +203,11 @@ export async function GET(req: Request) {
  * Allows persisting the active working dataset directly to src/data/baselineSample.json when running locally.
  */
 export async function POST(req: Request) {
+  const auth = validateApiRequest(req, { requiredRole: 'operator', allowDemo: false });
+  if (!auth.authenticated) {
+    return NextResponse.json({ success: false, message: auth.message || 'Unauthorized' }, { status: auth.statusCode });
+  }
+
   try {
     const body: Partial<DatasetSnapshot> = await req.json().catch(() => ({}));
     const targetPath = path.join(process.cwd(), 'src', 'data', 'baselineSample.json');

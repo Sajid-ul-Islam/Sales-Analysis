@@ -1,4 +1,4 @@
-import { maskPhoneNumber, maskCustomerName, maskAddress } from './auth/dataMasking';
+import { maskPhoneNumber, maskCustomerName, maskAddress, maskEmail } from './auth/dataMasking';
 
 export interface PiiAuditReport {
   hasPII: boolean;
@@ -18,7 +18,7 @@ export interface DataProvenanceInfo {
 }
 
 /**
- * Audits a dataset to detect unmasked customer PII (real phone numbers, full names, addresses).
+ * Audits a dataset to detect unmasked customer PII (real phone numbers, full names, addresses, emails).
  */
 export function auditDatasetPII(records: any[]): PiiAuditReport {
   if (!Array.isArray(records)) {
@@ -66,6 +66,16 @@ export function auditDatasetPII(records: any[]): PiiAuditReport {
     if (nameVal && typeof nameVal === 'string' && nameVal.trim().length > 3 && !nameVal.includes('***')) {
       detectedFieldSet.add('Customer Name');
       rowHasPii = true;
+    }
+
+    // Check Email
+    const emailVal = row['Customer Email'] || row['Billing Email'] || row.Email || row.email;
+    if (emailVal && typeof emailVal === 'string' && emailVal.includes('@') && !emailVal.includes('***')) {
+      detectedFieldSet.add('Email');
+      rowHasPii = true;
+      if (violations.length < 5) {
+        violations.push({ orderId, field: 'Email', sample: String(emailVal).slice(0, 3) + '***@...' });
+      }
     }
 
     if (rowHasPii) {
@@ -123,9 +133,22 @@ export function anonymizeDataset(records: any[]): any[] {
       clone.Address = maskAddress(clone.Address, city);
     }
 
+    // Pseudonymize email
+    if ('Customer Email' in clone) {
+      clone['Customer Email'] = maskEmail(clone['Customer Email']);
+    }
+    if ('Email' in clone) {
+      clone.Email = maskEmail(clone.Email);
+    }
+    if ('email' in clone) {
+      clone.email = maskEmail(clone.email);
+    }
+
     // Mask sensitive customer notes
     if ('Customer Note' in clone && typeof clone['Customer Note'] === 'string') {
-      clone['Customer Note'] = clone['Customer Note'].replace(/\b01[3-9]\d{8}\b/g, '[PHONE REDACTED]');
+      clone['Customer Note'] = clone['Customer Note']
+        .replace(/\b01[3-9]\d{8}\b/g, '[PHONE REDACTED]')
+        .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL REDACTED]');
     }
 
     return clone;

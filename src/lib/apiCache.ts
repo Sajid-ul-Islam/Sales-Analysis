@@ -47,16 +47,21 @@ export const TTL_HISTORICAL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 export const TTL_RECENT_MS = 2 * 60 * 60 * 1000;          // 2 hours
 export const TTL_TODAY_MS = 15 * 60 * 1000;               // 15 minutes
 
+import { getDhakaTodayIso, getDhakaIsoDate, parseDhakaMidday } from '@/lib/timezone';
+
 /**
- * Determines whether a date range represents historical (past closed) data.
+ * Determines whether a date range represents historical (past closed) data strictly in Asia/Dhaka time.
  */
 export function isHistoricalDateRange(endDateStr: string): boolean {
   if (!endDateStr) return false;
   try {
-    const end = new Date(endDateStr);
-    const now = new Date();
-    // If the end date was more than 3 days ago, it's historical
-    const diffDays = (now.getTime() - end.getTime()) / (1000 * 60 * 60 * 24);
+    const endIso = getDhakaIsoDate(endDateStr);
+    const todayIso = getDhakaTodayIso();
+    if (endIso === todayIso) return false;
+
+    const endMidday = parseDhakaMidday(endIso);
+    const todayMidday = parseDhakaMidday(todayIso);
+    const diffDays = (todayMidday.getTime() - endMidday.getTime()) / (1000 * 60 * 60 * 24);
     return diffDays > 3;
   } catch {
     return false;
@@ -64,11 +69,14 @@ export function isHistoricalDateRange(endDateStr: string): boolean {
 }
 
 /**
- * Computes optimal TTL in milliseconds based on dates.
+ * Computes optimal TTL in milliseconds based on dates pinned to Asia/Dhaka time.
  */
 export function getRecommendedTTL(startDate: string, endDate: string): number {
-  const todayStr = new Date().toISOString().slice(0, 10);
-  if (endDate === todayStr || startDate === todayStr) {
+  const todayStr = getDhakaTodayIso();
+  const startIso = startDate ? getDhakaIsoDate(startDate) : '';
+  const endIso = endDate ? getDhakaIsoDate(endDate) : '';
+
+  if (endIso === todayStr || startIso === todayStr) {
     return TTL_TODAY_MS;
   }
   if (isHistoricalDateRange(endDate)) {

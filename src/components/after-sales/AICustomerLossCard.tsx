@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { loadBYOKConfig, BYOKConfig } from '@/lib/byok';
 import { BYOKModal } from '@/components/ai/BYOKModal';
+import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 
 interface AICustomerLossCardProps {
   profiles: CustomerRiskProfile[];
@@ -68,7 +69,7 @@ export function AICustomerLossCard({ profiles }: AICustomerLossCardProps) {
       const currentBYOK = loadBYOKConfig();
       const res = await fetch('/api/ai/after-sales/customer-loss', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getClientAuthHeaders(),
         body: JSON.stringify({
           profiles: profiles.slice(0, 30),
           byok: currentBYOK.isActive ? currentBYOK : undefined,

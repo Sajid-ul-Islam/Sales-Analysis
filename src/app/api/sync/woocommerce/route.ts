@@ -10,8 +10,8 @@ export const maxDuration = 60; // Allow up to 60s for multi-page order fetches o
 
 export async function POST(req: Request) {
   try {
-    // 1. API Authentication & Role Check
-    const auth = validateApiRequest(req, { requiredRole: 'operator', allowDemo: true });
+    // 1. API Authentication & Role Check - Operator or Admin only
+    const auth = validateApiRequest(req, { requiredRole: 'operator', allowDemo: false });
     if (!auth.authenticated) {
       return NextResponse.json({
         success: false,
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
 
     // 2. Sliding Window Rate Limiting (30 requests per minute)
     const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'internal_caller';
-    const rateCheck = checkRateLimit(`sync_wc_${clientIp}`, 30, 60000);
+    const rateCheck = await checkRateLimit(`sync_wc_${clientIp}`, 30, 60000);
     if (!rateCheck.allowed) {
       return NextResponse.json({
         success: false,
@@ -64,7 +64,7 @@ export async function POST(req: Request) {
     const formattedRows = formatWooCommerceToOrderRows(rawOrders);
 
     // 3. PII Sanitization for non-admin/demo roles
-    const isPrivileged = auth.role === 'admin' || auth.role === 'operator' || auth.role === 'demo';
+    const isPrivileged = auth.authenticated && (auth.role === 'admin' || auth.role === 'operator');
     const returnRows = isPrivileged ? formattedRows : sanitizeOrdersResponse(formattedRows);
     const provenance = createDataProvenance('live_api', rawOrders.length, !isPrivileged);
 
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
       ordersCount: rawOrders.length,
       lineItemsCount: formattedRows.length,
       orders: returnRows,
-      rawOrders: rawOrders,
+      rawOrders: isPrivileged ? rawOrders : [],
       breakdown: {
         byStatus: statusBreakdown,
         byBranch: branchBreakdown,

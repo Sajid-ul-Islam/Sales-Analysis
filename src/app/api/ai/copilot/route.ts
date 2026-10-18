@@ -3,6 +3,7 @@ import { generateAICompletion } from '@/lib/geminiClient';
 import { COPILOT_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import { retrieveRelevantKnowledge } from '@/lib/ai/knowledgeBase';
 import { generateQueryAnalyticalFacts, AnalyticsSlices } from '@/lib/ai/semanticAnalytics';
+import { validateApiRequest } from '@/lib/auth/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -119,14 +120,24 @@ Instructions:
    - Highlight monetary amounts with '৳' symbol
    - Avoid unformatted plain walls of text.`;
 
-    const aiAnswer = await generateAICompletion({
-      prompt: contextPrompt,
-      systemInstruction: COPILOT_SYSTEM_PROMPT,
-      temperature: 0.25,
-      byokApiKey: byok?.apiKey,
-      byokProvider: byok?.provider,
-      byokModel: byok?.model,
-    });
+    // 4. API Authentication & Token Protection
+    const auth = validateApiRequest(req, { requiredRole: 'operator', allowDemo: true });
+    const isAuthorizedOperator = auth.authenticated && (auth.role === 'admin' || auth.role === 'operator');
+    const hasByok = Boolean(byok?.apiKey && String(byok.apiKey).trim().length > 5);
+
+    let aiAnswer: string | null = null;
+
+    // Security Invariant: Only permit external LLM calls if the caller has verified operator credentials OR supplies their own BYOK key.
+    if (isAuthorizedOperator || hasByok) {
+      aiAnswer = await generateAICompletion({
+        prompt: contextPrompt,
+        systemInstruction: COPILOT_SYSTEM_PROMPT,
+        temperature: 0.25,
+        byokApiKey: byok?.apiKey,
+        byokProvider: byok?.provider,
+        byokModel: byok?.model,
+      });
+    }
 
     if (aiAnswer) {
       return NextResponse.json({

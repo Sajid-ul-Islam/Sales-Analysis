@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateAICompletion } from '@/lib/geminiClient';
 import { detectAIProvider, AIProvider } from '@/lib/byok';
+import { checkRateLimit } from '@/lib/auth/rateLimiter';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'internal_caller';
+    const rateCheck = await checkRateLimit(`byok_test_${clientIp}`, 10, 60000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Rate limit exceeded: Max 10 BYOK connectivity tests per minute.',
+        },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const { apiKey = '', provider: propProvider, model: propModel } = body;
 

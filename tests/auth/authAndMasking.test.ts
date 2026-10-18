@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { validateApiRequest } from '@/lib/auth/apiAuth';
 import { checkRateLimit, resetRateLimits } from '@/lib/auth/rateLimiter';
-import { maskPhoneNumber, maskCustomerName, maskAddress, sanitizeOrderRow } from '@/lib/auth/dataMasking';
+import { maskPhoneNumber, maskCustomerName, maskAddress, maskEmail, sanitizeOrderRow } from '@/lib/auth/dataMasking';
 import { auditDatasetPII, anonymizeDataset } from '@/lib/dataAudit';
 
 describe('Security & Data Privacy Infrastructure', () => {
@@ -24,6 +24,29 @@ describe('Security & Data Privacy Infrastructure', () => {
       expect(res.statusCode).toBe(200);
     });
 
+    it('authenticates operator request with API_BEARER_TOKEN or INTERNAL_SYNC_SECRET', () => {
+      process.env.API_BEARER_TOKEN = 'operator_token_999';
+      const req = new Request('https://localhost/api/blob/dataset', {
+        headers: { authorization: 'Bearer operator_token_999' },
+      });
+
+      const res = validateApiRequest(req, { requiredRole: 'operator', allowDemo: false });
+      expect(res.authenticated).toBe(true);
+      expect(res.role).toBe('operator');
+      expect(res.statusCode).toBe(200);
+    });
+
+    it('authenticates cron request with CRON_SECRET when allowCronSecret is true', () => {
+      process.env.CRON_SECRET = 'cron_secret_abc123';
+      const req = new Request('https://localhost/api/sync/cron', {
+        headers: { authorization: 'Bearer cron_secret_abc123' },
+      });
+
+      const res = validateApiRequest(req, { requiredRole: 'admin', allowDemo: false, allowCronSecret: true });
+      expect(res.authenticated).toBe(true);
+      expect(res.role).toBe('admin');
+    });
+
     it('rejects invalid or missing bearer token in non-demo mode', () => {
       const origEnv = process.env.NODE_ENV;
       (process.env as any).NODE_ENV = 'production';
@@ -39,11 +62,31 @@ describe('Security & Data Privacy Infrastructure', () => {
       (process.env as any).NODE_ENV = origEnv;
     });
 
-    it('allows demo mode when allowDemo flag is set', () => {
+    it('rejects demo access with 403 Forbidden on operator or admin endpoints', () => {
+      const req = new Request('https://localhost/api/blob/dataset');
+      const res = validateApiRequest(req, { requiredRole: 'operator', allowDemo: true });
+      expect(res.authenticated).toBe(false);
+      expect(res.role).toBe('demo');
+      expect(res.statusCode).toBe(403);
+      expect(res.message).toContain('Forbidden');
+    });
+
+    it('allows demo mode on readonly endpoints when allowDemo flag is set', () => {
       const req = new Request('https://localhost/api/sample-data');
-      const res = validateApiRequest(req, { allowDemo: true });
+      const res = validateApiRequest(req, { requiredRole: 'readonly', allowDemo: true });
       expect(res.authenticated).toBe(true);
       expect(res.role).toBe('demo');
+      expect(res.statusCode).toBe(200);
+    });
+
+    it('never bypasses authentication in development environment without valid token', () => {
+      const origEnv = process.env.NODE_ENV;
+      (process.env as any).NODE_ENV = 'development';
+      const req = new Request('https://localhost/api/sync/woocommerce');
+      const res = validateApiRequest(req, { requiredRole: 'operator', allowDemo: false });
+      expect(res.authenticated).toBe(false);
+      expect(res.statusCode).toBe(401);
+      (process.env as any).NODE_ENV = origEnv;
     });
   });
 
@@ -77,32 +120,76 @@ describe('Security & Data Privacy Infrastructure', () => {
       expect(masked).toBe('[REDACTED STREET], Dhaka');
     });
 
-    it('sanitizes order row completely', () => {
+    it('masks email addresses reliably', () => {
+      expect(maskEmail('customer.name@example.com')).toBe('c***e@e***.com');
+      expect(maskEmail('ab@test.com')).toBe('a***@t***.com');
+      expect(maskEmail('a@test.com')).toBe('a***@t***.com');
+      expect(maskEmail('')).toBe('');
+      expect(maskEmail('notanemail')).toBe('****@redacted.com');
+    });
+
+    it('sanitizes order row completely including notes, email, and phone', () => {
       const row = {
         'Order ID': '16271',
         'Customer Name': 'Tusher pual',
+        'Customer Email': 'tusher@example.com',
         'Phone': '01783650157',
         'Address': '714 Jahanara Kutir, Comilla',
-        'Order Notes': 'Customer phone 01783650157 confirmed',
+        'Order Notes': 'Customer phone 01783650157 and email tusher@example.com confirmed',
       };
       const clean = sanitizeOrderRow(row, 'full');
       expect(clean['Customer Name']).toBe('T*** p***');
+      expect(clean['Customer Email']).toBe('t***r@e***.com');
       expect(clean['Phone']).toBe('0178****157');
       expect(clean['Address']).toContain('[REDACTED');
       expect(clean['Order Notes']).toContain('[PHONE REDACTED]');
+      expect(clean['Order Notes']).toContain('[EMAIL REDACTED]');
+    });
+
+    it('sanitizes nested WooCommerce billing, shipping, and IP address objects', () => {
+      const row = {
+        id: 16271,
+        billing: {
+          first_name: 'Tanvir',
+          last_name: 'Hossain',
+          email: 'tanvir@gmail.com',
+          phone: '01812345678',
+          address_1: 'House 12, Road 4, Sector 7',
+          city: 'Dhaka',
+        },
+        shipping: {
+          first_name: 'Tanvir',
+          last_name: 'Hossain',
+          address_1: 'House 12, Road 4, Sector 7',
+          city: 'Dhaka',
+        },
+        customer_ip_address: '103.205.180.12',
+        customer_note: 'Call 01812345678 or reach tanvir@gmail.com',
+      };
+      const clean = sanitizeOrderRow(row, 'full');
+      expect(clean.billing.first_name).toBe('T***');
+      expect(clean.billing.last_name).toBe('H***');
+      expect(clean.billing.email).toBe('t***r@g***.com');
+      expect(clean.billing.phone).toBe('0181****678');
+      expect(clean.billing.address_1).toContain('[REDACTED');
+      expect(clean.shipping.first_name).toBe('T***');
+      expect(clean.customer_ip_address).toBe('[REDACTED IP]');
+      expect(clean.customer_note).toContain('[PHONE REDACTED]');
+      expect(clean.customer_note).toContain('[EMAIL REDACTED]');
     });
   });
 
   describe('Dataset PII Audit & Anonymizer', () => {
-    it('detects unmasked customer PII in datasets', () => {
+    it('detects unmasked customer PII including emails in datasets', () => {
       const testData = [
-        { 'Order ID': '101', 'Customer Name': 'Real Customer', 'Phone': '01712345678', 'Address': '123 Real Street, Dhaka' },
+        { 'Order ID': '101', 'Customer Name': 'Real Customer', 'Phone': '01712345678', 'Email': 'real@example.com', 'Address': '123 Real Street, Dhaka' },
       ];
       const audit = auditDatasetPII(testData);
       expect(audit.hasPII).toBe(true);
       expect(audit.piiRecordCount).toBe(1);
       expect(audit.detectedFields).toContain('Phone');
       expect(audit.detectedFields).toContain('Address');
+      expect(audit.detectedFields).toContain('Email');
     });
 
     it('anonymizes dataset while preserving financial metrics and order IDs', () => {

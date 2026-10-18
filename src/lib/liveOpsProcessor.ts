@@ -9,6 +9,13 @@ import { RawOrderRow, ReconciledOrderRow } from '@/types';
 import { classifyProductLine, computeSelectsStats, SelectsStats } from './selectsAnalytics';
 import { getCategoryForSales, getSubCategoryForSales, getShortCategoryLabel, CATEGORY_COLOR_MAP } from './liveCategoryEngine';
 import { computeCustomerMix } from './customerRegistry';
+import {
+  getDhakaIsoDate,
+  getDhakaTodayIso,
+  getDhakaDayName,
+  getDhakaPreviousWorkingDay,
+  parseDhakaMidday,
+} from './timezone';
 
 export const SHIPPED_STATUSES = new Set(['shipped', 'completed', 'wc-shipped', 'wc-completed', 'delivered']);
 export const CANCELLED_STATUSES = new Set(['cancelled', 'wc-cancelled', 'failed', 'wc-failed', 'refunded', 'trash']);
@@ -435,27 +442,18 @@ export function extractExchangeInfo(order: RawOrderRow): ExchangeInfo {
 }
 
 /**
- * Returns previous working day in Bangladesh, skipping Friday (weekday 5).
+ * Returns previous working day in Bangladesh, skipping Friday (BST weekend).
  */
 export function getPreviousWorkingDay(date: Date): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() - 1);
-  // In JavaScript: 0 = Sunday, 5 = Friday
-  if (d.getDay() === 5) {
-    d.setDate(d.getDate() - 1); // step back to Thursday (4)
-  }
-  return d;
+  return getDhakaPreviousWorkingDay(date).date;
 }
 
 export function formatDateToIsoDay(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return getDhakaIsoDate(date);
 }
 
 export function getDayName(date: Date): string {
-  return date.toLocaleDateString('en-US', { weekday: 'long' });
+  return getDhakaDayName(date);
 }
 
 export function getStatusModificationDate(order: RawOrderRow): Date | null {
@@ -683,7 +681,7 @@ export function processLiveOpsData(
     .filter((x): x is { order: RawOrderRow; date: Date } => x.date !== null);
 
   const now = new Date();
-  const todayIso = formatDateToIsoDay(now);
+  const todayIso = getDhakaTodayIso();
 
   // If there are orders today, use today; otherwise find the latest date in the dataset
   const hasOrdersToday = ordersWithDates.some((x) => formatDateToIsoDay(x.date) === todayIso);
@@ -697,13 +695,9 @@ export function processLiveOpsData(
     isFallbackDate = true;
   }
 
-  // Parse YYYY-MM-DD safely at noon local to prevent timezone boundaries
+  // Parse YYYY-MM-DD safely at midday Dhaka time to prevent timezone boundaries
   const parseSafeDate = (dateStr: string): Date => {
-    const parts = dateStr.split('-');
-    if (parts.length === 3) {
-      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
-    }
-    return new Date(dateStr);
+    return parseDhakaMidday(dateStr);
   };
 
   const anchor = options.anchorDate
@@ -879,8 +873,7 @@ export function processLiveOpsData(
   }[] = [];
 
   for (let i = 6; i >= 0; i--) {
-    const d = new Date(anchor);
-    d.setDate(d.getDate() - i);
+    const d = new Date(anchor.getTime() - i * 24 * 60 * 60 * 1000);
     const dIso = formatDateToIsoDay(d);
     const dayOrders = source.filter((o) => isOrderShippedOnDate(o, dIso));
     const dayCommercialOrders = dayOrders.filter((o) => !isOrderExchange(o));
@@ -898,7 +891,7 @@ export function processLiveOpsData(
 
     const isToday = dIso === anchorDateIso;
     const isPrevDay = dIso === formatDateToIsoDay(getPreviousWorkingDay(anchor));
-    const dateLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const dateLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'Asia/Dhaka' });
     const dayName = getDayName(d);
     const isFriday = dayName.toLowerCase().startsWith('fri') || d.getDay() === 5;
     const isFridayClosed = isFriday && dayOrdersCount === 0;
@@ -1203,7 +1196,13 @@ export function processLiveOpsData(
   const topCat = categoryItems[0] || { displayName: 'General', volume: 0, revenue: 0 };
   const topProd = topProducts[0] || { productName: 'N/A', unitsSold: 0, revenue: 0 };
 
-  const formattedDate = refDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const formattedDate = refDate.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'Asia/Dhaka',
+  });
 
   const summaryPoints = [
     `Dispatched ${activeItemsCount} items across ${activeOrdersCount} unique commercial parcels with gross dispatch value of ৳ ${Math.round(activeRevenue).toLocaleString()} (AOV: ৳ ${activeBasket.toLocaleString()}).`,

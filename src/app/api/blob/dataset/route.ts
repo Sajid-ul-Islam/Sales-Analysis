@@ -8,6 +8,16 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
+    // 1. API Authentication & Role Check
+    const auth = validateApiRequest(req, { requiredRole: 'operator', allowDemo: false });
+    if (!auth.authenticated) {
+      return NextResponse.json({
+        success: false,
+        statusCode: auth.statusCode,
+        message: auth.message,
+      }, { status: auth.statusCode });
+    }
+
     if (!isBlobConfigured()) {
       return NextResponse.json({
         success: false,
@@ -26,14 +36,14 @@ export async function GET(req: Request) {
     }
 
     const orderCount = result.dataset.orders?.length || 0;
-    const provenance = createDataProvenance('vercel_blob', orderCount, false);
+    const isPrivileged = auth.role === 'admin' || auth.role === 'operator';
+    const provenance = createDataProvenance('vercel_blob', orderCount, !isPrivileged);
 
     return NextResponse.json({
       success: true,
       configured: true,
       dataset: result.dataset,
       provenance,
-      url: result.url,
       uploadedAt: result.uploadedAt,
       size: result.size,
       ordersCount: orderCount,
@@ -47,15 +57,15 @@ export async function GET(req: Request) {
     console.error('[API /api/blob/dataset GET] Error:', err);
     return NextResponse.json(
       { success: false, error: err?.message || 'Failed to fetch dataset from Vercel Blob' },
-      { status: 200 } // Graceful zero-500 response
+      { status: 500 }
     );
   }
 }
 
 export async function POST(req: Request) {
   try {
-    // 1. API Authentication & Role Check
-    const auth = validateApiRequest(req, { requiredRole: 'operator', allowDemo: true });
+    // 1. API Authentication & Role Check - Operator or Admin only, strictly NO demo access
+    const auth = validateApiRequest(req, { requiredRole: 'operator', allowDemo: false });
     if (!auth.authenticated) {
       return NextResponse.json({
         success: false,
@@ -66,7 +76,7 @@ export async function POST(req: Request) {
 
     // 2. Rate Limiting (20 requests per minute)
     const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'internal_caller';
-    const rateCheck = checkRateLimit(`blob_upload_${clientIp}`, 20, 60000);
+    const rateCheck = await checkRateLimit(`blob_upload_${clientIp}`, 20, 60000);
     if (!rateCheck.allowed) {
       return NextResponse.json({
         success: false,
@@ -91,13 +101,12 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    const upload = await uploadDatasetToBlob(body, { createTimestampArchive: true });
+    const upload = await uploadDatasetToBlob(body, { createTimestampArchive: false });
 
     return NextResponse.json({
       success: upload.success,
       configured: true,
       message: upload.message,
-      url: upload.url,
       pathname: upload.pathname,
       size: upload.size,
       uploadedAt: upload.uploadedAt,

@@ -12,13 +12,14 @@ export interface AuthValidationResult {
 export interface AuthOptions {
   requiredRole?: AuthRole;
   allowDemo?: boolean;
+  allowCronSecret?: boolean;
 }
 
 /**
  * Constant-time string comparison to prevent timing side-channel attacks on secret keys.
  */
 function safeCompare(a: string, b: string): boolean {
-  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  if (typeof a !== 'string' || typeof b !== 'string' || !a || !b) return false;
   const bufA = Buffer.from(a);
   const bufB = Buffer.from(b);
   if (bufA.length !== bufB.length) return false;
@@ -27,12 +28,15 @@ function safeCompare(a: string, b: string): boolean {
 
 /**
  * Validates incoming API request credentials against configured server secrets.
- * Infrastructure helper designed to protect synchronization and data endpoints.
+ * Infrastructure helper designed to protect synchronization, data, analytics, and AI endpoints.
  */
 export function validateApiRequest(
   req: Request,
-  options: AuthOptions = { requiredRole: 'operator', allowDemo: true }
+  options: AuthOptions = { requiredRole: 'operator', allowDemo: false }
 ): AuthValidationResult {
+  const requiredRole: AuthRole = options.requiredRole || (options.allowDemo ? 'readonly' : 'operator');
+  const allowDemo = options.allowDemo ?? false;
+
   const authHeader = req.headers.get('authorization') || '';
   const apiKeyHeader = req.headers.get('x-api-key') || '';
 
@@ -45,9 +49,24 @@ export function validateApiRequest(
   }
 
   const configuredAdminSecret = process.env.ADMIN_API_SECRET || process.env.INTERNAL_SYNC_SECRET || '';
-  const configuredOperatorSecret = process.env.API_BEARER_TOKEN || process.env.SYNC_API_TOKEN || '';
+  const configuredOperatorSecret =
+    process.env.API_BEARER_TOKEN ||
+    process.env.SYNC_API_TOKEN ||
+    process.env.NEXT_PUBLIC_API_BEARER_TOKEN ||
+    '';
+  const configuredCronSecret = process.env.CRON_SECRET || '';
 
-  // Check admin token match
+  // 1. Check Cron Secret match if allowed
+  if (options.allowCronSecret && configuredCronSecret && token && safeCompare(token, configuredCronSecret)) {
+    return {
+      authenticated: true,
+      role: 'admin',
+      statusCode: 200,
+      message: 'Authenticated via Vercel Cron secret.',
+    };
+  }
+
+  // 2. Check admin token match
   if (configuredAdminSecret && token && safeCompare(token, configuredAdminSecret)) {
     return {
       authenticated: true,
@@ -57,9 +76,9 @@ export function validateApiRequest(
     };
   }
 
-  // Check operator token match
+  // 3. Check operator token match
   if (configuredOperatorSecret && token && safeCompare(token, configuredOperatorSecret)) {
-    if (options.requiredRole === 'admin') {
+    if (requiredRole === 'admin') {
       return {
         authenticated: false,
         role: 'operator',
@@ -75,17 +94,28 @@ export function validateApiRequest(
     };
   }
 
-  // Allow unauthenticated demo access in development if explicitly permitted
-  const isDev = process.env.NODE_ENV !== 'production';
-  if (options.allowDemo || isDev) {
+  // 4. Handle Demo mode if explicitly requested
+  if (allowDemo) {
+    // If the endpoint requires operator or admin privileges, demo role is strictly forbidden!
+    if (requiredRole === 'operator' || requiredRole === 'admin') {
+      return {
+        authenticated: false,
+        role: 'demo',
+        statusCode: 403,
+        message: 'Forbidden: Operator or Admin credentials required. Demo access is restricted from executing live sync or mutation operations.',
+      };
+    }
+
+    // Read-only or demo-scoped endpoints allow demo role with PII masking
     return {
       authenticated: true,
       role: 'demo',
       statusCode: 200,
-      message: 'Demo mode access granted (read-only / restricted).',
+      message: 'Demo mode access granted (read-only / restricted PII).',
     };
   }
 
+  // 5. Default: Unauthorized
   return {
     authenticated: false,
     role: 'readonly',

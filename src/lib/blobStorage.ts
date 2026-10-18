@@ -1,5 +1,6 @@
 import { put, list, del } from '@vercel/blob';
 import { DatasetSnapshot } from '@/types';
+import { sanitizeOrdersResponse } from '@/lib/auth/dataMasking';
 
 export const LATEST_BLOB_PATHNAME = 'deen_dataset_latest.json';
 
@@ -34,7 +35,6 @@ export interface BlobFetchResult {
 export interface BlobStatusResult {
   configured: boolean;
   latestBlob: {
-    url: string;
     pathname: string;
     size: number;
     uploadedAt: Date;
@@ -43,8 +43,9 @@ export interface BlobStatusResult {
 }
 
 /**
- * Uploads a DatasetSnapshot to Vercel Blob with public read access.
- * Overwrites deen_dataset_latest.json so all visitors receive the updated snapshot.
+ * Uploads a DatasetSnapshot to Vercel Blob.
+ * STRICT SECURITY INVARIANT: All customer rows (Name, Phone, Email, Address)
+ * are thoroughly sanitized and masked before being serialized to cloud storage.
  */
 export async function uploadDatasetToBlob(
   dataset: Partial<DatasetSnapshot>,
@@ -57,13 +58,20 @@ export async function uploadDatasetToBlob(
     };
   }
 
+  // 1. Mandatory PII Sanitization across all order & delivery entities before serialization
+  const sanitizedOrders = sanitizeOrdersResponse(dataset.orders || [], 'full');
+  const sanitizedReturns = sanitizeOrdersResponse(dataset.returns || [], 'full');
+  const sanitizedPartials = sanitizeOrdersResponse(dataset.partials || [], 'full');
+  const sanitizedExchanges = sanitizeOrdersResponse(dataset.exchanges || [], 'full');
+  const sanitizedPathao = sanitizeOrdersResponse(dataset.pathaoDelivery || [], 'full');
+
   const payload: DatasetSnapshot = {
-    orders: dataset.orders || [],
-    pathaoDelivery: dataset.pathaoDelivery || [],
-    returns: dataset.returns || [],
-    partials: dataset.partials || [],
-    exchanges: dataset.exchanges || [],
-    sourceName: dataset.sourceName || 'Cloud Synced Dataset (Vercel Blob)',
+    orders: sanitizedOrders,
+    pathaoDelivery: sanitizedPathao,
+    returns: sanitizedReturns,
+    partials: sanitizedPartials,
+    exchanges: sanitizedExchanges,
+    sourceName: dataset.sourceName || 'Cloud Synced Dataset (Vercel Blob - Masked)',
     syncedAt: new Date().toISOString(),
     version: '2.0.0',
   };
@@ -72,29 +80,30 @@ export async function uploadDatasetToBlob(
   const sizeBytes = Buffer.byteLength(serialized, 'utf8');
 
   try {
-    // 1. Upload latest snapshot with deterministic pathname (addRandomSuffix: false allows predictable overwrite)
+    // 2. Upload snapshot with random cryptographic suffix so filename is unguessable
     const blob = await put(LATEST_BLOB_PATHNAME, serialized, {
       access: 'public',
-      addRandomSuffix: false,
+      addRandomSuffix: true,
       contentType: 'application/json',
     });
 
-    // 2. Optionally create a timestamped backup archive
-    if (options.createTimestampArchive) {
-      const archiveName = `archives/deen_dataset_${Date.now()}.json`;
-      await put(archiveName, serialized, {
-        access: 'public',
-        contentType: 'application/json',
-      }).catch(err => console.warn('[VercelBlob] Failed to write archive copy:', err));
+    // 3. Clean up older snapshots to prevent clutter and obsolete exposure
+    try {
+      const { blobs } = await list({ prefix: 'deen_dataset_latest' });
+      const obsolete = blobs.filter(b => b.url !== blob.url);
+      if (obsolete.length > 0) {
+        await del(obsolete.map(b => b.url));
+      }
+    } catch (cleanupErr) {
+      console.warn('[VercelBlob] Failed to clean up obsolete snapshots:', cleanupErr);
     }
 
     return {
       success: true,
-      url: blob.url,
       pathname: blob.pathname,
       size: sizeBytes,
       uploadedAt: payload.syncedAt,
-      message: `Successfully uploaded ${payload.orders.length} orders & ${payload.returns.length} returns to Vercel Blob (${(sizeBytes / 1024).toFixed(1)} KB).`,
+      message: `Successfully uploaded ${payload.orders.length} orders & ${payload.returns.length} returns to Vercel Blob (${(sizeBytes / 1024).toFixed(1)} KB, PII-sanitized).`,
     };
   } catch (err: any) {
     console.error('[VercelBlob] Error uploading to Vercel Blob:', err);
@@ -117,8 +126,9 @@ export async function fetchDatasetFromBlob(): Promise<BlobFetchResult> {
   }
 
   try {
-    const { blobs } = await list({ prefix: LATEST_BLOB_PATHNAME });
-    const target = blobs.find(b => b.pathname === LATEST_BLOB_PATHNAME) || blobs[0];
+    const { blobs } = await list({ prefix: 'deen_dataset_latest' });
+    const sorted = [...blobs].sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+    const target = sorted[0];
 
     if (!target) {
       return {
@@ -127,7 +137,7 @@ export async function fetchDatasetFromBlob(): Promise<BlobFetchResult> {
       };
     }
 
-    // Fetch the JSON payload from the public blob URL
+    // Fetch the JSON payload from the blob URL
     const response = await fetch(target.url, {
       headers: { 'Accept': 'application/json' },
       cache: 'no-store', // Always get fresh cloud state
@@ -172,12 +182,12 @@ export async function getBlobStorageStatus(): Promise<BlobStatusResult> {
 
   try {
     const { blobs } = await list({ limit: 10 });
-    const latest = blobs.find(b => b.pathname === LATEST_BLOB_PATHNAME) || blobs[0] || null;
+    const matching = blobs.filter(b => b.pathname.startsWith('deen_dataset_latest'));
+    const latest = matching.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())[0] || blobs[0] || null;
 
     return {
       configured: true,
       latestBlob: latest ? {
-        url: latest.url,
         pathname: latest.pathname,
         size: latest.size,
         uploadedAt: latest.uploadedAt,

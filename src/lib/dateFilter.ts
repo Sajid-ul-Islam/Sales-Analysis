@@ -1,4 +1,5 @@
 import { RawOrderRow } from '@/types';
+import { getDhakaTodayIso, getDhakaIsoDate, parseDhakaMidday, getDhakaDayBoundaries } from '@/lib/timezone';
 
 export type DateScope = 'all' | 'today' | '7d' | '30d' | 'month' | '90d' | 'custom';
 
@@ -203,18 +204,21 @@ export function analyzeDates(orders: RawOrderRow[]): DateAnalysis {
     }
   }
 
-  const now = new Date();
+  const todayIso = getDhakaTodayIso();
+  const todayBoundaries = getDhakaDayBoundaries(todayIso);
+
   if (dates.length === 0) {
-    const todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayMid = parseDhakaMidday(todayIso);
+    const now = new Date();
     return {
       validDatesCount: 0,
       minDate: null,
       maxDate: null,
       anchorDay: todayMid,
       dominantYearMonth: { year: now.getFullYear(), month: now.getMonth() },
-      dominantMonthName: now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }),
+      dominantMonthName: now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'Asia/Dhaka' }),
       activeYearMonth: { year: now.getFullYear(), month: now.getMonth() },
-      activeMonthName: now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }),
+      activeMonthName: now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'Asia/Dhaka' }),
     };
   }
 
@@ -222,15 +226,13 @@ export function analyzeDates(orders: RawOrderRow[]): DateAnalysis {
   const minDate = dates[0].d;
   const maxDate = dates[dates.length - 1].d;
 
-  // Check if today exists in the dataset
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const todayEnd = todayStart + 86400000;
-  const hasOrdersToday = dates.some(e => e.ms >= todayStart && e.ms < todayEnd);
+  // Check if today exists in the dataset strictly in Asia/Dhaka time
+  const hasOrdersToday = dates.some(e => e.ms >= todayBoundaries.startMs && e.ms < todayBoundaries.endMs);
 
   // If live orders from today exist, anchor is today; otherwise anchor is the latest day in the dataset
   const anchorDay = hasOrdersToday
-    ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    : new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate());
+    ? parseDhakaMidday(todayIso)
+    : parseDhakaMidday(getDhakaIsoDate(maxDate));
 
   // Find dominant month in dataset
   const monthCounts = new Map<string, { count: number; year: number; month: number }>();
@@ -713,8 +715,8 @@ export function filterOrdersByDateScope(
   }
 
   const analysis = analyzeDates(orders);
-  const minDateIso = analysis.minDate ? analysis.minDate.toISOString().slice(0, 10) : undefined;
-  const maxDateIso = analysis.maxDate ? analysis.maxDate.toISOString().slice(0, 10) : undefined;
+  const minDateIso = analysis.minDate ? getDhakaIsoDate(analysis.minDate) : undefined;
+  const maxDateIso = analysis.maxDate ? getDhakaIsoDate(analysis.maxDate) : undefined;
   const fileWeeks = computeFileWeeks(orders, analysis);
   const availableMonths = computeAvailableMonths(orders, analysis);
 

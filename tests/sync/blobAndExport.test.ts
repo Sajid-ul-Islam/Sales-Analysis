@@ -1,4 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const mockBlobPut = vi.fn();
+const mockBlobList = vi.fn();
+const mockBlobDel = vi.fn();
+
+vi.mock('@vercel/blob', () => ({
+  put: (...args: any[]) => mockBlobPut(...args),
+  list: (...args: any[]) => mockBlobList(...args),
+  del: (...args: any[]) => mockBlobDel(...args),
+}));
+
 import { isBlobConfigured, uploadDatasetToBlob, fetchDatasetFromBlob, getBlobStorageStatus } from '@/lib/blobStorage';
 import { downloadDatasetAsJson } from '@/lib/datasetExport';
 import { DatasetSnapshot } from '@/types';
@@ -6,6 +17,9 @@ import { DatasetSnapshot } from '@/types';
 describe('Vercel Blob & Dataset Snapshot Persistence (Methods 1 & 3)', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    mockBlobPut.mockReset();
+    mockBlobList.mockReset();
+    mockBlobDel.mockReset();
   });
 
   describe('Method 3: Vercel Blob Graceful Degradation', () => {
@@ -53,6 +67,72 @@ describe('Vercel Blob & Dataset Snapshot Persistence (Methods 1 & 3)', () => {
       expect(status.latestBlob).toBeNull();
 
       if (originalToken) process.env.BLOB_READ_WRITE_TOKEN = originalToken;
+    });
+
+    it('uploadDatasetToBlob sanitizes PII and uses addRandomSuffix: true when uploading', async () => {
+      process.env.BLOB_READ_WRITE_TOKEN = 'test_blob_rw_token_123';
+      mockBlobPut.mockResolvedValue({
+        pathname: 'deen_dataset_latest-xyz123.json',
+        url: 'https://public.blob.vercel-storage.com/deen_dataset_latest-xyz123.json',
+        downloadUrl: 'https://public.blob.vercel-storage.com/deen_dataset_latest-xyz123.json',
+      });
+      mockBlobList.mockResolvedValue({ blobs: [], hasMore: false });
+
+      const unmaskedDataset = {
+        orders: [
+          {
+            orderId: '1001',
+            customerName: 'Sajidul Islam',
+            phone: '01712345678',
+            customerEmail: 'sajid@deencommerce.com',
+            address: 'House 5, Road 2, Dhanmondi, Dhaka',
+            itemCost: 1500,
+          } as any,
+        ],
+      };
+
+      const result = await uploadDatasetToBlob(unmaskedDataset);
+      expect(result.success).toBe(true);
+      expect(mockBlobPut).toHaveBeenCalledTimes(1);
+
+      const callArgs = mockBlobPut.mock.calls[0];
+      const uploadedString = callArgs[1] as string;
+      const uploadedJson = JSON.parse(uploadedString);
+      const uploadedOrder = uploadedJson.orders[0];
+
+      expect(uploadedOrder.customerName).toBe('S*** I***');
+      expect(uploadedOrder.phone).toBe('0171****678');
+      expect(uploadedOrder.customerEmail).toBe('s***d@d***.com');
+      expect(uploadedOrder.address).toContain('[REDACTED');
+
+      // Verify addRandomSuffix is true for unguessable filename
+      expect(callArgs[2]?.addRandomSuffix).toBe(true);
+
+      delete process.env.BLOB_READ_WRITE_TOKEN;
+    });
+
+    it('getBlobStorageStatus omits raw storage URL in response', async () => {
+      process.env.BLOB_READ_WRITE_TOKEN = 'test_blob_rw_token_123';
+      mockBlobList.mockResolvedValue({
+        blobs: [
+          {
+            pathname: 'deen_dataset_latest-abc123.json',
+            url: 'https://public.blob.vercel-storage.com/deen_dataset_latest-abc123.json',
+            size: 10240,
+            uploadedAt: new Date(),
+          },
+        ],
+        hasMore: false,
+      });
+
+      const status = await getBlobStorageStatus();
+      expect(status.configured).toBe(true);
+      expect(status.latestBlob).not.toBeNull();
+      expect(status.latestBlob?.pathname).toBe('deen_dataset_latest-abc123.json');
+      // Must NOT contain url property
+      expect((status.latestBlob as any)?.url).toBeUndefined();
+
+      delete process.env.BLOB_READ_WRITE_TOKEN;
     });
   });
 

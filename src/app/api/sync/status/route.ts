@@ -4,6 +4,7 @@ import { getPathaoToken, getPathaoStores } from '@/lib/pathaoClient';
 import { testWooCommerceConnection } from '@/lib/woocommerceClient';
 import { testGA4Connection } from '@/lib/ga4Client';
 import { testMetaConnection } from '@/lib/metaClient';
+import { validateApiRequest } from '@/lib/auth/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -90,12 +91,24 @@ async function resolveStatus(overrides?: any) {
   };
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  // 1. Operator Auth Check
+  const auth = validateApiRequest(req, { requiredRole: 'operator', allowDemo: false });
+  if (!auth.authenticated) {
+    return NextResponse.json({ error: auth.message }, { status: auth.statusCode });
+  }
+
   const status = await resolveStatus();
   return NextResponse.json(status);
 }
 
 export async function POST(req: Request) {
+  // 1. Admin Auth Check for dynamic override testing
+  const auth = validateApiRequest(req, { requiredRole: 'admin', allowDemo: false });
+  if (!auth.authenticated) {
+    return NextResponse.json({ error: auth.message }, { status: auth.statusCode });
+  }
+
   const body = await req.json().catch(() => ({}));
   const status = await resolveStatus(body);
   return NextResponse.json(status);
