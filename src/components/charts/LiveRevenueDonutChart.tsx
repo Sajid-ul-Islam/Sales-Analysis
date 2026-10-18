@@ -49,12 +49,17 @@ const CANONICAL_SLICE_COLORS: Record<string, string> = {
   'Cargo': '#14b8a6',
   'Polo': '#6366f1',
   'Twill Five Pockets': '#f97316',
-  'Twill': '#f97316',
+  '5-Pocket Twill': '#f97316',
+  'Twill': '#ea580c',
+  'Wallet': '#d97706',
 };
 
 function formatShortCategoryName(name: string): string {
   const trimmed = name.trim();
-  if (/^Twill(\s+Five\s+Pockets?|5\s*Pockets?)?$/i.test(trimmed)) {
+  if (/^Twill\s+(Five\s+Pockets?|5\s*Pockets?)$/i.test(trimmed) || /^5\s*Pockets?$/i.test(trimmed)) {
+    return '5-Pocket Twill';
+  }
+  if (/^Twill$/i.test(trimmed)) {
     return 'Twill';
   }
   if (/^Denim\s+Jacket$/i.test(trimmed) || trimmed === 'Jacket') {
@@ -257,30 +262,10 @@ export function LiveRevenueDonutChart({
             );
           })}
 
-          {/* Leader Lines and External Callout Labels for Small Slices (< 6%) */}
+          {/* Leader Lines and External Callout Labels for Slices */}
           {slicePaths.map((sp) => {
-            if (!sp.isSmall || sp.sharePercent < 1.2) return null;
             const rawName = sp.slice.displayName || sp.slice.name;
             const sliceLabel = formatShortCategoryName(rawName);
-
-            // Stagger radius offset to prevent adjacent small slices from overlapping each other
-            const radialOffset = sp.smallOrder % 2 === 0 ? 15 : 26;
-            const rLeaderEnd = rOuter + radialOffset;
-
-            const isRightSide = Math.cos(sp.midAngle) >= 0;
-            const xAnchor = cx + (rOuter + 2) * Math.cos(sp.midAngle);
-            const yAnchor = cy + (rOuter + 2) * Math.sin(sp.midAngle);
-
-            const xKnee = cx + rLeaderEnd * Math.cos(sp.midAngle);
-            const yKnee = cy + rLeaderEnd * Math.sin(sp.midAngle);
-
-            const armLength = 12;
-            const xEnd = isRightSide ? xKnee + armLength : xKnee - armLength;
-            const yEnd = yKnee;
-
-            const textX = isRightSide ? xEnd + 3 : xEnd - 3;
-            const textY = yEnd;
-            const textAnchor = isRightSide ? 'start' : 'end';
 
             const isSelected = Boolean(
               selectedCategory &&
@@ -291,6 +276,31 @@ export function LiveRevenueDonutChart({
                 (selectedCategory === 'Jacket' && /Jacket/i.test(rawName)))
             );
             const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);
+
+            // Small slices (< 6%):
+            // If hovered or selected: ALWAYS show callout line and enlarged label with high contrast
+            // If at rest (not hovered/selected): only show callout if slice is >= 5% to prevent cluster collisions
+            const isCalloutVisible = sp.isHovered || isSelected || (sp.isSmall && sp.sharePercent >= 5);
+            if (!sp.isSmall || !isCalloutVisible) return null;
+
+            // Stagger radius offset to prevent adjacent small slices from overlapping each other
+            const radialOffset = sp.smallOrder % 2 === 0 ? 16 : 28;
+            const rLeaderEnd = rOuter + radialOffset;
+
+            const isRightSide = Math.cos(sp.midAngle) >= 0;
+            const xAnchor = cx + (rOuter + 2) * Math.cos(sp.midAngle);
+            const yAnchor = cy + (rOuter + 2) * Math.sin(sp.midAngle);
+
+            const xKnee = cx + rLeaderEnd * Math.cos(sp.midAngle);
+            const yKnee = cy + rLeaderEnd * Math.sin(sp.midAngle);
+
+            const armLength = sp.isHovered ? 16 : 12;
+            const xEnd = isRightSide ? xKnee + armLength : xKnee - armLength;
+            const yEnd = yKnee;
+
+            const textX = isRightSide ? xEnd + 4 : xEnd - 4;
+            const textY = yEnd;
+            const textAnchor = isRightSide ? 'start' : 'end';
 
             return (
               <g
@@ -307,7 +317,7 @@ export function LiveRevenueDonutChart({
                 <path
                   d={`M ${xAnchor} ${yAnchor} L ${xKnee} ${yKnee} L ${xEnd} ${yEnd}`}
                   stroke={sp.fillColor}
-                  strokeWidth={sp.isHovered ? '2' : '1.5'}
+                  strokeWidth={sp.isHovered ? '2.5' : '1.5'}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   fill="none"
@@ -318,21 +328,26 @@ export function LiveRevenueDonutChart({
                 <circle
                   cx={xAnchor}
                   cy={yAnchor}
-                  r={sp.isHovered ? '3' : '2'}
+                  r={sp.isHovered ? '3.5' : '2'}
                   fill={sp.fillColor}
                   className="transition-all duration-200"
                 />
 
-                {/* External high-contrast label with rounded pill background for guaranteed contrast */}
+                {/* External high-contrast label with smooth hover enlargement */}
                 <text
                   x={textX}
                   y={textY}
                   textAnchor={textAnchor}
                   dominantBaseline="central"
-                  fontSize={sp.isHovered ? '10' : '9'}
+                  fontSize={sp.isHovered ? '12.5' : '9.5'}
                   fontWeight="900"
                   fill="currentColor"
-                  className="fill-slate-800 dark:fill-white font-headline transition-all duration-200"
+                  className="fill-slate-900 dark:fill-white font-headline transition-all duration-200"
+                  style={{
+                    transformOrigin: `${textX}px ${textY}px`,
+                    transform: sp.isHovered ? 'scale(1.15)' : 'scale(1)',
+                    transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
                 >
                   {sliceLabel} {Math.round(sp.sharePercent)}%
                 </text>

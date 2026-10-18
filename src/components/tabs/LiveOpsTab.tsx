@@ -36,6 +36,7 @@ import {
   generateWhatsAppConfirmationUrl,
   parseOrderDate,
   formatDateToIsoDay,
+  parseOrderDateValue,
 } from '@/lib/liveOpsProcessor';
 import { LiveRevenueDonutChart } from '@/components/charts/LiveRevenueDonutChart';
 import { LiveVolumeBarChart } from '@/components/charts/LiveVolumeBarChart';
@@ -56,6 +57,25 @@ import {
 } from '@/lib/excelExport';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 import { DataProvenanceInfo } from '@/lib/dataAudit';
+
+function formatOrderDateTime(val: unknown): string {
+  const d = parseOrderDateValue(val);
+  if (!d) return String(val || 'N/A').slice(0, 16);
+  return (
+    d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'Asia/Dhaka',
+    }) +
+    ' • ' +
+    d.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Dhaka',
+    })
+  );
+}
 
 interface LiveTerminalCacheEnvelope {
   orders: RawOrderRow[];
@@ -85,48 +105,18 @@ export function LiveOpsTab({
   const [showSubCategory, setShowSubCategory] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
-  const [courierFilter, setCourierFilter] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const p = new URLSearchParams(window.location.search);
-      return p.get('courierFilter') || 'ALL';
-    }
-    return 'ALL';
-  });
+  const [courierFilter, setCourierFilter] = useState<string>('ALL');
   const [pipelineFilter, setPipelineFilter] = useState<'ALL' | 'PROCESSING' | 'HOLD' | 'SHIPPED_TODAY'>('ALL');
   const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
   const [localSyncing, setLocalSyncing] = useState(false);
 
-  // Live Sync & Telemetry State — SWR: Instant mount from local cache
-  const [liveOrders, setLiveOrders] = useState<RawOrderRow[]>(() => {
-    if (typeof window === 'undefined') return [];
-    const cached = getCacheItem<LiveTerminalCacheEnvelope>(DEEN_CACHE_KEYS.LIVE_TERMINAL);
-    return cached?.orders || [];
-  });
-  const [courierStats, setCourierStats] = useState<LiveTerminalStats | null>(() => {
-    if (typeof window === 'undefined') return null;
-    const cached = getCacheItem<LiveTerminalCacheEnvelope>(DEEN_CACHE_KEYS.LIVE_TERMINAL);
-    return cached?.stats || null;
-  });
-  const [discrepancies, setDiscrepancies] = useState<DiscrepancyAlert[]>(() => {
-    if (typeof window === 'undefined') return [];
-    const cached = getCacheItem<LiveTerminalCacheEnvelope>(DEEN_CACHE_KEYS.LIVE_TERMINAL);
-    return cached?.discrepancies || [];
-  });
-  const [wcConnected, setWcConnected] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    const cached = getCacheItem<LiveTerminalCacheEnvelope>(DEEN_CACHE_KEYS.LIVE_TERMINAL);
-    return !!cached?.wcConnected;
-  });
-  const [pathaoConnected, setPathaoConnected] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    const cached = getCacheItem<LiveTerminalCacheEnvelope>(DEEN_CACHE_KEYS.LIVE_TERMINAL);
-    return !!cached?.pathaoConnected;
-  });
-  const [lastSyncTime, setLastSyncTime] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null;
-    const cached = getCacheItem<LiveTerminalCacheEnvelope>(DEEN_CACHE_KEYS.LIVE_TERMINAL);
-    return cached?.lastSyncTime || null;
-  });
+  // Live Sync & Telemetry State — Clean SSR defaults, hydrated in useEffect on mount
+  const [liveOrders, setLiveOrders] = useState<RawOrderRow[]>([]);
+  const [courierStats, setCourierStats] = useState<LiveTerminalStats | null>(null);
+  const [discrepancies, setDiscrepancies] = useState<DiscrepancyAlert[]>([]);
+  const [wcConnected, setWcConnected] = useState<boolean>(false);
+  const [pathaoConnected, setPathaoConnected] = useState<boolean>(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
   // Track previous discrepancies count to only alert on genuinely new issues
   const discrepanciesRef = React.useRef(discrepancies);
@@ -139,6 +129,35 @@ export function LiveOpsTab({
     ordersRef.current = orders;
   }, [orders]);
 
+  // Inspection modal state
+  const [selectedDetailOrder, setSelectedDetailOrder] = useState<RawOrderRow | null>(null);
+  const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
+
+  // 7-Day History selection & Executive Briefing State
+  const [selectedHistoricalDate, setSelectedHistoricalDate] = useState<string | null>(null);
+  const [briefingCopied, setBriefingCopied] = useState(false);
+  const [briefingViewMode, setBriefingViewMode] = useState<'structured' | 'text'>('structured');
+
+  // Hydrate client state from localStorage cache and URL parameters safely without SSR mismatch
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const p = new URLSearchParams(window.location.search);
+    const urlDate = p.get('date');
+    if (urlDate) setSelectedHistoricalDate(urlDate);
+    const urlCourier = p.get('courierFilter');
+    if (urlCourier) setCourierFilter(urlCourier);
+
+    const cached = getCacheItem<LiveTerminalCacheEnvelope>(DEEN_CACHE_KEYS.LIVE_TERMINAL);
+    if (cached) {
+      if (Array.isArray(cached.orders) && cached.orders.length > 0) setLiveOrders(cached.orders);
+      if (cached.stats) setCourierStats(cached.stats);
+      if (Array.isArray(cached.discrepancies)) setDiscrepancies(cached.discrepancies);
+      if (cached.wcConnected !== undefined) setWcConnected(cached.wcConnected);
+      if (cached.pathaoConnected !== undefined) setPathaoConnected(cached.pathaoConnected);
+      if (cached.lastSyncTime) setLastSyncTime(cached.lastSyncTime);
+    }
+  }, []);
+
   // Auto-dismiss transient sync message to remove UI clutter
   useEffect(() => {
     if (!syncStatusMsg) return;
@@ -147,21 +166,6 @@ export function LiveOpsTab({
     }, 4500);
     return () => clearTimeout(timer);
   }, [syncStatusMsg]);
-
-  // Inspection modal state
-  const [selectedDetailOrder, setSelectedDetailOrder] = useState<RawOrderRow | null>(null);
-  const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
-
-  // 7-Day History selection & Executive Briefing State
-  const [selectedHistoricalDate, setSelectedHistoricalDate] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      const p = new URLSearchParams(window.location.search);
-      return p.get('date') || null;
-    }
-    return null;
-  });
-  const [briefingCopied, setBriefingCopied] = useState(false);
-  const [briefingViewMode, setBriefingViewMode] = useState<'structured' | 'text'>('structured');
 
   // Auto-refresh timer countdown (60s loop)
   const [countdown, setCountdown] = useState(60);
@@ -1803,27 +1807,27 @@ export function LiveOpsTab({
       </div>
 
       {/* ── Product Demand & Velocity Spotlight Leaderboard ── */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 p-5 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+      <div className="bg-white dark:bg-[#0A0A0A] rounded-3xl border border-slate-200/90 dark:border-[#1F1F1F] p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-[#1F1F1F] pb-3">
           <div className="flex items-center gap-2">
             <span className="text-lg">🔥</span>
             <div>
-              <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight font-headline">
+              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight font-headline">
                 Product Demand & Velocity Spotlight ({report.topProducts.length})
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Top selling products and SKUs in active orders flow. Click any product to isolate all corresponding parcels in the ledger below.
               </p>
             </div>
           </div>
-          <span className="font-semibold text-slate-500 text-xs shrink-0">
+          <span className="font-semibold text-slate-500 dark:text-slate-400 text-xs shrink-0">
             Sorted by units & velocity
           </span>
         </div>
 
-        <div className="overflow-x-auto min-w-0 border border-slate-200 rounded-2xl">
+        <div className="overflow-x-auto min-w-0 border border-slate-200 dark:border-[#1F1F1F] rounded-2xl">
           <table className="w-full text-xs text-left">
-            <thead className="bg-slate-50/90 text-[10.5px] uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200">
+            <thead className="bg-slate-50/90 dark:bg-[#121212] text-[10.5px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider border-b border-slate-200 dark:border-[#1F1F1F]">
               <tr>
                 <th className="py-2.5 px-3 text-center">Rank</th>
                 <th className="py-2.5 px-3">Product Name & SKU</th>
@@ -1836,10 +1840,10 @@ export function LiveOpsTab({
                 <th className="py-2.5 px-3 text-center">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-[#1F1F1F]">
               {report.topProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-slate-400 italic">
+                  <td colSpan={9} className="py-8 text-center text-slate-400 dark:text-slate-500 italic">
                     No product sales recorded in current operational view.
                   </td>
                 </tr>
@@ -1851,72 +1855,72 @@ export function LiveOpsTab({
                     <tr
                       key={`spotlight-${p.rank}-${p.sku}`}
                       onClick={() => setSearchQuery(p.productName)}
-                      className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                      className="hover:bg-slate-50/80 dark:hover:bg-[#141414] transition-colors cursor-pointer group"
                     >
                       <td className="py-2.5 px-3 text-center font-bold">
                         {p.rank === 1 ? (
-                          <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-800 border border-amber-300 inline-flex items-center justify-center font-black text-xs shadow-2xs">
+                          <span className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 inline-flex items-center justify-center font-black text-xs shadow-2xs">
                             🥇
                           </span>
                         ) : p.rank === 2 ? (
-                          <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 border border-slate-300 inline-flex items-center justify-center font-black text-xs shadow-2xs">
+                          <span className="w-6 h-6 rounded-full bg-slate-200 dark:bg-[#222] text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-[#333] inline-flex items-center justify-center font-black text-xs shadow-2xs">
                             🥈
                           </span>
                         ) : p.rank === 3 ? (
-                          <span className="w-6 h-6 rounded-full bg-amber-50 text-amber-900 border border-amber-200 inline-flex items-center justify-center font-black text-xs shadow-2xs">
+                          <span className="w-6 h-6 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800 inline-flex items-center justify-center font-black text-xs shadow-2xs">
                             🥉
                           </span>
                         ) : (
-                          <span className="text-slate-500 font-mono">#{p.rank}</span>
+                          <span className="text-slate-500 dark:text-slate-400 font-mono">#{p.rank}</span>
                         )}
                       </td>
-                      <td className="py-2.5 px-3 font-semibold text-slate-900 max-w-[240px]">
-                        <div className="group-hover:text-blue-600 transition-colors truncate" title={p.productName}>
+                      <td className="py-2.5 px-3 font-semibold text-slate-900 dark:text-white max-w-[240px]">
+                        <div className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate" title={p.productName}>
                           {p.productName}
                         </div>
-                        <div className="text-[10px] text-slate-400 font-mono">SKU: {p.sku}</div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">SKU: {p.sku}</div>
                       </td>
                       <td className="py-2.5 px-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-[#1A1A1A] text-slate-700 dark:text-slate-300 border border-transparent dark:border-[#222]">
                           {p.category}
                         </span>
                       </td>
                       <td className="py-2.5 px-3 text-center whitespace-nowrap">
                         {p.isSelects ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                             💎 Selects
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                             📦 Regular
                           </span>
                         )}
                       </td>
-                      <td className="py-2.5 px-3 text-center font-black text-slate-900 whitespace-nowrap">
+                      <td className="py-2.5 px-3 text-center font-black text-slate-900 dark:text-white whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1.5">
                           <span>{p.unitsSold} pcs</span>
-                          <div className="w-12 bg-slate-100 rounded-full h-1.5 overflow-hidden hidden sm:block">
+                          <div className="w-12 bg-slate-100 dark:bg-[#1F1F1F] rounded-full h-1.5 overflow-hidden hidden sm:block">
                             <div className="bg-blue-600 h-full rounded-full" style={{ width: `${unitPct}%` }} />
                           </div>
                         </div>
                       </td>
-                      <td className="py-2.5 px-3 text-right font-black text-slate-900 whitespace-nowrap">
+                      <td className="py-2.5 px-3 text-right font-black text-slate-900 dark:text-white whitespace-nowrap">
                         ৳ {p.revenue.toLocaleString()}
                       </td>
-                      <td className="py-2.5 px-3 text-center font-bold text-slate-600 whitespace-nowrap">
+                      <td className="py-2.5 px-3 text-center font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap">
                         {p.revenueShare}%
                       </td>
                       <td className="py-2.5 px-3 text-center whitespace-nowrap">
                         {p.velocityScore === 'HOT' ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-orange-50 text-orange-700 border border-orange-200 animate-pulse">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800 animate-pulse">
                             🔥 HOT
                           </span>
                         ) : p.velocityScore === 'FAST' ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                             ⚡ FAST
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-[#1A1A1A] text-slate-600 dark:text-slate-400 border border-transparent dark:border-[#222]">
                             📦 STEADY
                           </span>
                         )}
@@ -1928,7 +1932,7 @@ export function LiveOpsTab({
                             e.stopPropagation();
                             setSearchQuery(p.productName);
                           }}
-                          className="px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[10.5px] transition-colors"
+                          className="px-2 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/50 font-bold text-[10.5px] transition-colors"
                         >
                           Filter Orders
                         </button>
@@ -1943,17 +1947,17 @@ export function LiveOpsTab({
       </div>
 
       {/* ── Real-Time Orders Manifest & Shipped Ledger ── */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 p-5 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+      <div className="bg-white dark:bg-[#0A0A0A] rounded-3xl border border-slate-200/90 dark:border-[#1F1F1F] p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#1F1F1F] pb-3">
           <div>
-            <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight font-headline flex items-center gap-2">
+            <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight font-headline flex items-center gap-2">
               <span>📋</span>
               <span>Everyday Dispatched Orders Ledger</span>
-              <span className="text-xs font-normal text-slate-500">
+              <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
                 ({filteredOrders.length} orders displayed)
               </span>
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Granular record of all customer orders matching the active shift view with live Pathao delivery status.
             </p>
           </div>
@@ -1963,7 +1967,7 @@ export function LiveOpsTab({
             <button
               type="button"
               onClick={handleExportExcel}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-bold transition-all shadow-2xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-xs font-bold transition-all shadow-2xs"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Export Excel (.xlsx)</span>
@@ -1972,7 +1976,7 @@ export function LiveOpsTab({
             <button
               type="button"
               onClick={handleExportCsv}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold transition-all shadow-2xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-[#2A2A2A] bg-white dark:bg-[#121212] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1A1A1A] text-xs font-bold transition-all shadow-2xs"
             >
               <Download className="w-3.5 h-3.5" />
               <span>CSV</span>
@@ -1982,7 +1986,7 @@ export function LiveOpsTab({
 
         {/* Courier Telemetry Filter Chips */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1">
+          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mr-1">
             Courier Filter:
           </span>
           {[
@@ -2002,8 +2006,8 @@ export function LiveOpsTab({
                 courierFilter === pill.id
                   ? pill.id === 'DISCREPANCY_ONLY'
                     ? 'bg-rose-600 text-white shadow-xs'
-                    : 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-900 dark:bg-white text-white dark:text-black shadow-xs'
+                  : 'bg-slate-100 dark:bg-[#121212] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#1A1A1A] border border-transparent dark:border-[#1F1F1F]'
               }`}
             >
               {pill.label}
@@ -2020,7 +2024,7 @@ export function LiveOpsTab({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by Order ID, Consignment ID, Customer, Phone, SKU, or Product..."
-              className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-slate-50/50 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+              className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-[#222] bg-slate-50/50 dark:bg-[#121212] text-xs text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-[#181818] transition-all"
             />
             {searchQuery && (
               <button
@@ -2037,7 +2041,7 @@ export function LiveOpsTab({
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full sm:w-48 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full sm:w-48 px-3 py-2 rounded-xl border border-slate-200 dark:border-[#222] bg-slate-50 dark:bg-[#121212] text-xs text-slate-700 dark:text-slate-200 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">All Categories ({uniqueCategories.length})</option>
               {uniqueCategories.map((c) => (
@@ -2050,10 +2054,10 @@ export function LiveOpsTab({
         </div>
 
         {/* Data Table with Pathao Courier Status & Consignment ID */}
-        <div className="overflow-x-auto min-w-0 rounded-2xl border border-slate-100">
+        <div className="overflow-x-auto min-w-0 rounded-2xl border border-slate-100 dark:border-[#1F1F1F]">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200/80 uppercase text-[10px] tracking-wider">
+              <tr className="bg-slate-50 dark:bg-[#0A0A0A] text-slate-500 dark:text-slate-400 font-bold border-b border-slate-200/80 dark:border-[#1F1F1F] uppercase text-[10px] tracking-wider">
                 <th className="py-3 px-3.5">Order ID</th>
                 <th className="py-3 px-3.5">Date & Time</th>
                 <th className="py-3 px-3.5">Customer & Phone</th>
@@ -2068,10 +2072,10 @@ export function LiveOpsTab({
                 <th className="py-3 px-3.5 text-center">Quick Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+            <tbody className="divide-y divide-slate-100 dark:divide-[#1F1F1F] font-medium text-slate-700 dark:text-slate-300">
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="py-12 text-center text-slate-400">
+                  <td colSpan={12} className="py-12 text-center text-slate-400 dark:text-slate-500">
                     <Package className="w-8 h-8 mx-auto mb-2 opacity-40" />
                     <p className="font-semibold">No orders found matching the filter criteria.</p>
                   </td>
@@ -2095,11 +2099,11 @@ export function LiveOpsTab({
                     <tr
                       key={`live-order-row-${oid}-${idx}`}
                       onClick={() => setSelectedDetailOrder(row)}
-                      className={`hover:bg-slate-50/80 transition-colors cursor-pointer group ${
-                        hasDiscrepancy ? 'bg-rose-50/30' : ''
+                      className={`hover:bg-slate-50/80 dark:hover:bg-[#141414] transition-colors cursor-pointer group ${
+                        hasDiscrepancy ? 'bg-rose-50/30 dark:bg-rose-950/20' : ''
                       }`}
                     >
-                      <td className="py-2.5 px-3.5 font-bold text-blue-600 font-mono whitespace-nowrap">
+                      <td className="py-2.5 px-3.5 font-bold text-blue-600 dark:text-blue-400 font-mono whitespace-nowrap">
                         <div className="flex flex-col gap-0.5">
                           <div className="flex items-center gap-1.5">
                             <span className="group-hover:underline">{oid}</span>
@@ -2148,75 +2152,75 @@ export function LiveOpsTab({
                           })()}
                         </div>
                       </td>
-                      <td className="py-2.5 px-3.5 text-slate-500 whitespace-nowrap">
-                        {String(row['Order Date'] || '').slice(0, 16)}
+                      <td className="py-2.5 px-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap text-[11px] font-sans">
+                        {formatOrderDateTime(row['Order Date'])}
                       </td>
                       <td className="py-2.5 px-3.5">
-                        <div className="font-bold text-slate-800 truncate max-w-[140px]" title={String(getExportCustomerName(row) || row['Customer Name'] || '')}>
+                        <div className="font-bold text-slate-800 dark:text-white truncate max-w-[140px]" title={String(getExportCustomerName(row) || row['Customer Name'] || '')}>
                           {String(getExportCustomerName(row) || row['Customer Name'] || 'Customer')}
                         </div>
-                        <div className="text-[11px] text-slate-400 font-mono">
+                        <div className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
                           {String(getExportPhoneNumber(row) || row.Phone || 'N/A')}
                         </div>
                       </td>
                       <td className="py-2.5 px-3.5 max-w-[220px]">
-                        <div className="font-semibold text-slate-800 truncate" title={prodName}>
+                        <div className="font-semibold text-slate-800 dark:text-white truncate" title={prodName}>
                           {prodName}
                         </div>
-                        <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono flex items-center gap-1.5">
                           <span>SKU: {sku || 'N/A'}</span>
                           <span>•</span>
-                          <span className="text-slate-600 font-medium">{cat}</span>
+                          <span className="text-slate-600 dark:text-slate-300 font-medium">{cat}</span>
                         </div>
                       </td>
                       <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
                         {isSelects ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                             💎 Selects
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                             📦 Regular
                           </span>
                         )}
                       </td>
-                      <td className="py-2.5 px-3.5 text-center font-bold text-slate-800">
+                      <td className="py-2.5 px-3.5 text-center font-bold text-slate-800 dark:text-white">
                         {qty}
                       </td>
-                      <td className="py-2.5 px-3.5 text-right font-medium text-slate-600">
+                      <td className="py-2.5 px-3.5 text-right font-medium text-slate-600 dark:text-slate-300">
                         ৳ {itemCost.toLocaleString()}
                       </td>
-                      <td className="py-2.5 px-3.5 text-right font-black text-slate-900">
+                      <td className="py-2.5 px-3.5 text-right font-black text-slate-900 dark:text-white">
                         ৳ {orderAmt.toLocaleString()}
                       </td>
                       <td className="py-2.5 px-3.5 text-center">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-[#1A1A1A] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2A2A2A]">
                           {wcStatus}
                         </span>
                       </td>
                       <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
                         {courierStatus === 'Delivered' ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                             <span>Delivered</span>
                           </span>
                         ) : courierStatus === 'In Transit' ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 inline-flex items-center gap-1">
-                            <Truck className="w-3 h-3 text-blue-600" />
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 inline-flex items-center gap-1">
+                            <Truck className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                             <span>In Transit</span>
                           </span>
                         ) : courierStatus === 'Returned' ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3 text-rose-600" />
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 inline-flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
                             <span>Returned</span>
                           </span>
                         ) : courierStatus === 'Pending Pickup' ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-amber-600" />
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 inline-flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                             <span>Pending</span>
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-[#1A1A1A] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-[#2A2A2A]">
                             Untracked
                           </span>
                         )}
@@ -2228,14 +2232,14 @@ export function LiveOpsTab({
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1"
+                            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline inline-flex items-center gap-1"
                             title="Open Pathao Tracking"
                           >
                             <span>{consignmentId}</span>
                             <ExternalLink className="w-3 h-3 opacity-60" />
                           </a>
                         ) : (
-                          <span className="text-slate-300">—</span>
+                          <span className="text-slate-300 dark:text-slate-600">—</span>
                         )}
                       </td>
                       <td className="py-2.5 px-3.5 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
@@ -2244,14 +2248,14 @@ export function LiveOpsTab({
                             type: isOrderOnHold(row) ? 'address_verification' : 'general',
                           });
                           if (!wa.url) {
-                            return <span className="text-slate-300 text-xs">—</span>;
+                            return <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>;
                           }
                           return (
                             <a
                               href={wa.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-[10.5px] font-bold transition-all shadow-2xs"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 text-[10.5px] font-bold transition-all shadow-2xs"
                               title={`Send ${isOrderOnHold(row) ? 'Address Verification' : 'Confirmation'} to ${wa.formattedPhone}`}
                             >
                               <MessageSquare className="w-3 h-3 text-emerald-600" />

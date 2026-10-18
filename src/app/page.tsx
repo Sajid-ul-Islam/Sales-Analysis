@@ -62,15 +62,7 @@ import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 export type DataSourceMode = 'UPLOAD' | 'API';
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const paramTab = new URLSearchParams(window.location.search).get('tab');
-      if (paramTab) return paramTab;
-      const cookieTab = getCookie(DEEN_COOKIE_KEYS.ACTIVE_TAB);
-      if (cookieTab) return cookieTab;
-    }
-    return 'tabExecutive';
-  });
+  const [activeTab, setActiveTab] = useState('tabExecutive');
   const [ledgerStatusFilter, setLedgerStatusFilter] = useState('ALL');
   const [ledgerTerritoryFilter, setLedgerTerritoryFilter] = useState('ALL');
   const [orderFiles, setOrderFiles] = useState<File[]>([]);
@@ -361,7 +353,6 @@ export default function DashboardPage() {
 
         // Persist to local cache with 7-day TTL
         setCacheItem(DEEN_CACHE_KEYS.ACTIVE_DATASET, snapshot, { ttlMs: 7 * 24 * 3600 * 1000, tag: 'dataset' });
-        setCacheItem(DEEN_CACHE_KEYS.SAMPLE_BASELINE, snapshot, { tag: 'dataset' });
 
         setRawOrders(data.orders || []);
         setRawPathaoDelivery(data.pathaoDelivery || []);
@@ -985,8 +976,8 @@ export default function DashboardPage() {
             />
           )}
 
-          {/* Initial Loading State */}
-          {initialLoading && (
+          {/* Initial Loading State - Only shown when loading reconciliation ledger */}
+          {initialLoading && activeTab !== 'tabLiveOps' && activeTab !== 'tabSettings' && (
             <div className="py-20 flex flex-col items-center justify-center gap-3">
               <RefreshCw className="w-8 h-8 text-primary animate-spin" />
               <span className="text-sm font-semibold text-slate-400">

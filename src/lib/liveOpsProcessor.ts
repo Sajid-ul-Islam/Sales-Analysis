@@ -460,6 +460,35 @@ export function getDayName(date: Date): string {
   return getDhakaDayName(date);
 }
 
+export function parseOrderDateValue(val: unknown): Date | null {
+  if (val === null || val === undefined || val === '') return null;
+  if (val instanceof Date) {
+    return isNaN(val.getTime()) ? null : val;
+  }
+  // Excel serial number epoch (days since 1899-12-30)
+  if (typeof val === 'number') {
+    if (val > 30000 && val < 70000) {
+      return new Date(Math.round((val - 25569) * 86400 * 1000));
+    }
+    // Unix millisecond timestamp
+    if (val > 1000000000000) {
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? null : d;
+    }
+  }
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed) return null;
+    const num = Number(trimmed);
+    if (!isNaN(num) && num > 30000 && num < 70000) {
+      return new Date(Math.round((num - 25569) * 86400 * 1000));
+    }
+    const d = new Date(trimmed);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
+
 export function getStatusModificationDate(order: RawOrderRow): Date | null {
   const o = order as Record<string, unknown>;
   const status = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
@@ -468,35 +497,31 @@ export function getStatusModificationDate(order: RawOrderRow): Date | null {
   // If order is completed/shipped, its true shipped/completed date is 'Date Completed' if present!
   // In WooCommerce REST API, Date Completed reflects the exact moment the status transitioned to completed,
   // whereas Date Modified gets bumped on subsequent edits (such as staff tagging an order as "Exchanged").
-  const dateStr = isCompleted
-    ? ((o['Date Completed'] as string) ||
-       (o.date_completed as string) ||
-       (o.dateCompleted as string) ||
-       (o['Status Modified Date'] as string) ||
-       (o.status_modified_date as string) ||
-       (o['Date Modified'] as string) ||
-       (o.dateModified as string) ||
-       (o.date_modified as string) ||
-       (o.date_modified_gmt as string) ||
-       (order['Order Date'] as string) ||
-       (o.orderDate as string) ||
-       '')
-    : ((o['Date Modified'] as string) ||
-       (o.dateModified as string) ||
-       (o.date_modified as string) ||
-       (o.date_modified_gmt as string) ||
-       (o['Status Modified Date'] as string) ||
-       (o.status_modified_date as string) ||
-       (o['Date Completed'] as string) ||
-       (o.date_completed as string) ||
-       (o.dateCompleted as string) ||
-       (order['Order Date'] as string) ||
-       (o.orderDate as string) ||
-       '');
+  const rawDate = isCompleted
+    ? (o['Date Completed'] ??
+       o.date_completed ??
+       o.dateCompleted ??
+       o['Status Modified Date'] ??
+       o.status_modified_date ??
+       o['Date Modified'] ??
+       o.dateModified ??
+       o.date_modified ??
+       o.date_modified_gmt ??
+       order['Order Date'] ??
+       o.orderDate)
+    : (o['Date Modified'] ??
+       o.dateModified ??
+       o.date_modified ??
+       o.date_modified_gmt ??
+       o['Status Modified Date'] ??
+       o.status_modified_date ??
+       o['Date Completed'] ??
+       o.date_completed ??
+       o.dateCompleted ??
+       order['Order Date'] ??
+       o.orderDate);
 
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  return isNaN(d.getTime()) ? null : d;
+  return parseOrderDateValue(rawDate);
 }
 
 export function parseOrderDate(order: RawOrderRow): Date | null {
@@ -533,17 +558,17 @@ export function isOrderShippedOnDate(order: RawOrderRow, targetDateIso: string):
   const exInfo = extractExchangeInfo(order);
   if (exInfo.type === 'original_exchanged') {
     const o = order as Record<string, unknown>;
-    const completedStr = (o['Date Completed'] as string) || (o.date_completed as string) || (o.dateCompleted as string);
-    if (completedStr) {
-      const cd = new Date(completedStr);
-      if (!isNaN(cd.getTime()) && formatDateToIsoDay(cd) !== targetDateIso) {
+    const completedVal = o['Date Completed'] || o.date_completed || o.dateCompleted;
+    if (completedVal) {
+      const cd = parseOrderDateValue(completedVal);
+      if (cd && formatDateToIsoDay(cd) !== targetDateIso) {
         return false;
       }
     }
-    const orderDateStr = (order['Order Date'] as string) || (o.orderDate as string);
-    if (orderDateStr) {
-      const od = new Date(orderDateStr);
-      if (!isNaN(od.getTime()) && formatDateToIsoDay(od) !== targetDateIso) {
+    const orderDateVal = order['Order Date'] || o.orderDate;
+    if (orderDateVal) {
+      const od = parseOrderDateValue(orderDateVal);
+      if (od && formatDateToIsoDay(od) !== targetDateIso) {
         return false;
       }
     }

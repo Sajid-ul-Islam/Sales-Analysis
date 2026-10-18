@@ -68,11 +68,11 @@ export function SyncNotificationCenter({
       if (customEvent.detail) {
         const item: SyncNotificationItem = customEvent.detail;
 
-        // Add to active floating toasts (auto-dismiss after 4.5s)
-        setToasts((prev) => [item, ...prev.slice(0, 3)]);
+        // Add to active floating toasts (auto-dismiss after 3.5s, max 2 concurrent to prevent UI obstruction)
+        setToasts((prev) => [item, ...prev.slice(0, 1)]);
         setTimeout(() => {
           setToasts((prev) => prev.filter((t) => t.id !== item.id));
-        }, 4500);
+        }, 3500);
 
         // Add to persistent history
         setHistory((prev) => {
@@ -109,8 +109,8 @@ export function SyncNotificationCenter({
 
   return (
     <>
-      {/* Floating Active Toasts (Top Right) */}
-      <div className="fixed top-20 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+      {/* Floating Active Toasts (Bottom Right to prevent obstructing top navigation or filters) */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col-reverse gap-2 max-w-sm w-full pointer-events-none">
         {toasts.map((toast) => {
           const isError = toast.type === 'error';
           const isDiscrepancy = toast.type === 'discrepancy_detected';
