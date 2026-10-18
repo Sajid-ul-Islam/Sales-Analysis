@@ -1,7 +1,7 @@
-import { getSecretsConfig, getSecretsWithOverrides } from './secrets';
+import { getSecretsWithOverrides } from './secrets';
 import { RawOrderRow } from '@/types';
 import { withExponentialBackoff } from './sync/retry';
-import { SyncTracker, SyncBatchReport } from './sync/syncTracker';
+import { SyncTracker } from './sync/syncTracker';
 
 export interface PathaoCredentials {
   base_url?: string;
@@ -9,6 +9,32 @@ export interface PathaoCredentials {
   client_secret?: string;
   username?: string;
   password?: string;
+}
+
+export interface PathaoStore {
+  store_id: number | string;
+  store_name: string;
+  store_address?: string;
+  [key: string]: unknown;
+}
+
+export interface PathaoOrderDetail {
+  consignment_id?: string;
+  order_consignment_id?: string;
+  merchant_order_id?: string;
+  order_id?: string;
+  order_status?: string;
+  order_amount?: string | number;
+  collected_amount?: string | number;
+  total_fee?: string | number;
+  delivery_fee?: string | number;
+  cod_fee?: string | number;
+  store_name?: string;
+  recipient_name?: string;
+  recipient_phone?: string;
+  recipient_address?: string;
+  recipient_city?: string;
+  [key: string]: unknown;
 }
 
 interface PathaoTokenResponse {
@@ -56,7 +82,7 @@ export async function getPathaoToken(credentials?: PathaoCredentials): Promise<s
 
       if (!res.ok) {
         const errText = await res.text().catch(() => '');
-        const err: any = new Error(`Pathao token generation failed (${res.status}): ${errText.slice(0, 100)}`);
+        const err = new Error(`Pathao token generation failed (${res.status}): ${errText.slice(0, 100)}`) as Error & { status?: number };
         err.status = res.status;
         throw err;
       }
@@ -80,7 +106,7 @@ export async function getPathaoToken(credentials?: PathaoCredentials): Promise<s
   return data.access_token;
 }
 
-export async function getPathaoStores(credentials?: PathaoCredentials): Promise<any[]> {
+export async function getPathaoStores(credentials?: PathaoCredentials): Promise<PathaoStore[]> {
   const token = await getPathaoToken(credentials);
   const { pathao } = getSecretsWithOverrides({ pathao: credentials });
 
@@ -99,7 +125,7 @@ export async function getPathaoStores(credentials?: PathaoCredentials): Promise<
       });
 
       if (!res.ok) {
-        const err: any = new Error(`Failed to fetch Pathao stores: ${res.statusText}`);
+        const err = new Error(`Failed to fetch Pathao stores: ${res.statusText}`) as Error & { status?: number };
         err.status = res.status;
         throw err;
       }
@@ -117,7 +143,7 @@ export async function getPathaoStores(credentials?: PathaoCredentials): Promise<
   }, { maxRetries: 2, baseDelayMs: 300 });
 }
 
-export async function getPathaoOrderDetails(consignmentId: string, credentials?: PathaoCredentials): Promise<any | null> {
+export async function getPathaoOrderDetails(consignmentId: string, credentials?: PathaoCredentials): Promise<PathaoOrderDetail | null> {
   const token = await getPathaoToken(credentials);
   const { pathao } = getSecretsWithOverrides({ pathao: credentials });
 
@@ -161,8 +187,8 @@ export async function batchFetchPathaoOrders(
   concurrency = 4,
   credentials?: PathaoCredentials,
   tracker?: SyncTracker
-): Promise<any[]> {
-  const results: any[] = [];
+): Promise<PathaoOrderDetail[]> {
+  const results: PathaoOrderDetail[] = [];
   const queue = [...consignmentIds];
 
   const worker = async () => {
@@ -177,7 +203,7 @@ export async function batchFetchPathaoOrders(
         } else {
           tracker?.recordFailure(id, 'Not Found in Pathao Hermes API', 404);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.warn(`Error fetching Pathao order ${id}:`, err);
         tracker?.recordFailure(id, err);
       }
@@ -192,16 +218,16 @@ export async function batchFetchPathaoOrders(
 /**
  * Converts Pathao Aladdin order responses into standardized reconciliation return rows.
  */
-export function formatPathaoToReturnRows(pathaoOrders: any[]): RawOrderRow[] {
+export function formatPathaoToReturnRows(pathaoOrders: PathaoOrderDetail[]): RawOrderRow[] {
   return pathaoOrders.map((o) => {
-    const rawOid = o.merchant_order_id || o.order_id || o.order_consignment_id;
-    const consId = o.order_consignment_id || o.consignment_id || o.order_id;
-    const status = o.order_status || 'Delivered';
-    const amount = parseFloat(o.order_amount) || 0;
-    const collected = parseFloat(o.collected_amount || o.order_amount) || 0;
-    const fee = parseFloat(o.total_fee || o.delivery_fee) || 0;
-    const deliveryFee = parseFloat(o.delivery_fee) || 0;
-    const codFee = parseFloat(o.cod_fee) || 0;
+    const rawOid = String(o.merchant_order_id || o.order_id || o.order_consignment_id || '');
+    const consId = String(o.order_consignment_id || o.consignment_id || o.order_id || '');
+    const status = String(o.order_status || 'Delivered');
+    const amount = parseFloat(String(o.order_amount || 0)) || 0;
+    const collected = parseFloat(String(o.collected_amount || o.order_amount || 0)) || 0;
+    const fee = parseFloat(String(o.total_fee || o.delivery_fee || 0)) || 0;
+    const deliveryFee = parseFloat(String(o.delivery_fee || 0)) || 0;
+    const codFee = parseFloat(String(o.cod_fee || 0)) || 0;
 
     return {
       'Merchant order id': rawOid,
@@ -223,7 +249,7 @@ export function formatPathaoToReturnRows(pathaoOrders: any[]): RawOrderRow[] {
       'cod_amount': amount,
       'codamount': amount,
       'charge': fee,
-      'discount': parseFloat(o.discount) || 0,
+      'discount': parseFloat(String(o.discount || 0)) || 0,
       'customer_name': o.recipient_name || '',
       'customername': o.recipient_name || '',
       'phone': o.recipient_phone || '',

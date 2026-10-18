@@ -4,30 +4,21 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Package,
   Truck,
-  TrendingUp,
-  ShoppingBag,
-  Users,
   RefreshCw,
   Search,
   Download,
-  Filter,
   CheckCircle2,
-  Calendar,
-  Layers,
   Sparkles,
   Info,
   Clock,
   ArrowUpRight,
   ShieldAlert,
-  ArrowRight,
   ExternalLink,
   AlertTriangle,
   X,
-  FileSpreadsheet,
   MessageSquare,
   Copy,
   Check,
-  Flame,
   Zap,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -43,7 +34,6 @@ import {
   isOrderExchange,
   extractExchangeInfo,
   generateWhatsAppConfirmationUrl,
-  formatBangladeshPhoneNumber,
   parseOrderDate,
   formatDateToIsoDay,
 } from '@/lib/liveOpsProcessor';
@@ -55,10 +45,7 @@ import { getCategoryForSales, getSubCategoryForSales } from '@/lib/liveCategoryE
 import {
   LiveTerminalStats,
   DiscrepancyAlert,
-  StandardCourierStatus,
-  cleanOrderId,
   detectFulfillmentBranch,
-  CourierDiscrepancyType,
 } from '@/lib/sync/liveTerminalSync';
 import { loadAppSettings } from '@/lib/settingsStore';
 import { getCacheItem, setCacheItem, DEEN_CACHE_KEYS } from '@/lib/cacheManager';
@@ -68,6 +55,7 @@ import {
   getExportPhoneNumber,
 } from '@/lib/excelExport';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
+import { DataProvenanceInfo } from '@/lib/dataAudit';
 
 interface LiveTerminalCacheEnvelope {
   orders: RawOrderRow[];
@@ -81,7 +69,7 @@ interface LiveTerminalCacheEnvelope {
 interface LiveOpsTabProps {
   orders: RawOrderRow[];
   onSelectOrder?: (orderId: string) => void;
-  onRefreshLive?: (fetchedOrders?: RawOrderRow[], provenance?: any) => Promise<void> | void;
+  onRefreshLive?: (fetchedOrders?: RawOrderRow[], provenance?: unknown) => Promise<void> | void;
   isSyncing?: boolean;
 }
 
@@ -169,7 +157,6 @@ export function LiveOpsTab({
   });
   const [briefingCopied, setBriefingCopied] = useState(false);
   const [briefingViewMode, setBriefingViewMode] = useState<'structured' | 'text'>('structured');
-  const [activeAnalyticsView, setActiveAnalyticsView] = useState<'category' | 'spotlight'>('category');
 
   // Auto-refresh timer countdown (60s loop)
   const [countdown, setCountdown] = useState(60);
@@ -232,7 +219,7 @@ export function LiveOpsTab({
     }
     try {
       const appSettings = typeof window !== 'undefined' ? loadAppSettings() : null;
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         limitConsignments: 35,
         fetchLiveWc: true,
       };
@@ -259,7 +246,16 @@ export function LiveOpsTab({
         body: JSON.stringify(payload),
       });
 
-      let data: any = null;
+      let data: {
+        success?: boolean;
+        orders?: RawOrderRow[];
+        stats?: LiveTerminalStats;
+        discrepancies?: DiscrepancyAlert[];
+        wcConnected?: boolean;
+        pathaoConnected?: boolean;
+        provenance?: DataProvenanceInfo;
+        message?: string;
+      } | null = null;
       const contentType = res.headers.get('content-type') || '';
       if (contentType.includes('application/json')) {
         try {
@@ -326,13 +322,14 @@ export function LiveOpsTab({
         if (isManual) setSyncStatusMsg('Operational snapshot active (WooCommerce REST API & Pathao Hermes).');
       }
       setCountdown(60);
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (isManual) {
-        setSyncStatusMsg(`Sync notice: ${e?.message || 'Using current snapshot'}`);
+        const msg = e instanceof Error ? e.message : 'Using current snapshot';
+        setSyncStatusMsg(`Sync notice: ${msg}`);
         dispatchSyncNotification({
           type: 'error',
           title: 'Live Sync Notice',
-          description: e?.message || 'Failed to complete live sync. Using current cached snapshot.',
+          description: msg,
           targetTab: 'tabSettings'
         });
       }
@@ -387,7 +384,7 @@ export function LiveOpsTab({
       }
 
       if (categoryFilter !== 'ALL') {
-        const cat = getCategoryForSales(o['Item Name']);
+        const cat = getCategoryForSales(String(o['Item Name'] || ''));
         if (cat !== categoryFilter) return false;
       }
 
@@ -426,7 +423,7 @@ export function LiveOpsTab({
   const uniqueCategories = useMemo(() => {
     const set = new Set<string>();
     for (const o of report.activeOrders) {
-      set.add(getCategoryForSales(o['Item Name']));
+      set.add(getCategoryForSales(String(o['Item Name'] || '')));
     }
     return Array.from(set).sort();
   }, [report.activeOrders]);
@@ -435,25 +432,25 @@ export function LiveOpsTab({
   const handleExportExcel = () => {
     const sortedOrders = [...filteredOrders].sort(compareOrdersByNumber);
     const exportData = sortedOrders.map((o) => {
-      const isSelects = classifyProductLine(o['Item Name'], o.SKU, getCategoryForSales(o['Item Name'])) === 'DEEN Selects';
+      const isSelects = classifyProductLine(String(o['Item Name'] || ''), String(o.SKU || ''), getCategoryForSales(String(o['Item Name'] || ''))) === 'DEEN Selects';
       return {
         'Order ID': o['Order ID'] || o.orderId,
         'Date': o['Order Date'],
         'Customer Name': getExportCustomerName(o),
         'Phone': getExportPhoneNumber(o),
         'City': o.City,
-        'Item Name': o['Item Name'],
-        'SKU': o.SKU,
-        'Category': getCategoryForSales(o['Item Name']),
-        'Sub-Category': getSubCategoryForSales(o['Item Name']),
+        'Item Name': String(o['Item Name'] || ''),
+        'SKU': String(o.SKU || ''),
+        'Category': getCategoryForSales(String(o['Item Name'] || '')),
+        'Sub-Category': getSubCategoryForSales(String(o['Item Name'] || '')),
         'Collection Line': isSelects ? 'DEEN Selects' : 'DEEN Regular',
-        'Quantity': o.Quantity || 1,
-        'Unit Cost (TK)': o['Item Cost'] || 0,
-        'Order Amount (TK)': o['Order Amount'] || 0,
-        'WooCommerce Status': o['Delivery Status'] || (o as any).status || 'shipped',
-        'Pathao Courier Status': o['Courier Status'] || o.courierStatus || 'Untracked',
-        'Pathao Consignment ID': o['Consignment ID'] || o.consignmentId || 'N/A',
-        'Collected Amount (TK)': o.collectedAmount || 0,
+        'Quantity': Number(o.Quantity) || 1,
+        'Unit Cost (TK)': Number(o['Item Cost']) || 0,
+        'Order Amount (TK)': Number(o['Order Amount']) || 0,
+        'WooCommerce Status': String(o['Delivery Status'] || (o as Record<string, unknown>).status || 'shipped'),
+        'Pathao Courier Status': String(o['Courier Status'] || o.courierStatus || 'Untracked'),
+        'Pathao Consignment ID': String(o['Consignment ID'] || o.consignmentId || 'N/A'),
+        'Collected Amount (TK)': Number(o.collectedAmount) || 0,
         'Courier Discrepancy': o.hasDiscrepancy ? `Yes (${o.discrepancyType})` : 'None',
       };
     });
@@ -467,16 +464,18 @@ export function LiveOpsTab({
   const handleExportCsv = () => {
     const sortedOrders = [...filteredOrders].sort(compareOrdersByNumber);
     const exportData = sortedOrders.map((o) => {
-      const isSelects = classifyProductLine(o['Item Name'], o.SKU, getCategoryForSales(o['Item Name'])) === 'DEEN Selects';
+      const itemName = String(o['Item Name'] || '');
+      const sku = String(o.SKU || '');
+      const isSelects = classifyProductLine(itemName, sku, getCategoryForSales(itemName)) === 'DEEN Selects';
       return {
-        'Order ID': o['Order ID'] || o.orderId,
-        'Date': o['Order Date'],
+        'Order ID': String(o['Order ID'] || o.orderId || ''),
+        'Date': String(o['Order Date'] || ''),
         'Customer Name': getExportCustomerName(o),
         'Phone': getExportPhoneNumber(o),
-        'City': o.City,
-        'Item Name': o['Item Name'],
-        'SKU': o.SKU,
-        'Category': getCategoryForSales(o['Item Name']),
+        'City': String(o.City || ''),
+        'Item Name': itemName,
+        'SKU': sku,
+        'Category': getCategoryForSales(itemName),
         'Collection': isSelects ? 'DEEN Selects' : 'DEEN Regular',
         'Quantity': o.Quantity || 1,
         'Unit Cost': o['Item Cost'] || 0,
@@ -2064,13 +2063,14 @@ export function LiveOpsTab({
               ) : (
                 filteredOrders.slice(0, 100).map((row, idx) => {
                   const oid = String(row['Order ID'] || row.orderId || '');
-                  const prodName = row['Item Name'] || 'Apparel Item';
+                  const prodName = String(row['Item Name'] || 'Apparel Item');
+                  const sku = String(row.SKU || '');
                   const cat = getCategoryForSales(prodName);
-                  const isSelects = classifyProductLine(prodName, row.SKU, cat) === 'DEEN Selects';
+                  const isSelects = classifyProductLine(prodName, sku, cat) === 'DEEN Selects';
                   const qty = Number(row.Quantity) || 1;
                   const itemCost = Number(row['Item Cost']) || 0;
                   const orderAmt = Number(row['Order Amount']) || itemCost * qty;
-                  const wcStatus = String(row['Delivery Status'] || (row as any).status || 'shipped');
+                  const wcStatus = String(row['Delivery Status'] || (row as Record<string, unknown>).status || 'shipped');
                   const courierStatus = String(row['Courier Status'] || row.courierStatus || 'Untracked');
                   const consignmentId = String(row['Consignment ID'] || row.consignmentId || '').trim();
                   const hasDiscrepancy = Boolean(row.hasDiscrepancy);
@@ -2136,11 +2136,11 @@ export function LiveOpsTab({
                         {String(row['Order Date'] || '').slice(0, 16)}
                       </td>
                       <td className="py-2.5 px-3.5">
-                        <div className="font-bold text-slate-800 truncate max-w-[140px]" title={getExportCustomerName(row) || row['Customer Name']}>
-                          {getExportCustomerName(row) || row['Customer Name'] || 'Customer'}
+                        <div className="font-bold text-slate-800 truncate max-w-[140px]" title={String(getExportCustomerName(row) || row['Customer Name'] || '')}>
+                          {String(getExportCustomerName(row) || row['Customer Name'] || 'Customer')}
                         </div>
                         <div className="text-[11px] text-slate-400 font-mono">
-                          {getExportPhoneNumber(row) || row.Phone || 'N/A'}
+                          {String(getExportPhoneNumber(row) || row.Phone || 'N/A')}
                         </div>
                       </td>
                       <td className="py-2.5 px-3.5 max-w-[220px]">
@@ -2148,7 +2148,7 @@ export function LiveOpsTab({
                           {prodName}
                         </div>
                         <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
-                          <span>SKU: {row.SKU || 'N/A'}</span>
+                          <span>SKU: {sku || 'N/A'}</span>
                           <span>•</span>
                           <span className="text-slate-600 font-medium">{cat}</span>
                         </div>
@@ -2261,7 +2261,7 @@ export function LiveOpsTab({
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-lg font-black text-slate-900 font-headline">
-                    Order #{selectedDetailOrder['Order ID'] || selectedDetailOrder.orderId}
+                    Order #{String(selectedDetailOrder['Order ID'] || selectedDetailOrder.orderId || '')}
                   </h3>
                   {(() => {
                     const branch = detectFulfillmentBranch(selectedDetailOrder);
@@ -2273,14 +2273,14 @@ export function LiveOpsTab({
                     );
                   })()}
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                    WC: {selectedDetailOrder['Delivery Status'] || 'shipped'}
+                    WC: {String(selectedDetailOrder['Delivery Status'] || 'shipped')}
                   </span>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                    Pathao: {selectedDetailOrder['Courier Status'] || selectedDetailOrder.courierStatus || 'Untracked'}
+                    Pathao: {String(selectedDetailOrder['Courier Status'] || selectedDetailOrder.courierStatus || 'Untracked')}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  Placed on {String(selectedDetailOrder['Order Date'] || '')} • Customer: {getExportCustomerName(selectedDetailOrder) || selectedDetailOrder['Customer Name']}
+                  Placed on {String(selectedDetailOrder['Order Date'] || '')} • Customer: {String(getExportCustomerName(selectedDetailOrder) || selectedDetailOrder['Customer Name'] || '')}
                 </p>
               </div>
 
@@ -2299,11 +2299,11 @@ export function LiveOpsTab({
                 <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
                 <div className="text-xs">
                   <h4 className="font-bold text-rose-900">
-                    Courier Discrepancy Detected ({selectedDetailOrder.discrepancyType})
+                    Courier Discrepancy Detected ({String(selectedDetailOrder.discrepancyType || '')})
                   </h4>
                   <p className="text-rose-700 mt-0.5">
-                    {selectedDetailOrder.discrepancyMessage ||
-                      'The status recorded in WooCommerce differs from the courier return status received from Pathao Hermes API.'}
+                    {String(selectedDetailOrder.discrepancyMessage ||
+                      'The status recorded in WooCommerce differs from the courier return status received from Pathao Hermes API.')}
                   </p>
                 </div>
               </div>
@@ -2317,12 +2317,12 @@ export function LiveOpsTab({
                   <Package className="w-3.5 h-3.5" /> Product & Apparel Line
                 </h4>
                 <div>
-                  <div className="font-bold text-slate-900">{selectedDetailOrder['Item Name']}</div>
-                  <div className="text-slate-500 text-[11px] mt-0.5">SKU: {selectedDetailOrder.SKU || 'N/A'}</div>
+                  <div className="font-bold text-slate-900">{String(selectedDetailOrder['Item Name'] || '')}</div>
+                  <div className="text-slate-500 text-[11px] mt-0.5">SKU: {String(selectedDetailOrder.SKU || 'N/A')}</div>
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t border-slate-200/60 text-slate-600">
                   <span>Quantity:</span>
-                  <span className="font-bold text-slate-900">{selectedDetailOrder.Quantity || 1} pcs</span>
+                  <span className="font-bold text-slate-900">{Number(selectedDetailOrder.Quantity || 1)} pcs</span>
                 </div>
                 <div className="flex justify-between items-center text-slate-600">
                   <span>Order Total:</span>
@@ -2338,13 +2338,13 @@ export function LiveOpsTab({
                 <div className="flex justify-between items-center">
                   <span className="text-slate-600">Consignment ID:</span>
                   <span className="font-mono font-bold text-blue-600">
-                    {selectedDetailOrder['Consignment ID'] || selectedDetailOrder.consignmentId || 'Untracked'}
+                    {String(selectedDetailOrder['Consignment ID'] || selectedDetailOrder.consignmentId || 'Untracked')}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-600">Courier Status:</span>
                   <span className="font-bold text-slate-900">
-                    {selectedDetailOrder['Courier Status'] || selectedDetailOrder.courierStatus || 'Untracked'}
+                    {String(selectedDetailOrder['Courier Status'] || selectedDetailOrder.courierStatus || 'Untracked')}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -2363,7 +2363,7 @@ export function LiveOpsTab({
                   <div className="pt-2">
                     <a
                       href={`https://pathao.com/courier/tracking/?consignment_id=${encodeURIComponent(
-                        selectedDetailOrder['Consignment ID']
+                        String(selectedDetailOrder['Consignment ID'] || '')
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -2385,20 +2385,20 @@ export function LiveOpsTab({
               <div className="grid grid-cols-2 gap-2 text-slate-700">
                 <div>
                   <span className="text-slate-400 block text-[10px]">Name:</span>
-                  <span className="font-semibold">{getExportCustomerName(selectedDetailOrder) || selectedDetailOrder['Customer Name'] || 'Customer'}</span>
+                  <span className="font-semibold">{String(getExportCustomerName(selectedDetailOrder) || selectedDetailOrder['Customer Name'] || 'Customer')}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Phone:</span>
-                  <span className="font-semibold">{getExportPhoneNumber(selectedDetailOrder) || selectedDetailOrder.Phone || 'N/A'}</span>
+                  <span className="font-semibold">{String(getExportPhoneNumber(selectedDetailOrder) || selectedDetailOrder.Phone || 'N/A')}</span>
                 </div>
                 <div className="col-span-2">
                   <span className="text-slate-400 block text-[10px]">City / Area:</span>
-                  <span className="font-semibold">{selectedDetailOrder.City || 'Dhaka'}</span>
+                  <span className="font-semibold">{String(selectedDetailOrder.City || 'Dhaka')}</span>
                 </div>
                 {selectedDetailOrder['Order Notes'] && (
                   <div className="col-span-2 pt-1 border-t border-slate-200/60">
                     <span className="text-slate-400 block text-[10px]">Customer Note:</span>
-                    <span className="italic text-slate-600">{selectedDetailOrder['Order Notes']}</span>
+                    <span className="italic text-slate-600">{String(selectedDetailOrder['Order Notes'] || '')}</span>
                   </div>
                 )}
               </div>

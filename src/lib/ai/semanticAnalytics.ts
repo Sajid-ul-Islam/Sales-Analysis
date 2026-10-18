@@ -3,7 +3,8 @@ import {
   CourierMismatchRecord,
   SkuAnalytics,
   CustomerRiskProfile,
-  SummaryAnalytics
+  SummaryAnalytics,
+  RawOrderRow
 } from '@/types';
 import { processLiveOpsData } from '@/lib/liveOpsProcessor';
 
@@ -291,13 +292,13 @@ export interface AnalyticsSlices {
  * and 7-day rolling reconciliation baseline for AI assistant grounding.
  */
 export function computeLiveOpsSlice(
-  orders: any[] = [],
+  orders: (RawOrderRow | Record<string, unknown>)[] = [],
   options?: {
     onlineOnly?: boolean;
     customDate?: string;
   }
 ): LiveOpsAnalyticsSlice {
-  const report = processLiveOpsData(orders, {
+  const report = processLiveOpsData(orders as RawOrderRow[], {
     view: 'Today Shipped',
     onlineOnly: options?.onlineOnly ?? false,
     customDate: options?.customDate,
@@ -321,11 +322,12 @@ export function computeLiveOpsSlice(
   }> = [];
 
   for (const o of orders) {
-    const oid = String(o['Order ID'] || o.orderId || '').trim();
+    const row = o as Record<string, unknown>;
+    const oid = String(o['Order ID'] || row.orderId || '').trim();
     if (!oid || seenOrders.has(oid)) continue;
     seenOrders.add(oid);
 
-    const cStatus = String(o['Courier Status'] || o.courierStatus || 'Untracked');
+    const cStatus = String(o['Courier Status'] || row.courierStatus || 'Untracked');
     if (cStatus !== 'Untracked') {
       handedOverCount++;
     } else {
@@ -335,17 +337,17 @@ export function computeLiveOpsSlice(
     if (cStatus === 'In Transit') inTransitCount++;
     else if (cStatus === 'Delivered') {
       deliveredCount++;
-      totalCodCollected += Number(o.collectedAmount || o['Order Amount'] || o['Item Cost'] || 0);
+      totalCodCollected += Number(row.collectedAmount || o['Order Amount'] || o['Item Cost'] || 0);
     } else if (cStatus === 'Returned') returnedCount++;
     else if (cStatus === 'Pending Pickup') pendingPickupCount++;
 
-    if (o.hasDiscrepancy) {
+    if (row.hasDiscrepancy) {
       discrepanciesList.push({
         orderId: oid,
-        type: String(o.discrepancyType || 'DISCREPANCY'),
-        message: String(o.discrepancyMessage || 'Store and courier mismatch detected'),
+        type: String(row.discrepancyType || 'DISCREPANCY'),
+        message: String(row.discrepancyMessage || 'Store and courier mismatch detected'),
         courierStatus: cStatus,
-        wcStatus: String(o['Delivery Status'] || o.status || ''),
+        wcStatus: String(o['Delivery Status'] || row.status || ''),
       });
     }
   }
@@ -506,6 +508,13 @@ export function generateQueryAnalyticalFacts(
     q.includes('dhaka') ||
     q.includes('division') ||
     activeTab?.includes('Territory');
+
+  if (mentionsTerritory && summary) {
+    facts.push('Deterministic Territory & Reconciliation Baseline:');
+    const deliveryRate = (100 - (summary.returnRate || 0)).toFixed(1);
+    facts.push(`- Gross Delivered Rate: ${deliveryRate}% | Return Rate: ${summary.returnRate}%`);
+    facts.push(`- Gross Sales GMV: ৳${Math.round(summary.grossRevenue).toLocaleString()}`);
+  }
 
   // 6. Live Operations: Today's Sales, Warehouse Queue, Real-Time Delivery & Daily Reconciliation Updates
   const mentionsLiveOps =

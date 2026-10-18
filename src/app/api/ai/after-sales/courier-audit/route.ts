@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateAICompletion } from '@/lib/geminiClient';
+import { generateAICompletion, AIProvider } from '@/lib/geminiClient';
 import { validateApiRequest } from '@/lib/auth/apiAuth';
 
 export const dynamic = 'force-dynamic';
@@ -30,10 +30,26 @@ Generate a strictly formatted JSON object:
   ]
 }`;
 
+interface CourierMismatchInput {
+  orderId: string;
+  consignmentId?: string;
+  excelStatus?: string;
+  pathaoStatus?: string;
+  expectedCod?: number;
+  pathaoCollectedCod?: number;
+  codDifference?: number;
+  mismatchType?: string;
+  [key: string]: unknown;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { mismatches = [], summary, byok } = body;
+    const { mismatches = [], summary, byok } = body as {
+      mismatches?: CourierMismatchInput[];
+      summary?: { grossOrders?: number };
+      byok?: { apiKey?: string; provider?: string; model?: string };
+    };
 
     const hasByok = Boolean(byok?.apiKey && String(byok.apiKey).trim().length > 5);
     if (!hasByok) {
@@ -43,7 +59,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const sampleMismatches = mismatches.slice(0, 25).map((m: any) => ({
+    const sampleMismatches = mismatches.slice(0, 25).map((m: CourierMismatchInput) => ({
       orderId: m.orderId,
       consignmentId: m.consignmentId || 'N/A',
       excelStatus: m.excelStatus,
@@ -54,7 +70,7 @@ export async function POST(req: NextRequest) {
       type: m.mismatchType,
     }));
 
-    const totalDiff = mismatches.reduce((sum: number, m: any) => sum + (m.codDifference || 0), 0);
+    const totalDiff = mismatches.reduce((sum: number, m: CourierMismatchInput) => sum + (m.codDifference || 0), 0);
 
     const promptText = `Courier Reconciliation Audit Snapshot:
 - Total Discrepancies Flagged: ${mismatches.length}
@@ -72,7 +88,7 @@ Audit the financial leakage and generate a formal dispute claim dossier.`;
       responseMimeType: 'application/json',
       temperature: 0.2,
       byokApiKey: byok?.apiKey,
-      byokProvider: byok?.provider,
+      byokProvider: byok?.provider as AIProvider,
       byokModel: byok?.model,
     });
 
@@ -90,10 +106,10 @@ Audit the financial leakage and generate a formal dispute claim dossier.`;
     }
 
     // Deterministic Heuristic Fallback
-    const unremitted = mismatches.filter((m: any) => (m.codDifference || 0) > 0);
-    const ghost = mismatches.filter((m: any) => String(m.pathaoStatus || '').toLowerCase().includes('return'));
+    const unremitted = mismatches.filter((m: CourierMismatchInput) => (m.codDifference || 0) > 0);
+    const ghost = mismatches.filter((m: CourierMismatchInput) => String(m.pathaoStatus || '').toLowerCase().includes('return'));
 
-    const claimLines = mismatches.slice(0, 5).map((m: any) =>
+    const claimLines = mismatches.slice(0, 5).map((m: CourierMismatchInput) =>
       `• Order #${m.orderId} (Consignment: ${m.consignmentId || 'N/A'}) — Expected ৳${m.expectedCod || 0}, Collected ৳${m.pathaoCollectedCod || 0} [Discrepancy: ৳${m.codDifference || 0}]`
     ).join('\n');
 
@@ -123,7 +139,7 @@ Please investigate these consignments and adjust the outstanding balance in our 
 Sincerely,
 Operations & Finance Team
 DEEN Commerce`,
-        highPriorityClaims: mismatches.slice(0, 4).map((m: any) => ({
+        highPriorityClaims: mismatches.slice(0, 4).map((m: CourierMismatchInput) => ({
           orderId: m.orderId,
           consignmentId: m.consignmentId || 'PATHAO-LOG',
           discrepancyType: m.mismatchType || 'COD_UNDER_COLLECTION',
@@ -133,8 +149,8 @@ DEEN Commerce`,
       },
       source: 'heuristic_fallback',
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('API /api/ai/after-sales/courier-audit error:', err);
-    return NextResponse.json({ error: err.message || 'Internal error' }, { status: 500 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Internal error' }, { status: 500 });
   }
 }

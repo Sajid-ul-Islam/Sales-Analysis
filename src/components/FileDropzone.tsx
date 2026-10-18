@@ -11,9 +11,6 @@ import {
   CheckCircle2,
   RefreshCw,
   FolderOpen,
-  Layers,
-  Sparkles,
-  Calculator,
   Truck
 } from 'lucide-react';
 
@@ -363,7 +360,7 @@ export function FileDropzone({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setPathaoDeliveryFile && setPathaoDeliveryFile(null);
+                  setPathaoDeliveryFile?.(null);
                   onProcess({ pathaoDelivery: null });
                 }}
                 className="text-slate-400 hover:text-rose-600 ml-1 p-0.5"
@@ -615,7 +612,7 @@ export function FileDropzone({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setExchangeFile && setExchangeFile(null);
+                  setExchangeFile?.(null);
                   onProcess({ exchanges: null });
                 }}
                 className="text-slate-400 hover:text-rose-600 ml-1 p-0.5"

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ReconciledOrderRow, SummaryAnalytics } from '@/types';
+import { ReconciledOrderRow, SummaryAnalytics, RawOrderRow } from '@/types';
 import {
   ShoppingBag,
   Store,
@@ -19,16 +19,10 @@ import {
   Layers,
   Award,
   MapPin,
-  Calendar,
   Shirt,
-  Filter,
-  Tag,
   Zap,
   Trash2,
-  Clock,
-  ArrowUpRight,
-  Sparkles,
-  CircleDollarSign
+  ArrowUpRight
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -176,12 +170,12 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
   // Resolve Outlet from WooCommerce Order:
   // Strictly matches retail POS branches (Mirpur, Wari, Cumilla, Sylhet).
   // Returns null for Online Store (Website) orders to exclude them.
-  const resolveOutletFromWcOrder = useCallback((rawOrder: any): { outletId: string; outletName: string; orderSource: 'pos' } | null => {
-    const meta = Array.isArray(rawOrder.meta_data) ? rawOrder.meta_data : [];
-    const sourceMeta = meta.find((m: any) => m.key === '_sip_order_source');
-    const outletMeta = meta.find((m: any) => m.key === '_sip_outlet_id');
-    const posDomainMeta = meta.find((m: any) => m.key === '_sip_pos_domain');
-    const createdByMeta = meta.find((m: any) => m.key === '_sip_created_by');
+  const resolveOutletFromWcOrder = useCallback((rawOrder: Record<string, unknown>): { outletId: string; outletName: string; orderSource: 'pos' } | null => {
+    const meta = Array.isArray(rawOrder.meta_data) ? (rawOrder.meta_data as Record<string, unknown>[]) : [];
+    const sourceMeta = meta.find((m) => m.key === '_sip_order_source');
+    const outletMeta = meta.find((m) => m.key === '_sip_outlet_id');
+    const posDomainMeta = meta.find((m) => m.key === '_sip_pos_domain');
+    const createdByMeta = meta.find((m) => m.key === '_sip_created_by');
     const note = String(rawOrder.customer_note || '').toLowerCase();
     const orderIdStr = String(rawOrder.id || rawOrder.number || '').toLowerCase();
     const paymentMethod = String(rawOrder.payment_method || '').toLowerCase();
@@ -198,7 +192,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
     const isPos = sourceMeta?.value === 'pos' || 
                   Boolean(posDomainMeta?.value) || 
-                  meta.some((m: any) => m.key === '_sip_pos_order') ||
+                  meta.some((m) => m.key === '_sip_pos_order') ||
                   paymentMethod.startsWith('sip_') ||
                   rawOrder.created_via === 'pos';
     const outletId = String(outletMeta?.value || '');
@@ -241,7 +235,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
   }, []);
 
   // Format raw WooCommerce orders into structured records, filtering out Online Store & Ecom payments
-  const parseRawWcOrders = useCallback((rawOrdersList: any[]): WcOrderRecord[] => {
+  const parseRawWcOrders = useCallback((rawOrdersList: Record<string, unknown>[]): WcOrderRecord[] => {
     const outletRecords: WcOrderRecord[] = [];
 
     rawOrdersList.forEach(o => {
@@ -256,46 +250,48 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
       // Strictly exclude Online Store (Website) orders
       if (!outlet) return;
 
-      const lineItems = Array.isArray(o.line_items) ? o.line_items : [];
+      const lineItems = Array.isArray(o.line_items) ? (o.line_items as Record<string, unknown>[]) : [];
       let itemsCount = 0;
       const itemsList: Array<{ name: string; sku: string; quantity: number; price: number; total: number }> = [];
 
-      lineItems.forEach((it: any) => {
-        const qty = parseInt(it.quantity || '1', 10) || 1;
+      lineItems.forEach((it) => {
+        const qty = parseInt(String(it.quantity || '1'), 10) || 1;
         itemsCount += qty;
-        const price = parseFloat(it.price || '0') || 0;
-        const total = parseFloat(it.total || '0') || (price * qty);
+        const price = parseFloat(String(it.price || '0')) || 0;
+        const total = parseFloat(String(it.total || '0')) || (price * qty);
         itemsList.push({
-          name: it.name || it.parent_name || 'DEEN Apparel',
-          sku: it.sku || 'N/A',
+          name: String(it.name || it.parent_name || 'DEEN Apparel'),
+          sku: String(it.sku || 'N/A'),
           quantity: qty,
           price,
           total
         });
       });
 
-      const customerName = `${o.billing?.first_name || ''} ${o.billing?.last_name || ''}`.trim() ||
-        o.shipping?.first_name ||
+      const billing = (o.billing || {}) as Record<string, unknown>;
+      const shipping = (o.shipping || {}) as Record<string, unknown>;
+      const customerName = `${billing.first_name || ''} ${billing.last_name || ''}`.trim() ||
+        String(shipping.first_name || '') ||
         'In-Store Customer';
 
       outletRecords.push({
         id: String(o.id || o.number || ''),
         orderNumber: String(o.number || o.id || ''),
-        dateCreated: o.date_created || '',
+        dateCreated: String(o.date_created || ''),
         customerName,
-        phone: o.billing?.phone || o.shipping?.phone || '',
-        city: o.billing?.city || o.shipping?.city || 'Dhaka',
-        total: parseFloat(o.total || '0') || 0,
-        status: o.status || 'completed',
-        paymentMethod: o.payment_method || 'cash',
-        paymentMethodTitle: o.payment_method_title || (o.payment_method === 'cod' ? 'Cash' : o.payment_method || 'Cash Register'),
+        phone: String(billing.phone || shipping.phone || ''),
+        city: String(billing.city || shipping.city || 'Dhaka'),
+        total: parseFloat(String(o.total || '0')) || 0,
+        status: String(o.status || 'completed'),
+        paymentMethod: String(o.payment_method || 'cash'),
+        paymentMethodTitle: String(o.payment_method_title || (o.payment_method === 'cod' ? 'Cash' : o.payment_method || 'Cash Register')),
         orderSource: 'pos',
         outletId: outlet.outletId,
         outletName: outlet.outletName,
         itemsCount: Math.max(1, itemsCount),
         itemsSummary: itemsList.map(i => `${i.quantity}x ${i.name}`).slice(0, 2).join(', ') || 'In-Store Item',
         lineItems: itemsList,
-        discounts: parseFloat(o.discount_total || '0') || 0
+        discounts: parseFloat(String(o.discount_total || '0')) || 0
       });
     });
 
@@ -310,7 +306,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
     }>();
 
     ordersList.forEach(r => {
-      const rowAny = r as any;
+      const rowAny = r as unknown as Record<string, unknown>;
       const pMethod = String(rowAny.paymentMethod || rowAny['Payment Method'] || r.paymentMethod || '').toLowerCase();
       if (pMethod === 'sip_ecom' || pMethod === 'ecom' || pMethod.includes('ecom')) {
         return; // Exclude Ecom marked orders from Outlet Sales
@@ -341,10 +337,10 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
       const dateStr = r.orderDate instanceof Date 
         ? r.orderDate.toISOString() 
-        : String(rowAny.rawOrder?.['Order Date'] || r.orderDate || '');
+        : String(rowAny.rawOrder ? (rowAny.rawOrder as Record<string, unknown>)['Order Date'] : r.orderDate || '');
 
       const cleanOid = r.orderId;
-      const itemQty = rowAny.quantity || r.quantity || 1;
+      const itemQty = Number(rowAny.quantity || r.quantity || 1);
       const itemPrice = r.itemCost || 0;
       const itemTotal = itemPrice * itemQty;
 
@@ -360,7 +356,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
             total: 0,
             status: r.deliveryStatus === 'Delivered' ? 'completed' : (r.deliveryStatus || 'completed').toLowerCase(),
             paymentMethod: 'cash',
-            paymentMethodTitle: rowAny.rawOrder?.['Payment Method'] || 'In-Store Register',
+            paymentMethodTitle: String((rowAny.rawOrder as Record<string, unknown>)?.[`Payment Method`] || 'In-Store Register'),
             orderSource: 'pos',
             outletId,
             outletName,
@@ -375,7 +371,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
       const existing = orderMap.get(cleanOid)!;
       existing.items.push({
-        name: r.itemName || rowAny.productName || 'DEEN Apparel',
+        name: String(r.itemName || rowAny.productName || 'DEEN Apparel'),
         sku: r.sku || 'N/A',
         quantity: itemQty,
         price: itemPrice,
@@ -443,7 +439,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
       });
 
       const contentType = res.headers.get('content-type') || '';
-      let data: any = {};
+      let data: { success?: boolean; rawOrders?: Record<string, unknown>[]; orders?: RawOrderRow[]; message?: string } = {};
       if (contentType.includes('application/json')) {
         data = await res.json();
       } else {
@@ -485,7 +481,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
       } else if (data.orders && data.orders.length > 0) {
         // Fallback using formatted order rows if rawOrders was not provided
         const parsedFallback: WcOrderRecord[] = [];
-        data.orders.forEach((r: any, idx: number) => {
+        data.orders.forEach((r: RawOrderRow, idx: number) => {
           const pMethod = String(r['Payment Method'] || r.paymentMethod || '').toLowerCase();
           if (pMethod === 'sip_ecom' || pMethod === 'ecom' || pMethod.includes('ecom')) {
             return; // Exclude Ecom marked orders from Outlet Sales
@@ -517,28 +513,28 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
           if (!outletId) return; // Exclude Online Store
 
-          const total = parseFloat(r['Order Amount'] || r['Item Cost'] || '0') || 0;
+          const total = parseFloat(String(r['Order Amount'] || r['Item Cost'] || '0')) || 0;
           parsedFallback.push({
             id: oid,
             orderNumber: oid,
-            dateCreated: r['Order Date'] || '',
-            customerName: getExportCustomerName(r) || r['Customer Name'] || 'In-Store Customer',
-            phone: getExportPhoneNumber(r) || r['Phone'] || '',
-            city: r['City'] || 'Dhaka',
+            dateCreated: String(r['Order Date'] || ''),
+            customerName: String(getExportCustomerName(r) || r['Customer Name'] || 'In-Store Customer'),
+            phone: String(getExportPhoneNumber(r) || r['Phone'] || ''),
+            city: String(r['City'] || 'Dhaka'),
             total,
-            status: r['Delivery Status'] || 'completed',
+            status: String(r['Delivery Status'] || 'completed'),
             paymentMethod: 'cash',
-            paymentMethodTitle: r['Payment Method'] || 'In-Store Register',
+            paymentMethodTitle: String(r['Payment Method'] || 'In-Store Register'),
             orderSource: 'pos',
             outletId,
             outletName,
-            itemsCount: parseInt(r['Quantity'] || '1', 10) || 1,
-            itemsSummary: r['Item Name'] || 'DEEN Apparel',
+            itemsCount: parseInt(String(r['Quantity'] || '1'), 10) || 1,
+            itemsSummary: String(r['Item Name'] || 'DEEN Apparel'),
             lineItems: [{
-              name: r['Item Name'] || 'DEEN Apparel',
-              sku: r['SKU'] || 'N/A',
-              quantity: parseInt(r['Quantity'] || '1', 10) || 1,
-              price: parseFloat(r['Item Cost'] || '0') || 0,
+              name: String(r['Item Name'] || 'DEEN Apparel'),
+              sku: String(r['SKU'] || 'N/A'),
+              quantity: parseInt(String(r['Quantity'] || '1'), 10) || 1,
+              price: parseFloat(String(r['Item Cost'] || '0')) || 0,
               total
             }],
             discounts: 0
@@ -573,9 +569,10 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
       } else {
         setSyncStatusMsg(data.message || 'WooCommerce API returned 0 orders.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to pull from WooCommerce:', err);
-      setSyncStatusMsg(`WooCommerce API connection: ${err?.message || 'Check credentials'}`);
+      const msg = err instanceof Error ? err.message : 'Check credentials';
+      setSyncStatusMsg(`WooCommerce API connection: ${msg}`);
     } finally {
       setIsLoading(false);
     }
@@ -862,7 +859,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
     };
 
     let totalCatRevenue = 0;
-    let totalCatUnits = 0;
+    let _totalCatUnits = 0;
 
     dateFilteredOrders.forEach(order => {
       const orderBranch = order.outletName;
@@ -875,7 +872,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
         target.ordersCount++;
         target.branchSales[orderBranch] = (target.branchSales[orderBranch] || 0) + lineTotal;
         totalCatRevenue += lineTotal;
-        totalCatUnits += it.quantity;
+        _totalCatUnits += it.quantity;
       });
     });
 

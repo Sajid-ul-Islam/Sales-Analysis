@@ -36,6 +36,19 @@ export function LiveVolumeBarChart({
       .slice(0, 9);
   }, [sourceItems]);
 
+  const maxActualVolume = displayItems.reduce((max, item) => Math.max(max, item.volume), 0);
+  const maxVolume = Math.max(14, Math.ceil(maxActualVolume / 2) * 2);
+
+  // Y-axis grid ticks (e.g. 0, 2, 4, 6, 8, 10, 12, 14)
+  const yTicks = useMemo(() => {
+    const step = maxVolume <= 14 ? 2 : Math.ceil(maxVolume / 7 / 2) * 2;
+    const ticks: number[] = [];
+    for (let t = 0; t <= maxVolume; t += step) {
+      ticks.push(t);
+    }
+    return ticks;
+  }, [maxVolume]);
+
   if (sourceItems.length === 0) {
     return (
       <div className="relative flex flex-col items-center justify-center p-6 text-center select-none w-full min-h-[280px]">
@@ -52,8 +65,6 @@ export function LiveVolumeBarChart({
     );
   }
 
-  const maxActualVolume = displayItems.reduce((max, item) => Math.max(max, item.volume), 0);
-  const maxVolume = Math.max(14, Math.ceil(maxActualVolume / 2) * 2);
   const chartHeight = 310;
   const chartWidth = 560;
   const paddingLeft = 40;
@@ -66,16 +77,6 @@ export function LiveVolumeBarChart({
 
   const slotWidth = innerWidth / (displayItems.length || 1);
   const barWidth = Math.min(42, slotWidth * 0.76);
-
-  // Y-axis grid ticks (e.g. 0, 2, 4, 6, 8, 10, 12, 14)
-  const yTicks = useMemo(() => {
-    const step = maxVolume <= 14 ? 2 : Math.ceil(maxVolume / 7 / 2) * 2;
-    const ticks: number[] = [];
-    for (let t = 0; t <= maxVolume; t += step) {
-      ticks.push(t);
-    }
-    return ticks;
-  }, [maxVolume]);
 
   const getYCoord = (vol: number) => {
     return paddingTop + innerHeight - (vol / maxVolume) * innerHeight;
@@ -183,8 +184,6 @@ export function LiveVolumeBarChart({
             const isStackedJeans = (item.displayName === 'Jeans' || item.name === 'Jeans') && item.selectsVolume > 0;
             const selVol = isStackedJeans ? item.selectsVolume : 0;
             const regVol = isStackedJeans ? (item.regularVolume || totalVol - selVol) : totalVol;
-
-            const totalHeight = (totalVol / maxVolume) * innerHeight;
             const regHeight = (regVol / maxVolume) * innerHeight;
             const selHeight = (selVol / maxVolume) * innerHeight;
 

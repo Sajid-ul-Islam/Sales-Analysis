@@ -101,9 +101,9 @@ export async function POST(req: Request) {
       },
       provenance,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('WooCommerce sync error:', error);
-    const msg = error?.message || 'Failed to sync with WooCommerce';
+    const msg = error instanceof Error ? error.message : 'Failed to sync with WooCommerce';
     return NextResponse.json(
       {
         success: false,

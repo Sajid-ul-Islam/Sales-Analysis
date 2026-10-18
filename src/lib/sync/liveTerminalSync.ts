@@ -1,9 +1,10 @@
-import { RawOrderRow } from '@/types';
-import { fetchWooCommerceOrders, formatWooCommerceToOrderRows, testWooCommerceConnection } from '@/lib/woocommerceClient';
+import { RawOrderRow, DatasetSnapshot } from '@/types';
+import { fetchWooCommerceOrders, formatWooCommerceToOrderRows, testWooCommerceConnection, WcCredentials } from '@/lib/woocommerceClient';
 import { batchFetchPathaoOrders, getPathaoToken, PathaoCredentials } from '@/lib/pathaoClient';
 import { getSecretsWithOverrides } from '@/lib/secrets';
-import { createDataProvenance } from '@/lib/dataAudit';
+import { createDataProvenance, DataProvenanceInfo } from '@/lib/dataAudit';
 import { buildTimelineIndex, extractCustomerBilling, classifyCustomer } from '@/lib/customerRegistry';
+import { fetchDatasetFromBlob, isBlobConfigured } from '@/lib/blobStorage';
 import baselineData from '@/data/baselineSample.json';
 
 export type StandardCourierStatus =
@@ -87,7 +88,7 @@ export interface LiveTerminalSyncResult {
   wcConnected: boolean;
   pathaoConnected: boolean;
   syncTimestamp: string;
-  provenance: any;
+  provenance: DataProvenanceInfo;
 }
 
 /**
@@ -149,7 +150,7 @@ export function normalizeCourierStatus(rawStatus?: string): StandardCourierStatu
 /**
  * Cleans an order ID (removes quotes, trailing spaces) while preserving branch suffixes.
  */
-export function cleanOrderId(rawId: any): string {
+export function cleanOrderId(rawId: unknown): string {
   if (!rawId) return '';
   return String(rawId).replace(/["'\s]/g, '').toLowerCase();
 }
@@ -157,7 +158,7 @@ export function cleanOrderId(rawId: any): string {
 /**
  * Extracts base numeric order ID (e.g. '17263 m' -> '17263', 'D-17263' -> '17263').
  */
-export function extractBaseOrderId(rawId: any): string {
+export function extractBaseOrderId(rawId: unknown): string {
   if (!rawId) return '';
   const cleaned = cleanOrderId(rawId);
   // Strip exchange/duplicate prefixes like d-, dd-, ex-, exchange-
@@ -176,22 +177,23 @@ export function extractBaseOrderId(rawId: any): string {
  * Exchange: 'D-17263' or 'DD-17263'
  * Central Warehouse: No suffix (e.g. '17263')
  */
-export function detectFulfillmentBranch(orderIdOrRow: any): FulfillmentBranchInfo {
+export function detectFulfillmentBranch(orderIdOrRow: unknown): FulfillmentBranchInfo {
   // If orderIdOrRow is an object with pre-existing branchCode and fulfillmentBranch, preserve them
   if (typeof orderIdOrRow === 'object' && orderIdOrRow !== null) {
-    const rawOid = String(orderIdOrRow['Order ID'] || orderIdOrRow.orderId || orderIdOrRow['Consignment ID'] || '');
+    const rowObj = orderIdOrRow as Record<string, unknown>;
+    const rawOid = String(rowObj['Order ID'] || rowObj.orderId || rowObj['Consignment ID'] || '');
     const baseOrderId = extractBaseOrderId(rawOid);
 
-    if (orderIdOrRow.fulfillmentBranch && orderIdOrRow.branchCode) {
+    if (rowObj.fulfillmentBranch && rowObj.branchCode) {
       return {
-        branchName: orderIdOrRow.fulfillmentBranch,
-        branchCode: orderIdOrRow.branchCode,
-        isBranchFulfillment: orderIdOrRow.branchCode !== 'ONLINE',
+        branchName: String(rowObj.fulfillmentBranch),
+        branchCode: rowObj.branchCode as BranchFulfillmentCode,
+        isBranchFulfillment: rowObj.branchCode !== 'ONLINE',
         baseOrderId,
       };
     }
 
-    const oid = String(orderIdOrRow.outletId || orderIdOrRow['Outlet ID'] || '').trim();
+    const oid = String(rowObj.outletId || rowObj['Outlet ID'] || '').trim();
     if (oid === '1') {
       return { branchName: 'Mirpur Outlet POS', branchCode: 'MIRPUR', isBranchFulfillment: true, baseOrderId };
     }
@@ -206,16 +208,17 @@ export function detectFulfillmentBranch(orderIdOrRow: any): FulfillmentBranchInf
     }
   }
 
+  const rowObj = typeof orderIdOrRow === 'object' && orderIdOrRow !== null ? (orderIdOrRow as Record<string, unknown>) : null;
   const raw = typeof orderIdOrRow === 'string'
     ? orderIdOrRow
-    : String(orderIdOrRow?.['Order ID'] || orderIdOrRow?.orderId || orderIdOrRow?.['Consignment ID'] || '');
+    : String(rowObj?.['Order ID'] || rowObj?.orderId || rowObj?.['Consignment ID'] || '');
 
   const cleaned = cleanOrderId(raw);
   const baseOrderId = extractBaseOrderId(raw);
-  const objNotes = typeof orderIdOrRow === 'object' && orderIdOrRow !== null
-    ? `${orderIdOrRow['Order Notes'] || orderIdOrRow.orderNotes || orderIdOrRow.customer_note || ''} ${orderIdOrRow.Substatus || orderIdOrRow.substatus || ''}`.toLowerCase()
+  const objNotes = rowObj
+    ? `${rowObj['Order Notes'] || rowObj.orderNotes || rowObj.customer_note || ''} ${rowObj.Substatus || rowObj.substatus || ''}`.toLowerCase()
     : '';
-  const hasExchangeNote = /exchange\s+for\s+#?\d+/i.test(objNotes) || /\bexchanged\b/i.test(objNotes) || /exchange/i.test(String(orderIdOrRow?.orderCategory || '')) || orderIdOrRow?.isExchange === true;
+  const hasExchangeNote = /exchange\s+for\s+#?\d+/i.test(objNotes) || /\bexchanged\b/i.test(objNotes) || /exchange/i.test(String(rowObj?.orderCategory || '')) || rowObj?.isExchange === true;
 
   if (/^(dd?|ex|exchange)[-_]/i.test(cleaned) || /^d-\d+/i.test(raw.trim()) || hasExchangeNote) {
     return {
@@ -361,7 +364,7 @@ export function detectCourierDiscrepancy(
  * Combines WooCommerce order data and Pathao courier consignment telemetry.
  */
 export async function syncLiveTerminalData(options: {
-  wcCredentials?: any;
+  wcCredentials?: WcCredentials;
   pathaoCredentials?: PathaoCredentials;
   activeOrders?: RawOrderRow[];
   limitConsignments?: number;
@@ -404,12 +407,26 @@ export async function syncLiveTerminalData(options: {
     }
   }
 
-  // Fallback to active orders passed from client, or bundled baseline dataset
+  let blobDataset: DatasetSnapshot | null = null;
+
+  // Fallback to active orders passed from client, Vercel Blob cloud snapshot, or bundled baseline dataset
   if (rawOrders.length === 0) {
     if (Array.isArray(options.activeOrders) && options.activeOrders.length > 0) {
       rawOrders = options.activeOrders;
-    } else if (baselineData && Array.isArray((baselineData as any).orders)) {
-      rawOrders = (baselineData as any).orders;
+    } else if (isBlobConfigured()) {
+      try {
+        const blobRes = await fetchDatasetFromBlob();
+        if (blobRes.success && blobRes.dataset && Array.isArray(blobRes.dataset.orders) && blobRes.dataset.orders.length > 0) {
+          rawOrders = blobRes.dataset.orders;
+          blobDataset = blobRes.dataset;
+        }
+      } catch (blobErr) {
+        console.warn('[liveTerminalSync] Notice: Vercel Blob fallback fetch skipped:', blobErr);
+      }
+    }
+
+    if (rawOrders.length === 0 && baselineData && Array.isArray((baselineData as { orders?: RawOrderRow[] }).orders)) {
+      rawOrders = (baselineData as { orders: RawOrderRow[] }).orders;
     }
   }
 
@@ -420,8 +437,9 @@ export async function syncLiveTerminalData(options: {
       const billing = extractCustomerBilling(row);
       const orderDateIso = String(row['Order Date'] || row.orderDate || row['Date Modified'] || '');
       const cls = classifyCustomer(billing, orderDateIso, customerTimeline);
-      (row as any).isReturningCustomer = cls === 'returning';
-      (row as any).customerType = cls;
+      const rowRec = row as Record<string, unknown>;
+      rowRec.isReturningCustomer = cls === 'returning';
+      rowRec.customerType = cls;
     }
   } catch (err) {
     console.warn('Customer classification in live terminal sync caught warning:', err);
@@ -469,9 +487,9 @@ export async function syncLiveTerminalData(options: {
               const branchInfo = detectFulfillmentBranch(po.merchant_order_id || po.order_id);
               const rawStatus = po.order_status || '';
               const status = normalizeCourierStatus(rawStatus);
-              const collected = parseFloat(po.collected_amount || po.order_amount) || 0;
-              const fee = parseFloat(po.total_fee || po.delivery_fee) || 0;
-              const codFee = parseFloat(po.cod_fee) || 0;
+              const collected = parseFloat(String(po.collected_amount || po.order_amount || 0)) || 0;
+              const fee = parseFloat(String(po.total_fee || po.delivery_fee || 0)) || 0;
+              const codFee = parseFloat(String(po.cod_fee || 0)) || 0;
 
               const tracking: CourierTrackingInfo = {
                 consignmentId: consId,
@@ -484,8 +502,8 @@ export async function syncLiveTerminalData(options: {
                 codFee,
                 recipientName: po.recipient_name || '',
                 recipientPhone: po.recipient_phone || '',
-                recipientCity: po.city_name || '',
-                updatedAt: po.order_status_updated_at || po.order_created_at,
+                recipientCity: String(po.city_name || ''),
+                updatedAt: String(po.order_status_updated_at || po.order_created_at || ''),
                 hasDiscrepancy: false,
                 discrepancyType: 'NONE',
                 fulfillmentBranch: branchInfo.branchName,
@@ -506,9 +524,15 @@ export async function syncLiveTerminalData(options: {
     }
   }
 
-  // Fallback: Populate courier data from bundled baseline data (pathaoDelivery) if unmapped
-  if (baselineData && Array.isArray((baselineData as any).pathaoDelivery)) {
-    for (const po of (baselineData as any).pathaoDelivery) {
+  // Fallback: Populate courier data from Vercel Blob or bundled baseline data (pathaoDelivery) if unmapped
+  const fallbackDelivery = (blobDataset?.pathaoDelivery && blobDataset.pathaoDelivery.length > 0)
+    ? (blobDataset.pathaoDelivery as Record<string, unknown>[])
+    : (baselineData && Array.isArray((baselineData as { pathaoDelivery?: Record<string, unknown>[] }).pathaoDelivery))
+      ? (baselineData as { pathaoDelivery: Record<string, unknown>[] }).pathaoDelivery
+      : [];
+
+  if (fallbackDelivery.length > 0) {
+    for (const po of fallbackDelivery) {
       const consId = String(po['Order consignment id'] || po.consignment_id || '').trim();
       const rawOid = cleanOrderId(po['Merchant order id'] || po.order_id);
       const baseOid = extractBaseOrderId(rawOid);
@@ -520,10 +544,10 @@ export async function syncLiveTerminalData(options: {
 
       if (!existingByCons && !existingByOid && !existingByBase) {
         const branchInfo = detectFulfillmentBranch(po['Merchant order id'] || po.order_id);
-        const rawStatus = po['Order status'] || po.order_status || '';
+        const rawStatus = String(po['Order status'] || po.order_status || '');
         const status = normalizeCourierStatus(rawStatus);
-        const collected = parseFloat(po['Collected amount'] || po.collected_amount || 0) || 0;
-        const fee = parseFloat(po['Total fee'] || po.total_fee || 0) || 0;
+        const collected = parseFloat(String(po['Collected amount'] || po.collected_amount || 0)) || 0;
+        const fee = parseFloat(String(po['Total fee'] || po.total_fee || 0)) || 0;
 
         const tracking: CourierTrackingInfo = {
           consignmentId: consId,
@@ -533,11 +557,11 @@ export async function syncLiveTerminalData(options: {
           rawStatus,
           collectedAmount: collected,
           deliveryFee: fee,
-          codFee: parseFloat(po['Cod fee'] || 0) || 0,
-          recipientName: po['Recipient name'] || po.recipient_name || '',
+          codFee: parseFloat(String(po['Cod fee'] || 0)) || 0,
+          recipientName: String(po['Recipient name'] || po.recipient_name || ''),
           recipientPhone: String(po['Recipient phone'] || ''),
-          recipientCity: po.City || '',
-          updatedAt: po['Order status updated at'] || po['Order created at'],
+          recipientCity: String(po.City || ''),
+          updatedAt: (po['Order status updated at'] || po['Order created at']) ? String(po['Order status updated at'] || po['Order created at']) : undefined,
           hasDiscrepancy: false,
           discrepancyType: 'NONE',
           fulfillmentBranch: branchInfo.branchName,
@@ -580,23 +604,24 @@ export async function syncLiveTerminalData(options: {
     ).trim();
 
     // Find courier tracking record by consignment ID, exact order ID, or base order ID
-    let tracking =
+    const tracking =
       (consId ? courierTrackingMap[consId.toLowerCase()] : undefined) ||
       (rawOid ? courierTrackingMap[`oid_${rawOid}`] : undefined) ||
       (baseOid ? courierTrackingMap[`oid_${baseOid}`] : undefined);
 
-    let courierStatus: StandardCourierStatus = tracking ? tracking.courierStatus : 'Untracked';
-    let effectiveConsId = tracking?.consignmentId || consId || '';
-    let collectedAmount = tracking?.collectedAmount || 0;
-    let fee = tracking?.deliveryFee || 0;
+    const courierStatus: StandardCourierStatus = tracking ? tracking.courierStatus : 'Untracked';
+    const effectiveConsId = tracking?.consignmentId || consId || '';
+    const collectedAmount = tracking?.collectedAmount || 0;
+    const fee = tracking?.deliveryFee || 0;
 
     const wcStatus = String(row['Delivery Status'] || row.status || 'shipped');
     const orderAmount = Number(row['Order Amount'] || row['Item Cost'] || 0);
+    const rowRec = row as Record<string, unknown>;
     const paymentMethod = String(
       row['Payment Method'] ||
-      (row as any).payment_method ||
-      (row as any).paymentMethod ||
-      (row as any)['Cash on delivery'] ||
+      rowRec.payment_method ||
+      rowRec.paymentMethod ||
+      rowRec['Cash on delivery'] ||
       ''
     );
 
@@ -683,8 +708,14 @@ export async function syncLiveTerminalData(options: {
     exchangeOrderCount,
   };
 
+  const provenanceSource = wcConnected || pathaoConnected
+    ? 'live_api'
+    : blobDataset
+      ? 'vercel_blob'
+      : 'baseline_bundled';
+
   const provenance = createDataProvenance(
-    wcConnected || pathaoConnected ? 'live_api' : 'baseline_bundled',
+    provenanceSource,
     enrichedOrders.length,
     false
   );

@@ -32,7 +32,6 @@ export function runDiscrepancyAudit(reconciledOrders: ReconciledOrderRow[]): Dis
 
     const deliveryStatus = (order.deliveryStatus || '').toLowerCase();
     const isFullReturn = order.orderCategory === 'FULL_RETURN';
-    const isPartial = order.orderCategory === 'PARTIAL';
     const isDelivered = order.orderCategory === 'DELIVERED';
 
     // 1. Phantom Delivery: Full Return marked or Returned in courier, but customer kept 0 items while order was dispatched

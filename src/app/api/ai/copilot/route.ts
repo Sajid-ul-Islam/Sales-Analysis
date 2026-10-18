@@ -4,6 +4,9 @@ import { COPILOT_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import { retrieveRelevantKnowledge } from '@/lib/ai/knowledgeBase';
 import { generateQueryAnalyticalFacts, AnalyticsSlices } from '@/lib/ai/semanticAnalytics';
 import { validateApiRequest } from '@/lib/auth/apiAuth';
+import { SummaryAnalytics } from '@/types';
+import { CopilotChatMessage } from '@/lib/chatHistory';
+import { AIProvider } from '@/lib/byok';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,9 +24,9 @@ export async function POST(req: NextRequest) {
       analyticsSlices
     } = body as {
       query: string;
-      summary: any;
-      history?: any[];
-      byok?: any;
+      summary: SummaryAnalytics;
+      history?: CopilotChatMessage[];
+      byok?: { apiKey?: string; provider?: AIProvider; model?: string };
       activeTab?: string;
       tabLabel?: string;
       pageContext?: string;
@@ -60,9 +63,9 @@ export async function POST(req: NextRequest) {
     let historyContext = '';
     if (Array.isArray(history) && history.length > 0) {
       const turns = history
-        .filter((h: any) => h && h.text && (h.sender === 'user' || h.sender === 'assistant'))
+        .filter((h: CopilotChatMessage) => h && h.text && (h.sender === 'user' || h.sender === 'assistant'))
         .slice(-6)
-        .map((h: any) => `${h.sender === 'user' ? 'Merchant' : 'DEEN Assistant'}: ${h.text.trim()}`)
+        .map((h: CopilotChatMessage) => `${h.sender === 'user' ? 'Merchant' : 'DEEN Assistant'}: ${h.text.trim()}`)
         .join('\n\n');
       if (turns) {
         historyContext = `\nRecent Conversation Context:\n${turns}\n`;
@@ -207,8 +210,8 @@ Instructions:
       source: 'offline_knowledge_fallback',
       appliedRules: relevantKnowledge.map((k) => k.title),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API /api/ai/copilot error:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal server error' }, { status: 500 });
   }
 }

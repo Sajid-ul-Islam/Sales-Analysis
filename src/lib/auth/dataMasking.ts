@@ -2,7 +2,7 @@
  * Masks phone numbers to protect customer privacy.
  * Example: "01783650157" -> "0178****157"
  */
-export function maskPhoneNumber(raw: any): string {
+export function maskPhoneNumber(raw: unknown): string {
   if (!raw) return '';
   const str = String(raw).trim();
   if (str.length <= 4) return '****';
@@ -14,7 +14,7 @@ export function maskPhoneNumber(raw: any): string {
  * Masks customer name to initials while preserving readability.
  * Example: "Tusher pual" -> "T*** P***"
  */
-export function maskCustomerName(raw: any): string {
+export function maskCustomerName(raw: unknown): string {
   if (!raw) return '';
   const str = String(raw).trim();
   const parts = str.split(/\s+/).filter(Boolean);
@@ -28,7 +28,7 @@ export function maskCustomerName(raw: any): string {
  * Masks email address to protect customer privacy.
  * Example: "sajid.islam@gmail.com" -> "s***m@g***.com"
  */
-export function maskEmail(raw: any): string {
+export function maskEmail(raw: unknown): string {
   if (!raw) return '';
   const str = String(raw).trim();
   const atIdx = str.indexOf('@');
@@ -52,7 +52,7 @@ export function maskEmail(raw: any): string {
  * Masks residential address to preserve only district/thana.
  * Example: "House 747, Road 11, Flat B4, Bashundhara R/A, Dhaka" -> "[REDACTED STREET], Dhaka"
  */
-export function maskAddress(raw: any, cityHint?: string): string {
+export function maskAddress(raw: unknown, cityHint?: string): string {
   if (!raw) return '';
   const str = String(raw).trim();
   const city = cityHint ? String(cityHint).trim() : '';
@@ -72,12 +72,12 @@ export type MaskLevel = 'full' | 'partial' | 'none';
 /**
  * Sanitizes a single order row by masking sensitive customer PII.
  */
-export function sanitizeOrderRow(row: any, maskLevel: MaskLevel = 'full'): any {
+export function sanitizeOrderRow<T extends Record<string, unknown>>(row: T, maskLevel: MaskLevel = 'full'): T {
   if (!row || typeof row !== 'object' || maskLevel === 'none') {
     return row;
   }
 
-  const clean = { ...row };
+  const clean = { ...row } as Record<string, unknown>;
 
   // Detect and mask Phone
   for (const k of ['Phone', 'phone', 'Phone (Shipping)', 'Customer Phone', 'Billing Phone', 'billing_phone', 'shipping_phone']) {
@@ -103,33 +103,35 @@ export function sanitizeOrderRow(row: any, maskLevel: MaskLevel = 'full'): any {
   // Detect and mask Street Address
   for (const k of ['Address 1&2 (Shipping)', 'address', 'Address', 'Shipping Address', 'Billing Address', 'shipping_address', 'billing_address', 'shipping_address_1']) {
     if (k in clean && clean[k]) {
-      const city = clean['City (Shipping)'] || clean['City'] || clean['city'] || '';
+      const city = String(clean['City (Shipping)'] || clean['City'] || clean['city'] || '');
       clean[k] = maskAddress(clean[k], city);
     }
   }
 
   // Sanitize nested billing object if present (e.g. WooCommerce raw orders)
   if (clean.billing && typeof clean.billing === 'object') {
+    const billing = clean.billing as Record<string, unknown>;
     clean.billing = {
-      ...clean.billing,
-      first_name: maskCustomerName(clean.billing.first_name),
-      last_name: maskCustomerName(clean.billing.last_name),
-      phone: maskPhoneNumber(clean.billing.phone),
-      email: maskEmail(clean.billing.email),
-      address_1: maskAddress(clean.billing.address_1, clean.billing.city),
-      address_2: clean.billing.address_2 ? '[REDACTED]' : '',
+      ...billing,
+      first_name: maskCustomerName(billing.first_name),
+      last_name: maskCustomerName(billing.last_name),
+      phone: maskPhoneNumber(billing.phone),
+      email: maskEmail(billing.email),
+      address_1: maskAddress(billing.address_1, billing.city as string | undefined),
+      address_2: billing.address_2 ? '[REDACTED]' : '',
     };
   }
 
   // Sanitize nested shipping object if present
   if (clean.shipping && typeof clean.shipping === 'object') {
+    const shipping = clean.shipping as Record<string, unknown>;
     clean.shipping = {
-      ...clean.shipping,
-      first_name: maskCustomerName(clean.shipping.first_name),
-      last_name: maskCustomerName(clean.shipping.last_name),
-      phone: maskPhoneNumber(clean.shipping.phone),
-      address_1: maskAddress(clean.shipping.address_1, clean.shipping.city),
-      address_2: clean.shipping.address_2 ? '[REDACTED]' : '',
+      ...shipping,
+      first_name: maskCustomerName(shipping.first_name),
+      last_name: maskCustomerName(shipping.last_name),
+      phone: maskPhoneNumber(shipping.phone),
+      address_1: maskAddress(shipping.address_1, shipping.city as string | undefined),
+      address_2: shipping.address_2 ? '[REDACTED]' : '',
     };
   }
 
@@ -143,19 +145,19 @@ export function sanitizeOrderRow(row: any, maskLevel: MaskLevel = 'full'): any {
   // Sanitize customer notes if they contain sensitive personal messages, emails, or phone numbers
   for (const k of ['Customer Note', 'Order Notes', 'customer_note', 'note']) {
     if (k in clean && typeof clean[k] === 'string') {
-      clean[k] = clean[k]
+      clean[k] = (clean[k] as string)
         .replace(/\b01[3-9]\d{8}\b/g, '[PHONE REDACTED]')
         .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL REDACTED]');
     }
   }
 
-  return clean;
+  return clean as T;
 }
 
 /**
  * Sanitizes an array of order records.
  */
-export function sanitizeOrdersResponse(orders: any[], maskLevel: MaskLevel = 'full'): any[] {
+export function sanitizeOrdersResponse<T extends Record<string, unknown>>(orders: T[], maskLevel: MaskLevel = 'full'): T[] {
   if (!Array.isArray(orders)) return [];
   return orders.map(row => sanitizeOrderRow(row, maskLevel));
 }

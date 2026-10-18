@@ -187,7 +187,7 @@ export function CustomerRiskTab({ profiles }: CustomerRiskTabProps) {
           <div className="flex items-center gap-2">
             <select
               value={riskFilter}
-              onChange={(e) => setRiskFilter(e.target.value as any)}
+              onChange={(e) => setRiskFilter(e.target.value as 'ALL' | 'HIGH_RISK' | 'MEDIUM' | 'LOW')}
               className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
             >
               <option value="ALL">All Risk Tiers</option>

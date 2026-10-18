@@ -49,7 +49,7 @@ export interface BlobStatusResult {
  */
 export async function uploadDatasetToBlob(
   dataset: Partial<DatasetSnapshot>,
-  options: { createTimestampArchive?: boolean } = {}
+  _options: { createTimestampArchive?: boolean } = {}
 ): Promise<BlobUploadResult> {
   if (!isBlobConfigured()) {
     return {
@@ -105,11 +105,11 @@ export async function uploadDatasetToBlob(
       uploadedAt: payload.syncedAt,
       message: `Successfully uploaded ${payload.orders.length} orders & ${payload.returns.length} returns to Vercel Blob (${(sizeBytes / 1024).toFixed(1)} KB, PII-sanitized).`,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[VercelBlob] Error uploading to Vercel Blob:', err);
     return {
       success: false,
-      message: err?.message || 'Failed to upload dataset to Vercel Blob',
+      message: err instanceof Error ? err.message : 'Failed to upload dataset to Vercel Blob',
     };
   }
 }
@@ -159,11 +159,11 @@ export async function fetchDatasetFromBlob(): Promise<BlobFetchResult> {
       size: target.size,
       message: `Retrieved ${dataset.orders?.length || 0} orders from Vercel Blob (${target.url}).`,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[VercelBlob] Error fetching from Vercel Blob:', err);
     return {
       success: false,
-      message: err?.message || 'Error communicating with Vercel Blob',
+      message: err instanceof Error ? err.message : 'Error communicating with Vercel Blob',
     };
   }
 }

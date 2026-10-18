@@ -48,13 +48,13 @@ export async function GET(req: Request) {
     }
 
     if (!baseDataset.orders || baseDataset.orders.length === 0) {
-      const b = (baselineData || {}) as any;
+      const b = (baselineData || {}) as Record<string, unknown>;
       baseDataset = {
-        orders: b.orders || [],
-        pathaoDelivery: b.pathaoDelivery || [],
-        returns: b.returns || [],
-        partials: b.partials || [],
-        exchanges: b.exchanges || [],
+        orders: (b.orders as RawOrderRow[]) || [],
+        pathaoDelivery: (b.pathaoDelivery as RawOrderRow[]) || [],
+        returns: (b.returns as RawOrderRow[]) || [],
+        partials: (b.partials as RawOrderRow[]) || [],
+        exchanges: (b.exchanges as RawOrderRow[]) || [],
         sourceName: 'Bundled Baseline (Cron Base)',
       };
       log.push(`Loaded base from bundled baseline: ${baseDataset.orders.length} orders`);
@@ -98,8 +98,9 @@ export async function GET(req: Request) {
         baseDataset.orders = Array.from(orderMap.values()).flat();
         log.push(`Merged ${newWcOrdersCount} recent WooCommerce order items`);
       }
-    } catch (wcErr: any) {
-      log.push(`WooCommerce sync skipped/notice: ${wcErr.message}`);
+    } catch (wcErr: unknown) {
+      const msg = wcErr instanceof Error ? wcErr.message : String(wcErr);
+      log.push(`WooCommerce sync skipped/notice: ${msg}`);
     }
 
     // 4. Step B: Incremental "Bit-by-Bit" Pathao Sync (Max 30 in-flight parcels)
@@ -152,8 +153,9 @@ export async function GET(req: Request) {
       } else {
         log.push('Pathao check: all active consignments are already finalized');
       }
-    } catch (pathaoErr: any) {
-      log.push(`Pathao sync skipped/notice: ${pathaoErr.message}`);
+    } catch (pathaoErr: unknown) {
+      const msg = pathaoErr instanceof Error ? pathaoErr.message : String(pathaoErr);
+      log.push(`Pathao sync skipped/notice: ${msg}`);
     }
 
     // 5. Step C: Save Merged Snapshot to Vercel Blob
@@ -181,11 +183,12 @@ export async function GET(req: Request) {
       log,
       message: `Cron completed in ${(durationMs / 1000).toFixed(1)}s: ${newWcOrdersCount} new WooCommerce rows, ${updatedPathaoCount} Pathao parcels refreshed.`,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[API /api/sync/cron] Fatal error:', err);
+    const errorMsg = err instanceof Error ? err.message : 'Cron execution failed';
     return NextResponse.json({
       success: false,
-      error: err?.message || 'Cron execution failed',
+      error: errorMsg,
       log,
     }, { status: 500 });
   }

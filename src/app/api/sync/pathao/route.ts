@@ -8,6 +8,7 @@ import { checkRateLimit } from '@/lib/auth/rateLimiter';
 import { sanitizeOrdersResponse } from '@/lib/auth/dataMasking';
 import { createDataProvenance } from '@/lib/dataAudit';
 import baselineData from '@/data/baselineSample.json';
+import { RawOrderRow } from '@/types';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Allow up to 60s for batch Pathao consignment requests on Vercel
@@ -50,9 +51,10 @@ export async function POST(req: Request) {
           continue;
         }
         if (Array.isArray(row.meta_data)) {
-          const metaCid = row.meta_data.find((m: any) =>
-            m.key && (m.key.toLowerCase().includes('consignment') || m.key.toLowerCase().includes('tracking') || m.key.toLowerCase().includes('pathao'))
-          );
+          const metaCid = (row.meta_data as Record<string, unknown>[]).find((m) => {
+            const k = String(m.key || '').toLowerCase();
+            return k.includes('consignment') || k.includes('tracking') || k.includes('pathao');
+          });
           if (metaCid && metaCid.value) {
             consignmentIds.push(String(metaCid.value).trim());
             continue;
@@ -63,8 +65,8 @@ export async function POST(req: Request) {
 
     // 2. Fallback to bundled baseline dataset tracking IDs (guaranteed to work on Vercel)
     if (consignmentIds.length === 0 && baselineData) {
-      const b = baselineData as any;
-      const combined = [...(b.pathaoDelivery || []), ...(b.returns || [])];
+      const b = baselineData as Record<string, unknown>;
+      const combined = [...((b.pathaoDelivery as RawOrderRow[]) || []), ...((b.returns as RawOrderRow[]) || [])];
       for (const r of combined) {
         const cid = r['Consignment ID'] || r.consignmentId || r.consignment_id || r['Tracking ID'];
         if (cid) consignmentIds.push(String(cid).trim());
@@ -79,7 +81,7 @@ export async function POST(req: Request) {
         if (typeof fs !== 'undefined' && fs.existsSync && fs.existsSync(returnsPath)) {
           const buf = fs.readFileSync(returnsPath);
           const wb = XLSX.read(buf, { type: 'buffer' });
-          const rows: any[] = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+          const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
           for (const r of rows) {
             const keys = Object.keys(r);
             const k = keys.find(key => key.toLowerCase().includes('consignment') || key.toLowerCase().includes('tracking'));
@@ -113,7 +115,7 @@ export async function POST(req: Request) {
       filteredData = fetchedData.filter(o => {
         const rawDate = o.order_created_at || o.order_status_updated_at;
         if (!rawDate) return true;
-        const t = new Date(rawDate).getTime();
+        const t = new Date(String(rawDate)).getTime();
         return isNaN(t) || (t >= startTs && t <= endTs);
       });
     }
@@ -131,12 +133,13 @@ export async function POST(req: Request) {
       rawPathao: isPrivileged ? filteredData : undefined,
       provenance,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Pathao sync error:', error);
+    const msg = error instanceof Error ? error.message : 'Failed to sync with Pathao';
     return NextResponse.json({
       success: false,
-      message: error?.message || 'Failed to sync with Pathao',
-      error: error?.message || 'Failed to sync with Pathao'
+      message: msg,
+      error: msg
     });
   }
 }

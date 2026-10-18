@@ -8,7 +8,7 @@ import { getCookieDetails, getAllCookies } from './cookieManager';
 
 export type CacheTag = 'dataset' | 'reconciliation' | 'api' | 'settings' | 'general';
 
-export interface CacheEnvelope<T = any> {
+export interface CacheEnvelope<T = unknown> {
   key: string;
   data: T;
   timestamp: number;
@@ -106,7 +106,7 @@ export function formatTimeAge(timestamp: number): string {
 /**
  * Store an item in the local cache with TTL, category tag, and quota safeguards.
  */
-export function setCacheItem<T = any>(
+export function setCacheItem<T = unknown>(
   key: string,
   data: T,
   options?: { ttlMs?: number; tag?: CacheTag }
@@ -158,7 +158,7 @@ export function setCacheItem<T = any>(
 /**
  * Retrieve an item from the cache. Returns null if missing, corrupted, or expired.
  */
-export function getCacheItem<T = any>(key: string): T | null {
+export function getCacheItem<T = unknown>(key: string): T | null {
   if (typeof window === 'undefined') return null;
 
   try {
@@ -469,7 +469,12 @@ export function getStorageEstimate(): StorageEstimateResult {
 export function exportEntireWorkspaceStorageJSON(): string {
   if (typeof window === 'undefined') return '{}';
 
-  const snapshot: Record<string, any> = {
+  const snapshot: {
+    exportedAt: string;
+    engineVersion: string;
+    localStorage: Record<string, unknown>;
+    cookies: Record<string, string>;
+  } = {
     exportedAt: new Date().toISOString(),
     engineVersion: CURRENT_CACHE_VERSION,
     localStorage: {},
@@ -511,7 +516,7 @@ export function importWorkspaceStorageJSON(jsonString: string): { success: boole
 
     // Restore LocalStorage items
     if (parsed.localStorage && typeof parsed.localStorage === 'object') {
-      for (const [key, value] of Object.entries(parsed.localStorage)) {
+      for (const [key, value] of Object.entries(parsed.localStorage as Record<string, unknown>)) {
         if (typeof key === 'string' && key.startsWith('deen_')) {
           const stringified = typeof value === 'string' ? value : JSON.stringify(value);
           localStorage.setItem(key, stringified);
@@ -521,7 +526,7 @@ export function importWorkspaceStorageJSON(jsonString: string): { success: boole
     }
 
     return { success: true, importedKeys };
-  } catch (err: any) {
-    return { success: false, importedKeys: 0, error: err.message };
+  } catch (err: unknown) {
+    return { success: false, importedKeys: 0, error: err instanceof Error ? err.message : String(err) };
   }
 }

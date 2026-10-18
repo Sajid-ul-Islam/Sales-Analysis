@@ -40,9 +40,10 @@ export async function POST(request: NextRequest) {
 
     const report = await fetchFullMetaAnalytics(preset, customToken, configuredMetaCost);
     return NextResponse.json(report);
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to process Meta request';
     return NextResponse.json(
-      { success: false, error: err?.message || 'Failed to process Meta request' },
+      { success: false, error: errorMsg },
       { status: 500 }
     );
   }

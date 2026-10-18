@@ -5,38 +5,25 @@ import {
   TrendingUp,
   BarChart3,
   Users,
-  Eye,
   ShoppingBag,
   DollarSign,
   Globe,
-  Compass,
   ShieldCheck,
   AlertCircle,
   CheckCircle2,
   RefreshCw,
   Zap,
   ArrowUpRight,
-  ArrowDownRight,
-  Layers,
-  Smartphone,
   Laptop,
   Key,
   ExternalLink,
-  ChevronRight,
-  Sparkles,
-  Info,
-  Clock,
   Target,
   Share2,
-  Lock,
-  Percent,
   Activity,
-  Calendar,
-  PieChart as PieIcon,
-  Tablet
+  Calendar
 } from 'lucide-react';
 import { GA4FullReport } from '@/lib/ga4Client';
-import { MetaFullReport, MetaCampaignSummary } from '@/lib/metaClient';
+import { MetaFullReport } from '@/lib/metaClient';
 import { SummaryMetrics } from '@/types';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 import { DateScope, CustomDateRange, DateScopeCounts } from '@/lib/dateFilter';
@@ -63,7 +50,7 @@ interface MarketingAnalyticsTabProps {
 
 export function MarketingAnalyticsTab({
   summary,
-  onSelectOrder,
+  onSelectOrder: _onSelectOrder,
   configuredMetaCost = 185000,
   activeScope,
   customRange,
@@ -91,11 +78,8 @@ export function MarketingAnalyticsTab({
     }
   }, [activeScope]);
 
-  const [activeFilter, setActiveFilter] = useState<'all' | 'ga4' | 'meta' | 'reconciliation'>('all');
   const [trendMetric, setTrendMetric] = useState<'traffic' | 'revenue' | 'orders'>('traffic');
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const [ga4Report, setGa4Report] = useState<GA4FullReport | null>(null);
   const [metaReport, setMetaReport] = useState<MetaFullReport | null>(null);
@@ -106,7 +90,7 @@ export function MarketingAnalyticsTab({
   const [testingToken, setTestingToken] = useState(false);
   const [tokenFeedback, setTokenFeedback] = useState<{ success: boolean; message: string } | null>(null);
 
-  const loadAnalyticsData = useCallback(async (range: string, tokenOverride?: string) => {
+  const loadAnalyticsData = useCallback(async (range: string, _tokenOverride?: string) => {
     try {
       const overviewRes = await fetch(`/api/analytics/overview?range=${range}`, {
         headers: getClientAuthHeaders(),
@@ -115,14 +99,10 @@ export function MarketingAnalyticsTab({
       if (data.success) {
         setGa4Report(data.ga4);
         setMetaReport(data.meta);
-      } else {
-        setStatusMessage(data.error || 'Failed to load marketing analytics');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching analytics overview:', err);
-      setStatusMessage(err?.message || 'Error connecting to analytics service');
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   }, []);
@@ -163,8 +143,9 @@ export function MarketingAnalyticsTab({
           message: data.status?.message || 'Token verification failed. Check permissions.',
         });
       }
-    } catch (err: any) {
-      setTokenFeedback({ success: false, message: err?.message || 'Error communicating with server.' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error communicating with server.';
+      setTokenFeedback({ success: false, message: msg });
     } finally {
       setTestingToken(false);
     }

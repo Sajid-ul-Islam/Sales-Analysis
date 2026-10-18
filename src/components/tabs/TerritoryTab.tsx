@@ -10,14 +10,7 @@ import {
   Navigation,
   TrendingUp,
   AlertTriangle,
-  Building2,
-  Compass,
-  CheckCircle2,
-  Package,
-  Coins,
-  Truck,
-  Layers,
-  ArrowUpRight
+  Compass
 } from 'lucide-react';
 
 interface TerritoryTabProps {
@@ -26,7 +19,7 @@ interface TerritoryTabProps {
   onSelectOrder?: () => void;
 }
 
-export function TerritoryTab({ summary: s, orders = [], onSelectOrder }: TerritoryTabProps) {
+export function TerritoryTab({ summary: s, orders = [], onSelectOrder: _onSelectOrder }: TerritoryTabProps) {
   const [selectedFilterDivision, setSelectedFilterDivision] = useState<BangladeshDivision | null>(null);
 
   const insideNetOrders = Math.max(0, s.insideOrders - s.insideReturns);
@@ -44,7 +37,16 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder }: Territo
     const outsideCount = Math.max(1, s.outsideOrders);
     const outsideRev = Math.max(0, s.outsideNetRevenue);
 
-    const fallbackDivisions = bangladeshDivisionsData.map((d: any) => {
+    const fallbackDivisions = (bangladeshDivisionsData as Array<{
+      id: string;
+      name: string;
+      nameBn?: string;
+      color?: string;
+      centerX?: number;
+      centerY?: number;
+      d?: string;
+      districts: string[];
+    }>).map((d) => {
       let disp = 0;
       let rev = 0;
       let retRate = 18.5;
@@ -91,11 +93,11 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder }: Territo
       return {
         id: d.id,
         name: d.name as BangladeshDivision,
-        nameBn: d.nameBn,
-        color: d.color,
-        centerX: d.centerX,
-        centerY: d.centerY,
-        svgPath: d.d,
+        nameBn: d.nameBn || '',
+        color: d.color || '#0284c7',
+        centerX: d.centerX || 0,
+        centerY: d.centerY || 0,
+        svgPath: d.d || '',
         dispatchedOrders: disp,
         deliveredOrders,
         partialOrders: Math.round(returnedOrders * 0.3),
@@ -107,7 +109,7 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder }: Territo
         orderShare: Math.round(orderShare * 10) / 10,
         revenueShare: Math.round(revenueShare * 10) / 10,
         aov: deliveredOrders > 0 ? Math.round(rev / deliveredOrders) : 1850,
-        topDistricts: d.districts.slice(0, 4).map((name: string) => ({ name, count: Math.round(disp / 4), revenue: Math.round(rev / 4) }))
+        topDistricts: (d.districts || []).slice(0, 4).map((name: string) => ({ name, count: Math.round(disp / 4), revenue: Math.round(rev / 4) }))
       };
     });
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateAICompletion } from '@/lib/geminiClient';
+import { generateAICompletion, AIProvider } from '@/lib/geminiClient';
 import { validateApiRequest } from '@/lib/auth/apiAuth';
 
 export const dynamic = 'force-dynamic';
@@ -40,7 +40,11 @@ Respond with a strictly formatted JSON object:
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { returnedItems = [], summary, byok } = body;
+    const { returnedItems = [], summary, byok } = body as {
+      returnedItems?: Record<string, unknown>[];
+      summary?: { totalReturnedQty?: number; returnRate?: number; fullReturnedOrders?: number; partialOrders?: number };
+      byok?: { apiKey?: string; provider?: string; model?: string };
+    };
 
     const hasByok = Boolean(byok?.apiKey && String(byok.apiKey).trim().length > 5);
     if (!hasByok) {
@@ -50,11 +54,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const sampleItems = returnedItems.slice(0, 20).map((it: any) => ({
-      sku: it.sku || it['SKU'],
-      name: it.itemName || it['Item Name'],
-      returnedQty: it.returnedQty || it.quantity || 1,
-      cost: it.itemCost || it.price || 0,
+    const sampleItems = returnedItems.slice(0, 20).map((it: Record<string, unknown>) => ({
+      sku: String(it.sku || it['SKU'] || ''),
+      name: String(it.itemName || it['Item Name'] || ''),
+      returnedQty: Number(it.returnedQty || it.quantity || 1),
+      cost: Number(it.itemCost || it.price || 0),
     }));
 
     const promptText = `After-Sales Return Ledger Snapshot:
@@ -74,7 +78,7 @@ Diagnose the after-sales return drivers and recommend factory/merchandising fixe
       responseMimeType: 'application/json',
       temperature: 0.2,
       byokApiKey: byok?.apiKey,
-      byokProvider: byok?.provider,
+      byokProvider: byok?.provider as AIProvider,
       byokModel: byok?.model,
     });
 
@@ -103,7 +107,7 @@ Diagnose the after-sales return drivers and recommend factory/merchandising fixe
           fabricQuality: 14,
           buyerRegret: 10,
         },
-        topDefectSkus: sampleItems.slice(0, 3).map((it: any) => ({
+        topDefectSkus: sampleItems.slice(0, 3).map((it: { sku: string; name: string }) => ({
           sku: it.sku || 'DEEN-APPAREL',
           name: it.name || 'Denim Apparel Item',
           diagnosis: 'Sizing drift: customer returns indicate waist or shoulder fitting runs 1 size smaller than standard Bangladesh fit.',
@@ -117,8 +121,8 @@ Diagnose the after-sales return drivers and recommend factory/merchandising fixe
       },
       source: 'heuristic_fallback',
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('API /api/ai/after-sales/return-diagnosis error:', err);
-    return NextResponse.json({ error: err.message || 'Internal error' }, { status: 500 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Internal error' }, { status: 500 });
   }
 }

@@ -5,7 +5,7 @@
  * and category volume/revenue aggregation.
  */
 
-import { RawOrderRow, ReconciledOrderRow } from '@/types';
+import { RawOrderRow } from '@/types';
 import { classifyProductLine, computeSelectsStats, SelectsStats } from './selectsAnalytics';
 import { getCategoryForSales, getSubCategoryForSales, getShortCategoryLabel, CATEGORY_COLOR_MAP } from './liveCategoryEngine';
 import { computeCustomerMix } from './customerRegistry';
@@ -331,19 +331,20 @@ export interface ExchangeStats {
 
 export function getAllOrderNotes(order: RawOrderRow): string {
   if (!order) return '';
+  const o = order as Record<string, unknown>;
   return [
     order['Order Notes'],
-    (order as any).orderNotes,
-    (order as any).customer_note,
-    (order as any).notes,
-    (order as any).note,
-    (order as any).rawNote,
-    (order as any).Substatus,
-    (order as any).substatus,
-    (order as any)['Sub-status'],
-    (order as any).tags,
-    (order as any).aiAuditTag,
-    (order as any).aiAuditNote,
+    o.orderNotes,
+    o.customer_note,
+    o.notes,
+    o.note,
+    o.rawNote,
+    o.Substatus,
+    o.substatus,
+    o['Sub-status'],
+    o.tags,
+    o.aiAuditTag,
+    o.aiAuditNote,
   ]
     .filter(Boolean)
     .map(String)
@@ -363,18 +364,20 @@ export function isOrderExchange(order: RawOrderRow): boolean {
   if (order.isExchange === true) return true;
   if (order.orderCategory === 'EXCHANGE') return true;
 
+  const o = order as Record<string, unknown>;
+
   // 1. Order ID or Consignment Prefix (D-17839, DD-17839, ex-17839)
-  const orderId = String(order['Order ID'] || order.orderId || order.id || (order as any).orderNumber || '').trim();
-  const consignmentId = String(order['Consignment ID'] || (order as any).consignmentId || (order as any).tracking_number || '').trim();
+  const orderId = String(order['Order ID'] || order.orderId || order.id || o.orderNumber || '').trim();
+  const consignmentId = String(order['Consignment ID'] || o.consignmentId || o.tracking_number || '').trim();
   if (/^(dd?|ex|exchange)[-_]/i.test(orderId) || /^d-\d+/i.test(orderId)) return true;
   if (/^(dd?|ex|exchange)[-_]/i.test(consignmentId) || /^d-\d+/i.test(consignmentId)) return true;
 
   // 2. Branch or fulfillment status
-  const branchCode = String(order.branchCode || (order as any).fulfillmentBranch || '').toUpperCase();
+  const branchCode = String(order.branchCode || o.fulfillmentBranch || '').toUpperCase();
   if (branchCode.includes('EXCHANGE')) return true;
 
   // 3. Status strings
-  const deliveryStatus = String(order['Delivery Status'] || (order as any).status || (order as any).orderStatus || order.orderDeliveryStatus || order.itemDeliveryStatus || '').toLowerCase();
+  const deliveryStatus = String(order['Delivery Status'] || o.status || o.orderStatus || order.orderDeliveryStatus || order.itemDeliveryStatus || '').toLowerCase();
   if (deliveryStatus.includes('exchange')) return true;
 
   // 4. Notes, Substatus, Badges, Tags
@@ -405,8 +408,9 @@ export function extractExchangeInfo(order: RawOrderRow): ExchangeInfo {
     };
   }
 
-  const orderId = String(order['Order ID'] || order.orderId || order.id || (order as any).orderNumber || '').trim();
-  const consignmentId = String(order['Consignment ID'] || (order as any).consignmentId || (order as any).tracking_number || '').trim();
+  const o = order as Record<string, unknown>;
+  const orderId = String(order['Order ID'] || order.orderId || order.id || o.orderNumber || '').trim();
+  const consignmentId = String(order['Consignment ID'] || o.consignmentId || o.tracking_number || '').trim();
   const notes = getAllOrderNotes(order);
 
   // Check for referenced order (e.g. "Exchange for #17839" or D-17839 or notes containing D-17381)
@@ -457,36 +461,37 @@ export function getDayName(date: Date): string {
 }
 
 export function getStatusModificationDate(order: RawOrderRow): Date | null {
-  const status = String(order['Delivery Status'] || (order as any).status || (order as any).orderStatus || '').toLowerCase().trim();
+  const o = order as Record<string, unknown>;
+  const status = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
   const isCompleted = SHIPPED_STATUSES.has(status);
 
   // If order is completed/shipped, its true shipped/completed date is 'Date Completed' if present!
   // In WooCommerce REST API, Date Completed reflects the exact moment the status transitioned to completed,
   // whereas Date Modified gets bumped on subsequent edits (such as staff tagging an order as "Exchanged").
   const dateStr = isCompleted
-    ? ((order as any)['Date Completed'] ||
-       (order as any).date_completed ||
-       (order as any).dateCompleted ||
-       (order as any)['Status Modified Date'] ||
-       (order as any).status_modified_date ||
-       (order as any)['Date Modified'] ||
-       (order as any).dateModified ||
-       (order as any).date_modified ||
-       (order as any).date_modified_gmt ||
-       order['Order Date'] ||
-       (order as any).orderDate ||
+    ? ((o['Date Completed'] as string) ||
+       (o.date_completed as string) ||
+       (o.dateCompleted as string) ||
+       (o['Status Modified Date'] as string) ||
+       (o.status_modified_date as string) ||
+       (o['Date Modified'] as string) ||
+       (o.dateModified as string) ||
+       (o.date_modified as string) ||
+       (o.date_modified_gmt as string) ||
+       (order['Order Date'] as string) ||
+       (o.orderDate as string) ||
        '')
-    : ((order as any)['Date Modified'] ||
-       (order as any).dateModified ||
-       (order as any).date_modified ||
-       (order as any).date_modified_gmt ||
-       (order as any)['Status Modified Date'] ||
-       (order as any).status_modified_date ||
-       (order as any)['Date Completed'] ||
-       (order as any).date_completed ||
-       (order as any).dateCompleted ||
-       order['Order Date'] ||
-       (order as any).orderDate ||
+    : ((o['Date Modified'] as string) ||
+       (o.dateModified as string) ||
+       (o.date_modified as string) ||
+       (o.date_modified_gmt as string) ||
+       (o['Status Modified Date'] as string) ||
+       (o.status_modified_date as string) ||
+       (o['Date Completed'] as string) ||
+       (o.date_completed as string) ||
+       (o.dateCompleted as string) ||
+       (order['Order Date'] as string) ||
+       (o.orderDate as string) ||
        '');
 
   if (!dateStr) return null;
@@ -499,17 +504,20 @@ export function parseOrderDate(order: RawOrderRow): Date | null {
 }
 
 export function isOrderShipped(order: RawOrderRow): boolean {
-  const status = String(order['Delivery Status'] || (order as any).status || (order as any).orderStatus || '').toLowerCase().trim();
+  const o = order as Record<string, unknown>;
+  const status = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
   return SHIPPED_STATUSES.has(status);
 }
 
 export function isOrderProcessing(order: RawOrderRow): boolean {
-  const status = String(order['Delivery Status'] || (order as any).status || (order as any).orderStatus || '').toLowerCase().trim();
+  const o = order as Record<string, unknown>;
+  const status = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
   return status === 'processing' || status === 'wc-processing' || status === 'process';
 }
 
 export function isOrderOnHold(order: RawOrderRow): boolean {
-  const status = String(order['Delivery Status'] || (order as any).status || (order as any).orderStatus || '').toLowerCase().trim();
+  const o = order as Record<string, unknown>;
+  const status = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
   return status === 'on-hold' || status === 'hold' || status === 'wc-on-hold';
 }
 
@@ -524,14 +532,15 @@ export function isOrderShippedOnDate(order: RawOrderRow, targetDateIso: string):
   // It must never be counted as a new completed/shipped sale on targetDateIso!
   const exInfo = extractExchangeInfo(order);
   if (exInfo.type === 'original_exchanged') {
-    const completedStr = (order as any)['Date Completed'] || (order as any).date_completed || (order as any).dateCompleted;
+    const o = order as Record<string, unknown>;
+    const completedStr = (o['Date Completed'] as string) || (o.date_completed as string) || (o.dateCompleted as string);
     if (completedStr) {
       const cd = new Date(completedStr);
       if (!isNaN(cd.getTime()) && formatDateToIsoDay(cd) !== targetDateIso) {
         return false;
       }
     }
-    const orderDateStr = order['Order Date'] || (order as any).orderDate;
+    const orderDateStr = (order['Order Date'] as string) || (o.orderDate as string);
     if (orderDateStr) {
       const od = new Date(orderDateStr);
       if (!isNaN(od.getTime()) && formatDateToIsoDay(od) !== targetDateIso) {
@@ -556,7 +565,8 @@ export function isOrderShippedToday(order: RawOrderRow, targetDateIso: string): 
  */
 export function isTodayOrdersEligible(order: RawOrderRow, targetDateIso: string): boolean {
   if (!isOrderOnline(order)) return false;
-  const status = String(order['Delivery Status'] || (order as any).status || (order as any).orderStatus || '').toLowerCase().trim();
+  const o = order as Record<string, unknown>;
+  const status = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
   if (CANCELLED_STATUSES.has(status)) return false;
 
   // 1. Shipped today (status completed/shipped and status modification date matches target date)
@@ -576,9 +586,10 @@ export function isTodayOrdersEligible(order: RawOrderRow, targetDateIso: string)
 export const isAllOrdersEligible = isTodayOrdersEligible;
 
 export function isOrderOnline(order: RawOrderRow): boolean {
-  const isPos = Boolean((order as any).isPos || (order as any).outletId);
+  const o = order as Record<string, unknown>;
+  const isPos = Boolean(o.isPos || o.outletId);
   const src = String(order['Order Source'] || '').toLowerCase();
-  const loc = String((order as any).fulfillmentLocation || '').toLowerCase();
+  const loc = String(o.fulfillmentLocation || '').toLowerCase();
   return !isPos && src !== 'pos' && !loc.includes('pos');
 }
 
@@ -613,34 +624,38 @@ export function generateWhatsAppConfirmationUrl(
     merchantBkash = '01712-345678 (Merchant)',
   } = options;
 
+  const o = order as Record<string, unknown>;
+  const billing = o.billing as { phone?: string; first_name?: string; last_name?: string } | undefined;
+  const shipping = o.shipping as { phone?: string; first_name?: string } | undefined;
+
   const rawPhone =
-    (order as any).rawPhone ||
-    (order as any).raw_phone ||
-    (order as any).cleanPhone ||
-    (order as any).unmaskedPhone ||
-    (order as any).billing?.phone ||
-    (order as any).shipping?.phone ||
-    order.Phone ||
-    (order as any).phone ||
-    (order as any).billing_phone ||
-    order['Customer Phone'];
+    (o.rawPhone as string) ||
+    (o.raw_phone as string) ||
+    (o.cleanPhone as string) ||
+    (o.unmaskedPhone as string) ||
+    billing?.phone ||
+    shipping?.phone ||
+    (order.Phone as string) ||
+    (o.phone as string) ||
+    (o.billing_phone as string) ||
+    (order['Customer Phone'] as string);
   const formattedPhone = formatBangladeshPhoneNumber(rawPhone);
-  const orderId = order['Order ID'] || order.orderId || (order as any).id || 'N/A';
+  const orderId = String(order['Order ID'] || order.orderId || o.id || 'N/A');
   let customerName =
-    (order as any).rawCustomerName ||
-    (order as any).raw_customer_name ||
-    (order as any).rawName ||
-    ((order as any).billing?.first_name ? `${(order as any).billing.first_name} ${(order as any).billing.last_name || ''}`.trim() : '') ||
-    order['Customer Name'] ||
-    (order as any).customerName ||
+    (o.rawCustomerName as string) ||
+    (o.raw_customer_name as string) ||
+    (o.rawName as string) ||
+    (billing?.first_name ? `${billing.first_name} ${billing.last_name || ''}`.trim() : '') ||
+    (order['Customer Name'] as string) ||
+    (o.customerName as string) ||
     'Customer';
   if (typeof customerName === 'string' && customerName.includes('***')) {
-    const fallback = (order as any).billing?.first_name || (order as any).shipping?.first_name;
+    const fallback = billing?.first_name || shipping?.first_name;
     if (fallback) customerName = fallback;
   }
-  const amount = order['Order Amount'] || (order as any).orderAmount || (order as any).total || 0;
-  const items = order['Item Name'] || (order as any).itemName || 'Selected Items';
-  const address = order.Address || (order as any).address || order.City || (order as any).city || 'your delivery address';
+  const amount = Number(order['Order Amount'] || o.orderAmount || o.total || 0);
+  const items = String(order['Item Name'] || o.itemName || 'Selected Items');
+  const address = String(order.Address || o.address || order.City || o.city || 'your delivery address');
 
   let message = '';
   if (type === 'advance_token') {
@@ -673,7 +688,7 @@ export function processLiveOpsData(
   const onlineOnly = options.onlineOnly !== false;
 
   // 1. Filter out POS if onlineOnly is active
-  let source = onlineOnly ? orders.filter(isOrderOnline) : orders;
+  const source = onlineOnly ? orders.filter(isOrderOnline) : orders;
 
   // 2. Discover available dates across dataset
   const ordersWithDates = source
@@ -716,7 +731,7 @@ export function processLiveOpsData(
   const prevDateIso = formatDateToIsoDay(prevWorkday);
 
   const refDayName = getDayName(refDate);
-  const prevDayName = getDayName(prevWorkday);
+  const _prevDayName = getDayName(prevWorkday);
 
   // 3. Partition orders into Active (Ref Date) vs Comparison (Prev Workday)
   let activeOrders: RawOrderRow[] = [];
@@ -734,7 +749,8 @@ export function processLiveOpsData(
     activeOrders = source.filter((o) => isTodayOrdersEligible(o, refDateIso));
     prevOrders = source.filter((o) => {
       const d = getStatusModificationDate(o);
-      const status = String(o['Delivery Status'] || (o as any).status || '').toLowerCase().trim();
+      const oRec = o as Record<string, unknown>;
+      const status = String(o['Delivery Status'] || oRec.status || '').toLowerCase().trim();
       return (
         d &&
         formatDateToIsoDay(d) === prevDateIso &&
@@ -799,8 +815,9 @@ export function processLiveOpsData(
   // - Replacement orders shipped/created today (e.g. #18085 or D-17839)
   // - Original orders modified on reference date with 'Exchanged' substatus (e.g. #17839)
   const isTargetDate = (order: RawOrderRow, targetIso: string) => {
+    const oRec = order as Record<string, unknown>;
     const d = getStatusModificationDate(order);
-    const dMod = (order as any)['Date Modified'] || (order as any).dateModified || (order as any).date_modified;
+    const dMod = (oRec['Date Modified'] as string) || (oRec.dateModified as string) || (oRec.date_modified as string);
     const dIso = d ? formatDateToIsoDay(d) : '';
     const dModIso = dMod ? formatDateToIsoDay(new Date(dMod)) : '';
     return dIso === targetIso || dModIso === targetIso;
@@ -976,13 +993,8 @@ export function processLiveOpsData(
     avg7dNewPct,
     historyDates,
   });
-  const activeNew = customerMix.newCount;
-  const activeRet = customerMix.retCount;
   const newPct = customerMix.newPercent;
   const retPct = customerMix.retPercent;
-  const deltaNew = customerMix.deltaNew;
-  const deltaNewPct = customerMix.deltaNewPercent;
-  const sparklineCust = customerMix.sparkline;
 
   // Sparklines using genuine 7-day data
   const sparklineItems = dailyStats.some((s) => s.itemCount > 0)
@@ -1003,8 +1015,8 @@ export function processLiveOpsData(
 
   // 5. DEEN Selects vs DEEN Regular Statistics (Commercial Sales Only)
   const itemsForSelects = commercialActiveOrders.map((o) => ({
-    itemName: o['Item Name'] || '',
-    sku: o.SKU || '',
+    itemName: String(o['Item Name'] || ''),
+    sku: String(o.SKU || ''),
     itemCost: Number(o['Item Cost']) || 0,
     quantity: Number(o.Quantity) || 1,
     amount: getOrderRowAmount(o),
@@ -1022,10 +1034,11 @@ export function processLiveOpsData(
   >();
 
   for (const o of commercialActiveOrders) {
-    const name = o['Item Name'] || 'Apparel';
+    const name = String(o['Item Name'] || 'Apparel');
+    const sku = String(o.SKU || '');
     const cat = getCategoryForSales(name);
     const subCat = getSubCategoryForSales(name, cat);
-    const isSelects = classifyProductLine(name, o.SKU, cat) === 'DEEN Selects';
+    const isSelects = classifyProductLine(name, sku, cat) === 'DEEN Selects';
 
     const qty = Number(o.Quantity) || 1;
     const rev = getOrderRowAmount(o);
@@ -1104,12 +1117,6 @@ export function processLiveOpsData(
   // Compute average units benchmark for bar chart
   const activeItemsCountForAvg = categoryItems.reduce((acc, c) => acc + c.volume, 0);
   const avgUnitsSold = categoryItems.length > 0 ? Math.round((activeItemsCountForAvg / categoryItems.length) * 10) / 10 : 3.8;
-
-  const formatDelta = (deltaVal: number, pct: number | null, prefix: string = '', dayLabel: string, prevFormatted: string) => {
-    const sign = deltaVal >= 0 ? '+' : '';
-    const pctStr = pct !== null ? `(${deltaVal >= 0 ? '+' : ''}${pct.toFixed(1)}%)` : '';
-    return `${deltaVal >= 0 ? '▲' : '▼'} ${sign}${prefix}${Math.abs(deltaVal).toLocaleString()} vs ${dayLabel.slice(0, 3)} ${pctStr} (${dayLabel}: ${prevFormatted})`;
-  };
 
   // 5. Build Top 10 Products Spotlight (DEEN-OPS Parity)
   const prodMap = new Map<string, {
@@ -1236,9 +1243,13 @@ export function processLiveOpsData(
   });
   const lastShippedOrder = sortedDispatches[0];
   const lastShippedOid = lastShippedOrder ? String(lastShippedOrder['Order ID'] || lastShippedOrder.orderId || '') : 'N/A';
-  const orderWithConsignment = activeOrders.find((o) => o['Consignment ID'] || (o as any).consignmentId || (o as any).tracking_number);
-  const lastPathaoPrint = orderWithConsignment
-    ? String(orderWithConsignment['Consignment ID'] || (orderWithConsignment as any).consignmentId || (orderWithConsignment as any).tracking_number)
+  const orderWithConsignment = activeOrders.find((o) => {
+    const oRec = o as Record<string, unknown>;
+    return o['Consignment ID'] || oRec.consignmentId || oRec.tracking_number;
+  });
+  const rowConsignment = orderWithConsignment ? (orderWithConsignment as Record<string, unknown>) : null;
+  const lastPathaoPrint = rowConsignment
+    ? String(rowConsignment['Consignment ID'] || rowConsignment.consignmentId || rowConsignment.tracking_number)
     : (lastShippedOid !== 'N/A' ? `#${lastShippedOid}` : 'None');
 
   // Breakdown of Ecom vs Outlet

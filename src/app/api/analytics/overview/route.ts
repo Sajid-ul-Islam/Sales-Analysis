@@ -43,9 +43,10 @@ export async function GET(request: NextRequest) {
         blendedCac,
       },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to fetch combined analytics overview';
     return NextResponse.json(
-      { success: false, error: err?.message || 'Failed to fetch combined analytics overview' },
+      { success: false, error: errorMsg },
       { status: 500 }
     );
   }

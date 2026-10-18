@@ -4,10 +4,8 @@ import React, { useState, useMemo } from 'react';
 import { ExchangedOrderRow, SummaryAnalytics } from '@/types';
 import { StatusBadge } from '@/components/common';
 import {
-  RefreshCw,
   Search,
   CheckCircle2,
-  AlertCircle,
   Truck,
   ArrowRightLeft,
   DollarSign,
@@ -15,8 +13,6 @@ import {
   Phone,
   MapPin,
   Package,
-  Layers,
-  FileCheck2,
   ArrowUpRight
 } from 'lucide-react';
 import {
@@ -32,7 +28,7 @@ interface ExchangedOrdersTabProps {
 
 export function ExchangedOrdersTab({
   exchangedOrders,
-  summary
+  summary: _summary
 }: ExchangedOrdersTabProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'MATCHED' | 'UNMATCHED' | 'DELIVERED'>('ALL');
@@ -516,7 +512,7 @@ export function ExchangedOrdersTab({
         {/* Footer info */}
         <div className="bg-slate-50/60 px-4 py-2.5 border-t border-slate-200/80 flex items-center justify-between text-xs text-slate-500">
           <span>Showing {filteredOrders.length} of {totalCount} exchange records</span>
-          <span className="text-[11px] text-slate-400">Prefix 'D-' automatically normalized for reconciliation</span>
+          <span className="text-[11px] text-slate-400">Prefix &apos;D-&apos; automatically normalized for reconciliation</span>
         </div>
       </div>
     </div>

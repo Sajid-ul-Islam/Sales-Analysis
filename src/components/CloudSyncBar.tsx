@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Cloud,
   CheckCircle2,
-  AlertTriangle,
   RefreshCw,
   ShoppingBag,
   Truck,
@@ -30,10 +29,19 @@ import {
   setSyncCache,
   clearAllSyncCaches,
   getSyncCacheStats,
-  isHistoricalDateRange,
-  formatCacheAge
+  isHistoricalDateRange
 } from '@/lib/apiCache';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
+
+interface ApiSyncStatus {
+  configured?: boolean;
+  connected?: boolean;
+  message?: string;
+  error?: string;
+  totalOrdersCount?: number | string;
+  storesCount?: number;
+  [key: string]: unknown;
+}
 
 export interface CloudSyncBarProps {
   onDataSynced: (type: 'orders' | 'returns', rows: RawOrderRow[], provenance?: DataProvenanceInfo) => void;
@@ -66,18 +74,18 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
   // Cache & Bypass State
   const [forceLiveSync, setForceLiveSync] = useState(false);
   const [cacheStats, setCacheStats] = useState(() => getSyncCacheStats());
-  const [lastSyncFromCache, setLastSyncFromCache] = useState<{ wc?: boolean; pathao?: boolean; age?: string } | null>(null);
+  const [_lastSyncFromCache, setLastSyncFromCache] = useState<{ wc?: boolean; pathao?: boolean; age?: string } | null>(null);
 
   // Vercel Blob & Storage State (Method 1, 2, 3)
-  const [blobStatus, setBlobStatus] = useState<{ configured: boolean; latestBlob?: any } | null>(null);
+  const [blobStatus, setBlobStatus] = useState<{ configured: boolean; latestBlob?: { pathname?: string; uploadedAt?: string; size?: number; [key: string]: unknown } } | null>(null);
   const [savingToBlob, setSavingToBlob] = useState(false);
   const [loadingFromBlob, setLoadingFromBlob] = useState(false);
   const [savingToLocal, setSavingToLocal] = useState(false);
 
-  const [pathaoStatus, setPathaoStatus] = useState<any>(null);
-  const [wcStatus, setWcStatus] = useState<any>(null);
-  const [ga4Status, setGa4Status] = useState<any>(null);
-  const [metaStatus, setMetaStatus] = useState<any>(null);
+  const [pathaoStatus, setPathaoStatus] = useState<ApiSyncStatus | null>(null);
+  const [wcStatus, setWcStatus] = useState<ApiSyncStatus | null>(null);
+  const [_ga4Status, setGa4Status] = useState<ApiSyncStatus | null>(null);
+  const [metaStatus, setMetaStatus] = useState<ApiSyncStatus | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   // Auto-dismiss transient feedback message after 6s to eliminate UI noise
@@ -128,7 +136,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
     setLoadingStatus(true);
     try {
       const creds = getClientCredentials();
-      const payload: any = {};
+      const payload: Record<string, unknown> = {};
       if (creds.wc) payload.woocommerce = creds.wc;
       if (creds.pathao) payload.pathao = creds.pathao;
 
@@ -147,7 +155,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
       setWcStatus(data.woocommerce);
       setGa4Status(data.ga4);
       setMetaStatus(data.meta);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to check API status:', err);
     } finally {
       setLoadingStatus(false);
@@ -208,8 +216,9 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
       const ds = activeDataset || { orders: activeOrders || [] };
       const res = await saveDatasetToLocalDisk(ds);
       setMessage(res.message);
-    } catch (err: any) {
-      setMessage(`Failed to save baseline: ${err.message}`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setMessage(`Failed to save baseline: ${errMsg}`);
     } finally {
       setSavingToLocal(false);
     }
@@ -233,8 +242,9 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
       } else {
         setMessage(data.message || data.error || 'Failed to upload to Vercel Blob');
       }
-    } catch (err: any) {
-      setMessage(`Vercel Blob upload error: ${err.message}`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setMessage(`Vercel Blob upload error: ${errMsg}`);
     } finally {
       setSavingToBlob(false);
     }
@@ -262,8 +272,9 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
       } else {
         setMessage(data.message || 'No dataset found in Vercel Blob.');
       }
-    } catch (err: any) {
-      setMessage(`Vercel Blob load error: ${err.message}`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setMessage(`Vercel Blob load error: ${errMsg}`);
     } finally {
       setLoadingFromBlob(false);
     }
@@ -313,8 +324,9 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
       } else {
         setMessage(data.message || data.error || 'Failed to sync Pathao');
       }
-    } catch (err: any) {
-      setMessage(`Pathao sync error: ${err.message}`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setMessage(`Pathao sync error: ${errMsg}`);
     } finally {
       setSyncingPathao(false);
     }
@@ -367,8 +379,9 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
       } else {
         setMessage(data.message || data.error || 'WooCommerce sync returned 0 orders for the specified date range.');
       }
-    } catch (err: any) {
-      setMessage(`WooCommerce sync error: ${err.message}`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setMessage(`WooCommerce sync error: ${errMsg}`);
     } finally {
       setSyncingWc(false);
     }
@@ -483,8 +496,9 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
       setMessage(`⚡ Sequential Sync Complete: ${summaries.join(' • ')}`);
       setLastSyncFromCache({ wc: !fetchedWcLive, pathao: !fetchedPathaoLive });
       setCacheStats(getSyncCacheStats());
-    } catch (err: any) {
-      setMessage(`Consolidated sync error: ${err.message}`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setMessage(`Consolidated sync error: ${errMsg}`);
     } finally {
       setSyncingBoth(false);
     }

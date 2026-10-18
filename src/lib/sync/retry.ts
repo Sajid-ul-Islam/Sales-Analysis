@@ -3,7 +3,7 @@ export interface RetryOptions {
   baseDelayMs?: number;
   maxDelayMs?: number;
   backoffFactor?: number;
-  shouldRetry?: (error: any) => boolean;
+  shouldRetry?: (error: unknown) => boolean;
 }
 
 /**
@@ -19,12 +19,20 @@ export async function withExponentialBackoff<T>(
     baseDelayMs = 400,
     maxDelayMs = 4000,
     backoffFactor = 2,
-    shouldRetry = (err: any) => {
+    shouldRetry = (err: unknown) => {
       // Default retry condition: 429 Rate Limit, 502/503/504 Bad Gateway / Gateway Timeout, or network errors
-      if (!err) return false;
-      const status = err.status || err.statusCode || 0;
+      if (!err || typeof err !== 'object') return false;
+      const status = ('status' in err && typeof (err as { status?: unknown }).status === 'number')
+        ? (err as { status: number }).status
+        : ('statusCode' in err && typeof (err as { statusCode?: unknown }).statusCode === 'number')
+        ? (err as { statusCode: number }).statusCode
+        : 0;
       if (status === 429 || (status >= 500 && status <= 504)) return true;
-      if (err.name === 'AbortError' || err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT') return true;
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') return true;
+        const code = (err as unknown as { code?: string }).code;
+        if (code === 'ECONNRESET' || code === 'ETIMEDOUT') return true;
+      }
       return false;
     },
   } = options;
@@ -35,7 +43,7 @@ export async function withExponentialBackoff<T>(
   while (true) {
     try {
       return await operation();
-    } catch (error: any) {
+    } catch (error: unknown) {
       attempt++;
       if (attempt > maxRetries || !shouldRetry(error)) {
         throw error;

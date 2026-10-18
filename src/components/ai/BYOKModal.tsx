@@ -16,7 +16,6 @@ import {
   EyeOff,
   Server,
   Laptop,
-  ArrowRight,
   Info
 } from 'lucide-react';
 import {
@@ -150,10 +149,11 @@ export function BYOKModal({ isOpen, onClose, onSaved }: BYOKModalProps) {
           message: data.error || 'Failed to connect. Please verify your API key.',
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Network error while testing connection.';
       setTestResult({
         status: 'ERROR',
-        message: err.message || 'Network error while testing connection.',
+        message: msg,
       });
     } finally {
       setIsTesting(false);

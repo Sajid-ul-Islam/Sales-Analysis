@@ -100,7 +100,7 @@ export interface DateFilterResult {
 /**
  * Dynamic Column Alias Resolver.
  */
-function findCol(row: Record<string, any>, candidates: string[]): any {
+function findCol(row: Record<string, unknown>, candidates: string[]): unknown {
   if (!row || typeof row !== 'object') return null;
   const keys = Object.keys(row);
   for (const c of candidates) {
@@ -115,7 +115,7 @@ function findCol(row: Record<string, any>, candidates: string[]): any {
 /**
  * Parses varied Excel, CSV, ISO, and database date representations into a valid Date object.
  */
-export function parseOrderDate(val: any): Date | null {
+export function parseOrderDate(val: unknown): Date | null {
   if (val === null || val === undefined || val === '') return null;
   if (val instanceof Date) {
     return isNaN(val.getTime()) ? null : val;
@@ -512,8 +512,8 @@ export function computeAvailableMonths(orders: RawOrderRow[], analysis: DateAnal
   // Find min year/month and max year/month across dataset + today
   const minYear = analysis.minDate.getFullYear();
   const minMonth = analysis.minDate.getMonth();
-  let maxYear = Math.max(analysis.maxDate.getFullYear(), currentYear);
-  let maxMonth = analysis.maxDate.getFullYear() === currentYear
+  const maxYear = Math.max(analysis.maxDate.getFullYear(), currentYear);
+  const maxMonth = analysis.maxDate.getFullYear() === currentYear
     ? Math.max(analysis.maxDate.getMonth(), currentMonth)
     : (analysis.maxDate.getFullYear() > currentYear ? analysis.maxDate.getMonth() : currentMonth);
 

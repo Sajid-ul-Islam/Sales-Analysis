@@ -28,7 +28,7 @@ City: ${order.city || 'N/A'}
 Shipping Address: ${maskAddress(order.address, order.city) || 'N/A'}
 Customer Note: "${order.customerNote || ''}"
 Order Amount: ৳${order.orderAmount || 0}
-Line Items: ${Array.isArray(order.items) ? order.items.map((it: any) => `${it.itemName || ''} (Size: ${it.size || ''}, Qty: ${it.quantity || 1})`).join('; ') : 'N/A'}`;
+Line Items: ${Array.isArray(order.items) ? order.items.map((it: Record<string, unknown>) => `${String(it.itemName || '')} (Size: ${String(it.size || '')}, Qty: ${Number(it.quantity || 1)})`).join('; ') : 'N/A'}`;
 
     const rawResponse = await generateAICompletion({
       prompt: orderPrompt,
@@ -41,7 +41,7 @@ Line Items: ${Array.isArray(order.items) ? order.items.map((it: any) => `${it.it
       try {
         const parsed = JSON.parse(rawResponse);
         return NextResponse.json({ success: true, aiEvaluation: parsed, source: 'gemini' });
-      } catch (parseErr) {
+      } catch {
         // Fall back to heuristic below
       }
     }
@@ -79,8 +79,8 @@ Line Items: ${Array.isArray(order.items) ? order.items.map((it: any) => `${it.it
       },
       source: 'heuristic_fallback',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API /api/ai/predict-risk error:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal server error' }, { status: 500 });
   }
 }

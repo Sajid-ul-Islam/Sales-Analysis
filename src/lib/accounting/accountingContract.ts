@@ -30,11 +30,13 @@ export interface DoubleCountingAuditResult {
   inflationPercentage: number;
 }
 
+import { RawOrderRow } from '@/types';
+
 /**
  * Invariant 1: Multi-Item Order GMV Deduplication
  * Verifies that aggregating order totals across flattened line items does not double-count revenue.
  */
-export function assertNoDoubleCounting(rows: any[]): DoubleCountingAuditResult {
+export function assertNoDoubleCounting(rows: (RawOrderRow | Record<string, unknown>)[]): DoubleCountingAuditResult {
   if (!Array.isArray(rows) || rows.length === 0) {
     return {
       isValid: true,
@@ -52,7 +54,7 @@ export function assertNoDoubleCounting(rows: any[]): DoubleCountingAuditResult {
 
   for (const row of rows) {
     const orderId = String(row['Order ID'] || row.orderId || row.id || '');
-    const amount = parseFloat(row['Order Total Amount'] || row['Order Amount'] || row.orderTotal || 0) || 0;
+    const amount = parseFloat(String(row['Order Total Amount'] || row['Order Amount'] || (row as Record<string, unknown>).orderTotal || 0)) || 0;
     naiveSum += amount;
 
     if (!orderMap.has(orderId)) {

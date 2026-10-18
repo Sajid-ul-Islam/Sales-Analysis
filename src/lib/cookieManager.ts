@@ -113,7 +113,7 @@ export function getAllCookies(): Record<string, string> {
   try {
     if (!document.cookie) return cookies;
     const items = document.cookie.split(';');
-    for (let item of items) {
+    for (const item of items) {
       const parts = item.split('=');
       const key = decodeURIComponent(parts[0]?.trim() || '');
       const value = decodeURIComponent(parts.slice(1).join('=')?.trim() || '');

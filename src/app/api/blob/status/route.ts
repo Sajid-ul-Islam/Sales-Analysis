@@ -32,10 +32,11 @@ export async function GET(req: Request) {
         ? `Vercel Blob active: latest dataset updated ${status.latestBlob.uploadedAt}`
         : 'Vercel Blob active: store is ready (no dataset uploaded yet).',
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Error checking Vercel Blob status';
     return NextResponse.json({
       configured: false,
-      error: err?.message || 'Error checking Vercel Blob status',
+      error: errorMsg,
     }, { status: 500 });
   }
 }

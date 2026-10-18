@@ -53,10 +53,11 @@ export async function GET(req: Request) {
       pathaoDeliveryCount: result.dataset.pathaoDelivery?.length || 0,
       message: result.message,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[API /api/blob/dataset GET] Error:', err);
+    const errorMsg = err instanceof Error ? err.message : 'Failed to fetch dataset from Vercel Blob';
     return NextResponse.json(
-      { success: false, error: err?.message || 'Failed to fetch dataset from Vercel Blob' },
+      { success: false, error: errorMsg },
       { status: 500 }
     );
   }
@@ -111,10 +112,11 @@ export async function POST(req: Request) {
       size: upload.size,
       uploadedAt: upload.uploadedAt,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[API /api/blob/dataset POST] Error:', err);
+    const errorMsg = err instanceof Error ? err.message : 'Failed to upload dataset to Vercel Blob';
     return NextResponse.json(
-      { success: false, error: err?.message || 'Failed to upload dataset to Vercel Blob' },
+      { success: false, error: errorMsg },
       { status: 500 }
     );
   }

@@ -1,4 +1,4 @@
-import { getSecretsConfig, getSecretsWithOverrides } from './secrets';
+import { getSecretsWithOverrides } from './secrets';
 import { RawOrderRow } from '@/types';
 import { withExponentialBackoff } from './sync/retry';
 import { getCategoryForSales, getSubCategoryForSales } from './liveCategoryEngine';
@@ -8,6 +8,66 @@ export interface WcCredentials {
   store_url?: string;
   consumer_key?: string;
   consumer_secret?: string;
+}
+
+export interface WcMetaItem {
+  key?: string;
+  value?: unknown;
+  display_key?: string;
+  [key: string]: unknown;
+}
+
+export interface WcOrder {
+  id?: number | string;
+  number?: string;
+  status?: string;
+  date_created?: string;
+  date_modified?: string;
+  date_modified_gmt?: string;
+  date_completed?: string;
+  date_completed_gmt?: string;
+  customer_note?: string;
+  order_notes?: string;
+  total?: string | number;
+  payment_method?: string;
+  payment_method_title?: string;
+  billing?: {
+    first_name?: string;
+    last_name?: string;
+    phone?: string;
+    email?: string;
+    address_1?: string;
+    address_2?: string;
+    city?: string;
+    state?: string;
+  };
+  shipping?: {
+    first_name?: string;
+    last_name?: string;
+    phone?: string;
+    address_1?: string;
+    address_2?: string;
+    city?: string;
+    state?: string;
+  };
+  meta_data?: WcMetaItem[];
+  line_items?: Array<{
+    id?: number | string;
+    product_id?: number | string;
+    variation_id?: number | string;
+    name?: string;
+    sku?: string;
+    quantity?: number;
+    subtotal?: string | number;
+    total?: string | number;
+    price?: string | number;
+    meta_data?: WcMetaItem[];
+    [key: string]: unknown;
+  }>;
+  shipping_lines?: Array<{ total?: string | number }>;
+  discount_total?: string | number;
+  coupon_lines?: Array<{ code?: string }>;
+  [key: string]: unknown;
 }
 
 export async function testWooCommerceConnection(credentials?: WcCredentials): Promise<{
@@ -54,7 +114,7 @@ export async function testWooCommerceConnection(credentials?: WcCredentials): Pr
     }
 
     const contentType = res.headers.get('content-type') || '';
-    let errJson: any = {};
+    let errJson: { code?: string; message?: string } = {};
     if (contentType.includes('application/json')) {
       errJson = await res.json().catch(() => ({}));
     } else {
@@ -91,8 +151,8 @@ export async function testWooCommerceConnection(credentials?: WcCredentials): Pr
       status: res.status,
       message: errJson.message || `WooCommerce HTTP error ${res.status}`,
     };
-  } catch (err: any) {
-    if (err.name === 'AbortError') {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
       return {
         success: false,
         status: 504,
@@ -102,7 +162,7 @@ export async function testWooCommerceConnection(credentials?: WcCredentials): Pr
     return {
       success: false,
       status: 500,
-      message: err?.message || 'Network error connecting to WooCommerce',
+      message: err instanceof Error ? err.message : 'Network error connecting to WooCommerce',
     };
   }
 }
@@ -128,7 +188,7 @@ export interface WcFetchOptions {
 /**
  * Normalizes customer phone numbers into clean local (01...) and international (8801...) formats.
  */
-export function cleanCustomerPhone(rawPhone: any): { displayPhone: string; whatsappPhone: string } {
+export function cleanCustomerPhone(rawPhone: unknown): { displayPhone: string; whatsappPhone: string } {
   if (!rawPhone) return { displayPhone: '', whatsappPhone: '' };
   const cleaned = String(rawPhone).replace(/\D/g, '');
 
@@ -189,20 +249,20 @@ export function classifyPayment(paymentMethodTitle?: string, paymentMethodKey?: 
 /**
  * Detects fulfillment branch according to DEEN Order Rules (.agents/rules/order_rules.md).
  */
-export function detectBranchFromOrder(order: any, meta: any[], orderId: string): {
+export function detectBranchFromOrder(order: WcOrder, meta: WcMetaItem[], orderId: string): {
   isPos: boolean;
   outletId: string;
   fulfillmentBranch: string;
   branchCode: 'ONLINE' | 'MIRPUR' | 'CUMILLA' | 'WARI' | 'SYLHET' | 'EXCHANGE';
 } {
-  const isPosMeta = meta.some((m: any) =>
+  const isPosMeta = meta.some((m: WcMetaItem) =>
     m.key === '_sip_pos_order' ||
     (m.key === '_sip_order_source' && String(m.value).toLowerCase() === 'pos') ||
     m.key === '_pos_register_id' ||
     m.key === '_pos_outlet_id'
   );
 
-  const outletMeta = meta.find((m: any) =>
+  const outletMeta = meta.find((m: WcMetaItem) =>
     m.key === '_sip_outlet_id' ||
     m.key === '_pos_outlet_id' ||
     m.key === '_outlet_id' ||
@@ -211,8 +271,8 @@ export function detectBranchFromOrder(order: any, meta: any[], orderId: string):
   const outletId = outletMeta ? String(outletMeta.value).trim() : '';
 
   const cleanId = String(orderId || order?.id || order?.number || '').trim().toLowerCase();
-  const customerNote = String(order?.customer_note || (order as any)?.order_notes || (order as any)?.notes || '').toLowerCase();
-  const metaStrings = meta.map((m: any) => `${m.key}=${m.value}`).join(' ').toLowerCase();
+  const customerNote = String(order?.customer_note || order?.order_notes || (order?.notes as string) || '').toLowerCase();
+  const metaStrings = meta.map((m: WcMetaItem) => `${m.key}=${m.value}`).join(' ').toLowerCase();
 
   // 1. Exchange Replacement: D-17263 / DD-17263 / ex-17263 / "Exchange for #17839" / "Exchanged"
   if (
@@ -221,7 +281,7 @@ export function detectBranchFromOrder(order: any, meta: any[], orderId: string):
     /exchange\s+for\s+#?\d+/i.test(customerNote) ||
     /exchange\s+for\s+#?\d+/i.test(metaStrings) ||
     /\bexchanged\b/i.test(customerNote) ||
-    meta.some((m: any) => /substatus|custom_status|status_label/i.test(m.key) && /exchange/i.test(String(m.value)))
+    meta.some((m: WcMetaItem) => /substatus|custom_status|status_label/i.test(m.key || '') && /exchange/i.test(String(m.value)))
   ) {
     return {
       isPos: false,
@@ -293,7 +353,7 @@ export function detectBranchFromOrder(order: any, meta: any[], orderId: string):
 /**
  * Extracts courier consignment tracking code across major Bangladesh shipping plugins and meta keys.
  */
-export function extractConsignmentTracking(order: any, meta: any[]): string {
+export function extractConsignmentTracking(order: WcOrder, meta: WcMetaItem[]): string {
   const trackingKeys = [
     '_pathao_consignment_id',
     'pathao_consignment_id',
@@ -311,14 +371,14 @@ export function extractConsignmentTracking(order: any, meta: any[]): string {
   ];
 
   for (const k of trackingKeys) {
-    const found = meta.find((m: any) => String(m.key || '').toLowerCase() === k);
+    const found = meta.find((m: WcMetaItem) => String(m.key || '').toLowerCase() === k);
     if (found && found.value && typeof found.value === 'string' && found.value.trim().length > 3) {
       return found.value.trim();
     }
   }
 
   // Check shipment tracking items array
-  const shipmentMeta = meta.find((m: any) => String(m.key || '').toLowerCase().includes('shipment_tracking'));
+  const shipmentMeta = meta.find((m: WcMetaItem) => String(m.key || '').toLowerCase().includes('shipment_tracking'));
   if (shipmentMeta && shipmentMeta.value) {
     let items = shipmentMeta.value;
     if (typeof items === 'string' && (items.startsWith('[') || items.startsWith('{'))) {
@@ -328,13 +388,13 @@ export function extractConsignmentTracking(order: any, meta: any[]): string {
         // ignore
       }
     }
-    if (Array.isArray(items) && items.length > 0 && items[0].tracking_number) {
-      return String(items[0].tracking_number).trim();
+    if (Array.isArray(items) && items.length > 0 && (items[0] as { tracking_number?: string }).tracking_number) {
+      return String((items[0] as { tracking_number?: string }).tracking_number).trim();
     }
   }
 
   // Fallback: Check customer or order notes for Pathao/Steadfast consignment pattern
-  const notes = `${order.customer_note || ''} ${(order as any).order_notes || ''}`;
+  const notes = `${order.customer_note || ''} ${order.order_notes || ''}`;
   const match = notes.match(/\b(RD[A-Z0-9]{10,20}|[A-Z0-9]{12,25})\b/i);
   if (match && /^RD/i.test(match[1])) {
     return match[1];
@@ -346,7 +406,7 @@ export function extractConsignmentTracking(order: any, meta: any[]): string {
 /**
  * Extracts apparel variation attributes (Size, Color) from WooCommerce line item meta.
  */
-export function extractVariationAttributes(item: any): { size: string; color: string } {
+export function extractVariationAttributes(item: { meta_data?: WcMetaItem[]; [key: string]: unknown }): { size: string; color: string } {
   let size = '';
   let color = '';
   const itemMeta = item.meta_data || [];
@@ -366,12 +426,12 @@ export function extractVariationAttributes(item: any): { size: string; color: st
 /**
  * Fetches real-time orders from WooCommerce REST API v3 with smart pagination, ordering, and date windowing.
  */
-export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Promise<any[]> {
+export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Promise<WcOrder[]> {
   const { woocommerce: wc } = getSecretsWithOverrides({ woocommerce: options.credentials });
   const perPage = Math.min(Math.max(options.perPage || 100, 1), 100);
   const maxPages = options.maxPages || 3;
   let currentPage = options.page || 1;
-  let allOrders: any[] = [];
+  let allOrders: WcOrder[] = [];
   const orderBy = options.orderBy || 'date';
   const order = options.order || 'desc';
 
@@ -415,7 +475,7 @@ export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Prom
     }
 
     let totalPages: number | undefined;
-    let totalOrders: number | undefined;
+    let _totalOrders: number | undefined;
 
     const pageOrders = await withExponentialBackoff(async () => {
       const timeoutMs = options.timeoutMs || 15000;
@@ -435,7 +495,7 @@ export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Prom
         const contentType = res.headers.get('content-type') || '';
         const wpTotal = res.headers.get('x-wp-total');
         const wpTotalPages = res.headers.get('x-wp-totalpages');
-        if (wpTotal) totalOrders = parseInt(wpTotal, 10);
+        if (wpTotal) _totalOrders = parseInt(wpTotal, 10);
         if (wpTotalPages) totalPages = parseInt(wpTotalPages, 10);
 
         if (!res.ok) {
@@ -449,7 +509,7 @@ export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Prom
               errMsg = `WooCommerce API returned HTML error (HTTP ${res.status}). Store firewall, Cloudflare, or WordPress error page encountered.`;
             }
           }
-          const error: any = new Error(errMsg);
+          const error = new Error(errMsg) as Error & { status?: number };
           error.status = res.status;
           throw error;
         }
@@ -459,7 +519,7 @@ export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Prom
           throw new Error(`WooCommerce returned HTML instead of JSON (${res.status}): ${text.slice(0, 80)}`);
         }
 
-        return await res.json();
+        return (await res.json()) as WcOrder[];
       } finally {
         clearTimeout(timeoutId);
       }
@@ -487,7 +547,7 @@ export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Prom
  * Accurately extracts branch fulfillment, courier tracking, geographic area, variation attributes,
  * and apparel collection classifications.
  */
-export function formatWooCommerceToOrderRows(orders: any[]): RawOrderRow[] {
+export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
   const rows: RawOrderRow[] = [];
 
   for (const order of orders) {
@@ -504,7 +564,7 @@ export function formatWooCommerceToOrderRows(orders: any[]): RawOrderRow[] {
     const state = order.billing?.state || order.shipping?.state || '';
     const districtArea = detectDistrictArea(city, state, address);
 
-    const orderTotal = parseFloat(order.total) || 0;
+    const orderTotal = typeof order.total === 'number' ? order.total : parseFloat(String(order.total || '0')) || 0;
     const { paymentMethod, isPrepaid, isCod } = classifyPayment(order.payment_method_title, order.payment_method);
     const note = order.customer_note || '';
     const status = order.status || 'processing';
@@ -512,9 +572,9 @@ export function formatWooCommerceToOrderRows(orders: any[]): RawOrderRow[] {
     const meta = order.meta_data || [];
     const branchInfo = detectBranchFromOrder(order, meta, orderId);
     const trackingId = extractConsignmentTracking(order, meta);
-    const shippingFee = (order.shipping_lines && order.shipping_lines[0]) ? parseFloat(order.shipping_lines[0].total) || 0 : 0;
-    const discountTotal = parseFloat(order.discount_total) || 0;
-    const couponCodes = (order.coupon_lines || []).map((c: any) => c.code).filter(Boolean).join(', ');
+    const shippingFee = (order.shipping_lines && order.shipping_lines[0]) ? parseFloat(String(order.shipping_lines[0].total || '0')) || 0 : 0;
+    const discountTotal = typeof order.discount_total === 'number' ? order.discount_total : parseFloat(String(order.discount_total || '0')) || 0;
+    const couponCodes = (order.coupon_lines || []).map((c: { code?: string }) => c.code).filter(Boolean).join(', ');
 
     // Extract substatus or custom order status badge (e.g. "Exchange for #17839" or "Exchanged")
     let substatus = '';
@@ -527,7 +587,7 @@ export function formatWooCommerceToOrderRows(orders: any[]): RawOrderRow[] {
       }
     }
     if (!substatus) {
-      const notesText = `${order.customer_note || ''} ${(order as any).order_notes || ''}`;
+      const notesText = `${order.customer_note || ''} ${order.order_notes || ''}`;
       const match = notesText.match(/exchange\s+for\s+#?\d+/i) || notesText.match(/\bexchanged\b/i);
       if (match) substatus = match[0];
     }
@@ -615,7 +675,7 @@ export function formatWooCommerceToOrderRows(orders: any[]): RawOrderRow[] {
     } else {
       for (const item of lineItems) {
         const qty = Number(item.quantity) || 1;
-        const subtotal = parseFloat(item.total || item.subtotal) || 0;
+        const subtotal = parseFloat(String(item.total || item.subtotal || 0)) || 0;
         const itemCost = qty > 0 ? subtotal / qty : subtotal;
         const sku = String(item.sku || '').trim() || 'GENERAL';
         const prodName = String(item.name || 'Apparel Item').trim();

@@ -7,7 +7,7 @@ import { validateApiRequest } from '@/lib/auth/apiAuth';
 import { createDataProvenance } from '@/lib/dataAudit';
 import baselineData from '@/data/baselineSample.json';
 import { fetchDatasetFromBlob, isBlobConfigured } from '@/lib/blobStorage';
-import { DatasetSnapshot } from '@/types';
+import { DatasetSnapshot, RawOrderRow } from '@/types';
 
 function findFirstExistingFile(candidatePaths: string[]): string | null {
   try {
@@ -20,7 +20,7 @@ function findFirstExistingFile(candidatePaths: string[]): string | null {
   return null;
 }
 
-function parseExcelFile(filePath: string): any[] {
+function parseExcelFile(filePath: string): RawOrderRow[] {
   try {
     if (!filePath || typeof fs === 'undefined' || !fs.existsSync || !fs.existsSync(filePath)) {
       return [];
@@ -134,11 +134,11 @@ export async function GET(req: Request) {
     // If individual files are absent on disk (e.g. Vercel serverless environment where Sample Docs is gitignored),
     // fallback directly to the bundled, precompiled baseline dataset to guarantee 100% data availability.
     const fallback = (baselineData || {}) as {
-      orders?: any[];
-      returns?: any[];
-      partials?: any[];
-      exchanges?: any[];
-      pathaoDelivery?: any[];
+      orders?: RawOrderRow[];
+      returns?: RawOrderRow[];
+      partials?: RawOrderRow[];
+      exchanges?: RawOrderRow[];
+      pathaoDelivery?: RawOrderRow[];
     };
 
     const ordersFromFallback = orders.length === 0;
@@ -189,10 +189,11 @@ export async function GET(req: Request) {
       exchanges: sanitizedExchanges,
       pathaoDelivery: sanitizedPathao
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error reading sample data:', error);
+    const errorMsg = error instanceof Error ? error.message : 'Failed to load sample dataset';
     return NextResponse.json(
-      { success: false, error: error?.message || 'Failed to load sample dataset' },
+      { success: false, error: errorMsg },
       { status: 500 }
     );
   }
@@ -250,10 +251,11 @@ export async function POST(req: Request) {
       ordersCount: payload.orders.length,
       returnsCount: payload.returns.length,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to write baseline file';
     return NextResponse.json({
       success: false,
-      error: err?.message || 'Failed to write baseline file',
+      error: errorMsg,
     }, { status: 500 });
   }
 }

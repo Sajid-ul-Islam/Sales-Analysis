@@ -9,7 +9,6 @@ import {
   RefreshCw,
   Download,
   Sun,
-  Moon,
   Settings,
   ShoppingBag,
   Truck,
@@ -23,11 +22,10 @@ import {
   Tag,
   Store,
   Layers,
-  CheckCircle2,
   Clock
 } from 'lucide-react';
 import { ReconciliationResult } from '@/lib/reconciliationEngine';
-import { RawOrderRow, ReconciledOrderRow } from '@/types';
+import { RawOrderRow } from '@/types';
 import {
   compareOrdersByNumber,
   getExportCustomerName,
@@ -44,7 +42,7 @@ export interface CommandPaletteModalProps {
   onToggleTheme?: () => void;
   onToggleCopilot?: () => void;
   onExportExcel?: () => void;
-  onInspectOrder?: (order: any) => void;
+  onInspectOrder?: (order: RawOrderRow) => void;
 }
 
 interface PaletteItem {
@@ -199,9 +197,9 @@ export function CommandPaletteModal({
     });
 
     // 3. Orders (From Reconciled or Live)
-    const orderPool: any[] = (reconciliationResult?.reconciledOrders && reconciliationResult.reconciledOrders.length > 0)
-      ? reconciliationResult.reconciledOrders
-      : liveOrders;
+    const orderPool: RawOrderRow[] = (reconciliationResult?.reconciledOrders && reconciliationResult.reconciledOrders.length > 0)
+      ? (reconciliationResult.reconciledOrders as unknown as RawOrderRow[])
+      : (liveOrders || []);
 
     const seenOrderIds = new Set<string>();
     const orderItems: PaletteItem[] = [];

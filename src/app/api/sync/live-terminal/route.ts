@@ -54,9 +54,9 @@ export async function POST(req: Request) {
       ...result,
       orders: sanitizedOrders,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Live terminal sync error:', error);
-    const msg = error?.message || 'Failed to sync Live Operations Terminal';
+    const msg = error instanceof Error ? error.message : 'Failed to sync Live Operations Terminal';
     return NextResponse.json(
       {
         success: false,

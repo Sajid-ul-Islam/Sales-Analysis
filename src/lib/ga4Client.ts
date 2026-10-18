@@ -248,12 +248,12 @@ export async function testGA4Connection(): Promise<{
       message: `Connected to Google Analytics 4 Property #${propertyId} (${realtimeUsers} active users right now).`,
       latencyMs: Date.now() - startTime,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     return {
       connected: false,
       propertyId,
       clientEmail,
-      message: err?.message || 'Unexpected connection error while authenticating with GA4.',
+      message: err instanceof Error ? err.message : 'Unexpected connection error while authenticating with GA4.',
       latencyMs: Date.now() - startTime,
     };
   }
@@ -448,8 +448,13 @@ export async function fetchFullGA4Analytics(dateRangeIdentifier: string = '30d')
     const conversionRatePercent = sessions > 0 ? parseFloat(((conversions / sessions) * 100).toFixed(2)) : 0;
     const averageRevenuePerUser = activeUsers > 0 ? Math.round(totalRevenue / activeUsers) : 0;
 
+    interface GA4Row {
+      dimensionValues?: Array<{ value?: string }>;
+      metricValues?: Array<{ value?: string }>;
+    }
+
     // Parse channels
-    const channels: GA4ChannelData[] = (channelsData?.rows || []).map((row: any) => {
+    const channels: GA4ChannelData[] = ((channelsData?.rows || []) as GA4Row[]).map((row) => {
       const channel = row.dimensionValues?.[0]?.value || 'Other';
       const cSessions = parseInt(row.metricValues?.[0]?.value || '0', 10);
       const cUsers = parseInt(row.metricValues?.[1]?.value || '0', 10);
@@ -467,7 +472,7 @@ export async function fetchFullGA4Analytics(dateRangeIdentifier: string = '30d')
     });
 
     // Parse top pages
-    const topPages: GA4PageData[] = (pagesData?.rows || []).map((row: any) => ({
+    const topPages: GA4PageData[] = ((pagesData?.rows || []) as GA4Row[]).map((row) => ({
       pagePath: row.dimensionValues?.[0]?.value || '/',
       pageTitle: row.dimensionValues?.[1]?.value || 'Untitled',
       screenPageViews: parseInt(row.metricValues?.[0]?.value || '0', 10),
@@ -476,7 +481,7 @@ export async function fetchFullGA4Analytics(dateRangeIdentifier: string = '30d')
     }));
 
     // Parse geo
-    const geo: GA4GeoData[] = (geoData?.rows || []).map((row: any) => {
+    const geo: GA4GeoData[] = ((geoData?.rows || []) as GA4Row[]).map((row) => {
       const city = row.dimensionValues?.[0]?.value || 'Unknown';
       const country = row.dimensionValues?.[1]?.value || 'Bangladesh';
       const gUsers = parseInt(row.metricValues?.[0]?.value || '0', 10);
@@ -493,7 +498,7 @@ export async function fetchFullGA4Analytics(dateRangeIdentifier: string = '30d')
 
     // Parse funnel
     const funnelMap: Record<string, number> = {};
-    (funnelData?.rows || []).forEach((row: any) => {
+    ((funnelData?.rows || []) as GA4Row[]).forEach((row) => {
       const evName = row.dimensionValues?.[0]?.value;
       const count = parseInt(row.metricValues?.[0]?.value || '0', 10);
       if (evName) funnelMap[evName] = count;
@@ -532,7 +537,7 @@ export async function fetchFullGA4Analytics(dateRangeIdentifier: string = '30d')
       return `${months[month] || ''} ${day}`;
     }
 
-    const dailyTimeline: GA4DailyPoint[] = (timelineData?.rows || []).map((row: any) => {
+    const dailyTimeline: GA4DailyPoint[] = ((timelineData?.rows || []) as GA4Row[]).map((row) => {
       const rawDate = row.dimensionValues?.[0]?.value || '';
       return {
         rawDate,
@@ -545,11 +550,11 @@ export async function fetchFullGA4Analytics(dateRangeIdentifier: string = '30d')
     });
 
     // Parse devices
-    const totalDeviceSessions = (deviceData?.rows || []).reduce(
-      (acc: number, r: any) => acc + parseInt(r.metricValues?.[0]?.value || '0', 10),
+    const totalDeviceSessions = ((deviceData?.rows || []) as GA4Row[]).reduce(
+      (acc: number, r) => acc + parseInt(r.metricValues?.[0]?.value || '0', 10),
       0
     );
-    const devices: GA4DeviceData[] = (deviceData?.rows || []).map((row: any) => {
+    const devices: GA4DeviceData[] = ((deviceData?.rows || []) as GA4Row[]).map((row) => {
       const devCat = row.dimensionValues?.[0]?.value || 'desktop';
       const dSessions = parseInt(row.metricValues?.[0]?.value || '0', 10);
       const dUsers = parseInt(row.metricValues?.[1]?.value || '0', 10);
@@ -591,7 +596,8 @@ export async function fetchFullGA4Analytics(dateRangeIdentifier: string = '30d')
       dailyTimeline,
       devices,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
     return {
       success: false,
       overview: {
@@ -620,7 +626,7 @@ export async function fetchFullGA4Analytics(dateRangeIdentifier: string = '30d')
       funnel: [],
       dailyTimeline: [],
       devices: [],
-      error: err?.message || 'Failed to fetch Google Analytics 4 report.',
+      error: errorMsg || 'Failed to fetch Google Analytics 4 report.',
     };
   }
 }

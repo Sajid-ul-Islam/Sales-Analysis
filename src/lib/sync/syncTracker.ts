@@ -56,12 +56,20 @@ export class SyncTracker {
     this.report.successfulCount += count;
   }
 
-  recordFailure(recordId: string, error: any, statusCode?: number) {
+  recordFailure(recordId: string, error: unknown, statusCode?: number) {
     this.report.failedCount += 1;
+    const msg = error instanceof Error
+      ? error.message
+      : (typeof error === 'object' && error !== null && 'message' in error
+        ? String((error as { message: unknown }).message)
+        : String(error));
+    const status = statusCode || (typeof error === 'object' && error !== null && 'status' in error && typeof (error as { status: unknown }).status === 'number'
+      ? (error as { status: number }).status
+      : 500);
     this.report.errors.push({
       recordId,
-      errorMessage: error?.message || String(error),
-      statusCode: statusCode || error?.status || 500,
+      errorMessage: msg,
+      statusCode: status,
       timestamp: new Date().toISOString(),
     });
   }

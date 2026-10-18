@@ -18,12 +18,31 @@ import { loadBYOKConfig, BYOKConfig } from '@/lib/byok';
 import { BYOKModal } from '@/components/ai/BYOKModal';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 
+interface DefectSkuItem {
+  name: string;
+  sku: string;
+  diagnosis: string;
+  recommendedAction: string;
+}
+
+interface ReturnDiagnosisData {
+  executiveSummary?: string;
+  rootCauseBreakdown?: {
+    sizingMismatch?: number;
+    courierDelay?: number;
+    fabricQuality?: number;
+    buyerRegret?: number;
+  };
+  topDefectSkus?: DefectSkuItem[];
+  factoryProductionDirectives?: string[];
+}
+
 interface AIReturnDiagnosisCardProps {
   returnedItems: ReturnedItemRow[];
 }
 
 export function AIReturnDiagnosisCard({ returnedItems }: AIReturnDiagnosisCardProps) {
-  const [diagnosis, setDiagnosis] = useState<any>(null);
+  const [diagnosis, setDiagnosis] = useState<ReturnDiagnosisData | null>(null);
   const [loading, setLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
   const [byokConfig, setByokConfig] = useState<BYOKConfig>(() => loadBYOKConfig());
@@ -53,9 +72,10 @@ export function AIReturnDiagnosisCard({ returnedItems }: AIReturnDiagnosisCardPr
 
   // Listen for BYOK updates across components
   useEffect(() => {
-    const handleBYOKUpdate = (e: any) => {
-      if (e.detail) {
-        setByokConfig(e.detail);
+    const handleBYOKUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<BYOKConfig>;
+      if (customEvent.detail) {
+        setByokConfig(customEvent.detail);
       }
     };
     window.addEventListener('deen_byok_updated', handleBYOKUpdate);
@@ -251,7 +271,7 @@ export function AIReturnDiagnosisCard({ returnedItems }: AIReturnDiagnosisCardPr
                 <span>Priority Garments Requiring Sizing Correction</span>
               </h4>
               <div className="space-y-2.5">
-                {diagnosis.topDefectSkus?.map((skuItem: any, idx: number) => (
+                {diagnosis.topDefectSkus?.map((skuItem: DefectSkuItem, idx: number) => (
                   <div key={idx} className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 text-xs">
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-slate-900 truncate">{skuItem.name}</span>

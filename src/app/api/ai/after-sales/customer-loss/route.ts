@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateAICompletion } from '@/lib/geminiClient';
+import { generateAICompletion, AIProvider } from '@/lib/geminiClient';
 import { validateApiRequest } from '@/lib/auth/apiAuth';
 import { maskPhoneNumber, maskCustomerName } from '@/lib/auth/dataMasking';
 
@@ -31,10 +31,37 @@ Generate a strictly formatted JSON object:
   ]
 }`;
 
+interface CustomerRiskProfileInput {
+  phone?: string;
+  customerName?: string;
+  totalOrders?: number;
+  returnedOrders?: number;
+  deliveredOrders?: number;
+  partialOrders?: number;
+  returnRate?: number;
+  totalSpent?: number;
+  riskTier?: string;
+  [key: string]: unknown;
+}
+
+interface HighRiskProfileItem {
+  phone: string;
+  name: string;
+  totalOrders?: number;
+  returned: number;
+  delivered?: number;
+  returnRate?: number;
+  spent: number;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { profiles = [], summary, byok } = body;
+    const { profiles = [], _summary, byok } = body as {
+      profiles?: CustomerRiskProfileInput[];
+      _summary?: unknown;
+      byok?: { apiKey?: string; provider?: string; model?: string };
+    };
 
     const hasByok = Boolean(byok?.apiKey && String(byok.apiKey).trim().length > 5);
     if (!hasByok) {
@@ -44,21 +71,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const highRiskProfiles = profiles
-      .filter((p: any) => p.riskTier === 'HIGH_RISK' || p.returnRate >= 50)
+    const highRiskProfiles: HighRiskProfileItem[] = profiles
+      .filter((p: CustomerRiskProfileInput) => p.riskTier === 'HIGH_RISK' || (p.returnRate || 0) >= 50)
       .slice(0, 15)
-      .map((p: any) => ({
+      .map((p: CustomerRiskProfileInput) => ({
         phone: maskPhoneNumber(p.phone),
         name: maskCustomerName(p.customerName),
         totalOrders: p.totalOrders,
-        returned: p.returnedOrders,
+        returned: p.returnedOrders || 0,
         delivered: p.deliveredOrders,
         returnRate: p.returnRate,
-        spent: p.totalSpent,
+        spent: p.totalSpent || 0,
       }));
 
     const totalWastedFees = profiles.reduce(
-      (sum: number, p: any) => sum + (p.returnedOrders || 0) * 150 + (p.partialOrders || 0) * 50,
+      (sum: number, p: CustomerRiskProfileInput) => sum + (p.returnedOrders || 0) * 150 + (p.partialOrders || 0) * 50,
       0
     );
 
@@ -78,7 +105,7 @@ Audit after-sales buyer loss and provide policy enforcement directives.`;
       responseMimeType: 'application/json',
       temperature: 0.2,
       byokApiKey: byok?.apiKey,
-      byokProvider: byok?.provider,
+      byokProvider: byok?.provider as AIProvider,
       byokModel: byok?.model,
     });
 
@@ -102,7 +129,7 @@ Audit after-sales buyer loss and provide policy enforcement directives.`;
         totalReverseLogisticsWasted: Math.round(totalWastedFees) || 45000,
         chronicReturnerCount: highRiskProfiles.length || 18,
         executiveAuditSummary: `After-sales customer risk audit reveals that ${highRiskProfiles.length} chronic returners caused ৳${Math.round(totalWastedFees || 45000).toLocaleString()} in wasted reverse logistics fees. Restricting repeat refusers to advance bKash payment immediately saves ~12% in courier write-offs.`,
-        topLossMakingBuyers: highRiskProfiles.slice(0, 5).map((p: any) => {
+        topLossMakingBuyers: highRiskProfiles.slice(0, 5).map((p: HighRiskProfileItem) => {
           const loss = (p.returned * 150) + (p.returned * 25) - Math.round(p.spent * 0.35);
           return {
             phone: p.phone,
@@ -117,8 +144,8 @@ Audit after-sales buyer loss and provide policy enforcement directives.`;
       },
       source: 'heuristic_fallback',
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('API /api/ai/after-sales/customer-loss error:', err);
-    return NextResponse.json({ error: err.message || 'Internal error' }, { status: 500 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Internal error' }, { status: 500 });
   }
 }

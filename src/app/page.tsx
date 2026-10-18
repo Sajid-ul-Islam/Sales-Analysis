@@ -38,12 +38,12 @@ import {
   extractExchangesFromPathaoDelivery
 } from '@/lib/reconciliationEngine';
 import { exportReconciledExcel } from '@/lib/excelExport';
-import { loadSavedThemeSettings, saveThemeSettings, applyThemeToDocument } from '@/lib/themeManager';
+import { loadSavedThemeSettings, saveThemeSettings, applyThemeToDocument, BackgroundStyleId } from '@/lib/themeManager';
 import { loadAppSettings } from '@/lib/settingsStore';
 import { DateScope, filterOrdersByDateScope, CustomDateRange, getDynamicDatasetTitle } from '@/lib/dateFilter';
 import { RawOrderRow, AgenticActionProposal, DatasetSnapshot } from '@/types';
 import { applyAgenticAction, clearAgenticTags } from '@/lib/ai/agenticActions';
-import { RefreshCw, AlertCircle, CheckCircle2, UploadCloud, Database, MessageSquare, Bot, Sparkles } from 'lucide-react';
+import { RefreshCw, CheckCircle2, UploadCloud } from 'lucide-react';
 import {
   getCookie,
   setCookie,
@@ -207,9 +207,10 @@ export default function DashboardPage() {
         Boolean(savedTheme.darkModeCanvas);
       setIsDarkMode(isDark);
 
-      const handler = (e: any) => {
-        if (e.detail?.isDark !== undefined) {
-          setIsDarkMode(e.detail.isDark);
+      const handler = (e: Event) => {
+        const ce = e as CustomEvent<{ isDark?: boolean }>;
+        if (ce.detail?.isDark !== undefined) {
+          setIsDarkMode(ce.detail.isDark);
         }
       };
       window.addEventListener('deen-theme-changed', handler);
@@ -224,7 +225,7 @@ export default function DashboardPage() {
       const saved = loadSavedThemeSettings();
       const updated = {
         ...saved,
-        backgroundId: (nextMode ? 'dark-canvas' : 'super-white') as any,
+        backgroundId: (nextMode ? 'dark-canvas' : 'super-white') as BackgroundStyleId,
         darkModeCanvas: nextMode
       };
       saveThemeSettings(updated);
@@ -293,9 +294,10 @@ export default function DashboardPage() {
         metaAdCost: customMetaAdCost !== undefined ? customMetaAdCost : metaAdCost
       }, exchanges, pathaoDelivery);
       setResult(res);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Reconciliation execution error:', err);
-      setStatusMessage(`Engine error: ${err.message}`);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setStatusMessage(`Engine error: ${errMsg}`);
     }
   }, [rawOrders.length, insideDeliveryFee, outsideDeliveryFee, packagingCost, cogsPercent, exactTolerance, metaAdCost]);
 
@@ -383,9 +385,10 @@ export default function DashboardPage() {
         setDataSourceName('Ready for File Upload');
         setStatusMessage('Ready for file upload: drop store orders and Pathao delivery log into the dropzones below.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load sample dataset:', err);
-      setStatusMessage(`Error loading workspace dataset: ${err.message}`);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setStatusMessage(`Error loading workspace dataset: ${errMsg}`);
     } finally {
       setIsProcessing(false);
       setInitialLoading(false);
@@ -689,9 +692,10 @@ export default function DashboardPage() {
         }
       })
       .catch(() => {});
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('File reading failed:', err);
-      setStatusMessage(`Upload parsing error: ${err.message}`);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setStatusMessage(`Upload parsing error: ${errMsg}`);
     } finally {
       setIsProcessing(false);
     }
@@ -872,9 +876,10 @@ export default function DashboardPage() {
       setTimeout(() => {
         setStatusMessage('Excel reconciliation audit workbook (.xlsx) downloaded successfully.');
       }, 1200);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Reconciliation export error:', err);
-      setStatusMessage(`Excel export failed: ${err?.message || 'Please check console'}`);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setStatusMessage(`Excel export failed: ${errMsg || 'Please check console'}`);
     }
   };
 
@@ -1050,12 +1055,12 @@ export default function DashboardPage() {
           {/* Live Shipped & Orders Terminal Tab (DEEN-OPS) */}
           {activeTab === 'tabLiveOps' && (
             <LiveOpsTab
-              orders={rawOrders.length > 0 ? rawOrders : ((result?.reconciledOrders as any) || [])}
-              onSelectOrder={(orderId) => {
+              orders={rawOrders.length > 0 ? rawOrders : ((result?.reconciledOrders as unknown as RawOrderRow[]) || [])}
+              onSelectOrder={(_orderId) => {
                 setLedgerStatusFilter('ALL');
                 setActiveTab('tabOrders');
               }}
-              onRefreshLive={async (fetchedOrders?: RawOrderRow[], provenance?: any) => {
+              onRefreshLive={async (fetchedOrders?: RawOrderRow[], provenance?: DataProvenanceInfo) => {
                 if (fetchedOrders && fetchedOrders.length > 0) {
                   setRawOrders(fetchedOrders);
                   handleLiveSyncData('orders', fetchedOrders, provenance);
@@ -1173,7 +1178,7 @@ export default function DashboardPage() {
                           body: JSON.stringify({ limit: 50 })
                         });
                         const contentType = res.headers.get('content-type') || '';
-                        let data: any = null;
+                        let data: { success?: boolean; orders?: RawOrderRow[]; message?: string } | null = null;
                         if (contentType.includes('application/json')) {
                           data = await res.json().catch(() => null);
                         }
@@ -1184,8 +1189,9 @@ export default function DashboardPage() {
                         } else {
                           setStatusMessage(data?.message || 'Pathao cross-check completed with cached consignments.');
                         }
-                      } catch (e: any) {
-                        setStatusMessage(`Pathao sync notice: ${e?.message || 'Sync completed'}`);
+                      } catch (e: unknown) {
+                        const errMsg = e instanceof Error ? e.message : String(e);
+                        setStatusMessage(`Pathao sync notice: ${errMsg || 'Sync completed'}`);
                       } finally {
                         setIsProcessing(false);
                       }
@@ -1319,7 +1325,7 @@ export default function DashboardPage() {
             onClose={() => setIsCopilotOpen(false)}
             summary={result.summary}
             reconciliationResult={result}
-            liveOrders={rawOrders.length > 0 ? rawOrders : ((result?.reconciledOrders as any) || [])}
+            liveOrders={rawOrders.length > 0 ? rawOrders : ((result?.reconciledOrders as unknown as RawOrderRow[]) || [])}
             activeTab={activeTab}
             onApplyAgenticAction={handleApplyAgenticAction}
             onNavigateToTab={(targetTab) => handleSelectTab(targetTab)}

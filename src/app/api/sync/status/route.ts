@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getSecretsWithOverrides } from '@/lib/secrets';
-import { getPathaoToken, getPathaoStores } from '@/lib/pathaoClient';
+import { getSecretsWithOverrides, SecretsOverrides } from '@/lib/secrets';
+import { getPathaoToken, getPathaoStores, PathaoStore } from '@/lib/pathaoClient';
 import { testWooCommerceConnection } from '@/lib/woocommerceClient';
 import { testGA4Connection } from '@/lib/ga4Client';
 import { testMetaConnection } from '@/lib/metaClient';
@@ -8,16 +8,16 @@ import { validateApiRequest } from '@/lib/auth/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
-async function resolveStatus(overrides?: any) {
+async function resolveStatus(overrides?: SecretsOverrides) {
   const secrets = getSecretsWithOverrides(overrides);
 
   // Test Pathao
-  let pathaoStatus = {
+  const pathaoStatus = {
     configured: !!(secrets.pathao.client_id && secrets.pathao.username),
     connected: false,
     username: secrets.pathao.username,
     storesCount: 0,
-    stores: [] as any[],
+    stores: [] as { id: number | string; name: string; address?: string }[],
     message: '',
   };
 
@@ -27,15 +27,15 @@ async function resolveStatus(overrides?: any) {
       const stores = await getPathaoStores(overrides?.pathao);
       pathaoStatus.connected = true;
       pathaoStatus.storesCount = stores.length;
-      pathaoStatus.stores = stores.map((s: any) => ({
+      pathaoStatus.stores = stores.map((s: PathaoStore) => ({
         id: s.store_id,
         name: s.store_name,
         address: s.store_address,
       }));
       pathaoStatus.message = `Authenticated with Pathao Hermes API. ${stores.length} merchant stores verified.`;
     }
-  } catch (err: any) {
-    pathaoStatus.message = err?.message || 'Failed to authenticate with Pathao';
+  } catch (err: unknown) {
+    pathaoStatus.message = err instanceof Error ? err.message : 'Failed to authenticate with Pathao';
   }
 
   // Test WooCommerce
@@ -56,29 +56,29 @@ async function resolveStatus(overrides?: any) {
       statusCode: wcTest.status,
       message: wcTest.message,
     };
-  } catch (err: any) {
-    wcStatus.message = err?.message || 'Failed to connect to WooCommerce store';
+  } catch (err: unknown) {
+    wcStatus.message = err instanceof Error ? err.message : 'Failed to connect to WooCommerce store';
   }
 
   // Test GA4 & Meta in parallel
   const [ga4Status, metaStatus] = await Promise.all([
-    testGA4Connection().catch((err: any) => ({
+    testGA4Connection().catch((err: unknown) => ({
       connected: false,
       propertyId: secrets.ga4.property_id || '',
       clientEmail: secrets.gcp_service_account.client_email || '',
-      message: err?.message || 'GA4 connection test failed',
+      message: err instanceof Error ? err.message : 'GA4 connection test failed',
       latencyMs: 0,
     })),
     testMetaConnection({
       overrideToken: overrides?.meta?.access_token,
       overridePixelId: overrides?.meta?.pixel_id,
       overrideAdAccountId: overrides?.meta?.ad_account_id,
-    }).catch((err: any) => ({
+    }).catch((err: unknown) => ({
       connected: false,
       pixelId: secrets.meta.pixel_id || '',
       adAccountId: secrets.meta.ad_account_id || '',
       isTokenExpired: false,
-      message: err?.message || 'Meta connection test failed',
+      message: err instanceof Error ? err.message : 'Meta connection test failed',
       latencyMs: 0,
     })),
   ]);

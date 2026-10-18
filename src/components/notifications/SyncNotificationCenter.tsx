@@ -6,12 +6,10 @@ import {
   X,
   CheckCircle2,
   AlertTriangle,
-  RefreshCw,
   Truck,
   ArrowRight,
   Clock,
-  Trash2,
-  ExternalLink
+  Trash2
 } from 'lucide-react';
 import {
   SyncNotificationItem,
@@ -65,9 +63,10 @@ export function SyncNotificationCenter({
 
   // Listen for custom notifications across the app
   useEffect(() => {
-    const handleNotification = (e: any) => {
-      if (e.detail) {
-        const item: SyncNotificationItem = e.detail;
+    const handleNotification = (e: Event) => {
+      const customEvent = e as CustomEvent<SyncNotificationItem>;
+      if (customEvent.detail) {
+        const item: SyncNotificationItem = customEvent.detail;
 
         // Add to active floating toasts (auto-dismiss after 4.5s)
         setToasts((prev) => [item, ...prev.slice(0, 3)]);
@@ -107,8 +106,6 @@ export function SyncNotificationCenter({
       handleClose();
     }
   };
-
-  const unreadCount = toasts.length;
 
   return (
     <>

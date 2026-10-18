@@ -9,10 +9,11 @@ import {
   UnitEconomics,
   DeliveryCategory,
   CourierMismatchRecord,
-  ExchangedOrderRow
+  ExchangedOrderRow,
+  LocationType
 } from '@/types';
 import { classifyLocation } from './geo';
-import { OrderItemEntry, SubsetMatchResult } from './subsetSum';
+import { OrderItemEntry } from './subsetSum';
 import { matchPartialItemsWithAudit, AuditedSubsetMatchResult } from './subsetSumAuditor';
 import { assertNoDoubleCounting } from './accounting/accountingContract';
 
@@ -39,7 +40,7 @@ export interface ReconciliationResult {
 
 export type FulfillmentBranch = 'Online Store (Central Warehouse)' | 'Mirpur Outlet POS' | 'Mirpur Outlet' | 'Cumilla Branch' | 'Wari Branch' | 'Sylhet Branch' | 'Warehouse (Mirpur)';
 
-export function normalizeOrderId(raw: any): string {
+export function normalizeOrderId(raw: unknown): string {
   if (raw === null || raw === undefined) return '';
   let str = String(raw).trim();
   str = str.replace(/^["'\s]+|["'\s]+$/g, '');
@@ -49,18 +50,18 @@ export function normalizeOrderId(raw: any): string {
   return str.trim().replace(/^["'\s]+|["'\s]+$/g, '');
 }
 
-export function extractBaseOrderId(raw: any): string {
+export function extractBaseOrderId(raw: unknown): string {
   if (raw === null || raw === undefined) return '';
   const s = normalizeOrderId(raw);
   const m = s.match(/\d+/);
   return m ? m[0] : s;
 }
 
-export function detectFulfillmentBranch(rawId: any, note?: any, storeName?: any): {
+export function detectFulfillmentBranch(rawId: unknown, note?: unknown, storeName?: unknown): {
   branch: FulfillmentBranch;
   suffix: string;
 } {
-  let strId = String(rawId || '').trim().replace(/^["'\s]+|["'\s]+$/g, '');
+  const strId = String(rawId || '').trim().replace(/^["'\s]+|["'\s]+$/g, '');
   const strNote = String(note || '').trim().toLowerCase();
   const strStore = String(storeName || '').trim().toLowerCase();
 
@@ -109,7 +110,7 @@ export function detectFulfillmentBranch(rawId: any, note?: any, storeName?: any)
   return { branch: 'Online Store (Central Warehouse)', suffix: '' };
 }
 
-export function cleanPhoneNumber(raw: any): string {
+export function cleanPhoneNumber(raw: unknown): string {
   if (raw === null || raw === undefined) return '';
   let s = String(raw).trim().replace(/\.0$/, '');
   if (s.includes('*')) {
@@ -122,7 +123,7 @@ export function cleanPhoneNumber(raw: any): string {
   return s;
 }
 
-export function hasMultiParcelSuffix(note: any): boolean {
+export function hasMultiParcelSuffix(note: unknown): boolean {
   if (!note) return false;
   const str = String(note).trim();
   if (/\b\d+\s*[wcs]\b/i.test(str)) return true;
@@ -130,7 +131,7 @@ export function hasMultiParcelSuffix(note: any): boolean {
   return false;
 }
 
-export function parseExcelDate(val: any): Date | null {
+export function parseExcelDate(val: unknown): Date | null {
   if (!val) return null;
   if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
   if (typeof val === 'number') {
@@ -163,13 +164,13 @@ export function parseExcelDate(val: any): Date | null {
  * Dynamic Column Alias Resolver.
  * Automatically maps varying column headers across WooCommerce, Shopify, Steadfast, and Pathao.
  */
-function findCol(row: Record<string, any>, candidates: string[]): any {
+function findCol(row: Record<string, unknown>, candidates: string[]): string {
   const keys = Object.keys(row);
   for (const c of candidates) {
     const found = keys.find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === c.toLowerCase().replace(/[^a-z0-9]/g, ''));
-    if (found && row[found] !== undefined && row[found] !== null) return row[found];
+    if (found && row[found] !== undefined && row[found] !== null) return String(row[found]);
   }
-  return null;
+  return '';
 }
 
 export function classifyProductCategory(itemName: string, sku: string): string {
@@ -380,7 +381,7 @@ export function runReconciliationEngine(
   const pathaoDeliveryMap = new Map<string, Array<PathaoDeliveryEntry>>();
   const pathaoDeliveryPhoneMap = new Map<string, Array<PathaoDeliveryEntry>>();
   let pathaoTotalFee = 0;
-  let pathaoCollectedCod = 0;
+  let _pathaoCollectedCod = 0;
   let pathaoPaidReturnCod = 0;
   let pathaoDeliveryEntriesCount = 0;
 
@@ -390,11 +391,11 @@ export function runReconciliationEngine(
     if (!rawOid && !cons) continue;
 
     const status = String(findCol(r, ['orderstatus', 'deliverystatus', 'status']) || 'Delivered').trim();
-    const collected = parseFloat(findCol(r, ['collectedamount', 'collected']) || '0') || 0;
-    const collectable = parseFloat(findCol(r, ['collectableamount', 'amount', 'collectable']) || '0') || 0;
-    const totalFee = parseFloat(findCol(r, ['totalfee', 'fee', 'charge']) || '0') || 0;
-    const codFee = parseFloat(findCol(r, ['codfee']) || '0') || 0;
-    const deliveryFee = parseFloat(findCol(r, ['deliveryfee']) || '0') || 0;
+    const collected = parseFloat(String(findCol(r, ['collectedamount', 'collected']) || '0')) || 0;
+    const collectable = parseFloat(String(findCol(r, ['collectableamount', 'amount', 'collectable']) || '0')) || 0;
+    const totalFee = parseFloat(String(findCol(r, ['totalfee', 'fee', 'charge']) || '0')) || 0;
+    const codFee = parseFloat(String(findCol(r, ['codfee']) || '0')) || 0;
+    const deliveryFee = parseFloat(String(findCol(r, ['deliveryfee']) || '0')) || 0;
     const phone = cleanPhoneNumber(findCol(r, ['recipientphone', 'phone', 'contact']));
     const recipient = String(findCol(r, ['recipientname', 'name', 'customername']) || '').trim();
     const address = String(findCol(r, ['recipientaddress', 'address', 'destination']) || '').trim();
@@ -402,7 +403,7 @@ export function runReconciliationEngine(
     const orderType = String(findCol(r, ['ordertype', 'type']) || '').trim();
 
     pathaoTotalFee += totalFee;
-    pathaoCollectedCod += collected;
+    _pathaoCollectedCod += collected;
     if (totalFee > 0 || cons) pathaoDeliveryEntriesCount++;
 
     const cleanOid = normalizeOrderId(rawOid);
@@ -621,7 +622,7 @@ export function runReconciliationEngine(
     items: RawOrderRow[];
     orderTotalAmount: number;
     customerNote: string | null;
-    location: any;
+    location: LocationType;
     phone: string;
   }>();
 
@@ -1183,7 +1184,7 @@ export function runReconciliationEngine(
     }
   }
 
-  let grossOrders = uniqueOrders.size;
+  const grossOrders = uniqueOrders.size;
   let fullDeliveredOrders = 0;
   let partialOrders = 0;
   let fullReturnedOrders = 0;

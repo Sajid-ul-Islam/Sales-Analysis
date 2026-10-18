@@ -12,9 +12,6 @@ import {
   AlertTriangle,
   PackageCheck,
   RotateCcw,
-  Tag,
-  Filter,
-  DollarSign,
   Eye,
   ArrowUpRight
 } from 'lucide-react';
@@ -409,7 +406,7 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
             <span className="text-[11px] text-slate-500 font-medium">Sort By:</span>
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as 'returnRate' | 'deliveredRevenue' | 'returnedQty' | 'totalLoss' | 'grossQty')}
               className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 font-medium focus:outline-none focus:border-primary focus:bg-white"
             >
               <option value="returnedQty">Highest Returned Units</option>

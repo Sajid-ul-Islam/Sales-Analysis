@@ -20,7 +20,7 @@ export interface DataProvenanceInfo {
 /**
  * Audits a dataset to detect unmasked customer PII (real phone numbers, full names, addresses, emails).
  */
-export function auditDatasetPII(records: any[]): PiiAuditReport {
+export function auditDatasetPII(records: unknown[]): PiiAuditReport {
   if (!Array.isArray(records)) {
     return {
       hasPII: false,
@@ -38,11 +38,12 @@ export function auditDatasetPII(records: any[]): PiiAuditReport {
 
   for (const row of records) {
     if (!row || typeof row !== 'object') continue;
+    const rowObj = row as Record<string, unknown>;
     let rowHasPii = false;
-    const orderId = String(row['Order ID'] || row.orderId || row.id || 'unknown');
+    const orderId = String(rowObj['Order ID'] || rowObj.orderId || rowObj.id || 'unknown');
 
     // Check Phone
-    const phoneVal = row['Phone (Shipping)'] || row.Phone || row.phone || row['Customer Phone'];
+    const phoneVal = rowObj['Phone (Shipping)'] || rowObj.Phone || rowObj.phone || rowObj['Customer Phone'];
     if (phoneVal && phoneRegex.test(String(phoneVal))) {
       detectedFieldSet.add('Phone');
       rowHasPii = true;
@@ -52,7 +53,7 @@ export function auditDatasetPII(records: any[]): PiiAuditReport {
     }
 
     // Check Address
-    const addrVal = row['Address 1&2 (Shipping)'] || row.address || row.Address;
+    const addrVal = rowObj['Address 1&2 (Shipping)'] || rowObj.address || rowObj.Address;
     if (addrVal && String(addrVal).length > 15 && !String(addrVal).includes('[REDACTED')) {
       detectedFieldSet.add('Address');
       rowHasPii = true;
@@ -62,14 +63,14 @@ export function auditDatasetPII(records: any[]): PiiAuditReport {
     }
 
     // Check Full Name
-    const nameVal = row['Full Name (Shipping)'] || row['Customer Name'] || row.customerName;
+    const nameVal = rowObj['Full Name (Shipping)'] || rowObj['Customer Name'] || rowObj.customerName;
     if (nameVal && typeof nameVal === 'string' && nameVal.trim().length > 3 && !nameVal.includes('***')) {
       detectedFieldSet.add('Customer Name');
       rowHasPii = true;
     }
 
     // Check Email
-    const emailVal = row['Customer Email'] || row['Billing Email'] || row.Email || row.email;
+    const emailVal = rowObj['Customer Email'] || rowObj['Billing Email'] || rowObj.Email || rowObj.email;
     if (emailVal && typeof emailVal === 'string' && emailVal.includes('@') && !emailVal.includes('***')) {
       detectedFieldSet.add('Email');
       rowHasPii = true;
@@ -96,11 +97,11 @@ export function auditDatasetPII(records: any[]): PiiAuditReport {
  * Anonymizes an operational dataset for safe public demonstrations or portfolio showcases.
  * Preserves financial amounts, order IDs, SKUs, and dates for algorithm verification.
  */
-export function anonymizeDataset(records: any[]): any[] {
+export function anonymizeDataset<T extends Record<string, unknown>>(records: T[]): T[] {
   if (!Array.isArray(records)) return [];
-  return records.map((row, idx) => {
+  return records.map((row) => {
     if (!row || typeof row !== 'object') return row;
-    const clone = { ...row };
+    const clone = { ...row } as Record<string, unknown>;
 
     // Pseudonymize customer name
     if ('Full Name (Shipping)' in clone) {
@@ -110,7 +111,7 @@ export function anonymizeDataset(records: any[]): any[] {
       clone['Customer Name'] = maskCustomerName(clone['Customer Name']);
     }
     if ('customerName' in clone) {
-      clone.customerName = maskCustomerName(clone.customerName);
+      clone['customerName'] = maskCustomerName(clone['customerName']);
     }
 
     // Pseudonymize phone
@@ -118,19 +119,19 @@ export function anonymizeDataset(records: any[]): any[] {
       clone['Phone (Shipping)'] = maskPhoneNumber(clone['Phone (Shipping)']);
     }
     if ('Phone' in clone) {
-      clone.Phone = maskPhoneNumber(clone.Phone);
+      clone['Phone'] = maskPhoneNumber(clone['Phone']);
     }
     if ('phone' in clone) {
-      clone.phone = maskPhoneNumber(clone.phone);
+      clone['phone'] = maskPhoneNumber(clone['phone']);
     }
 
     // Pseudonymize address
-    const city = clone['City (Shipping)'] || clone.City || clone.city || '';
+    const city = String(clone['City (Shipping)'] || clone['City'] || clone['city'] || '');
     if ('Address 1&2 (Shipping)' in clone) {
       clone['Address 1&2 (Shipping)'] = maskAddress(clone['Address 1&2 (Shipping)'], city);
     }
     if ('Address' in clone) {
-      clone.Address = maskAddress(clone.Address, city);
+      clone['Address'] = maskAddress(clone['Address'], city);
     }
 
     // Pseudonymize email
@@ -138,20 +139,20 @@ export function anonymizeDataset(records: any[]): any[] {
       clone['Customer Email'] = maskEmail(clone['Customer Email']);
     }
     if ('Email' in clone) {
-      clone.Email = maskEmail(clone.Email);
+      clone['Email'] = maskEmail(clone['Email']);
     }
     if ('email' in clone) {
-      clone.email = maskEmail(clone.email);
+      clone['email'] = maskEmail(clone['email']);
     }
 
     // Mask sensitive customer notes
     if ('Customer Note' in clone && typeof clone['Customer Note'] === 'string') {
-      clone['Customer Note'] = clone['Customer Note']
+      clone['Customer Note'] = (clone['Customer Note'] as string)
         .replace(/\b01[3-9]\d{8}\b/g, '[PHONE REDACTED]')
         .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL REDACTED]');
     }
 
-    return clone;
+    return clone as T;
   });
 }
 

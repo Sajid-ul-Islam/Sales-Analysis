@@ -44,19 +44,19 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
     return list.sort(compareOrdersByNumber);
   }, [returnedItems, searchTerm, typeFilter, territoryFilter]);
 
-  const totalCount = returnedItems.length;
+  const _totalCount = returnedItems.length;
   const totalValue = useMemo(() => returnedItems.reduce((acc, i) => acc + i.returnedValue, 0), [returnedItems]);
   const totalUnits = useMemo(() => returnedItems.reduce((acc, i) => acc + i.quantity, 0), [returnedItems]);
 
   const fullItems = useMemo(() => returnedItems.filter(i => i.returnSource.includes('Full Return')), [returnedItems]);
   const fullCount = fullItems.length;
-  const fullValue = useMemo(() => fullItems.reduce((acc, i) => acc + i.returnedValue, 0), [fullItems]);
+  const _fullValue = useMemo(() => fullItems.reduce((acc, i) => acc + i.returnedValue, 0), [fullItems]);
   const fullUnits = useMemo(() => fullItems.reduce((acc, i) => acc + i.quantity, 0), [fullItems]);
   const fullOrdersCount = useMemo(() => new Set(fullItems.map(i => i.orderId)).size, [fullItems]);
 
   const partialItems = useMemo(() => returnedItems.filter(i => i.returnSource.includes('Partial Order')), [returnedItems]);
   const partialCount = partialItems.length;
-  const partialValue = useMemo(() => partialItems.reduce((acc, i) => acc + i.returnedValue, 0), [partialItems]);
+  const _partialValue = useMemo(() => partialItems.reduce((acc, i) => acc + i.returnedValue, 0), [partialItems]);
   const partialUnits = useMemo(() => partialItems.reduce((acc, i) => acc + i.quantity, 0), [partialItems]);
   const partialOrdersCount = useMemo(() => new Set(partialItems.map(i => i.orderId)).size, [partialItems]);
 
@@ -221,7 +221,7 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
           <div className="flex items-center gap-2">
             <select
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value as any)}
+              onChange={(e) => setTypeFilter(e.target.value as 'ALL' | 'FULL' | 'PAID' | 'NON_PAID' | 'PARTIAL')}
               className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
             >
               <option value="ALL">All Return Types</option>

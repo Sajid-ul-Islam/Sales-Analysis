@@ -585,7 +585,15 @@ export function aggregateDivisionMetrics(orders: ReconciledOrderRow[]): {
   });
 
   // 4. Compile division metrics list
-  const divisions: DivisionMetric[] = bangladeshDivisionsData.map((d: any) => {
+  const divisions: DivisionMetric[] = (bangladeshDivisionsData as Array<{
+    id: string;
+    name: string;
+    nameBn?: string;
+    color?: string;
+    centerX?: number;
+    centerY?: number;
+    d?: string;
+  }>).map((d) => {
     const stats = divStats.get(d.name) || {
       dispatchedOrders: 0,
       deliveredOrders: 0,
@@ -615,11 +623,11 @@ export function aggregateDivisionMetrics(orders: ReconciledOrderRow[]): {
     return {
       id: d.id,
       name: d.name as BangladeshDivision,
-      nameBn: d.nameBn,
-      color: d.color,
-      centerX: d.centerX,
-      centerY: d.centerY,
-      svgPath: d.d,
+      nameBn: d.nameBn || '',
+      color: d.color || '#0284c7',
+      centerX: d.centerX || 0,
+      centerY: d.centerY || 0,
+      svgPath: d.d || '',
       dispatchedOrders: stats.dispatchedOrders,
       deliveredOrders: stats.deliveredOrders,
       partialOrders: stats.partialOrders,
@@ -632,7 +640,6 @@ export function aggregateDivisionMetrics(orders: ReconciledOrderRow[]): {
       revenueShare: Math.round(revenueShare * 10) / 10,
       aov: Math.round(aov),
       topDistricts,
-      branches: d.branches
     };
   });
 

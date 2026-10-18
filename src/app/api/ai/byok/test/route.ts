@@ -73,12 +73,12 @@ export async function POST(req: NextRequest) {
       latencyMs,
       message: `Connected successfully to ${provider.toUpperCase()} (${model}) in ${latencyMs}ms!`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('BYOK test API error:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'An unexpected error occurred while verifying the API key.',
+        error: error instanceof Error ? error.message : 'An unexpected error occurred while verifying the API key.',
       },
       { status: 500 }
     );

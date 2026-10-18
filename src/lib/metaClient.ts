@@ -156,13 +156,13 @@ export async function testMetaConnection(optionsOrToken?: string | {
       message: `Verified connection with Meta Pixel (#${pixelId}) & Ad Account (${accountName}).`,
       latencyMs: Date.now() - startTime,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     return {
       connected: false,
       pixelId,
       adAccountId,
       isTokenExpired: false,
-      message: err?.message || 'Network error connecting to Meta Graph API.',
+      message: err instanceof Error ? err.message : 'Network error connecting to Meta Graph API.',
       latencyMs: Date.now() - startTime,
     };
   }
@@ -176,7 +176,7 @@ export async function fetchFullMetaAnalytics(
   overrideToken?: string,
   configuredMetaCost?: number
 ): Promise<MetaFullReport> {
-  const startTime = Date.now();
+  const _startTime = Date.now();
   const secrets = getSecretsConfig();
   const pixelId = secrets.meta.pixel_id || '0000000000000000';
   const adAccountId = normalizeAdAccountId(secrets.meta.ad_account_id || 'act_0000000000000000');
@@ -194,7 +194,7 @@ export async function fetchFullMetaAnalytics(
       const insightsData = await insightsRes.json();
       const row = insightsData.data?.[0];
 
-      let spend = parseFloat(row?.spend || '0');
+      const spend = parseFloat(row?.spend || '0');
       const impressions = parseInt(row?.impressions || '0', 10);
       const clicks = parseInt(row?.clicks || '0', 10);
       const ctrPercent = parseFloat(row?.ctr || '0');
@@ -206,7 +206,7 @@ export async function fetchFullMetaAnalytics(
       let reportedRevenue = 0;
       if (Array.isArray(row?.actions)) {
         const purchaseAction = row.actions.find(
-          (a: any) => a.action_type === 'purchase' || a.action_type === 'omni_purchase'
+          (a: { action_type?: string; value?: string }) => a.action_type === 'purchase' || a.action_type === 'omni_purchase'
         );
         purchases = purchaseAction ? parseInt(purchaseAction.value || '0', 10) : 0;
       }
@@ -223,7 +223,7 @@ export async function fetchFullMetaAnalytics(
         `https://graph.facebook.com/v19.0/${adAccountId}/campaigns?fields=id,name,status,objective,daily_budget&limit=6&access_token=${token}`
       );
       const campData = await campaignsRes.json();
-      const campaigns: MetaCampaignSummary[] = (campData.data || []).map((c: any) => ({
+      const campaigns: MetaCampaignSummary[] = (campData.data || []).map((c: { id: string; name: string; status?: string; objective?: string; daily_budget?: string }) => ({
         id: c.id,
         name: c.name,
         status: c.status || 'ACTIVE',
@@ -240,7 +240,7 @@ export async function fetchFullMetaAnalytics(
       const pixelStatsRes = await fetch(
         `https://graph.facebook.com/v19.0/${pixelId}/stats?access_token=${token}`
       );
-      const pixelStatsData = await pixelStatsRes.json();
+      const _pixelStatsData = await pixelStatsRes.json();
 
       const pixelEvents: MetaPixelEventStat[] = [
         { event: 'PageView', label: '1. Store Visits (PageView)', count: impressions > 0 ? Math.round(impressions * 0.45) : 184200 },
@@ -272,7 +272,7 @@ export async function fetchFullMetaAnalytics(
         campaigns,
         isBenchmark: false,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn('Live Meta query failed, falling back to benchmark analytics:', err);
     }
   }

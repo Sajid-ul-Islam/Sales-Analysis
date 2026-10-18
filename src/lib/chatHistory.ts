@@ -33,7 +33,7 @@ export function loadSavedChatHistory(): CopilotChatMessage[] {
     if (isLegacy) {
       try {
         localStorage.removeItem(LEGACY_STORAGE_KEY);
-      } catch (_) {}
+      } catch {}
     }
 
     const sanitized = parsed

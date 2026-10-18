@@ -9,23 +9,38 @@ import {
   Copy,
   Check,
   RotateCcw,
-  AlertTriangle,
   ChevronDown,
   ChevronUp,
   Truck,
-  ExternalLink,
   Key
 } from 'lucide-react';
 import { loadBYOKConfig, BYOKConfig } from '@/lib/byok';
 import { BYOKModal } from '@/components/ai/BYOKModal';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 
+interface HighPriorityClaim {
+  orderId: string | number;
+  consignmentId: string;
+  actionNeeded: string;
+  financialLoss?: number;
+  discrepancyType?: string;
+}
+
+interface CourierAuditData {
+  executiveAuditVerdict?: string;
+  totalLeakageAmount?: number;
+  unremittedCodCount?: number;
+  ghostReturnCount?: number;
+  claimDossierText?: string;
+  highPriorityClaims?: HighPriorityClaim[];
+}
+
 interface AICourierDisputeCardProps {
   mismatches: CourierMismatchRecord[];
 }
 
 export function AICourierDisputeCard({ mismatches }: AICourierDisputeCardProps) {
-  const [audit, setAudit] = useState<any>(null);
+  const [audit, setAudit] = useState<CourierAuditData | null>(null);
   const [loading, setLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -57,9 +72,10 @@ export function AICourierDisputeCard({ mismatches }: AICourierDisputeCardProps) 
 
   // Listen for BYOK updates across components
   useEffect(() => {
-    const handleBYOKUpdate = (e: any) => {
-      if (e.detail) {
-        setByokConfig(e.detail);
+    const handleBYOKUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<BYOKConfig>;
+      if (customEvent.detail) {
+        setByokConfig(customEvent.detail);
       }
     };
     window.addEventListener('deen_byok_updated', handleBYOKUpdate);
@@ -285,7 +301,7 @@ export function AICourierDisputeCard({ mismatches }: AICourierDisputeCardProps) 
                 <span className="text-[10px] text-slate-400">Showing top {audit.highPriorityClaims.length}</span>
               </div>
               <div className="divide-y divide-slate-100 text-xs">
-                {audit.highPriorityClaims.map((claim: any, cIdx: number) => (
+                {audit.highPriorityClaims.map((claim: HighPriorityClaim, cIdx: number) => (
                   <div key={cIdx} className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/70">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <Truck className="w-4 h-4 text-slate-400 shrink-0" />

@@ -6,9 +6,11 @@ import { cleanCustomerPhone } from './woocommerceClient';
  * Natural numerical order comparator for sorting orders.
  * Orders like "17263", "17263 c", "17264", "D-17265" sort in natural numerical order.
  */
-export function compareOrdersByNumber(a: any, b: any): number {
-  const idA = String(a?.['Order ID'] || a?.orderId || a?.orderNumber || a?.['WooCommerce Order #'] || a?.id || '').trim();
-  const idB = String(b?.['Order ID'] || b?.orderId || b?.orderNumber || b?.['WooCommerce Order #'] || b?.id || '').trim();
+export function compareOrdersByNumber(a: unknown, b: unknown): number {
+  const rowA = a as Record<string, unknown> | null;
+  const rowB = b as Record<string, unknown> | null;
+  const idA = String(rowA?.['Order ID'] || rowA?.orderId || rowA?.orderNumber || rowA?.['WooCommerce Order #'] || rowA?.id || '').trim();
+  const idB = String(rowB?.['Order ID'] || rowB?.orderId || rowB?.orderNumber || rowB?.['WooCommerce Order #'] || rowB?.id || '').trim();
 
   const numA = parseInt(idA.replace(/\D/g, ''), 10);
   const numB = parseInt(idB.replace(/\D/g, ''), 10);
@@ -23,20 +25,23 @@ export function compareOrdersByNumber(a: any, b: any): number {
 /**
  * Extracts the full, unmasked customer name for export manifests.
  */
-export function getExportCustomerName(o: any): string {
-  if (!o) return 'Customer';
+export function getExportCustomerName(o: unknown): string {
+  if (!o || typeof o !== 'object') return 'Customer';
+  const obj = o as Record<string, unknown>;
+  const billing = obj.billing as Record<string, unknown> | undefined;
+  const shipping = obj.shipping as Record<string, unknown> | undefined;
   const candidates = [
-    o.rawCustomerName,
-    o['Customer Name'],
-    o.customerName,
-    o['Full Name (Shipping)'],
-    o['Billing Name'],
-    o.recipientName,
-    o['Recipient Name'],
-    o.billing?.first_name ? `${o.billing.first_name} ${o.billing.last_name || ''}`.trim() : undefined,
-    o.shipping?.first_name ? `${o.shipping.first_name} ${o.shipping.last_name || ''}`.trim() : undefined,
-    o.Name,
-    o.name,
+    obj.rawCustomerName,
+    obj['Customer Name'],
+    obj.customerName,
+    obj['Full Name (Shipping)'],
+    obj['Billing Name'],
+    obj.recipientName,
+    obj['Recipient Name'],
+    billing?.first_name ? `${billing.first_name} ${billing.last_name || ''}`.trim() : undefined,
+    shipping?.first_name ? `${shipping.first_name} ${shipping.last_name || ''}`.trim() : undefined,
+    obj.Name,
+    obj.name,
   ];
 
   // 1. Prefer candidate without mask asterisks or redaction tokens
@@ -63,20 +68,23 @@ export function getExportCustomerName(o: any): string {
 /**
  * Extracts the full, unmasked 11-digit phone number for export manifests.
  */
-export function getExportPhoneNumber(o: any): string {
-  if (!o) return '';
+export function getExportPhoneNumber(o: unknown): string {
+  if (!o || typeof o !== 'object') return '';
+  const obj = o as Record<string, unknown>;
+  const billing = obj.billing as Record<string, unknown> | undefined;
+  const shipping = obj.shipping as Record<string, unknown> | undefined;
   const candidates = [
-    o.rawPhone,
-    o.formattedPhone,
-    o.Phone,
-    o.phone,
-    o['Phone (Shipping)'],
-    o['Billing Phone'],
-    o.recipientPhone,
-    o['Recipient Phone'],
-    o.billing?.phone,
-    o.shipping?.phone,
-    o.contact,
+    obj.rawPhone,
+    obj.formattedPhone,
+    obj.Phone,
+    obj.phone,
+    obj['Phone (Shipping)'],
+    obj['Billing Phone'],
+    obj.recipientPhone,
+    obj['Recipient Phone'],
+    billing?.phone,
+    shipping?.phone,
+    obj.contact,
   ];
 
   // 1. Prefer unmasked candidate
@@ -349,8 +357,9 @@ function saveWorkbook(wb: XLSX.WorkBook, filename: string) {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     });
 
-    if ((window.navigator as any)?.msSaveOrOpenBlob) {
-      (window.navigator as any).msSaveOrOpenBlob(blob, filename);
+    const nav = window.navigator as unknown as { msSaveOrOpenBlob?: (blob: Blob, defaultName?: string) => boolean };
+    if (nav?.msSaveOrOpenBlob) {
+      nav.msSaveOrOpenBlob(blob, filename);
       return;
     }
 

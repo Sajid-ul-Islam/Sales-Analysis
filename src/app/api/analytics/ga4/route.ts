@@ -36,9 +36,10 @@ export async function POST(request: NextRequest) {
     const range = body.range || '30d';
     const report = await fetchFullGA4Analytics(range);
     return NextResponse.json(report);
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to process GA4 request';
     return NextResponse.json(
-      { success: false, error: err?.message || 'Failed to process GA4 request' },
+      { success: false, error: errorMsg },
       { status: 500 }
     );
   }

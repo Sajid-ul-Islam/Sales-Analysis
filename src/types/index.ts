@@ -3,7 +3,7 @@ export type LocationType = 'Inside Dhaka' | 'Outside Dhaka' | 'Outlet / POS';
 export type DeliveryCategory = 'DELIVERED' | 'PARTIAL' | 'FULL_RETURN' | 'EXCHANGE';
 
 export interface RawOrderRow {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ReconciledOrderRow {

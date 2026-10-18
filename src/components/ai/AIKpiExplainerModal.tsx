@@ -4,7 +4,6 @@ import React, { useMemo } from 'react';
 import {
   X,
   Sparkles,
-  ArrowRight,
   RotateCcw,
   PackageCheck,
   ShoppingBag,
@@ -12,14 +11,9 @@ import {
   RefreshCw,
   CircleDollarSign,
   Truck,
-  Compass,
   CreditCard,
   AlertTriangle,
-  ExternalLink,
   Tag,
-  CheckCircle2,
-  TrendingDown,
-  TrendingUp,
   MapPin,
   Store,
   Layers
@@ -70,8 +64,6 @@ export function AIKpiExplainerModal({
   onAskAi,
   onExecuteAgenticAction,
 }: AIKpiExplainerModalProps) {
-  if (!isOpen || !kpiType) return null;
-
   // 1. Deterministic Metrics Computation
   const metrics = useMemo(() => {
     // Branch distribution
@@ -482,6 +474,8 @@ export function AIKpiExplainerModal({
       }
     }
   }, [kpiType, s, orders, metrics]);
+
+  if (!isOpen || !kpiType) return null;
 
   const HeroIcon = content.heroIcon;
 

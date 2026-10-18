@@ -52,10 +52,10 @@ export async function saveDatasetToLocalDisk(
       body: JSON.stringify(dataset),
     });
     return await res.json();
-  } catch (err: any) {
+  } catch (err: unknown) {
     return {
       success: false,
-      message: err?.message || 'Failed to communicate with save endpoint',
+      message: err instanceof Error ? err.message : 'Failed to communicate with save endpoint',
     };
   }
 }

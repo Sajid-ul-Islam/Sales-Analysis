@@ -214,7 +214,7 @@ const STORAGE_KEY = 'deen_byok_config_v1';
  */
 function getDeviceSalt(): string {
   if (typeof window === 'undefined') return 'deen_server_salt_fallback';
-  const nav = window.navigator || {} as any;
+  const nav = window.navigator || {} as Navigator;
   return `${window.location.origin || 'deen'}|${(nav.userAgent || '').slice(0, 32)}|${nav.language || 'en'}`;
 }
 

@@ -146,8 +146,9 @@ async function checkDistributedRateLimit(
         isDistributed: true,
       };
     }
-  } catch (err: any) {
-    console.warn(`[RateLimiter] Distributed rate check failed (${err.message}). Using local fallback.`);
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.warn(`[RateLimiter] Distributed rate check failed (${errMsg}). Using local fallback.`);
   }
 
   return checkLocalRateLimit(key, limit, windowMs);

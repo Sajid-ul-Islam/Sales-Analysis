@@ -263,31 +263,35 @@ export function getSecretsConfig(): SecretsConfig {
             }
 
             if (currentSection === 'woocommerce') {
-              const current = (config.woocommerce as any)[key];
+              const sec = config.woocommerce as Record<string, string | undefined>;
+              const current = sec[key];
               if (!current || current === 'https://deencommerce.com') {
-                (config.woocommerce as any)[key] = val;
+                sec[key] = val;
               }
             } else if (currentSection === 'pathao') {
-              const current = (config.pathao as any)[key];
+              const sec = config.pathao as Record<string, string | undefined>;
+              const current = sec[key];
               if (!current || current === 'https://api-hermes.pathao.com') {
-                (config.pathao as any)[key] = val;
+                sec[key] = val;
               }
             } else if (currentSection === 'llm') {
-              const current = (config.llm as any)[key];
+              const sec = config.llm as Record<string, string | undefined>;
+              const current = sec[key];
               if (!current) {
-                (config.llm as any)[key] = val;
+                sec[key] = val;
               }
             } else if (currentSection === 'ga4') {
               if (key === 'property_id' && !config.ga4.property_id) {
                 config.ga4.property_id = normalizeGa4PropertyId(val);
               }
             } else if (currentSection === 'gcp_service_account') {
+              const sec = config.gcp_service_account as Record<string, string | undefined>;
               if (key === 'private_key') {
                 if (!config.gcp_service_account.private_key) {
                   config.gcp_service_account.private_key = normalizePrivateKey(val);
                 }
-              } else if (!(config.gcp_service_account as any)[key]) {
-                (config.gcp_service_account as any)[key] = val;
+              } else if (!sec[key]) {
+                sec[key] = val;
               }
             } else if (currentSection === 'meta') {
               if (key === 'pixel_id' && !config.meta.pixel_id) {
@@ -309,16 +313,18 @@ export function getSecretsConfig(): SecretsConfig {
   return config;
 }
 
-/**
- * Returns the effective secrets configuration by merging server environment defaults
- * with optional dynamic client overrides (e.g. from Settings tab or request payload).
- */
-export function getSecretsWithOverrides(overrides?: {
+export type SecretsOverrides = {
   woocommerce?: Partial<SecretsConfig['woocommerce']>;
   pathao?: Partial<SecretsConfig['pathao']>;
   ga4?: Partial<SecretsConfig['ga4']>;
   meta?: Partial<SecretsConfig['meta']>;
-}): SecretsConfig {
+};
+
+/**
+ * Returns the effective secrets configuration by merging server environment defaults
+ * with optional dynamic client overrides (e.g. from Settings tab or request payload).
+ */
+export function getSecretsWithOverrides(overrides?: SecretsOverrides): SecretsConfig {
   const base = getSecretsConfig();
   if (!overrides) return base;
 

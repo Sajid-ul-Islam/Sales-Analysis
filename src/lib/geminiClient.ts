@@ -3,15 +3,17 @@ import { getSecretsConfig } from './secrets';
 
 let cachedGeminiClient: GoogleGenAI | null = null;
 
+export type AIProvider = 'gemini' | 'openai' | 'groq' | 'anthropic' | 'openrouter';
+
 export interface AIGenerationOptions {
   prompt: string;
   systemInstruction?: string;
   temperature?: number;
   model?: string;
   responseMimeType?: string;
-  responseSchema?: any;
+  responseSchema?: Record<string, unknown>;
   byokApiKey?: string;
-  byokProvider?: 'gemini' | 'openai' | 'groq' | 'anthropic' | 'openrouter';
+  byokProvider?: AIProvider;
   byokModel?: string;
 }
 
@@ -107,7 +109,7 @@ export async function generateAICompletion(options: AIGenerationOptions): Promis
       if (!ai) return null;
 
       const modelName = options.byokModel || options.model || 'gemini-2.5-flash';
-      const config: any = {
+      const config: Record<string, unknown> = {
         temperature: options.temperature ?? 0.2,
       };
 
@@ -144,13 +146,13 @@ export async function generateAICompletion(options: AIGenerationOptions): Promis
 
       const modelName = options.byokModel || options.model || defaultModel;
 
-      const messages: any[] = [];
+      const messages: Array<{ role: string; content: string }> = [];
       if (options.systemInstruction) {
         messages.push({ role: 'system', content: options.systemInstruction });
       }
       messages.push({ role: 'user', content: options.prompt });
 
-      const requestBody: any = {
+      const requestBody: Record<string, unknown> = {
         model: modelName,
         messages,
         temperature: options.temperature ?? 0.2,
@@ -181,7 +183,7 @@ export async function generateAICompletion(options: AIGenerationOptions): Promis
 
     if (provider === 'anthropic') {
       const modelName = options.byokModel || options.model || 'claude-3-5-sonnet-20241022';
-      const requestBody: any = {
+      const requestBody: Record<string, unknown> = {
         model: modelName,
         max_tokens: 1500,
         messages: [{ role: 'user', content: options.prompt }],

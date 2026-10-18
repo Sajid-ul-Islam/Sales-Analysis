@@ -18,9 +18,6 @@ import {
   Bot,
   User,
   RotateCcw,
-  TrendingUp,
-  AlertTriangle,
-  Compass,
   ArrowRight,
   Key,
   Download,
@@ -86,7 +83,7 @@ export function CopilotDrawer({
       ? liveOrders
       : (reconciliationResult?.reconciledOrders || []);
 
-    const liveOps = orderPool.length > 0 ? computeLiveOpsSlice(orderPool) : undefined;
+    const liveOps = orderPool.length > 0 ? computeLiveOpsSlice(orderPool as unknown as (Record<string, unknown> | RawOrderRow)[]) : undefined;
 
     if (!reconciliationResult && !liveOps) return undefined;
 
@@ -140,9 +137,10 @@ export function CopilotDrawer({
 
   // Listen for BYOK updates across components
   useEffect(() => {
-    const handleBYOKUpdate = (e: any) => {
-      if (e.detail) {
-        setByokConfig(e.detail);
+    const handleBYOKUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<BYOKConfig>;
+      if (customEvent.detail) {
+        setByokConfig(customEvent.detail);
       }
     };
     window.addEventListener('deen_byok_updated', handleBYOKUpdate);
@@ -207,7 +205,7 @@ export function CopilotDrawer({
       const finalMessages = [...updatedWithUser, botMsg];
       setMessages(finalMessages);
       saveChatHistory(finalMessages);
-    } catch (err: any) {
+    } catch (_err: unknown) {
       const errMsg: CopilotChatMessage = {
         id: `bot-err-${Date.now()}`,
         sender: 'assistant',

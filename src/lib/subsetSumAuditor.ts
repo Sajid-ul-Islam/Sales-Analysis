@@ -1,6 +1,5 @@
 import {
   OrderItemEntry,
-  UnitItemAssignment,
   SubsetMatchResult,
   matchPartialItemsAdvanced,
 } from './subsetSum';
@@ -61,9 +60,6 @@ export function matchPartialItemsWithAudit(
     }
   });
 
-  const totalProductCost = units.reduce((sum, u) => sum + u.cost, 0);
-  const insideFee = customInsideFee !== undefined ? customInsideFee : 50;
-  const outsideFee = customOutsideFee !== undefined ? customOutsideFee : 90;
   const tol = customTolerance !== undefined ? customTolerance : 2.0;
 
   // Detect distinct subsets that match the target within tolerance

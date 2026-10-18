@@ -3,14 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { CustomerRiskProfile } from '@/types';
 import {
-  ShieldAlert,
   Coins,
   RotateCcw,
   AlertTriangle,
   UserX,
   ChevronDown,
   ChevronUp,
-  CheckCircle2,
   Lock,
   Key
 } from 'lucide-react';
@@ -18,12 +16,28 @@ import { loadBYOKConfig, BYOKConfig } from '@/lib/byok';
 import { BYOKModal } from '@/components/ai/BYOKModal';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 
+interface LossMakingBuyer {
+  phone: string;
+  customerName: string;
+  returnRate: number;
+  policyRecommendation: string;
+  courierLossAmount?: number;
+  netFinancialLoss?: number;
+}
+
+interface CustomerLossData {
+  executiveAuditSummary?: string;
+  totalReverseLogisticsWasted?: number;
+  chronicReturnerCount?: number;
+  topLossMakingBuyers?: LossMakingBuyer[];
+}
+
 interface AICustomerLossCardProps {
   profiles: CustomerRiskProfile[];
 }
 
 export function AICustomerLossCard({ profiles }: AICustomerLossCardProps) {
-  const [audit, setAudit] = useState<any>(null);
+  const [audit, setAudit] = useState<CustomerLossData | null>(null);
   const [loading, setLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
   const [byokConfig, setByokConfig] = useState<BYOKConfig>(() => loadBYOKConfig());
@@ -53,9 +67,10 @@ export function AICustomerLossCard({ profiles }: AICustomerLossCardProps) {
 
   // Listen for BYOK updates across components
   useEffect(() => {
-    const handleBYOKUpdate = (e: any) => {
-      if (e.detail) {
-        setByokConfig(e.detail);
+    const handleBYOKUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<BYOKConfig>;
+      if (customEvent.detail) {
+        setByokConfig(customEvent.detail);
       }
     };
     window.addEventListener('deen_byok_updated', handleBYOKUpdate);
@@ -234,7 +249,7 @@ export function AICustomerLossCard({ profiles }: AICustomerLossCardProps) {
                 <span className="text-[10px] text-slate-400">Enforce Advance Payment</span>
               </div>
               <div className="divide-y divide-slate-100 text-xs">
-                {audit.topLossMakingBuyers.map((buyer: any, bIdx: number) => (
+                {audit.topLossMakingBuyers.map((buyer: LossMakingBuyer, bIdx: number) => (
                   <div key={bIdx} className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/70">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-7 h-7 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0">

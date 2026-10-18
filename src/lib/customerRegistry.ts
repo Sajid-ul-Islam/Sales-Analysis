@@ -44,7 +44,7 @@ const BLANK_ADDRESS_SET = new Set([
 /**
  * Normalizes phone numbers to standard canonical Bangladesh format (11-digit 01... or 10-digit suffix).
  */
-export function normalizePhone(raw: any): string {
+export function normalizePhone(raw: unknown): string {
   if (!raw) return '';
   const s = String(raw).trim().toLowerCase();
   if (s === 'nan' || s === 'none' || s === 'null' || s === 'n/a' || s === '01700000000' || s === '00000000000') {
@@ -81,7 +81,7 @@ export function getPhone10DigitSuffix(phone: string): string {
 /**
  * Normalizes email address (lowercased, trimmed).
  */
-export function normalizeEmail(raw: any): string {
+export function normalizeEmail(raw: unknown): string {
   if (!raw) return '';
   const s = String(raw).trim().toLowerCase();
   return s.includes('@') ? s : '';
@@ -90,7 +90,7 @@ export function normalizeEmail(raw: any): string {
 /**
  * Normalizes customer full name (lowercased, punctuation removed, single space).
  */
-export function normalizeName(raw: any): string {
+export function normalizeName(raw: unknown): string {
   if (!raw) return '';
   let s = String(raw).trim().toLowerCase();
   s = s.replace(/[.,\-_/()]/g, ' ');
@@ -100,7 +100,7 @@ export function normalizeName(raw: any): string {
 /**
  * Normalizes city name (standard Bangladesh district format).
  */
-export function normalizeCity(raw: any): string {
+export function normalizeCity(raw: unknown): string {
   if (!raw) return '';
   let s = String(raw).trim().toLowerCase();
   s = s.replace(/[.,\-_/()]/g, ' ');
@@ -124,7 +124,7 @@ export function normalizeCity(raw: any): string {
 /**
  * Detects whether customer is an anonymous walk-in outlet customer.
  */
-export function isWalkinCustomer(name: any): boolean {
+export function isWalkinCustomer(name: unknown): boolean {
   if (!name) return false;
   const s = String(name).trim();
   if (!s || s === 'nan' || s === 'none' || s === 'null') return false;
@@ -134,7 +134,7 @@ export function isWalkinCustomer(name: any): boolean {
 /**
  * Checks whether an order row has a blank or missing phone.
  */
-export function hasBlankPhone(row: any): boolean {
+export function hasBlankPhone(row: Record<string, unknown> | null | undefined): boolean {
   if (!row) return true;
   const raw =
     row.Phone ||
@@ -170,7 +170,7 @@ const CANDIDATE_ADDRESS_COLS = [
  * Checks whether an order row has a blank or missing delivery address.
  * If no address columns are present in the row, returns false (for synthetic fixtures).
  */
-export function hasBlankAddress(row: any): boolean {
+export function hasBlankAddress(row: Record<string, unknown> | null | undefined): boolean {
   if (!row || typeof row !== 'object') return false;
   const presentCols = CANDIDATE_ADDRESS_COLS.filter((c) => c in row);
   if (presentCols.length === 0) return false;
@@ -190,49 +190,60 @@ export function hasBlankAddress(row: any): boolean {
 }
 
 // ── Persistent Customer Registry (Pre-loaded from DEEN-OPS) ──
-const registryPhones: Record<string, string> = (rawRegistry as any)?.phones || {};
-const registryEmails: Record<string, string> = (rawRegistry as any)?.emails || {};
-const registryNameCity: Record<string, string> = (rawRegistry as any)?.name_city || {};
+interface MasterCustomerRegistryJson {
+  phones?: Record<string, string>;
+  emails?: Record<string, string>;
+  name_city?: Record<string, string>;
+}
+const typedRegistry = rawRegistry as unknown as MasterCustomerRegistryJson;
+const registryPhones: Record<string, string> = typedRegistry?.phones || {};
+const registryEmails: Record<string, string> = typedRegistry?.emails || {};
+const registryNameCity: Record<string, string> = typedRegistry?.name_city || {};
 
 /**
  * Extracts billing info from an order row.
  */
-export function extractCustomerBilling(row: any): CustomerBillingInfo {
-  const phone =
+export function extractCustomerBilling(row: Record<string, unknown>): CustomerBillingInfo {
+  const phone = String(
     row.Phone ||
     row.phone ||
     row['Phone (Billing)'] ||
     row['Billing Phone'] ||
     row['Customer Phone'] ||
     row['Phone (Shipping)'] ||
-    '';
-  const email =
+    ''
+  );
+  const email = String(
     row.Email ||
     row.email ||
     row['Billing Email'] ||
     row['Customer Email'] ||
-    '';
-  const name =
+    ''
+  );
+  const name = String(
     row['Customer Name'] ||
     row.customerName ||
     row['Full Name (Billing)'] ||
     row['Billing Name'] ||
     row['Full Name (Shipping)'] ||
     row['Full Name'] ||
-    '';
-  const city =
+    ''
+  );
+  const city = String(
     row.City ||
     row.city ||
     row['Shipping City'] ||
     row['Billing City'] ||
-    '';
-  const address =
+    ''
+  );
+  const address = String(
     row.Address ||
     row.address ||
     row['Shipping Address'] ||
     row['Address 1&2 (Shipping)'] ||
     row['Billing Address'] ||
-    '';
+    ''
+  );
   const isReturningCustomer =
     typeof row.isReturningCustomer === 'boolean'
       ? row.isReturningCustomer

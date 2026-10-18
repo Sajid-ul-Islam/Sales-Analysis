@@ -259,6 +259,16 @@ export function setSyncCache<T = RawOrderRow[]>(
   }
 }
 
+interface CatalogEntry {
+  key: string;
+  provider: SyncProvider;
+  startDate: string;
+  endDate: string;
+  ordersCount: number;
+  byteSize: number;
+  updatedAt: number;
+}
+
 /**
  * Updates the catalog of cached API queries for easy listing and management.
  */
@@ -272,7 +282,7 @@ function updateCatalogEntry(
 ): void {
   try {
     const raw = localStorage.getItem(CATALOG_KEY);
-    const catalog: Record<string, any> = raw ? JSON.parse(raw) : {};
+    const catalog: Record<string, CatalogEntry> = raw ? JSON.parse(raw) : {};
     catalog[key] = {
       key,
       provider,

@@ -5,9 +5,7 @@ import {
   Palette,
   Sliders,
   Cloud,
-  Database,
   CheckCircle2,
-  AlertTriangle,
   RefreshCw,
   ShoppingBag,
   Truck,
@@ -16,22 +14,15 @@ import {
   Download,
   Trash2,
   Check,
-  Eye,
   Settings as SettingsIcon,
-  ShieldCheck,
   Zap,
-  Layers,
-  ArrowRight,
   Key,
   Upload,
   History,
-  FileText,
   Copy,
-  ExternalLink,
   Cookie,
   HardDrive,
   Info,
-  BarChart3,
   Activity,
   Share2
 } from 'lucide-react';
@@ -39,17 +30,14 @@ import {
   THEME_PRESETS,
   BACKGROUND_PRESETS,
   BackgroundPreset,
-  BackgroundStyleId,
   CustomThemeSettings,
   DEFAULT_THEME_SETTINGS,
   loadSavedThemeSettings,
   saveThemeSettings,
-  applyThemeToDocument,
   ThemePreset
 } from '@/lib/themeManager';
 import {
   AppSettings,
-  DEFAULT_APP_SETTINGS,
   loadAppSettings,
   saveAppSettings,
   logAuditAction
@@ -73,8 +61,7 @@ import {
 import {
   getSyncCache,
   setSyncCache,
-  clearAllSyncCaches,
-  getSyncCacheStats
+  clearAllSyncCaches
 } from '@/lib/apiCache';
 import { RawOrderRow } from '@/types';
 import { loadBYOKConfig, BYOKConfig } from '@/lib/byok';
@@ -179,11 +166,23 @@ export function SettingsTab({
   const [syncingBoth, setSyncingBoth] = useState(false);
   const [startDate, setStartDate] = useState('2026-09-01');
   const [endDate, setEndDate] = useState('2026-10-11');
+interface ApiConnectionStatus {
+  configured?: boolean;
+  connected?: boolean;
+  message?: string;
+  error?: string;
+  propertyId?: string;
+  pixelId?: string;
+  adAccountId?: string;
+  realtimeUsers?: number;
+  [key: string]: unknown;
+}
+
   const [orderStatus, setOrderStatus] = useState('any');
-  const [pathaoStatus, setPathaoStatus] = useState<any>(null);
-  const [wcStatus, setWcStatus] = useState<any>(null);
-  const [ga4Status, setGa4Status] = useState<any>(null);
-  const [metaStatus, setMetaStatus] = useState<any>(null);
+  const [pathaoStatus, setPathaoStatus] = useState<ApiConnectionStatus | null>(null);
+  const [wcStatus, setWcStatus] = useState<ApiConnectionStatus | null>(null);
+  const [ga4Status, setGa4Status] = useState<ApiConnectionStatus | null>(null);
+  const [metaStatus, setMetaStatus] = useState<ApiConnectionStatus | null>(null);
   const [apiMessage, setApiMessage] = useState<string | null>(null);
 
   // Advanced Credential Management State
@@ -209,9 +208,10 @@ export function SettingsTab({
 
   // Listen for BYOK updates
   useEffect(() => {
-    const handleBYOKUpdate = (e: any) => {
-      if (e.detail) {
-        setByokConfig(e.detail);
+    const handleBYOKUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<BYOKConfig>;
+      if (customEvent.detail) {
+        setByokConfig(customEvent.detail);
       }
     };
     window.addEventListener('deen_byok_updated', handleBYOKUpdate);
@@ -230,10 +230,10 @@ export function SettingsTab({
   }, []);
 
   // API Status Check
-  const checkApiStatus = React.useCallback(async (customCreds?: any) => {
+  const checkApiStatus = React.useCallback(async (customCreds?: Record<string, unknown>) => {
     setLoadingStatus(true);
     try {
-      const payload: any = customCreds || {};
+      const payload: Record<string, unknown> = customCreds ? { ...customCreds } : {};
       if (!customCreds) {
         if (wcConsumerKey) {
           payload.woocommerce = {
@@ -267,7 +267,7 @@ export function SettingsTab({
       setWcStatus(data.woocommerce);
       setGa4Status(data.ga4);
       setMetaStatus(data.meta);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Failed to verify API connectivity:', e);
     } finally {
       setLoadingStatus(false);
@@ -300,7 +300,7 @@ export function SettingsTab({
       if (appSettings.auditLogs) setAuditLogs(appSettings.auditLogs);
     }
 
-    const credsPayload: any = {};
+    const credsPayload: Record<string, unknown> = {};
     if (appSettings?.wcConsumerKey) {
       credsPayload.woocommerce = {
         store_url: appSettings.wcStoreUrl || 'https://deencommerce.com',
@@ -384,8 +384,9 @@ export function SettingsTab({
         } else {
           showToast(`Import failed: ${res.error || 'Invalid file format'}`);
         }
-      } catch (err: any) {
-        showToast(`Import failed: ${err.message}`);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        showToast(`Import failed: ${msg}`);
       }
     };
     reader.readAsText(file);
@@ -595,8 +596,9 @@ export function SettingsTab({
       } else {
         setApiMessage(data.message || 'WooCommerce responded with 0 matching orders.');
       }
-    } catch (e: any) {
-      setApiMessage(`WooCommerce sync error: ${e.message}`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setApiMessage(`WooCommerce sync error: ${msg}`);
     } finally {
       setSyncingWc(false);
     }
@@ -646,8 +648,9 @@ export function SettingsTab({
       } else {
         setApiMessage(data.message || 'Pathao sync finished with cached consignments.');
       }
-    } catch (e: any) {
-      setApiMessage(`Pathao sync notice: ${e.message}`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setApiMessage(`Pathao sync notice: ${msg}`);
     } finally {
       setSyncingPathao(false);
     }
@@ -725,7 +728,7 @@ export function SettingsTab({
         showToast('Settings configuration successfully imported!');
         logAuditAction('Config Imported', `Imported configuration from ${file.name}`);
         if (onRefreshReconciliation) onRefreshReconciliation();
-      } catch (err: any) {
+      } catch (_err: unknown) {
         showToast(`Import error: Invalid JSON file.`);
       }
     };
@@ -1198,7 +1201,7 @@ export function SettingsTab({
                   <span>{showCredentialDrawer ? 'Hide Credentials' : 'Manage Credentials'}</span>
                 </button>
                 <button
-                  onClick={checkApiStatus}
+                  onClick={() => { checkApiStatus(); }}
                   disabled={loadingStatus}
                   className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
                 >
@@ -1410,7 +1413,7 @@ export function SettingsTab({
                 </div>
 
                 <button
-                  onClick={checkApiStatus}
+                  onClick={() => { checkApiStatus(); }}
                   disabled={loadingStatus}
                   className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-emerald-700 border border-emerald-200 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs active:scale-95 disabled:opacity-50"
                   title="Test GA4 Live Connection"
@@ -1446,7 +1449,7 @@ export function SettingsTab({
                 </div>
 
                 <button
-                  onClick={checkApiStatus}
+                  onClick={() => { checkApiStatus(); }}
                   disabled={loadingStatus}
                   className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-primary border border-orange-200 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs active:scale-95 disabled:opacity-50"
                   title="Test Meta Connection"
