@@ -9,6 +9,8 @@ interface LiveVolumeBarChartProps {
   selectedCategory?: string;
   onSelectCategory?: (category: string) => void;
   isSubCategory?: boolean;
+  isFullWidth?: boolean;
+  isModal?: boolean;
 }
 
 export function LiveVolumeBarChart({
@@ -17,6 +19,8 @@ export function LiveVolumeBarChart({
   selectedCategory,
   onSelectCategory,
   isSubCategory = false,
+  isFullWidth = false,
+  isModal = false,
 }: LiveVolumeBarChartProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
@@ -27,6 +31,8 @@ export function LiveVolumeBarChart({
   }, [items, avgUnitsSold]);
 
   // Order categories: Strictly from large to small by volume (units sold)
+  // In full-width or modal views, show more categories to maximize visual detail
+  const maxItems = isModal ? 14 : isFullWidth ? 12 : 9;
   const displayItems = useMemo(() => {
     return [...sourceItems]
       .sort((a, b) => {
@@ -35,8 +41,8 @@ export function LiveVolumeBarChart({
         }
         return b.revenue - a.revenue;
       })
-      .slice(0, 9);
-  }, [sourceItems]);
+      .slice(0, maxItems);
+  }, [sourceItems, maxItems]);
 
   const maxActualVolume = displayItems.reduce((max, item) => Math.max(max, item.volume), 0);
 
@@ -45,7 +51,7 @@ export function LiveVolumeBarChart({
 
   if (sourceItems.length === 0) {
     return (
-      <div className="relative flex flex-col items-center justify-center p-6 text-center select-none w-full min-h-[280px]">
+      <div className="relative flex flex-col items-center justify-center p-6 text-center select-none w-full min-h-[320px]">
         <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-[#1A1A1A] flex items-center justify-center text-2xl mb-2 text-slate-400">
           📊
         </div>
@@ -59,21 +65,23 @@ export function LiveVolumeBarChart({
     );
   }
 
-  const chartHeight = 340;
-  const chartWidth = 580;
-  const paddingLeft = 36;
-  const paddingBottom = 58;
-  const paddingTop = 22;
-  const paddingRight = 36;
+  // Sizing geometry: Dynamically scaled to make the chart as prominent and visually substantial as possible
+  const chartWidth = isModal ? 1160 : isFullWidth ? 1040 : 640;
+  const chartHeight = isModal ? 520 : isFullWidth ? 480 : 440;
+  const paddingLeft = isModal ? 52 : isFullWidth ? 48 : 40;
+  const paddingRight = isModal ? 44 : isFullWidth ? 40 : 36;
+  const paddingTop = isModal ? 32 : isFullWidth ? 28 : 24;
+  const paddingBottom = isModal ? 74 : isFullWidth ? 68 : 62;
 
   const innerWidth = chartWidth - paddingLeft - paddingRight;
   const innerHeight = chartHeight - paddingTop - paddingBottom;
 
   const slotWidth = innerWidth / (displayItems.length || 1);
-  const barWidth = Math.min(50, slotWidth * 0.84);
+  const maxBarWidth = isModal ? 76 : isFullWidth ? 68 : 54;
+  const barWidth = Math.min(maxBarWidth, slotWidth * 0.84);
 
   const getYCoord = (vol: number) => {
-    return paddingTop + innerHeight - (vol / maxVolume) * innerHeight;
+    return paddingTop + innerHeight - (vol / (maxVolume || 1)) * innerHeight;
   };
 
   const active = hoveredIdx !== null ? displayItems[hoveredIdx] : null;
@@ -95,11 +103,18 @@ export function LiveVolumeBarChart({
   };
 
   return (
-    <div className="relative flex flex-col p-1 select-none w-full">
-      <div className="w-full overflow-x-auto min-w-0">
+    <div className="relative flex flex-col p-1 select-none w-full h-full flex-1 justify-end">
+      <div className="w-full overflow-x-auto min-w-0 flex-1 flex flex-col justify-end">
         <svg
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-          className="w-full h-auto max-h-[420px] overflow-visible"
+          className={`w-full h-auto ${
+            isModal
+              ? 'min-h-[460px] max-h-[600px]'
+              : isFullWidth
+                ? 'min-h-[420px] max-h-[540px]'
+                : 'min-h-[380px] max-h-[480px]'
+          } overflow-visible`}
+          preserveAspectRatio="xMidYMid meet"
         >
           {/* Y-axis gridlines and labels */}
           {yTicks.map((tick) => {
@@ -121,7 +136,7 @@ export function LiveVolumeBarChart({
                   y={y}
                   textAnchor="end"
                   dominantBaseline="central"
-                  fontSize="10"
+                  fontSize={isFullWidth || isModal ? '11.5' : '10.5'}
                   fill="currentColor"
                   className="fill-slate-500 dark:fill-white text-slate-500 dark:text-white font-black transition-colors"
                 >
@@ -131,16 +146,42 @@ export function LiveVolumeBarChart({
             );
           })}
 
+          {/* 7-Day Rolling Average Reference Baseline */}
+          {avgUnitsSold > 0 && avgUnitsSold <= maxVolume && (
+            <g key="avg-units-baseline" className="pointer-events-none">
+              <line
+                x1={paddingLeft}
+                y1={getYCoord(avgUnitsSold)}
+                x2={chartWidth - paddingRight}
+                y2={getYCoord(avgUnitsSold)}
+                stroke="#64748b"
+                strokeWidth={isFullWidth || isModal ? '1.5' : '1.2'}
+                strokeDasharray="4 4"
+                opacity="0.75"
+              />
+              <text
+                x={chartWidth - paddingRight - 8}
+                y={getYCoord(avgUnitsSold) - 6}
+                textAnchor="end"
+                fontSize={isFullWidth || isModal ? '11' : '10'}
+                fontWeight="800"
+                className="fill-slate-500 dark:fill-slate-300 font-mono tracking-tight"
+              >
+                7D Avg: {avgUnitsSold} pcs
+              </text>
+            </g>
+          )}
+
           {/* Y-axis Title */}
           <text
-            x={12}
+            x={14}
             y={chartHeight / 2 - 15}
             textAnchor="middle"
             dominantBaseline="central"
-            fontSize="10.5"
+            fontSize={isFullWidth || isModal ? '11.5' : '10.5'}
             fill="currentColor"
             className="fill-slate-500 dark:fill-white text-slate-500 dark:text-white font-black transition-colors"
-            transform={`rotate(-90, 12, ${chartHeight / 2 - 15})`}
+            transform={`rotate(-90, 14, ${chartHeight / 2 - 15})`}
           >
             Units Sold
           </text>
@@ -247,19 +288,19 @@ export function LiveVolumeBarChart({
                   }}
                 >
                   <rect
-                    x={x + barWidth / 2 - 23}
-                    y={Math.min(selY, regY) - 24}
-                    width={46}
-                    height={20}
+                    x={x + barWidth / 2 - (isFullWidth || isModal ? 28 : 24)}
+                    y={Math.min(selY, regY) - (isFullWidth || isModal ? 26 : 24)}
+                    width={isFullWidth || isModal ? 56 : 48}
+                    height={isFullWidth || isModal ? 22 : 20}
                     rx={6}
                     className="fill-slate-900 dark:fill-white shadow-lg"
                   />
                   <text
                     x={x + barWidth / 2}
-                    y={Math.min(selY, regY) - 14}
+                    y={Math.min(selY, regY) - (isFullWidth || isModal ? 15 : 14)}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize="11.5"
+                    fontSize={isFullWidth || isModal ? '12.5' : '11.5'}
                     fontWeight="900"
                     className="fill-white dark:fill-slate-900 font-headline"
                   >
@@ -268,20 +309,20 @@ export function LiveVolumeBarChart({
                 </g>
 
                 {/* Inner text for Selects segment (Smoothly enlarges on hover) */}
-                {selVol > 0 && (
+                {selVol > 0 && selHeight >= 14 && (
                   <text
                     x={x + barWidth / 2}
                     y={selY + selHeight / 2}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize={isHovered ? "13.5" : "11"}
+                    fontSize={isHovered ? (isFullWidth || isModal ? '15.5' : '13.5') : (isFullWidth || isModal ? '13' : '11.5')}
                     fontWeight="900"
                     fill="#713f12"
                     pointerEvents="none"
                     style={{
                       transformOrigin: `${x + barWidth / 2}px ${selY + selHeight / 2}px`,
-                      transform: isHovered ? 'scale(1.22)' : 'scale(1)',
-                      transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), font-size 0.2s ease',
+                      transform: isHovered ? 'scale(1.2)' : 'scale(1)',
+                      transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                   >
                     {selVol}
@@ -289,21 +330,21 @@ export function LiveVolumeBarChart({
                 )}
 
                 {/* Inner text for Regular segment (Smoothly enlarges on hover) */}
-                {regVol > 0 && (
+                {regVol > 0 && regHeight >= 14 && (
                   <text
                     x={x + barWidth / 2}
                     y={regY + regHeight / 2}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize={isHovered ? "13.5" : "11"}
+                    fontSize={isHovered ? (isFullWidth || isModal ? '15.5' : '13.5') : (isFullWidth || isModal ? '13' : '11.5')}
                     fontWeight="900"
                     fill="#ffffff"
                     pointerEvents="none"
                     className="drop-shadow-sm"
                     style={{
                       transformOrigin: `${x + barWidth / 2}px ${regY + regHeight / 2}px`,
-                      transform: isHovered ? 'scale(1.22)' : 'scale(1)',
-                      transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), font-size 0.2s ease',
+                      transform: isHovered ? 'scale(1.2)' : 'scale(1)',
+                      transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                   >
                     {regVol}
@@ -314,17 +355,17 @@ export function LiveVolumeBarChart({
                 <g
                   pointerEvents="none"
                   style={{
-                    transformOrigin: `${x + barWidth / 2}px ${bottomY + 12}px`,
-                    transform: `rotate(-45deg) scale(${isHovered ? 1.25 : 1})`,
+                    transformOrigin: `${x + barWidth / 2}px ${bottomY + 14}px`,
+                    transform: `rotate(-42deg) scale(${isHovered ? 1.2 : 1})`,
                     transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                   }}
                 >
                   <text
                     x={x + barWidth / 2}
-                    y={bottomY + 12}
+                    y={bottomY + 14}
                     textAnchor="end"
                     dominantBaseline="central"
-                    fontSize={isHovered ? "12.5" : "11"}
+                    fontSize={isHovered ? (isFullWidth || isModal ? '14' : '12.5') : (isFullWidth || isModal ? '12' : '11')}
                     fontWeight={isHovered ? '900' : 'bold'}
                     fill="currentColor"
                     className={`${
