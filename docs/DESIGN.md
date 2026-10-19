@@ -69,6 +69,18 @@ Each fulfillment location carries a consistent semantic badge across all 12 modu
 | **MEDIUM** | $20\% - 50\%$ | `bg-amber-50 text-amber-700 border-amber-200` | Mandatory phone confirmation call |
 | **LOW** | $< 20\%$ | `bg-emerald-50 text-emerald-700 border-emerald-200` | Automated dispatch processing |
 
+### 2.6 Customer Delivery Rating Badges & Courier Score Tokens
+
+Color-coded badges reflect customer delivery reliability calculated from Pathao B2B success rate queries and empirical store order history:
+
+| Tier | Success Rate / Criteria | Icon | Light Mode Tailwind | Dark Mode Tailwind |
+|---|---|:---:|---|---|
+| **EXCELLENT** | $\ge 90\%$ ($\ge 5$ orders) or $100\%$ ($\ge 2$ orders) | 🌟 | `bg-emerald-50 text-emerald-700 border-emerald-200` | `dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800` |
+| **GOOD** | $\ge 80\%$ ($\ge 3$ orders) | 👍 | `bg-teal-50 text-teal-700 border-teal-200` | `dark:bg-teal-950/40 dark:text-teal-400 dark:border-teal-800` |
+| **MODERATE** | $60\% - 79\%$ | ⚖️ | `bg-amber-50 text-amber-700 border-amber-200` | `dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800` |
+| **HIGH_RISK** | $< 60\%$ ($\ge 2$ orders) or $\ge 3$ returns | ⚠️ | `bg-rose-50 text-rose-700 border-rose-200` | `dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800` |
+| **NEW_BUYER** | $\le 1$ lifetime order, no history | 🌱 | `bg-slate-100 text-slate-700 border-slate-200` | `dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700` |
+
 ---
 
 ## 3. Typography & Hierarchy
@@ -139,6 +151,21 @@ The interface combines **Plus Jakarta Sans** for headlines and numeric KPIs with
   - `Success`: Emerald border, emerald icon badge (`bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600`).
   - `Warning / Discrepancy`: Amber border, amber icon badge (`bg-amber-50 dark:bg-amber-950/40 text-amber-600`).
   - `Critical Error`: Rose border, rose icon badge (`bg-rose-50 dark:bg-rose-950/40 text-rose-600`).
+
+### 4.8 Maximized Split-Screen Chart Viewport Architecture
+- **Dual Chart Container**: In the Live Operations dashboard, "Sales Volume by Category" utilizes a responsive 12-column split grid (`grid grid-cols-1 lg:grid-cols-12 gap-5`):
+  - **Category Donut Breakdown (`lg:col-span-5`)**: High-contrast interactive donut chart with center totals and category share legend.
+  - **Subcategory Volume Bar Chart (`lg:col-span-7`)**: Side-by-side comparative volume distribution with clean category headers and percentage bars.
+- **Visual Clutter Elimination**: To maximize readability and focus on immediate volume drivers, secondary 7-day rolling average bars and distracting baseline markers have been removed from the subcategory chart.
+
+### 4.9 Everyday Dispatched Orders Ledger UI Architecture
+- **Order-Wise Consolidated Master Rows (`ORDER_WISE`)**:
+  - Displays primary item title with interactive `+X more` count badge for multi-item baskets.
+  - Item count chip (`bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/40 dark:text-orange-400`).
+  - Total order value aggregated across all line items.
+  - Expandable nested accordion row rendering a full sub-table of individual SKUs, sizes, colors, and line values.
+- **View Mode Switcher**: Prominent pill toggle between `Order-Wise` (default) and `Line Item` (`ITEM_WISE`).
+- **Customer Phone & Rating Column**: Directly pairs normalized phone numbers with one-click phone actions and standardized delivery rating badges (`CustomerRatingBadge.tsx`).
 
 ---
 

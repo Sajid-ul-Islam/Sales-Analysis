@@ -99,4 +99,66 @@ The Excel export (`Reconciled Orders` ledger) features two distinct status colum
 * Rolling 7-day average metrics (items/day, orders/day, revenue/day, AOV) must always be rounded to whole integers:
   $$\text{DailyAvg} = \mathrm{round}\left(\frac{\sum_{i=1}^7 \text{Metric}_i}{7}\right)$$
 
+---
+
+## 6. Everyday Dispatched Orders Ledger & Order-Wise Consolidation
+
+### A. Default View Mode Invariant
+* The Everyday Dispatched Orders Ledger defaults to **Order-Wise** (`ORDER_WISE`) view mode.
+* In Order-Wise mode, multiple line items sharing the identical base order ID (e.g. `17263`) are collapsed into a single master order row.
+* A mode toggle allows switching between:
+  * **Order-Wise (`ORDER_WISE`)**: Consolidated view with basket chips and expandable item breakdowns.
+  * **Line Item (`ITEM_WISE`)**: Granular row-per-SKU audit view.
+
+### B. Master Order Row Representation
+* Displays the primary/first item's SKU and product title.
+* If the order contains multiple items ($N > 1$), an interactive badge `+X more` (where $X = N - 1$) is appended.
+* Total item count is clearly displayed via a numeric badge chip (e.g. `3 items`).
+* Aggregate order merchandise value reflects the sum of all contained line items ($\sum \text{Item Price} \times \text{Quantity}$).
+* Clicking the master row or chevron dynamically expands the nested line items showing individual SKUs, sizes, colors, and prices.
+
+---
+
+## 7. WooCommerce Pathao Plugin Consignment Extraction
+
+### A. Meta Field Extraction Waterfall
+* Orders processed via the official WooCommerce Pathao Courier plugin store parcel and consignment identifiers in order metadata.
+* Extraction must inspect metadata keys in the following priority:
+  1. `ptc_consignment_id`
+  2. `_ptc_consignment_id`
+  3. `consignment_id` / `_consignment_id`
+  4. Freeform extraction from order notes matching regex `Consignment ID:\s*([A-Z0-9]+)`
+* Associated courier status is extracted from `ptc_status` or `_ptc_status`.
+* Official tracking link is synthesized: `https://merchant.pathao.com/tracking?consignment_id={consignment_id}`.
+
+---
+
+## 8. Customer Delivery Rating & Phone Intelligence Standards
+
+### A. Phone Number Normalization Contract
+* Customer phone numbers must be sanitized and normalized to the standard Bangladeshi 11-digit MSISDN format:
+  $$\text{Regex: } ^01[3-9]\d{8}$$
+* Strips leading international country codes (`+88`, `88`, `0088`), spaces, hyphens, and parentheses.
+* Invalid or non-standard phone numbers are safely handled without throwing errors.
+
+### B. Dual-Tier Rating Resolution
+1. **Tier 1 — Real-Time Courier Success API**:
+   * Evaluated via Pathao User Success API (`POST /aladdin/api/v1/user/success`).
+   * Returns lifetime metrics across all Pathao merchants: `total_parcels`, `successful_deliveries`, and calculated delivery percentage.
+2. **Tier 2 — Grounded Store History Baseline**:
+   * When courier API returns empty/unregistered or during offline execution, calculate empirical baseline from all historical orders associated with the customer phone in the local synced dataset.
+
+### C. Standardized Rating Badges & Thresholds
+* **🌟 Excellent** (`bg-emerald-50 text-emerald-700 border-emerald-200`):
+  * Delivery rate $\ge 90\%$ with $\ge 5$ total orders, OR $100\%$ with $\ge 2$ total orders.
+* **👍 Good** (`bg-teal-50 text-teal-700 border-teal-200`):
+  * Delivery rate $\ge 80\%$ with $\ge 3$ total orders.
+* **⚖️ Moderate** (`bg-amber-50 text-amber-700 border-amber-200`):
+  * Delivery rate between $60\%$ and $79\%$.
+* **⚠️ High Risk** (`bg-rose-50 text-rose-700 border-rose-200`):
+  * Delivery rate $< 60\%$ with $\ge 2$ orders, or $\ge 3$ return cancellations. Operations must require advance delivery charge payment.
+* **🌱 New Buyer** (`bg-slate-100 text-slate-700 border-slate-200`):
+  * First-time customer with $\le 1$ order and no courier history.
+
+
 

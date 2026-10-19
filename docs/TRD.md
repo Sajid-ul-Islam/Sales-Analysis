@@ -262,3 +262,108 @@ export interface SyncToastEvent {
 - Stores order records and reconciliation outcomes in browser IndexedDB (`deen_analytics_db`).
 - Enables instant dashboard boot (<150ms) on page reload without waiting for remote server roundtrips.
 
+---
+
+## 9. Pathao Customer Rating & Phone Intelligence Technical Contract
+
+### 9.1 Data Interface & Rating Types (`src/lib/customerRating.ts`)
+```typescript
+export type CustomerRatingTier = 'EXCELLENT' | 'GOOD' | 'MODERATE' | 'RISKY' | 'NEW';
+
+export interface CustomerRatingData {
+  phone: string;
+  normalizedPhone: string;
+  ratingTier: CustomerRatingTier;
+  ratingLabel: string;
+  successRate: number; // 0 - 100 percentage
+  totalOrders: number;
+  deliveredOrders: number;
+  returnedOrders: number;
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+  source: 'PATHAO' | 'STORE_HISTORY' | 'COMBINED';
+  rawPathaoRating?: string;
+  courierNotes?: string;
+}
+```
+
+### 9.2 Phone Normalization Algorithm
+- Input: String, number, or raw field from WooCommerce / courier manifests.
+- Cleans non-digits; strips international country codes `+880` and `880`.
+- Prepends `0` to 10-digit mobile numbers; extracts canonical 11-digit `01...` representation and 10-digit suffix (`suffix10`) for resilient fuzzy matching.
+
+### 9.3 Dual-Tier Grounded Resolution Architecture
+```
+                  ┌──────────────────────────────┐
+                  │    Incoming Customer Phone   │
+                  └──────────────┬───────────────┘
+                                 │
+                 ┌───────────────┴───────────────┐
+                 │  Normalize Phone (01XXXXXXXXX) │
+                 └───────────────┬───────────────┘
+                                 │
+          ┌──────────────────────┴──────────────────────┐
+          ▼                                             ▼
+  [Tier 1: Store History]                     [Tier 2: Pathao B2B API]
+  - Instant 0ms Local Index                   - POST /aladdin/api/v1/user/success
+  - Baseline 2,500+ Orders                    - 90-day OAuth token authentication
+  - Delivered / Total %                       - Network delivery rate & tags
+          │                                             │
+          └──────────────────────┬──────────────────────┘
+                                 │
+                                 ▼
+                     ┌───────────────────────┐
+                     │ Combined Ground Truth │
+                     │ - Excellent (>=90%)   │
+                     │ - Good (80% - 89%)    │
+                     │ - Moderate (60% - 79%)│
+                     │ - Risky (<60% RTO)    │
+                     │ - New Customer (0 ord)│
+                     └───────────────────────┘
+```
+
+### 9.4 Serverless Route Contract (`POST /api/courier/customer-rating`)
+- **Request Body**: `{ phone?: string, phones?: string[] }`
+- **Rate Limit**: 120 requests/minute via `checkRateLimit`.
+- **Response**: `{ success: true, count: number, ratings: Record<string, CustomerRatingData> }`
+
+---
+
+## 10. Order-Wise Ledger Technical Architecture & WooCommerce Pathao Extraction
+
+### 10.1 Order Grouping Contract (`src/lib/orderGrouping.ts`)
+```typescript
+export interface OrderWiseGroup {
+  orderId: string;
+  baseOrderId: string;
+  orderDate: string;
+  dateModified?: string;
+  customerName: string;
+  phone: string;
+  city: string;
+  wcStatus: string;
+  courierStatus: string;
+  consignmentId: string;
+  consignmentIds: string[];
+  items: OrderWiseItem[];
+  totalQuantity: number;
+  totalAmount: number;
+  collectionType: 'SELECTS' | 'REGULAR' | 'MIXED';
+  hasDiscrepancy: boolean;
+  branch: FulfillmentBranchInfo;
+  exchangeInfo: ExchangeInfo;
+}
+```
+
+### 10.2 WooCommerce Pathao Courier Plugin Metadata Extraction
+When orders are synced via WooCommerce REST API, tracking consignment numbers are extracted through a 5-tier waterfall:
+1. `order.meta_data["ptc_consignment_id"]` (Standard Pathao Courier WooCommerce plugin).
+2. `order.meta_data["_ptc_consignment_id"]` (Hidden meta key variant).
+3. Courier merchant notes: regex extraction of URLs matching `merchant.pathao.com/courier/orders/(RD[A-Z0-9]+)`.
+4. Standard shipping tracking items: `order.meta_data["_wc_shipment_tracking_items"]`.
+5. Direct tracking number properties (`tracking_code`, `tracking_number`).
+
+### 10.3 Pathao B2B Client Credentials Grant
+- Supports B2B external client login (`POST /aladdin/api/v1/external/login`) with `client_id` + `client_secret` (90-day long-lived tokens).
+- Order tracking queries use the official endpoint: `GET /aladdin/api/v1/orders/{consignment_id}/info`.
+
+

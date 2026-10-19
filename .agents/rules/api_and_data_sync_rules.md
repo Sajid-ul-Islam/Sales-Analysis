@@ -32,9 +32,19 @@ These rules govern WooCommerce REST API synchronization, Pathao Courier Hermes A
   $$\text{cacheTTL} = \text{expires\_in} - 60$$
 * Never issue new tokens on every request if an active token is cached and valid.
 
-### 2.2 Concurrency & Worker Queues
+### 2.2 B2B Client Credentials Authentication
+* Endpoint: `POST https://api-hermes.pathao.com/aladdin/api/v1/external/login`
+* Payload: `{ "client_id": "...", "client_secret": "..." }`
+* Yields long-lived merchant authentication tokens valid for up to 90 days.
+* Securely persisted in `secrets.toml` / `.env.local` as `PATHAO_CLIENT_ID` and `PATHAO_CLIENT_SECRET`.
+
+### 2.3 Concurrency & Worker Queues
 * Concurrency limit: Maximum **5** concurrent requests when querying parcel status from Pathao.
 * Implement exponential backoff for HTTP 429 (Rate Limit) and HTTP 500 responses.
+
+### 2.4 Consignment Tracking Endpoint
+* Endpoint: `GET https://api-hermes.pathao.com/aladdin/api/v1/orders/{consignment_id}/info`
+* Returns parcel real-time delivery status, order cost, collected COD amount, return charges, and transit history.
 
 ---
 
@@ -70,4 +80,50 @@ Credentials in `src/lib/secrets.ts` must resolve in strict order:
 ### 4.3 POS Outlet Metadata Preservation
 * Orders originating from physical store POS registers have standard numeric IDs (e.g. `17966`) without letter suffixes.
 * The branch detection waterfall must inspect `_sip_outlet_id`, `fulfillmentBranch`, and `outletId` properties first before defaulting to Online Store (Central Warehouse).
+
+---
+
+## 5. Pathao Customer Delivery Rating & Phone Intelligence API
+
+### 5.1 Route Specification (`/api/courier/customer-rating`)
+* Endpoint: `POST /api/courier/customer-rating`
+* Body Payload:
+  ```json
+  {
+    "phone": "01783650157",
+    "batch": ["01783650157", "01912345678"]
+  }
+  ```
+* Supports single phone query or batch resolution for table views.
+* Rate Limiting: 120 requests/minute per client IP via token bucket rate limiter.
+* In-Memory LRU Caching: 1-hour TTL on resolved phone ratings to minimize external API roundtrips.
+
+### 5.2 External Courier Success Endpoint
+* Endpoint: `POST https://api-hermes.pathao.com/aladdin/api/v1/user/success`
+* Auth: Bearer token (obtained via `issue-token` or `external/login`).
+* Payload: `{ "phone": "01783650157" }`
+* Response Fields:
+  * `total_parcels`: Total parcels dispatched to customer across all merchants on Pathao.
+  * `successful_deliveries`: Number of successfully delivered parcels.
+  * Delivery rate is calculated as:
+    $$\text{DeliveryRate} = \left(\frac{\text{successful\_deliveries}}{\text{total\_parcels}}\right) \times 100$$
+
+### 5.3 Empirical Baseline Fallback
+* When Pathao API credentials are unavailable, fail, or return zero records, the engine calculates store-specific delivery metrics (`getStoreHistoryIndex`) from all lifetime orders in the local database or synced store history.
+
+---
+
+## 6. WooCommerce Pathao Plugin Meta Extraction Rules
+
+### 6.1 Extraction Keys Priority
+Orders synchronized from WooCommerce with the official Pathao plugin store fulfillment information in `meta_data` arrays. Parsers must check:
+1. `ptc_consignment_id` (Primary consignment ID)
+2. `_ptc_consignment_id` (Internal consignment ID)
+3. `consignment_id` or `_consignment_id` (Alternative plugin keys)
+4. Order Notes regex: `Consignment ID:\s*([A-Z0-9]+)`
+
+### 6.2 Tracking URL Synthesis
+* Consignment tracking link: `https://merchant.pathao.com/tracking?consignment_id={consignment_id}`
+* Rendered as an external link chip in the Everyday Dispatched Orders Ledger and Order Inspector modal.
+
 

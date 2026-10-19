@@ -18,6 +18,10 @@ This application helps Deen Commerce track and reconcile:
 ## Features
 
 - **Live Operations Terminal**: Real-time warehouse fulfillment stream synced directly with WooCommerce REST API and Pathao Hermes Courier API, status modification tracking (`Date Modified`), pack queue (`processing` + `hold`), today's orders, 7-day rolling history with date picker, integer-only 7-day daily baseline, and one-click WhatsApp/Slack executive briefing.
+- **Everyday Dispatched Orders Ledger**: Default consolidated **Order-Wise** table view with multi-item basket counters (`+X more`), item breakdown summaries, and expandable rows, paired with a seamless **Line Items (Item-Wise)** toggle.
+- **Pathao Customer Delivery Rating & Phone Intelligence**: Grounded phone-number delivery success rate and fraud risk scoring combining Pathao network API queries (`/aladdin/api/v1/user/success`) with empirical store history indexing, rendering color-coded rating badges (🌟 Excellent, 👍 Good, ⚖️ Moderate, ⚠️ High Risk, 🌱 New Buyer) across ledger tables, order details modal, and Excel exports.
+- **WooCommerce Pathao Plugin Consignment Extraction**: Automatic extraction of tracking numbers from WooCommerce Pathao plugin metadata (`ptc_consignment_id`, `_ptc_consignment_id`, `ptc_status`, merchant order tracking URLs) alongside Pathao B2B Client Credentials (`client_id` + `client_secret`) with 90-day token support.
+- **Sales Volume by Category Split View**: Maximized side-by-side layout displaying Category Donut Chart and Subcategory Bar Chart simultaneously with responsive grid containment and streamlined bar metrics.
 - **DEEN Assistant (AI Copilot)**: Autonomous natural language business and reconciliation analyst powered by Gemini & BYOK (OpenAI, Claude, Groq), grounded in real-time operational slices and domain knowledge rules with offline heuristic synthesis and agentic bulk actions.
 - **KPI Overview**: Key metrics at a glance with live delivery retention, courier cost recovery, and return loss.
 - **Outlet Dispatch (Hub)**: Courier parcel dispatches, delivery retention rates, and returned consignment values across Online Store (Central Warehouse) and retail branch outlets (Mirpur POS `m`, Cumilla `c`, Wari `w`, Sylhet `s`).
@@ -27,7 +31,7 @@ This application helps Deen Commerce track and reconcile:
 - **Territory Breakdown**: Regional performance (Inside Dhaka vs Outside Dhaka).
 - **Unit Economics**: Profitability analysis per order and transaction.
 - **Orders Ledger**: Searchable, filterable master order ledger with parcel badges and modal inspector.
-- **Excel Export**: Multi-sheet formatted Excel reports with strict business status columns.
+- **Excel Export**: Multi-sheet formatted Excel reports with strict business status columns and customer rating intelligence.
 
 ## Tech Stack
 
@@ -106,6 +110,7 @@ Detailed architectural and business specifications:
 | `/api/ai/copilot` | POST | AI copilot inference engine with live ops grounding, offline fallback, and BYOK |
 | `/api/sync/pathao` | POST | Fetch live consignments from Pathao Hermes API, cross-check returns & COD |
 | `/api/sync/woocommerce` | POST | Fetch orders from WooCommerce REST API (paginated, up to 5 pages) |
+| `/api/courier/customer-rating` | GET/POST | Query customer delivery rating, success rate, and fraud risk by phone via Pathao & store history |
 | `/api/sync/status` | GET/POST | Health-check & sync status diagnostics |
 | `/api/sample-data` | GET | Load pre-built September workspace dataset for demo/testing |
 

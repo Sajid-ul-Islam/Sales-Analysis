@@ -205,6 +205,30 @@ The dashboard features **12 dedicated operational modules**:
   4. **Agentic Action Proposals**: Proposes and executes bulk audit tagging (e.g. tagging high-risk RTO customers for advance fees, tagging Pathao courier COD discrepancies).
   5. **Persistent History & Markdown Export**: Encrypts and saves chat history locally with one-click export to Markdown (`.md`).
 
+### 4.18 Everyday Dispatched Orders Ledger & Order-Wise Consolidation
+- **Consolidated Default State**: Ledger defaults to `ORDER_WISE` view, grouping granular line items into single authoritative order rows.
+- **Multi-Item Basket Counter**: Displays prominent `+X more` interactive badges for multi-item baskets with collapsible item breakdown rows showing individual product titles, SKUs, and prices.
+- **Flexible View Switcher**: High-speed toggle between Consolidated Orders (`ORDER_WISE`) and Line Items (`ITEM_WISE`), fully synchronized with URL state parameter `?ledgerView=ORDER_WISE|ITEM_WISE`.
+- **Specialized Multi-Sheet Excel Export**: Generates authoritative multi-sheet workbooks (`Shipped Orders (Order-Wise)` and `Exchanges & Non-Checkout`), strictly isolating non-checkout exchange replacements from commercial revenue.
+
+### 4.19 Pathao Customer Delivery Rating & Phone Intelligence Engine
+- **Purpose**: Real-time fraud screening, COD risk mitigation, and buyer reliability classification based on customer mobile numbers.
+- **Dual-Tier Grounded Resolution**:
+  1. **Pathao Courier Network Telemetry**: Queries Pathao's recipient insight API (`POST /aladdin/api/v1/user/success`) using B2B OAuth credentials to retrieve network-wide delivery rate, total deliveries, and return statistics.
+  2. **Empirical Store History Grounding (Zero Hallucination)**: Seamless fallback to DEEN's historical delivery records (2,500+ orders, 2,498 Pathao consignments, and customer return registers) to compute exact empirical delivery success rate (`Delivered / (Delivered + Returned) * 100`) with instant $0\text{ ms}$ local hydration.
+- **Standardized Rating Tiers**:
+  - 🌟 **Excellent** ($\ge 90\%$ success): Low risk, eligible for fast-track COD dispatch (`bg-emerald-50 text-emerald-700`).
+  - 👍 **Good** ($80\% - 89\%$ success): Low risk, consistent delivery history (`bg-teal-50 text-teal-700`).
+  - ⚖️ **Moderate** ($60\% - 79\%$ success): Medium risk, size and address phone confirmation recommended (`bg-amber-50 text-amber-700`).
+  - ⚠️ **High Risk** ($< 60\%$ success): High RTO probability, recommends mandatory advance courier fee before shipment (`bg-rose-50 text-rose-700 animate-pulse`).
+  - 🌱 **New Customer** ($0$ prior orders): First-time buyer profile (`bg-slate-100 text-slate-600`).
+- **Ubiquitous Visual Integration**: Displayed directly under customer contact details in the Order-Wise table, Item-Wise table, Order Inspection Modal, and Order-Wise Excel export columns.
+
+### 4.20 Maximized Sales Volume by Category Split View
+- **Dual-Chart Split Screen**: Maximized side-by-side grid layout pairing the Category Revenue Donut Chart with the Subcategory Volume Bar Chart.
+- **Streamlined Visual Hierarchy**: Removed redundant 7-day average overlays from the bar chart, allowing warehouse leads and merchandisers to audit volume throughput without chart clutter.
+- **Subcategory Deep-Dive Toggle**: 1-click toggle to drill into granular jeans fits (Slim Fit, Regular Fit, Straight Fit) with persistent state preservation.
+
 ---
 
 ## 5. Non-Functional Requirements

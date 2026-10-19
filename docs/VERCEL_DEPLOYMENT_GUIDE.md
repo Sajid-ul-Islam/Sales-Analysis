@@ -15,6 +15,7 @@ This guide provides end-to-end instructions for deploying the **DEEN Commerce Sa
 | **Google Analytics 4 (GA4)** | ✅ Active | ✅ Supported | Node.js native crypto JWT generation. Supports direct `GCP_SERVICE_ACCOUNT_JSON` single-variable setup. |
 | **Meta Ads & Pixel API** | ✅ Active | ✅ Supported | Marketing API v19.0 insights, ROAS, and live pixel event verification. |
 | **Dynamic In-Browser Overrides** | ✅ Active | ✅ Supported | Credentials entered in **Settings** take immediate effect via `POST /api/sync/status` without redeploying Vercel. |
+| **Customer Delivery Rating Engine** | ✅ Active | ✅ Supported | Dual-tier lookup (`/api/courier/customer-rating`) via Pathao B2B User Success API + local empirical history. |
 
 ---
 

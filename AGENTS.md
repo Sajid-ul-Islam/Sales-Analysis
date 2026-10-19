@@ -1,19 +1,19 @@
 # Antigravity Workspace Guidelines: Return & Sales Reconciliation
 
 ## Documentation Architecture
-* **Product Requirements Document (PRD)**: [docs/PRD.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/docs/PRD.md)
-* **Technical Requirements Document (TRD)**: [docs/TRD.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/docs/TRD.md)
-* **Design System & CSS Architecture**: [docs/DESIGN.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/docs/DESIGN.md)
-* **Order & Fulfillment Rules**: [.agents/rules/order_rules.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/.agents/rules/order_rules.md)
-* **Unbreakable CSS & Styling Rules**: [.agents/rules/css_and_styling_rules.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/.agents/rules/css_and_styling_rules.md)
-* **Reconciliation & Accounting Rules**: [.agents/rules/reconciliation_and_accounting_rules.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/.agents/rules/reconciliation_and_accounting_rules.md)
-* **API Integration & Data Sync Rules**: [.agents/rules/api_and_data_sync_rules.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/.agents/rules/api_and_data_sync_rules.md)
+* **Product Requirements Document (PRD)**: [docs/PRD.md](docs/PRD.md)
+* **Technical Requirements Document (TRD)**: [docs/TRD.md](docs/TRD.md)
+* **Design System & CSS Architecture**: [docs/DESIGN.md](docs/DESIGN.md)
+* **Order & Fulfillment Rules**: [.agents/rules/order_rules.md](.agents/rules/order_rules.md)
+* **Unbreakable CSS & Styling Rules**: [.agents/rules/css_and_styling_rules.md](.agents/rules/css_and_styling_rules.md)
+* **Reconciliation & Accounting Rules**: [.agents/rules/reconciliation_and_accounting_rules.md](.agents/rules/reconciliation_and_accounting_rules.md)
+* **API Integration & Data Sync Rules**: [.agents/rules/api_and_data_sync_rules.md](.agents/rules/api_and_data_sync_rules.md)
 
 ---
 
 ## Business Rules for Order Tracking & Fulfillment
 
-Refer to detailed rules in [.agents/rules/order_rules.md](file:///c:/Users/deenb/OneDrive/Documents/Return%20Analysis/.agents/rules/order_rules.md).
+Refer to detailed rules in [.agents/rules/order_rules.md](.agents/rules/order_rules.md).
 
 ### 1. General Information
 * An order (e.g. ID `17263`) may contain multiple items.
@@ -64,4 +64,17 @@ Refer to detailed rules in [.agents/rules/order_rules.md](file:///c:/Users/deenb
 ### 7. AI Assistant Grounding & Copilot Invariants
 * **Zero Hallucination Mandate**: The AI copilot (`DEEN Assistant`) must strictly ground all sales numbers, queue counts, delivery statuses, and baseline comparisons in verified `LiveOpsAnalyticsSlice` facts.
 * **Offline Fallback Guarantee**: If external LLM API keys are unconfigured or unavailable, `/api/ai/copilot` must synthesize a complete, grounded executive briefing using deterministic knowledge rules and mathematical slices without failing.
+
+### 8. Everyday Dispatched Orders Ledger & Customer Delivery Rating Engine
+* **Order-Wise Ledger Default**: Everyday Dispatched Orders Ledger defaults to Order-Wise (`ledgerViewMode: 'ORDER_WISE'`). Groups multi-item orders into a single consolidated master order row showing the primary item with a multi-item counter badge (`+X more`), item count chip, aggregate order value, and expandable nested line-item breakdown.
+* **Pathao Courier Consignment Extraction**: Consignment IDs and tracking codes are extracted from WooCommerce order metadata keys (`ptc_consignment_id`, `_ptc_consignment_id`, `ptc_status`) created by the official Pathao WooCommerce plugin.
+* **Dual-Tier Customer Delivery Rating**:
+  * **Tier 1 (Pathao B2B Success API)**: Real-time query to Pathao User Success API (`POST /aladdin/api/v1/user/success`) using normalized Bangladeshi phone numbers (`01XXXXXXXXX`).
+  * **Tier 2 (Empirical Fallback & Baseline)**: Grounded store history calculation (`getStoreHistoryIndex`) across all lifetime synced orders.
+  * **Rating Classification**:
+    - 🌟 **Excellent**: Delivery rate $\ge 90\%$ ($\ge 5$ orders) or $100\%$ ($\ge 2$ orders)
+    - 👍 **Good**: Delivery rate $\ge 80\%$ ($\ge 3$ orders)
+    - ⚖️ **Moderate**: Delivery rate $60\% - 79\%$
+    - ⚠️ **High Risk**: Delivery rate $< 60\%$ ($\ge 2$ orders) or flagged return risk
+    - 🌱 **New Buyer**: $\le 1$ total lifetime order without courier history
 

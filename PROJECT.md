@@ -41,6 +41,10 @@
 | 17 | Live Sync Notification Center | Floating toast event pipeline and header status indicator for real-time order and courier events | E2 | Overall Experience |
 | 18 | Universal Date Range Engine | Global temporal filter across all 12 modules with period comparison math ($\Delta \%$) | E3 | Overall Experience |
 | 19 | Table Ergonomics & Density | Selectable table density (Compact / Standard / Relaxed) and column visibility customization | E4 | Overall Experience |
+| 20 | Order-Wise Dispatched Ledger | Default consolidated master order rows, multi-item badges (`+X more`), nested breakdowns, and view toggle | M8 | ORIGINAL_REQUEST |
+| 21 | Pathao Customer Delivery Rating | Dual-tier phone rating intelligence via Pathao B2B success API & store history fallback | M8 | ORIGINAL_REQUEST |
+| 22 | WooCommerce Pathao Plugin Extraction | Auto-harvesting of `ptc_consignment_id`, `_ptc_consignment_id`, and tracking links | M8 | ORIGINAL_REQUEST |
+| 23 | Split-Screen Sales Volume Charts | Maximized side-by-side split screen (Donut + Subcategory volume, 7D avg removed) | M8 | ORIGINAL_REQUEST |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
@@ -52,6 +56,7 @@
 | M5 | Final E2E Test Suite & Adversarial Hardening | Comprehensive test coverage for all tiers (T1-T4 + T5 hardening), zero regressions, type-check, lint, build pass | M1, M2, M3, M4 | COMPLETED |
 | M6 | Live Operations & Real-Time Sync | WooCommerce REST batch sync, Pathao Hermes live tracking, status modification tracking, pack queue, 7D rolling baseline | None | COMPLETED |
 | M7 | AI Assistant Live Ops Integration | Ground DEEN Assistant in real-time orders, courier telemetry, 7D baseline, offline heuristics fallback, agentic tags | M6 | COMPLETED |
+| M8 | Order-Wise Ledger & Customer Rating Engine | Default Order-Wise dispatched ledger, expandable nested line items, dual-tier Pathao customer ratings, plugin metadata extraction, and maximized split charts | M6, M7 | COMPLETED |
 | E1 | Command Palette (`Cmd + K`) | Universal modal search across tabs, orders, customers, SKUs, and quick actions with keyboard shortcuts | None | IN PROGRESS |
 | E2 | Live Sync Notification Center | Floating toast alert pipeline for background sync events (new orders, courier updates, discrepancies) | M6 | PLANNED |
 | E3 | Universal Date Range Engine | Header date range bar applying across all 12 modules with period comparison deltas | None | PLANNED |
