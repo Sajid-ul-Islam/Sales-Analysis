@@ -20,6 +20,9 @@ import {
   Copy,
   Check,
   Zap,
+  ChevronDown,
+  ChevronUp,
+  Layers,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -57,6 +60,11 @@ import {
   getExportPhoneNumber,
   exportLiveShippedOrdersExcel,
 } from '@/lib/excelExport';
+import {
+  groupOrdersByOrderId,
+  filterOrderWiseGroups,
+  exportOrderWiseLedgerExcel,
+} from '@/lib/orderGrouping';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 import { DataProvenanceInfo } from '@/lib/dataAudit';
 
@@ -112,6 +120,31 @@ export function LiveOpsTab({
   const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
   const [localSyncing, setLocalSyncing] = useState(false);
 
+  // Table Granularity Switcher: Line Items (Item-Wise) vs Consolidated Orders (Order-Wise)
+  const [ledgerViewMode, setLedgerViewMode] = useState<'ITEM_WISE' | 'ORDER_WISE'>('ITEM_WISE');
+  const [expandedOrderIds, setExpandedOrderIds] = useState<Set<string>>(new Set());
+
+  const toggleOrderExpanded = useCallback((orderId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setExpandedOrderIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(orderId)) {
+        next.delete(orderId);
+      } else {
+        next.add(orderId);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleAllExpanded = useCallback((expandAll: boolean, allOrderIds: string[]) => {
+    if (!expandAll) {
+      setExpandedOrderIds(new Set());
+    } else {
+      setExpandedOrderIds(new Set(allOrderIds));
+    }
+  }, []);
+
   // Live Sync & Telemetry State — Clean SSR defaults, hydrated in useEffect on mount
   const [liveOrders, setLiveOrders] = useState<RawOrderRow[]>([]);
   const [courierStats, setCourierStats] = useState<LiveTerminalStats | null>(null);
@@ -148,6 +181,8 @@ export function LiveOpsTab({
     if (urlDate) setSelectedHistoricalDate(urlDate);
     const urlCourier = p.get('courierFilter');
     if (urlCourier) setCourierFilter(urlCourier);
+    const urlLedger = p.get('ledgerView');
+    if (urlLedger === 'ORDER_WISE' || urlLedger === 'orderwise') setLedgerViewMode('ORDER_WISE');
 
     const cached = getCacheItem<LiveTerminalCacheEnvelope>(DEEN_CACHE_KEYS.LIVE_TERMINAL);
     if (cached) {
@@ -451,6 +486,34 @@ export function LiveOpsTab({
     return list.sort(compareOrdersByNumber);
   }, [report.activeOrders, searchQuery, categoryFilter, courierFilter, selectedView, pipelineFilter]);
 
+  // Grouped order-wise records for consolidated ledger table view
+  const orderWiseGroups = useMemo(() => {
+    return groupOrdersByOrderId(report.activeOrders);
+  }, [report.activeOrders]);
+
+  const filteredOrderWiseGroups = useMemo(() => {
+    return filterOrderWiseGroups(orderWiseGroups, {
+      searchQuery,
+      categoryFilter,
+      courierFilter,
+      pipelineFilter,
+      selectedView,
+    });
+  }, [orderWiseGroups, searchQuery, categoryFilter, courierFilter, pipelineFilter, selectedView]);
+
+  // Modal order item group (resolves all multi-item basket items if inspecting in modal)
+  const modalOrderGroup = useMemo(() => {
+    if (!selectedDetailOrder) return null;
+    const oid = String(selectedDetailOrder['Order ID'] || selectedDetailOrder.orderId || '').trim();
+    if (!oid) return null;
+    const matchingRows = (report.activeOrders || []).filter(
+      (o) => String(o['Order ID'] || o.orderId || '').trim() === oid
+    );
+    if (matchingRows.length <= 1) return null;
+    const grouped = groupOrdersByOrderId(matchingRows);
+    return grouped[0] || null;
+  }, [selectedDetailOrder, report.activeOrders]);
+
   // Unique categories for table filter dropdown (pure online commercial items)
   const uniqueCategories = useMemo(() => {
     const set = new Set<string>();
@@ -479,6 +542,12 @@ export function LiveOpsTab({
   // Export current table to Excel with full courier details sorted by order number
   // Strictly excludes POS and non-checkout exchange orders from commercial sales sheet
   const handleExportExcel = () => {
+    if (ledgerViewMode === 'ORDER_WISE') {
+      exportOrderWiseLedgerExcel(filteredOrderWiseGroups, report, {
+        isExchangesView: courierFilter === 'EXCHANGES_ONLY',
+      });
+      return;
+    }
     exportLiveShippedOrdersExcel(report.activeOrders, report, {
       isExchangesView: courierFilter === 'EXCHANGES_ONLY',
     });
@@ -486,6 +555,43 @@ export function LiveOpsTab({
 
   const handleExportCsv = () => {
     const isExchangesView = courierFilter === 'EXCHANGES_ONLY';
+
+    if (ledgerViewMode === 'ORDER_WISE') {
+      const exportData = filteredOrderWiseGroups.map((g) => ({
+        'Order ID': g.orderId,
+        'Date': g.orderDate,
+        'Customer Name': g.customerName,
+        'Phone Number': g.phone,
+        'City': g.city,
+        'Total Items (Pcs)': g.totalQuantity,
+        'Products': g.items.map((i) => `${i.itemName} (x${i.quantity})`).join('; '),
+        'Collection Type':
+          g.collectionType === 'SELECTS'
+            ? 'DEEN Selects'
+            : g.collectionType === 'REGULAR'
+            ? 'DEEN Regular'
+            : 'Mixed (Selects + Regular)',
+        'Order Total': g.totalAmount,
+        'WooCommerce Status': g.wcStatus,
+        'Courier Status': g.courierStatus,
+        'Consignment ID': g.consignmentIds.join(', ') || 'N/A',
+        'Fulfillment Branch': g.branch.branchName,
+        'Discrepancy': g.hasDiscrepancy ? 'YES' : 'NO',
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const csvOutput = XLSX.utils.sheet_to_csv(ws);
+      const blob = new Blob([csvOutput], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `DEEN_Live_OrderWise_Ledger_${report.referenceDate}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+
     const targetOrders = isExchangesView
       ? report.activeOrders.filter(isOrderExchange)
       : filteredOrders.filter((o) => isOrderOnline(o) && !isOrderExchange(o));
@@ -1985,27 +2091,104 @@ export function LiveOpsTab({
       <div className="bg-white dark:bg-[#0A0A0A] rounded-3xl border border-slate-200/90 dark:border-[#1F1F1F] p-5 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#1F1F1F] pb-3">
           <div>
-            <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight font-headline flex items-center gap-2">
-              <span>📋</span>
-              <span>Everyday Dispatched Orders Ledger</span>
-              <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
-                ({filteredOrders.length} orders displayed)
-              </span>
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Granular record of all customer orders matching the active shift view with live Pathao delivery status.
+            <div className="flex items-center gap-3 flex-wrap">
+              <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight font-headline flex items-center gap-2">
+                <span>📋</span>
+                <span>Everyday Dispatched Orders Ledger</span>
+                <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
+                  ({ledgerViewMode === 'ORDER_WISE' ? `${filteredOrderWiseGroups.length} unique orders` : `${filteredOrders.length} line items`})
+                </span>
+              </h3>
+
+              {/* View Mode Toggle: Line Items vs Consolidated Orders */}
+              <div className="inline-flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-[#121212] border border-slate-200/80 dark:border-[#1F1F1F] text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setLedgerViewMode('ITEM_WISE')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all ${
+                    ledgerViewMode === 'ITEM_WISE'
+                      ? 'bg-white dark:bg-[#1F1F1F] text-slate-900 dark:text-white shadow-2xs'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                  title="Item-wise: View individual product line items"
+                >
+                  <Package className="w-3.5 h-3.5" />
+                  <span>Line Items</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-slate-200/70 dark:bg-[#2A2A2A] text-slate-600 dark:text-slate-300">
+                    {filteredOrders.length}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLedgerViewMode('ORDER_WISE')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all ${
+                    ledgerViewMode === 'ORDER_WISE'
+                      ? 'bg-blue-600 text-white shadow-2xs'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                  title="Order-wise: Consolidate multi-item orders into single rows"
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Order-Wise</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-md ${
+                      ledgerViewMode === 'ORDER_WISE'
+                        ? 'bg-blue-700 text-white'
+                        : 'bg-slate-200/70 dark:bg-[#2A2A2A] text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    {filteredOrderWiseGroups.length}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              {ledgerViewMode === 'ORDER_WISE'
+                ? 'Consolidated view grouping multi-item baskets into single authoritative rows with expandable product breakdowns.'
+                : 'Granular line-item record of each apparel product dispatched matching the active shift view with live Pathao delivery status.'}
             </p>
           </div>
 
-          {/* Export Action Buttons */}
-          <div className="flex items-center gap-2">
+          {/* Export Action Buttons & Expand Controls */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {ledgerViewMode === 'ORDER_WISE' && filteredOrderWiseGroups.length > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  toggleAllExpanded(
+                    expandedOrderIds.size < filteredOrderWiseGroups.length,
+                    filteredOrderWiseGroups.map((g) => g.orderId)
+                  )
+                }
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-[#2A2A2A] bg-slate-50 dark:bg-[#121212] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1A1A1A] text-xs font-bold transition-all shadow-2xs"
+                title={
+                  expandedOrderIds.size < filteredOrderWiseGroups.length
+                    ? 'Expand all multi-item orders'
+                    : 'Collapse all orders'
+                }
+              >
+                {expandedOrderIds.size < filteredOrderWiseGroups.length ? (
+                  <>
+                    <ChevronDown className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span>Expand All</span>
+                  </>
+                ) : (
+                  <>
+                    <ChevronUp className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
+                    <span>Collapse All</span>
+                  </>
+                )}
+              </button>
+            )}
+
             <button
               type="button"
               onClick={handleExportExcel}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-xs font-bold transition-all shadow-2xs"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Export Excel (.xlsx)</span>
+              <span>Export Excel ({ledgerViewMode === 'ORDER_WISE' ? 'Order-Wise' : '.xlsx'})</span>
             </button>
 
             <button
@@ -2092,193 +2275,536 @@ export function LiveOpsTab({
         <div className="overflow-x-auto min-w-0 rounded-2xl border border-slate-100 dark:border-[#1F1F1F]">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-slate-50 dark:bg-[#0A0A0A] text-slate-500 dark:text-slate-400 font-bold border-b border-slate-200/80 dark:border-[#1F1F1F] uppercase text-[10px] tracking-wider">
-                <th className="py-3 px-3.5">Order ID</th>
-                <th className="py-3 px-3.5">Date & Time</th>
-                <th className="py-3 px-3.5">Customer & Phone</th>
-                <th className="py-3 px-3.5">Product & SKU</th>
-                <th className="py-3 px-3.5 text-center">Collection</th>
-                <th className="py-3 px-3.5 text-center">Qty</th>
-                <th className="py-3 px-3.5 text-right">Unit Price</th>
-                <th className="py-3 px-3.5 text-right">Order Total</th>
-                <th className="py-3 px-3.5 text-center">WC Status</th>
-                <th className="py-3 px-3.5 text-center">Courier Status (Pathao)</th>
-                <th className="py-3 px-3.5 text-center">Consignment ID</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-[#1F1F1F] font-medium text-slate-700 dark:text-slate-300">
-              {filteredOrders.length === 0 ? (
-                <tr>
-                  <td colSpan={11} className="py-12 text-center text-slate-400 dark:text-slate-500">
-                    <Package className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                    <p className="font-semibold">No orders found matching the filter criteria.</p>
-                  </td>
+              {ledgerViewMode === 'ORDER_WISE' ? (
+                <tr className="bg-slate-50 dark:bg-[#0A0A0A] text-slate-500 dark:text-slate-400 font-bold border-b border-slate-200/80 dark:border-[#1F1F1F] uppercase text-[10px] tracking-wider">
+                  <th className="py-3 px-3.5">Order ID</th>
+                  <th className="py-3 px-3.5">Date & Time</th>
+                  <th className="py-3 px-3.5">Customer & Phone</th>
+                  <th className="py-3 px-3.5">Products Summary</th>
+                  <th className="py-3 px-3.5 text-center">Collection</th>
+                  <th className="py-3 px-3.5 text-center">Total Pcs</th>
+                  <th className="py-3 px-3.5 text-right">Order Total</th>
+                  <th className="py-3 px-3.5 text-center">WC Status</th>
+                  <th className="py-3 px-3.5 text-center">Courier Status (Pathao)</th>
+                  <th className="py-3 px-3.5 text-center">Consignment ID</th>
+                  <th className="py-3 px-3.5 text-center">Action</th>
                 </tr>
               ) : (
-                filteredOrders.slice(0, 100).map((row, idx) => {
-                  const oid = String(row['Order ID'] || row.orderId || '');
-                  const prodName = String(row['Item Name'] || 'Apparel Item');
-                  const sku = String(row.SKU || '');
-                  const cat = getCategoryForSales(prodName);
-                  const isSelects = classifyProductLine(prodName, sku, cat) === 'DEEN Selects';
-                  const qty = Number(row.Quantity) || 1;
-                  const itemCost = Number(row['Item Cost']) || 0;
-                  const orderAmt = Number(row['Order Amount']) || itemCost * qty;
-                  const wcStatus = String(row['Delivery Status'] || (row as Record<string, unknown>).status || 'shipped');
-                  const courierStatus = String(row['Courier Status'] || row.courierStatus || 'Untracked');
-                  const consignmentId = String(row['Consignment ID'] || row.consignmentId || '').trim();
-                  const hasDiscrepancy = Boolean(row.hasDiscrepancy);
+                <tr className="bg-slate-50 dark:bg-[#0A0A0A] text-slate-500 dark:text-slate-400 font-bold border-b border-slate-200/80 dark:border-[#1F1F1F] uppercase text-[10px] tracking-wider">
+                  <th className="py-3 px-3.5">Order ID</th>
+                  <th className="py-3 px-3.5">Date & Time</th>
+                  <th className="py-3 px-3.5">Customer & Phone</th>
+                  <th className="py-3 px-3.5">Product & SKU</th>
+                  <th className="py-3 px-3.5 text-center">Collection</th>
+                  <th className="py-3 px-3.5 text-center">Qty</th>
+                  <th className="py-3 px-3.5 text-right">Unit Price</th>
+                  <th className="py-3 px-3.5 text-right">Order Total</th>
+                  <th className="py-3 px-3.5 text-center">WC Status</th>
+                  <th className="py-3 px-3.5 text-center">Courier Status (Pathao)</th>
+                  <th className="py-3 px-3.5 text-center">Consignment ID</th>
+                </tr>
+              )}
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-[#1F1F1F] font-medium text-slate-700 dark:text-slate-300">
+              {ledgerViewMode === 'ORDER_WISE' ? (
+                filteredOrderWiseGroups.length === 0 ? (
+                  <tr>
+                    <td colSpan={11} className="py-12 text-center text-slate-400 dark:text-slate-500">
+                      <Package className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                      <p className="font-semibold">No consolidated orders found matching the filter criteria.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredOrderWiseGroups.slice(0, 100).map((group, idx) => {
+                    const isExpanded = expandedOrderIds.has(group.orderId);
+                    const hasMultipleItems = group.items.length > 1;
 
-                  return (
-                    <tr
-                      key={`live-order-row-${oid}-${idx}`}
-                      onClick={() => setSelectedDetailOrder(row)}
-                      className={`hover:bg-slate-50/80 dark:hover:bg-[#141414] transition-colors cursor-pointer group ${
-                        hasDiscrepancy ? 'bg-rose-50/30 dark:bg-rose-950/20' : ''
-                      }`}
-                    >
-                      <td className="py-2.5 px-3.5 font-bold text-blue-600 dark:text-blue-400 font-mono whitespace-nowrap">
-                        <div className="flex flex-col gap-0.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="group-hover:underline">{oid}</span>
-                            {hasDiscrepancy && (
-                              <span title={`Discrepancy: ${row.discrepancyType || 'Status mismatch'}`} className="text-rose-500">
-                                <AlertTriangle className="w-3.5 h-3.5 inline" />
+                    return (
+                      <React.Fragment key={`order-group-${group.orderId}-${idx}`}>
+                        <tr
+                          onClick={() => setSelectedDetailOrder(group.primaryRow)}
+                          className={`hover:bg-slate-50/80 dark:hover:bg-[#141414] transition-colors cursor-pointer group ${
+                            group.hasDiscrepancy ? 'bg-rose-50/30 dark:bg-rose-950/20' : ''
+                          } ${isExpanded ? 'bg-slate-50/40 dark:bg-[#111111]' : ''}`}
+                        >
+                          {/* Order ID & Badges */}
+                          <td className="py-2.5 px-3.5 font-bold text-blue-600 dark:text-blue-400 font-mono whitespace-nowrap">
+                            <div className="flex flex-col gap-0.5">
+                              <div className="flex items-center gap-1.5">
+                                {hasMultipleItems ? (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => toggleOrderExpanded(group.orderId, e)}
+                                    className="p-1 -ml-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-[#222] transition-colors"
+                                    title={isExpanded ? 'Collapse line items' : 'Expand line items'}
+                                  >
+                                    {isExpanded ? (
+                                      <ChevronUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                    ) : (
+                                      <ChevronDown className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
+                                    )}
+                                  </button>
+                                ) : (
+                                  <span className="w-3.5 inline-block" />
+                                )}
+                                <span className="group-hover:underline">{group.orderId}</span>
+                                {group.hasDiscrepancy && (
+                                  <span
+                                    title={`Discrepancy: ${group.discrepancyType || 'Status mismatch'}`}
+                                    className="text-rose-500"
+                                  >
+                                    <AlertTriangle className="w-3.5 h-3.5 inline" />
+                                  </span>
+                                )}
+                                <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </div>
+
+                              {/* Branch / Exchange Badge */}
+                              {(() => {
+                                if (group.isExchange) {
+                                  return (
+                                    <span
+                                      className="inline-block self-start px-2 py-0.5 rounded-md text-[9.5px] font-bold tracking-tight bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800 font-sans shadow-2xs"
+                                      title={
+                                        group.exchangeInfo.type === 'replacement'
+                                          ? `Replacement for #${group.exchangeInfo.referencedOrderId}`
+                                          : 'Exchanged Order'
+                                      }
+                                    >
+                                      {group.exchangeInfo.displayTag || 'Exchange'}
+                                    </span>
+                                  );
+                                }
+
+                                if (!group.branch.isBranchFulfillment) return null;
+                                const badgeColor =
+                                  group.branch.branchCode === 'MIRPUR'
+                                    ? 'bg-purple-100 text-purple-800 border-purple-200'
+                                    : group.branch.branchCode === 'CUMILLA'
+                                    ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                    : group.branch.branchCode === 'WARI'
+                                    ? 'bg-teal-100 text-teal-800 border-teal-200'
+                                    : group.branch.branchCode === 'SYLHET'
+                                    ? 'bg-indigo-100 text-indigo-800 border-indigo-200'
+                                    : 'bg-slate-100 text-slate-700 border-slate-200';
+                                return (
+                                  <span
+                                    className={`inline-block self-start px-1.5 py-0.2 rounded text-[9.5px] font-bold tracking-tight border font-sans ${badgeColor}`}
+                                    title={`Fulfillment: ${group.branch.branchName}`}
+                                  >
+                                    {group.branch.branchName.replace(' Branch', '').replace(' Outlet POS', ' POS')}
+                                  </span>
+                                );
+                              })()}
+                            </div>
+                          </td>
+
+                          {/* Date & Time */}
+                          <td className="py-2.5 px-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap text-[11px] font-sans">
+                            {formatOrderDateTime(group.orderDate)}
+                          </td>
+
+                          {/* Customer & Phone */}
+                          <td className="py-2.5 px-3.5">
+                            <div
+                              className="font-bold text-slate-800 dark:text-white truncate max-w-[140px]"
+                              title={group.customerName}
+                            >
+                              {group.customerName}
+                            </div>
+                            <div className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
+                              {group.phone || 'N/A'}
+                            </div>
+                            {group.city && (
+                              <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate max-w-[140px]">
+                                {group.city}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Products Summary & SKU */}
+                          <td className="py-2.5 px-3.5 max-w-[240px]">
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className="font-semibold text-slate-800 dark:text-white truncate"
+                                title={group.items[0]?.itemName}
+                              >
+                                {group.items[0]?.itemName || 'Apparel Item'}
+                              </span>
+                              {hasMultipleItems && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => toggleOrderExpanded(group.orderId, e)}
+                                  className="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 hover:bg-blue-100 transition-colors"
+                                >
+                                  +{group.items.length - 1} more
+                                </button>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono flex items-center gap-1.5">
+                              <span>SKU: {group.items[0]?.sku || 'N/A'}</span>
+                              <span>•</span>
+                              <span className="text-slate-600 dark:text-slate-300 font-medium">
+                                {group.items[0]?.category}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Collection */}
+                          <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
+                            {group.collectionType === 'SELECTS' ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                💎 Selects
+                              </span>
+                            ) : group.collectionType === 'REGULAR' ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                📦 Regular
+                              </span>
+                            ) : (
+                              <span
+                                className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                                title="Mixed: Order contains both DEEN Selects and Regular apparel"
+                              >
+                                💎 Selects + 📦 Regular
                               </span>
                             )}
-                            <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </div>
-                          {(() => {
-                            const exInfo = extractExchangeInfo(row);
-                            const branch = detectFulfillmentBranch(row);
-                            const isExchangeOrder = exInfo.isExchange || branch.branchCode === 'EXCHANGE';
+                          </td>
 
-                            if (isExchangeOrder) {
+                          {/* Total Pcs (Strict Integer) */}
+                          <td className="py-2.5 px-3.5 text-center font-bold text-slate-800 dark:text-white">
+                            <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-[#181818] border border-slate-200/80 dark:border-[#262626] text-xs font-mono">
+                              {group.totalQuantity} pcs
+                            </span>
+                          </td>
+
+                          {/* Order Total */}
+                          <td className="py-2.5 px-3.5 text-right font-black text-slate-900 dark:text-white">
+                            ৳ {group.totalAmount.toLocaleString()}
+                          </td>
+
+                          {/* WC Status */}
+                          <td className="py-2.5 px-3.5 text-center">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-[#1A1A1A] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2A2A2A]">
+                              {group.wcStatus}
+                            </span>
+                          </td>
+
+                          {/* Courier Status */}
+                          <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
+                            {group.courierStatus === 'Delivered' ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                <span>Delivered</span>
+                              </span>
+                            ) : group.courierStatus === 'In Transit' ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 inline-flex items-center gap-1">
+                                <Truck className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                                <span>In Transit</span>
+                              </span>
+                            ) : group.courierStatus === 'Returned' ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 inline-flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                                <span>Returned</span>
+                              </span>
+                            ) : group.courierStatus === 'Pending Pickup' ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 inline-flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                <span>Pending</span>
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-[#1A1A1A] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-[#2A2A2A]">
+                                Untracked
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Consignment ID */}
+                          <td className="py-2.5 px-3.5 text-center font-mono text-[11px] whitespace-nowrap">
+                            {group.consignmentIds.length > 0 ? (
+                              <div className="flex flex-col gap-1 items-center">
+                                {group.consignmentIds.map((cid, cIdx) => (
+                                  <a
+                                    key={`consignment-${cid}-${cIdx}`}
+                                    href={`https://pathao.com/courier/tracking/?consignment_id=${encodeURIComponent(cid)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline inline-flex items-center gap-1"
+                                    title="Open Pathao Tracking"
+                                  >
+                                    <span>{cid}</span>
+                                    <ExternalLink className="w-3 h-3 opacity-60" />
+                                  </a>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-slate-300 dark:text-slate-600">—</span>
+                            )}
+                          </td>
+
+                          {/* Action Button */}
+                          <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedDetailOrder(group.primaryRow);
+                              }}
+                              className="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-slate-200 dark:border-[#2A2A2A] bg-white dark:bg-[#121212] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1A1A1A] transition-colors shadow-2xs"
+                            >
+                              Details
+                            </button>
+                          </td>
+                        </tr>
+
+                        {/* Accordion Sub-Row for Consolidated Order Line Items */}
+                        {isExpanded && (
+                          <tr className="bg-slate-50/70 dark:bg-[#0D0D0D] border-b border-slate-200/80 dark:border-[#1F1F1F]">
+                            <td colSpan={11} className="py-3 px-4 sm:px-6">
+                              <div className="rounded-2xl border border-slate-200/90 dark:border-[#222] bg-white dark:bg-[#121212] p-3.5 shadow-xs space-y-2.5">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                    <Package className="w-3.5 h-3.5 text-blue-500" />
+                                    <span>
+                                      Order #{group.orderId} Item Breakdown ({group.items.length} unique products, {group.totalQuantity} total pcs)
+                                    </span>
+                                  </span>
+                                  <span className="font-mono font-bold text-slate-800 dark:text-white">
+                                    Order Total: ৳ {group.totalAmount.toLocaleString()}
+                                  </span>
+                                </div>
+                                <div className="overflow-x-auto min-w-0">
+                                  <table className="w-full text-left border-collapse text-xs">
+                                    <thead className="bg-slate-50 dark:bg-[#181818] text-slate-500 dark:text-slate-400 font-bold uppercase text-[9.5px] border-b border-slate-200/60 dark:border-[#222]">
+                                      <tr>
+                                        <th className="py-2 px-3">Item / Apparel</th>
+                                        <th className="py-2 px-3">SKU</th>
+                                        <th className="py-2 px-3">Category</th>
+                                        <th className="py-2 px-3 text-center">Collection</th>
+                                        <th className="py-2 px-3 text-center">Qty</th>
+                                        <th className="py-2 px-3 text-right">Unit Price</th>
+                                        <th className="py-2 px-3 text-right">Subtotal</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 dark:divide-[#1F1F1F] font-medium text-slate-700 dark:text-slate-300 text-[11px]">
+                                      {group.items.map((item, iIdx) => (
+                                        <tr key={`${group.orderId}-item-${iIdx}`} className="hover:bg-slate-50/60 dark:hover:bg-[#171717]">
+                                          <td className="py-2 px-3 font-semibold text-slate-800 dark:text-white">
+                                            {item.itemName}
+                                          </td>
+                                          <td className="py-2 px-3 font-mono text-slate-500 dark:text-slate-400">
+                                            {item.sku || 'N/A'}
+                                          </td>
+                                          <td className="py-2 px-3 text-slate-600 dark:text-slate-300">
+                                            {item.category}
+                                          </td>
+                                          <td className="py-2 px-3 text-center">
+                                            {item.isSelects ? (
+                                              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                                💎 Selects
+                                              </span>
+                                            ) : (
+                                              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                                📦 Regular
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td className="py-2 px-3 text-center font-bold text-slate-900 dark:text-white">
+                                            {item.quantity}
+                                          </td>
+                                          <td className="py-2 px-3 text-right text-slate-600 dark:text-slate-400 font-mono">
+                                            ৳ {item.itemCost.toLocaleString()}
+                                          </td>
+                                          <td className="py-2 px-3 text-right font-black text-slate-900 dark:text-white font-mono">
+                                            ৳ {item.amount.toLocaleString()}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })
+                )
+              ) : (
+                filteredOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={11} className="py-12 text-center text-slate-400 dark:text-slate-500">
+                      <Package className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                      <p className="font-semibold">No orders found matching the filter criteria.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredOrders.slice(0, 100).map((row, idx) => {
+                    const oid = String(row['Order ID'] || row.orderId || '');
+                    const prodName = String(row['Item Name'] || 'Apparel Item');
+                    const sku = String(row.SKU || '');
+                    const cat = getCategoryForSales(prodName);
+                    const isSelects = classifyProductLine(prodName, sku, cat) === 'DEEN Selects';
+                    const qty = Number(row.Quantity) || 1;
+                    const itemCost = Number(row['Item Cost']) || 0;
+                    const orderAmt = Number(row['Order Amount']) || itemCost * qty;
+                    const wcStatus = String(row['Delivery Status'] || (row as Record<string, unknown>).status || 'shipped');
+                    const courierStatus = String(row['Courier Status'] || row.courierStatus || 'Untracked');
+                    const consignmentId = String(row['Consignment ID'] || row.consignmentId || '').trim();
+                    const hasDiscrepancy = Boolean(row.hasDiscrepancy);
+
+                    return (
+                      <tr
+                        key={`live-order-row-${oid}-${idx}`}
+                        onClick={() => setSelectedDetailOrder(row)}
+                        className={`hover:bg-slate-50/80 dark:hover:bg-[#141414] transition-colors cursor-pointer group ${
+                          hasDiscrepancy ? 'bg-rose-50/30 dark:bg-rose-950/20' : ''
+                        }`}
+                      >
+                        <td className="py-2.5 px-3.5 font-bold text-blue-600 dark:text-blue-400 font-mono whitespace-nowrap">
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="group-hover:underline">{oid}</span>
+                              {hasDiscrepancy && (
+                                <span title={`Discrepancy: ${row.discrepancyType || 'Status mismatch'}`} className="text-rose-500">
+                                  <AlertTriangle className="w-3.5 h-3.5 inline" />
+                                </span>
+                              )}
+                              <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                            {(() => {
+                              const exInfo = extractExchangeInfo(row);
+                              const branch = detectFulfillmentBranch(row);
+                              const isExchangeOrder = exInfo.isExchange || branch.branchCode === 'EXCHANGE';
+
+                              if (isExchangeOrder) {
+                                return (
+                                  <span
+                                    className="inline-block self-start px-2 py-0.5 rounded-md text-[9.5px] font-bold tracking-tight bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800 font-sans shadow-2xs"
+                                    title={exInfo.type === 'replacement' ? `Replacement for #${exInfo.referencedOrderId}` : 'Exchanged Order'}
+                                  >
+                                    {exInfo.displayTag || 'Exchange'}
+                                  </span>
+                                );
+                              }
+
+                              if (!branch.isBranchFulfillment) return null;
+                              const badgeColor =
+                                branch.branchCode === 'MIRPUR'
+                                  ? 'bg-purple-100 text-purple-800 border-purple-200'
+                                  : branch.branchCode === 'CUMILLA'
+                                  ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                  : branch.branchCode === 'WARI'
+                                  ? 'bg-teal-100 text-teal-800 border-teal-200'
+                                  : branch.branchCode === 'SYLHET'
+                                  ? 'bg-indigo-100 text-indigo-800 border-indigo-200'
+                                  : 'bg-slate-100 text-slate-700 border-slate-200';
                               return (
                                 <span
-                                  className="inline-block self-start px-2 py-0.5 rounded-md text-[9.5px] font-bold tracking-tight bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800 font-sans shadow-2xs"
-                                  title={exInfo.type === 'replacement' ? `Replacement for #${exInfo.referencedOrderId}` : 'Exchanged Order'}
+                                  className={`inline-block self-start px-1.5 py-0.2 rounded text-[9.5px] font-bold tracking-tight border font-sans ${badgeColor}`}
+                                  title={`Fulfillment: ${branch.branchName}`}
                                 >
-                                  {exInfo.displayTag || 'Exchange'}
+                                  {branch.branchName.replace(' Branch', '').replace(' Outlet POS', ' POS')}
                                 </span>
                               );
-                            }
-
-                            if (!branch.isBranchFulfillment) return null;
-                            const badgeColor =
-                              branch.branchCode === 'MIRPUR'
-                                ? 'bg-purple-100 text-purple-800 border-purple-200'
-                                : branch.branchCode === 'CUMILLA'
-                                ? 'bg-amber-100 text-amber-800 border-amber-200'
-                                : branch.branchCode === 'WARI'
-                                ? 'bg-teal-100 text-teal-800 border-teal-200'
-                                : branch.branchCode === 'SYLHET'
-                                ? 'bg-indigo-100 text-indigo-800 border-indigo-200'
-                                : 'bg-slate-100 text-slate-700 border-slate-200';
-                            return (
-                              <span
-                                className={`inline-block self-start px-1.5 py-0.2 rounded text-[9.5px] font-bold tracking-tight border font-sans ${badgeColor}`}
-                                title={`Fulfillment: ${branch.branchName}`}
-                              >
-                                {branch.branchName.replace(' Branch', '').replace(' Outlet POS', ' POS')}
-                              </span>
-                            );
-                          })()}
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap text-[11px] font-sans">
-                        {formatOrderDateTime(row['Order Date'])}
-                      </td>
-                      <td className="py-2.5 px-3.5">
-                        <div className="font-bold text-slate-800 dark:text-white truncate max-w-[140px]" title={String(getExportCustomerName(row) || row['Customer Name'] || '')}>
-                          {String(getExportCustomerName(row) || row['Customer Name'] || 'Customer')}
-                        </div>
-                        <div className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
-                          {String(getExportPhoneNumber(row) || row.Phone || 'N/A')}
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3.5 max-w-[220px]">
-                        <div className="font-semibold text-slate-800 dark:text-white truncate" title={prodName}>
-                          {prodName}
-                        </div>
-                        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono flex items-center gap-1.5">
-                          <span>SKU: {sku || 'N/A'}</span>
-                          <span>•</span>
-                          <span className="text-slate-600 dark:text-slate-300 font-medium">{cat}</span>
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
-                        {isSelects ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                            💎 Selects
+                            })()}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap text-[11px] font-sans">
+                          {formatOrderDateTime(row['Order Date'])}
+                        </td>
+                        <td className="py-2.5 px-3.5">
+                          <div className="font-bold text-slate-800 dark:text-white truncate max-w-[140px]" title={String(getExportCustomerName(row) || row['Customer Name'] || '')}>
+                            {String(getExportCustomerName(row) || row['Customer Name'] || 'Customer')}
+                          </div>
+                          <div className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
+                            {String(getExportPhoneNumber(row) || row.Phone || 'N/A')}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3.5 max-w-[220px]">
+                          <div className="font-semibold text-slate-800 dark:text-white truncate" title={prodName}>
+                            {prodName}
+                          </div>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono flex items-center gap-1.5">
+                            <span>SKU: {sku || 'N/A'}</span>
+                            <span>•</span>
+                            <span className="text-slate-600 dark:text-slate-300 font-medium">{cat}</span>
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
+                          {isSelects ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                              💎 Selects
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                              📦 Regular
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3.5 text-center font-bold text-slate-800 dark:text-white">
+                          {qty}
+                        </td>
+                        <td className="py-2.5 px-3.5 text-right font-medium text-slate-600 dark:text-slate-300">
+                          ৳ {itemCost.toLocaleString()}
+                        </td>
+                        <td className="py-2.5 px-3.5 text-right font-black text-slate-900 dark:text-white">
+                          ৳ {orderAmt.toLocaleString()}
+                        </td>
+                        <td className="py-2.5 px-3.5 text-center">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-[#1A1A1A] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2A2A2A]">
+                            {wcStatus}
                           </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                            📦 Regular
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-2.5 px-3.5 text-center font-bold text-slate-800 dark:text-white">
-                        {qty}
-                      </td>
-                      <td className="py-2.5 px-3.5 text-right font-medium text-slate-600 dark:text-slate-300">
-                        ৳ {itemCost.toLocaleString()}
-                      </td>
-                      <td className="py-2.5 px-3.5 text-right font-black text-slate-900 dark:text-white">
-                        ৳ {orderAmt.toLocaleString()}
-                      </td>
-                      <td className="py-2.5 px-3.5 text-center">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-[#1A1A1A] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2A2A2A]">
-                          {wcStatus}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
-                        {courierStatus === 'Delivered' ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                            <span>Delivered</span>
-                          </span>
-                        ) : courierStatus === 'In Transit' ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 inline-flex items-center gap-1">
-                            <Truck className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                            <span>In Transit</span>
-                          </span>
-                        ) : courierStatus === 'Returned' ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 inline-flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
-                            <span>Returned</span>
-                          </span>
-                        ) : courierStatus === 'Pending Pickup' ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 inline-flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                            <span>Pending</span>
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-[#1A1A1A] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-[#2A2A2A]">
-                            Untracked
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-2.5 px-3.5 text-center font-mono text-[11px] whitespace-nowrap">
-                        {consignmentId ? (
-                          <a
-                            href={`https://pathao.com/courier/tracking/?consignment_id=${encodeURIComponent(consignmentId)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline inline-flex items-center gap-1"
-                            title="Open Pathao Tracking"
-                          >
-                            <span>{consignmentId}</span>
-                            <ExternalLink className="w-3 h-3 opacity-60" />
-                          </a>
-                        ) : (
-                          <span className="text-slate-300 dark:text-slate-600">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
+                        </td>
+                        <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
+                          {courierStatus === 'Delivered' ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                              <span>Delivered</span>
+                            </span>
+                          ) : courierStatus === 'In Transit' ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 inline-flex items-center gap-1">
+                              <Truck className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                              <span>In Transit</span>
+                            </span>
+                          ) : courierStatus === 'Returned' ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 inline-flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                              <span>Returned</span>
+                            </span>
+                          ) : courierStatus === 'Pending Pickup' ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 inline-flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                              <span>Pending</span>
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-[#1A1A1A] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-[#2A2A2A]">
+                              Untracked
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3.5 text-center font-mono text-[11px] whitespace-nowrap">
+                          {consignmentId ? (
+                            <a
+                              href={`https://pathao.com/courier/tracking/?consignment_id=${encodeURIComponent(consignmentId)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline inline-flex items-center gap-1"
+                              title="Open Pathao Tracking"
+                            >
+                              <span>{consignmentId}</span>
+                              <ExternalLink className="w-3 h-3 opacity-60" />
+                            </a>
+                          ) : (
+                            <span className="text-slate-300 dark:text-slate-600">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )
               )}
             </tbody>
           </table>
@@ -2345,20 +2871,48 @@ export function LiveOpsTab({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               {/* Product Info */}
               <div className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl space-y-2">
-                <h4 className="font-bold text-slate-800 flex items-center gap-1.5 uppercase text-[10px] tracking-wider text-slate-500">
-                  <Package className="w-3.5 h-3.5" /> Product & Apparel Line
+                <h4 className="font-bold text-slate-800 flex items-center justify-between uppercase text-[10px] tracking-wider text-slate-500">
+                  <span className="flex items-center gap-1.5">
+                    <Package className="w-3.5 h-3.5" /> Product & Apparel Line
+                  </span>
+                  {modalOrderGroup && modalOrderGroup.items.length > 1 && (
+                    <span className="px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-800 font-bold text-[9px]">
+                      {modalOrderGroup.items.length} items
+                    </span>
+                  )}
                 </h4>
-                <div>
-                  <div className="font-bold text-slate-900">{String(selectedDetailOrder['Item Name'] || '')}</div>
-                  <div className="text-slate-500 text-[11px] mt-0.5">SKU: {String(selectedDetailOrder.SKU || 'N/A')}</div>
-                </div>
+                {modalOrderGroup && modalOrderGroup.items.length > 1 ? (
+                  <div className="space-y-2 max-h-36 overflow-y-auto pr-1 divide-y divide-slate-200/60">
+                    {modalOrderGroup.items.map((it, itIdx) => (
+                      <div key={itIdx} className="pt-1.5 first:pt-0">
+                        <div className="flex justify-between items-start text-xs font-semibold text-slate-900">
+                          <span className="truncate pr-2">{it.itemName}</span>
+                          <span className="font-bold shrink-0">x{it.quantity}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[10px] text-slate-500 mt-0.5 font-mono">
+                          <span>SKU: {it.sku || 'N/A'}</span>
+                          <span>৳ {it.amount.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div>
+                    <div className="font-bold text-slate-900">{String(selectedDetailOrder['Item Name'] || '')}</div>
+                    <div className="text-slate-500 text-[11px] mt-0.5">SKU: {String(selectedDetailOrder.SKU || 'N/A')}</div>
+                  </div>
+                )}
                 <div className="flex justify-between items-center pt-2 border-t border-slate-200/60 text-slate-600">
                   <span>Quantity:</span>
-                  <span className="font-bold text-slate-900">{Number(selectedDetailOrder.Quantity || 1)} pcs</span>
+                  <span className="font-bold text-slate-900">
+                    {modalOrderGroup ? modalOrderGroup.totalQuantity : Number(selectedDetailOrder.Quantity || 1)} pcs
+                  </span>
                 </div>
                 <div className="flex justify-between items-center text-slate-600">
                   <span>Order Total:</span>
-                  <span className="font-bold text-slate-900">৳ {Number(selectedDetailOrder['Order Amount'] || 0).toLocaleString()}</span>
+                  <span className="font-bold text-slate-900">
+                    ৳ {Number(modalOrderGroup ? modalOrderGroup.totalAmount : selectedDetailOrder['Order Amount'] || 0).toLocaleString()}
+                  </span>
                 </div>
               </div>
 

@@ -356,7 +356,7 @@ export function exportReconciledExcel(
  * Robust cross-browser Excel workbook downloader.
  * Fixes issue where Chromium cancels download if URL.revokeObjectURL is called prematurely.
  */
-function saveWorkbook(wb: XLSX.WorkBook, filename: string) {
+export function saveWorkbook(wb: XLSX.WorkBook, filename: string) {
   if (typeof window === 'undefined') return;
 
   // 1. Primary: Use XLSX.writeFile which handles browser downloads natively
