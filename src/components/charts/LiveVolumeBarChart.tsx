@@ -146,32 +146,6 @@ export function LiveVolumeBarChart({
             );
           })}
 
-          {/* 7-Day Rolling Average Reference Baseline */}
-          {avgUnitsSold > 0 && avgUnitsSold <= maxVolume && (
-            <g key="avg-units-baseline" className="pointer-events-none">
-              <line
-                x1={paddingLeft}
-                y1={getYCoord(avgUnitsSold)}
-                x2={chartWidth - paddingRight}
-                y2={getYCoord(avgUnitsSold)}
-                stroke="#64748b"
-                strokeWidth={isFullWidth || isModal ? '1.5' : '1.2'}
-                strokeDasharray="4 4"
-                opacity="0.75"
-              />
-              <text
-                x={chartWidth - paddingRight - 8}
-                y={getYCoord(avgUnitsSold) - 6}
-                textAnchor="end"
-                fontSize={isFullWidth || isModal ? '11' : '10'}
-                fontWeight="800"
-                className="fill-slate-500 dark:fill-slate-300 font-mono tracking-tight"
-              >
-                7D Avg: {avgUnitsSold} pcs
-              </text>
-            </g>
-          )}
-
           {/* Y-axis Title */}
           <text
             x={14}
