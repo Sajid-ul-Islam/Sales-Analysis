@@ -2049,13 +2049,12 @@ export function LiveOpsTab({
                 <th className="py-3 px-3.5 text-center">WC Status</th>
                 <th className="py-3 px-3.5 text-center">Courier Status (Pathao)</th>
                 <th className="py-3 px-3.5 text-center">Consignment ID</th>
-                <th className="py-3 px-3.5 text-center">Quick Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-[#1F1F1F] font-medium text-slate-700 dark:text-slate-300">
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="py-12 text-center text-slate-400 dark:text-slate-500">
+                  <td colSpan={11} className="py-12 text-center text-slate-400 dark:text-slate-500">
                     <Package className="w-8 h-8 mx-auto mb-2 opacity-40" />
                     <p className="font-semibold">No orders found matching the filter criteria.</p>
                   </td>
@@ -2221,28 +2220,6 @@ export function LiveOpsTab({
                         ) : (
                           <span className="text-slate-300 dark:text-slate-600">—</span>
                         )}
-                      </td>
-                      <td className="py-2.5 px-3.5 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        {(() => {
-                          const wa = generateWhatsAppConfirmationUrl(row, {
-                            type: isOrderOnHold(row) ? 'address_verification' : 'general',
-                          });
-                          if (!wa.url) {
-                            return <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>;
-                          }
-                          return (
-                            <a
-                              href={wa.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 text-[10.5px] font-bold transition-all shadow-2xs"
-                              title={`Send ${isOrderOnHold(row) ? 'Address Verification' : 'Confirmation'} to ${wa.formattedPhone}`}
-                            >
-                              <MessageSquare className="w-3 h-3 text-emerald-600" />
-                              <span>WhatsApp</span>
-                            </a>
-                          );
-                        })()}
                       </td>
                     </tr>
                   );
