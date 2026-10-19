@@ -639,7 +639,7 @@ export async function syncLiveTerminalData(options: {
   if (!options.skipNetwork) {
     try {
       const { pathao } = getSecretsWithOverrides({ pathao: options.pathaoCredentials });
-      if (pathao.client_id && pathao.client_secret && pathao.username && pathao.password) {
+      if (pathao.client_id && pathao.client_secret) {
         const token = await getPathaoToken(options.pathaoCredentials);
         if (token) {
           pathaoConnected = true;
@@ -742,10 +742,41 @@ export async function syncLiveTerminalData(options: {
       }
     }
 
+    // Tier 5: Fallback to Pathao status and fee stored in WooCommerce order metadata
+    const rawPathaoStatus = String(row.pathaoStatus || (row as Record<string, unknown>)['Pathao Status'] || '');
+    const rawPathaoFee = parseFloat(String(row.pathaoDeliveryFee || (row as Record<string, unknown>)['Pathao Delivery Fee'] || 0)) || 0;
+    if (!tracking && rawPathaoStatus && rawPathaoStatus !== '-' && rawPathaoStatus !== 'null') {
+      const normalizedMetaStatus = normalizeCourierStatus(rawPathaoStatus);
+      tracking = {
+        consignmentId: consId,
+        orderId: rawOid,
+        baseOrderId: baseOid,
+        courierStatus: normalizedMetaStatus,
+        rawStatus: rawPathaoStatus,
+        collectedAmount: 0,
+        deliveryFee: rawPathaoFee,
+        codFee: 0,
+        recipientName: String(row['Customer Name'] || row.customerName || ''),
+        recipientPhone: String(rawPhone || ''),
+        recipientCity: String(row.City || row.city || ''),
+        hasDiscrepancy: false,
+        discrepancyType: 'NONE',
+        fulfillmentBranch: branchInfo.branchName,
+        isBranchFulfillment: branchInfo.isBranchFulfillment,
+      };
+    }
+
     const courierStatus: StandardCourierStatus = tracking ? tracking.courierStatus : 'Untracked';
     const effectiveConsId = tracking?.consignmentId || consId || '';
     const collectedAmount = tracking?.collectedAmount || 0;
     const fee = tracking?.deliveryFee || 0;
+
+    // Ensure resolved consignment ID is reflected on the order record
+    if (effectiveConsId && !row['Consignment ID']) {
+      (row as Record<string, unknown>)['Consignment ID'] = effectiveConsId;
+      (row as Record<string, unknown>).consignmentId = effectiveConsId;
+      (row as Record<string, unknown>).tracking_number = effectiveConsId;
+    }
 
     const wcStatus = String(row['Delivery Status'] || row.status || 'shipped');
     const orderAmount = Number(row['Order Amount'] || row['Item Cost'] || 0);

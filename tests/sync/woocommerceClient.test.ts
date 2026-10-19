@@ -5,6 +5,7 @@ import {
   classifyPayment,
   detectBranchFromOrder,
   extractConsignmentTracking,
+  extractPathaoPluginOrderInfo,
   extractVariationAttributes,
   formatWooCommerceToOrderRows,
 } from '@/lib/woocommerceClient';
@@ -174,6 +175,34 @@ describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
       expect(extractConsignmentTracking({}, meta)).toBe('P123456789');
     });
 
+    it('extracts tracking from ptc_consignment_id (official courier-woocommerce-plugin key)', () => {
+      const meta = [{ key: 'ptc_consignment_id', value: 'RD290926W5BWHU' }];
+      expect(extractConsignmentTracking({}, meta)).toBe('RD290926W5BWHU');
+    });
+
+    it('extracts tracking from _ptc_consignment_id hidden meta key', () => {
+      const meta = [{ key: '_ptc_consignment_id', value: 'DL9988776655' }];
+      expect(extractConsignmentTracking({}, meta)).toBe('DL9988776655');
+    });
+
+    it('extracts tracking from Pathao merchant panel URL', () => {
+      const meta = [
+        {
+          key: '_pathao_tracking_url',
+          value: 'https://merchant.pathao.com/courier/orders/RD5544332211',
+        },
+      ];
+      expect(extractConsignmentTracking({}, meta)).toBe('RD5544332211');
+    });
+
+    it('ignores PTC_EMPTY_FLAG ("-") and invalid placeholders', () => {
+      const meta = [
+        { key: 'ptc_consignment_id', value: '-' },
+        { key: 'pathao_consignment_id', value: 'null' },
+      ];
+      expect(extractConsignmentTracking({}, meta)).toBe('');
+    });
+
     it('extracts tracking code from customer note regex fallback', () => {
       const order = { customer_note: 'Pathao Consignment: RD99887766AA' };
       expect(extractConsignmentTracking(order, [])).toBe('RD99887766AA');
@@ -182,6 +211,31 @@ describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
     it('extracts numeric tracking code from order notes with phrase', () => {
       const order = { order_notes: 'Pathao Consignment: 10582914 created' };
       expect(extractConsignmentTracking(order, [])).toBe('10582914');
+    });
+  });
+
+  describe('extractPathaoPluginOrderInfo', () => {
+    it('extracts consignmentId, status, and deliveryFee from WooCommerce plugin meta', () => {
+      const meta = [
+        { key: 'ptc_consignment_id', value: 'RD290926W5BWHU' },
+        { key: 'ptc_status', value: 'In_Transit' },
+        { key: 'ptc_delivery_fee', value: '60' },
+      ];
+      const res = extractPathaoPluginOrderInfo({}, meta);
+      expect(res.consignmentId).toBe('RD290926W5BWHU');
+      expect(res.status).toBe('In_Transit');
+      expect(res.deliveryFee).toBe(60);
+    });
+
+    it('handles empty or unfulfilled orders gracefully', () => {
+      const meta = [
+        { key: 'ptc_consignment_id', value: '-' },
+        { key: 'ptc_status', value: '-' },
+      ];
+      const res = extractPathaoPluginOrderInfo({}, meta);
+      expect(res.consignmentId).toBe('');
+      expect(res.status).toBe('');
+      expect(res.deliveryFee).toBe(0);
     });
   });
 
@@ -268,6 +322,48 @@ describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
       expect(item2.Size).toBe('L');
       expect(item2['Apparel Line']).toBe('DEEN Selects');
       expect(item2.isSelects).toBe(true);
+    });
+
+    it('correctly maps Pathao Courier plugin metadata (ptc_consignment_id, ptc_status, ptc_delivery_fee)', () => {
+      const mockOrder = {
+        id: 18335,
+        number: '18335',
+        date_created: '2026-10-19T10:00:00',
+        total: '2490',
+        status: 'completed',
+        billing: {
+          first_name: 'Tanvir',
+          last_name: 'Ahmed',
+          phone: '01811223344',
+          city: 'Chittagong',
+          state: 'Chittagong',
+          address_1: 'GEC Circle, Nasirabad',
+        },
+        meta_data: [
+          { key: 'ptc_consignment_id', value: 'RD191026W5BWHU' },
+          { key: 'ptc_status', value: 'In_Transit' },
+          { key: 'ptc_delivery_fee', value: '90' },
+        ],
+        line_items: [
+          {
+            id: 201,
+            name: 'DEEN Premium Oxford Shirt - L',
+            sku: 'SHIRT-OX-01',
+            quantity: 1,
+            total: '2490',
+          },
+        ],
+      };
+
+      const rows = formatWooCommerceToOrderRows([mockOrder]);
+      expect(rows.length).toBe(1);
+      const row = rows[0];
+      expect(row['Consignment ID']).toBe('RD191026W5BWHU');
+      expect(row.consignmentId).toBe('RD191026W5BWHU');
+      expect(row['Pathao Status']).toBe('In_Transit');
+      expect(row.pathaoStatus).toBe('In_Transit');
+      expect(row['Pathao Delivery Fee']).toBe(90);
+      expect(row.pathaoDeliveryFee).toBe(90);
     });
   });
 });

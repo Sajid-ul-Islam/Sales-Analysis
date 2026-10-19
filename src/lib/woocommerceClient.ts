@@ -440,10 +440,13 @@ export function parseTrackingCandidate(val: unknown): string {
       }
     }
 
-    // Check if URL (e.g. https://hermes.pathao.com/tracking?consignment_id=RD12345 or /track/12345)
-    if (s.includes('http') || s.includes('pathao') || s.includes('consignment_id=') || s.includes('/track')) {
+    // Check if URL (e.g. https://hermes.pathao.com/tracking?consignment_id=RD12345, merchant.pathao.com/courier/orders/12345, or /track/12345)
+    if (s.includes('http') || s.includes('pathao') || s.includes('consignment_id=') || s.includes('/track') || s.includes('/courier/orders/')) {
       const urlParamMatch = s.match(/[?&]consignment_id=([a-zA-Z0-9_-]+)/i);
       if (urlParamMatch && urlParamMatch[1]) return urlParamMatch[1].trim();
+
+      const courierOrdersMatch = s.match(/\/courier\/orders\/([a-zA-Z0-9_-]+)/i);
+      if (courierOrdersMatch && courierOrdersMatch[1]) return courierOrdersMatch[1].trim();
 
       const trackPathMatch = s.match(/\/(?:tracking|track)\/([a-zA-Z0-9_-]+)/i);
       if (trackPathMatch && trackPathMatch[1]) return trackPathMatch[1].trim();
@@ -452,8 +455,9 @@ export function parseTrackingCandidate(val: unknown): string {
     // Strip wrapping quotes
     s = s.replace(/^["']|["']$/g, '').trim();
 
-    // Ignore placeholder / boolean values
-    if (/^(na|n\/a|none|null|undefined|false|true|0|test)$/i.test(s)) return '';
+    // Ignore placeholder, empty flags, or boolean values
+    // Note: '-' is PTC_EMPTY_FLAG in courier-woocommerce-plugin
+    if (/^(na|n\/a|none|null|undefined|false|true|0|test|-|---|--)$/i.test(s)) return '';
 
     return s.length >= 4 ? s : '';
   }
@@ -467,7 +471,18 @@ export function parseTrackingCandidate(val: unknown): string {
  */
 export function extractConsignmentTracking(order: WcOrder, meta: WcMetaItem[]): string {
   const trackingKeys = [
-    // Primary Pathao keys
+    // Official Pathao Courier WooCommerce Plugin (courier-woocommerce-plugin-main / pathao-courier.php)
+    'ptc_consignment_id',
+    '_ptc_consignment_id',
+    'ptc_tracking_id',
+    '_ptc_tracking_id',
+    'ptc_tracking_code',
+    '_ptc_tracking_code',
+    'ptc_order_id',
+    '_ptc_order_id',
+    'ptc_order_consignment_id',
+    '_ptc_order_consignment_id',
+    // Standard Pathao keys
     '_pathao_consignment_id',
     'pathao_consignment_id',
     '_pathao_tracking_code',
@@ -575,6 +590,103 @@ export function extractVariationAttributes(item: { meta_data?: WcMetaItem[]; [ke
     }
   }
   return { size, color };
+}
+
+export interface PathaoPluginOrderInfo {
+  consignmentId: string;
+  status: string;
+  deliveryFee: number;
+}
+
+/**
+ * Extracts complete courier information stored by the official Pathao Courier WooCommerce plugin
+ * (ptc_consignment_id, ptc_status, ptc_delivery_fee, etc.).
+ */
+export function extractPathaoPluginOrderInfo(order: WcOrder, meta: WcMetaItem[]): PathaoPluginOrderInfo {
+  const consignmentId = extractConsignmentTracking(order, meta);
+  let status = '';
+  let deliveryFee = 0;
+
+  for (const m of meta) {
+    const k = String(m.key || '').toLowerCase();
+    if (k === 'ptc_status' || k === '_ptc_status' || k === 'pathao_status' || k === '_pathao_status') {
+      const v = String(m.value || '').trim();
+      if (v && v !== '-' && v !== 'null') {
+        status = v;
+      }
+    }
+    if (k === 'ptc_delivery_fee' || k === '_ptc_delivery_fee' || k === 'pathao_delivery_fee' || k === '_pathao_delivery_fee') {
+      const v = parseFloat(String(m.value || '0'));
+      if (!isNaN(v) && v > 0) {
+        deliveryFee = v;
+      }
+    }
+  }
+
+  return {
+    consignmentId,
+    status,
+    deliveryFee,
+  };
+}
+
+/**
+ * Fetches order notes for a specific WooCommerce order via /wp-json/wc/v3/orders/<id>/notes.
+ */
+export async function fetchWooCommerceOrderNotes(
+  orderId: number | string,
+  credentials?: WcCredentials
+): Promise<string[]> {
+  const { woocommerce: wc } = getSecretsWithOverrides({ woocommerce: credentials });
+  if (!wc.store_url || !wc.consumer_key || !wc.consumer_secret) return [];
+
+  const url = `${wc.store_url.replace(/\/+$/, '')}/wp-json/wc/v3/orders/${encodeURIComponent(String(orderId))}/notes`;
+  const authHeader = 'Basic ' + Buffer.from(`${wc.consumer_key}:${wc.consumer_secret}`).toString('base64');
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': authHeader,
+        'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
+      },
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) return [];
+    const notes = await res.json();
+    if (!Array.isArray(notes)) return [];
+    return notes.map((n: { note?: string }) => String(n.note || '').trim()).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Concurrently fetches order notes for multiple WooCommerce orders with bounded concurrency.
+ */
+export async function batchFetchWooCommerceOrderNotes(
+  orderIds: Array<number | string>,
+  concurrency = 4,
+  credentials?: WcCredentials
+): Promise<Map<string, string[]>> {
+  const results = new Map<string, string[]>();
+  const queue = [...orderIds];
+
+  const worker = async () => {
+    while (queue.length > 0) {
+      const id = queue.shift();
+      if (!id) break;
+      const notes = await fetchWooCommerceOrderNotes(id, credentials);
+      results.set(String(id), notes);
+    }
+  };
+
+  const workers = Array.from({ length: Math.min(concurrency, orderIds.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
 }
 
 /**
@@ -725,7 +837,8 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
 
     const meta = order.meta_data || [];
     const branchInfo = detectBranchFromOrder(order, meta, orderId);
-    const trackingId = extractConsignmentTracking(order, meta);
+    const pathaoInfo = extractPathaoPluginOrderInfo(order, meta);
+    const trackingId = pathaoInfo.consignmentId || extractConsignmentTracking(order, meta);
     const shippingFee = (order.shipping_lines && order.shipping_lines[0]) ? parseFloat(String(order.shipping_lines[0].total || '0')) || 0 : 0;
     const discountTotal = typeof order.discount_total === 'number' ? order.discount_total : parseFloat(String(order.discount_total || '0')) || 0;
     const couponCodes = (order.coupon_lines || []).map((c: { code?: string }) => c.code).filter(Boolean).join(', ');
@@ -860,6 +973,10 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
         'Consignment ID': trackingId,
         'consignmentId': trackingId,
         'tracking_number': trackingId,
+        'Pathao Status': pathaoInfo.status,
+        'pathaoStatus': pathaoInfo.status,
+        'Pathao Delivery Fee': pathaoInfo.deliveryFee,
+        'pathaoDeliveryFee': pathaoInfo.deliveryFee,
         isPos: branchInfo.isPos,
         outletId: branchInfo.outletId,
         isBranchFulfillment: branchInfo.branchCode !== 'ONLINE',
@@ -952,6 +1069,10 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
           'Consignment ID': trackingId,
           'consignmentId': trackingId,
           'tracking_number': trackingId,
+          'Pathao Status': pathaoInfo.status,
+          'pathaoStatus': pathaoInfo.status,
+          'Pathao Delivery Fee': pathaoInfo.deliveryFee,
+          'pathaoDeliveryFee': pathaoInfo.deliveryFee,
           isPos: branchInfo.isPos,
           outletId: branchInfo.outletId,
           isBranchFulfillment: branchInfo.branchCode !== 'ONLINE',

@@ -54,7 +54,7 @@ export async function getPathaoToken(credentials?: PathaoCredentials): Promise<s
   }
 
   const { pathao } = getSecretsWithOverrides({ pathao: credentials });
-  if (!pathao.client_id || !pathao.client_secret || !pathao.username || !pathao.password) {
+  if (!pathao.client_id || !pathao.client_secret) {
     throw new Error('Pathao credentials missing in Vercel environment variables or Settings');
   }
 
@@ -63,37 +63,73 @@ export async function getPathaoToken(credentials?: PathaoCredentials): Promise<s
     const timeoutId = setTimeout(() => controller.abort(), 8500);
 
     try {
-      const res = await fetch(`${pathao.base_url.replace(/\/+$/, '')}/aladdin/api/v1/issue-token`, {
-        method: 'POST',
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
-        },
-        body: JSON.stringify({
-          client_id: pathao.client_id,
-          client_secret: pathao.client_secret,
-          username: pathao.username,
-          password: pathao.password,
-          grant_type: 'password',
-        }),
-      });
+      // 1. Try B2B External Login first (as used by WooCommerce Pathao Courier plugin)
+      const externalLoginUrl = `${pathao.base_url.replace(/\/+$/, '')}/aladdin/api/v1/external/login`;
+      try {
+        const extRes = await fetch(externalLoginUrl, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
+          },
+          body: JSON.stringify({
+            client_id: pathao.client_id,
+            client_secret: pathao.client_secret,
+          }),
+        });
 
-      if (!res.ok) {
-        const errText = await res.text().catch(() => '');
-        const err = new Error(`Pathao token generation failed (${res.status}): ${errText.slice(0, 100)}`) as Error & { status?: number };
-        err.status = res.status;
-        throw err;
+        if (extRes.ok) {
+          const contentType = extRes.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const extData = await extRes.json();
+            if (extData && extData.access_token) {
+              return extData as PathaoTokenResponse;
+            }
+          }
+        }
+      } catch {
+        // Fallback to legacy issue-token if external/login fails
       }
 
-      const contentType = res.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        const text = await res.text().catch(() => '');
-        throw new Error(`Pathao token endpoint returned non-JSON response (${res.status}): ${text.slice(0, 80)}`);
+      // 2. Legacy / Password grant fallback if username & password are provided
+      if (pathao.username && pathao.password) {
+        const issueUrl = `${pathao.base_url.replace(/\/+$/, '')}/aladdin/api/v1/issue-token`;
+        const res = await fetch(issueUrl, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
+          },
+          body: JSON.stringify({
+            client_id: pathao.client_id,
+            client_secret: pathao.client_secret,
+            username: pathao.username,
+            password: pathao.password,
+            grant_type: 'password',
+          }),
+        });
+
+        if (!res.ok) {
+          const errText = await res.text().catch(() => '');
+          const err = new Error(`Pathao token generation failed (${res.status}): ${errText.slice(0, 100)}`) as Error & { status?: number };
+          err.status = res.status;
+          throw err;
+        }
+
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          const text = await res.text().catch(() => '');
+          throw new Error(`Pathao token endpoint returned non-JSON response (${res.status}): ${text.slice(0, 80)}`);
+        }
+
+        return await res.json();
       }
 
-      return await res.json();
+      throw new Error('Pathao token generation failed: B2B external login rejected credentials and no username/password available');
     } finally {
       clearTimeout(timeoutId);
     }
@@ -144,6 +180,9 @@ export async function getPathaoStores(credentials?: PathaoCredentials): Promise<
 }
 
 export async function getPathaoOrderDetails(consignmentId: string, credentials?: PathaoCredentials): Promise<PathaoOrderDetail | null> {
+  const cleanConsId = String(consignmentId || '').trim();
+  if (!cleanConsId || cleanConsId === '-' || cleanConsId.length < 4) return null;
+
   const token = await getPathaoToken(credentials);
   const { pathao } = getSecretsWithOverrides({ pathao: credentials });
 
@@ -153,7 +192,9 @@ export async function getPathaoOrderDetails(consignmentId: string, credentials?:
       const timeoutId = setTimeout(() => controller.abort(), 6000);
 
       try {
-        const res = await fetch(`${pathao.base_url.replace(/\/+$/, '')}/aladdin/api/v1/orders/${encodeURIComponent(consignmentId)}`, {
+        // 1. Try official tracking info endpoint: /aladdin/api/v1/orders/{consignment_id}/info
+        const infoUrl = `${pathao.base_url.replace(/\/+$/, '')}/aladdin/api/v1/orders/${encodeURIComponent(cleanConsId)}/info`;
+        const res = await fetch(infoUrl, {
           signal: controller.signal,
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -162,17 +203,34 @@ export async function getPathaoOrderDetails(consignmentId: string, credentials?:
           },
         });
 
-        if (!res.ok) {
-          return null;
+        if (res.ok) {
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const json = await res.json().catch(() => null);
+            if (json?.data) return json.data;
+          }
         }
 
-        const contentType = res.headers.get('content-type') || '';
-        if (!contentType.includes('application/json')) {
-          return null;
+        // 2. Direct identifier endpoint fallback
+        const directUrl = `${pathao.base_url.replace(/\/+$/, '')}/aladdin/api/v1/orders/${encodeURIComponent(cleanConsId)}`;
+        const directRes = await fetch(directUrl, {
+          signal: controller.signal,
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
+          },
+        });
+
+        if (directRes.ok) {
+          const contentType = directRes.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const json = await directRes.json().catch(() => null);
+            return json?.data || null;
+          }
         }
 
-        const json = await res.json().catch(() => null);
-        return json?.data || null;
+        return null;
       } finally {
         clearTimeout(timeoutId);
       }
@@ -234,7 +292,26 @@ export async function getPathaoOrderByMerchantOrderId(
       const timeoutId = setTimeout(() => controller.abort(), 6500);
 
       try {
-        // 1. Try querying orders endpoint with merchant_order_id query parameter
+        // 1. Try querying /info directly with merchant order ID / consignment ID
+        const infoUrl = `${pathao.base_url.replace(/\/+$/, '')}/aladdin/api/v1/orders/${encodeURIComponent(cleanId)}/info`;
+        const infoRes = await fetch(infoUrl, {
+          signal: controller.signal,
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
+          },
+        });
+
+        if (infoRes.ok) {
+          const contentType = infoRes.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const json = await infoRes.json().catch(() => null);
+            if (json?.data) return json.data;
+          }
+        }
+
+        // 2. Try querying orders endpoint with merchant_order_id query parameter
         const searchUrl = `${pathao.base_url.replace(/\/+$/, '')}/aladdin/api/v1/orders?merchant_order_id=${encodeURIComponent(cleanId)}`;
         const res = await fetch(searchUrl, {
           signal: controller.signal,
@@ -259,7 +336,7 @@ export async function getPathaoOrderByMerchantOrderId(
           }
         }
 
-        // 2. Direct identifier endpoint fallback
+        // 3. Direct identifier endpoint fallback
         const directUrl = `${pathao.base_url.replace(/\/+$/, '')}/aladdin/api/v1/orders/${encodeURIComponent(cleanId)}`;
         const directRes = await fetch(directUrl, {
           signal: controller.signal,
@@ -304,7 +381,9 @@ export async function fetchRecentPathaoOrders(
       const timeoutId = setTimeout(() => controller.abort(), 7500);
 
       try {
-        const res = await fetch(`${pathao.base_url.replace(/\/+$/, '')}/aladdin/api/v1/orders?page=${page}`, {
+        // 1. Try orders history endpoint: /aladdin/api/v1/orders/history?page=...
+        const historyUrl = `${pathao.base_url.replace(/\/+$/, '')}/aladdin/api/v1/orders/history?page=${page}`;
+        const res = await fetch(historyUrl, {
           signal: controller.signal,
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -313,14 +392,36 @@ export async function fetchRecentPathaoOrders(
           },
         });
 
-        if (!res.ok) return [];
+        if (res.ok) {
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const json = await res.json().catch(() => null);
+            const list = json?.data?.data || json?.data || [];
+            if (Array.isArray(list) && list.length > 0) return list;
+          }
+        }
 
-        const contentType = res.headers.get('content-type') || '';
-        if (!contentType.includes('application/json')) return [];
+        // 2. Fallback to /orders?page=...
+        const fallbackUrl = `${pathao.base_url.replace(/\/+$/, '')}/aladdin/api/v1/orders?page=${page}`;
+        const fbRes = await fetch(fallbackUrl, {
+          signal: controller.signal,
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
+          },
+        });
 
-        const json = await res.json().catch(() => null);
-        const list = json?.data?.data || json?.data || [];
-        return Array.isArray(list) ? list : [];
+        if (fbRes.ok) {
+          const contentType = fbRes.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const json = await fbRes.json().catch(() => null);
+            const list = json?.data?.data || json?.data || [];
+            return Array.isArray(list) ? list : [];
+          }
+        }
+
+        return [];
       } finally {
         clearTimeout(timeoutId);
       }
