@@ -90,7 +90,7 @@ export async function testWooCommerceConnection(credentials?: WcCredentials): Pr
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 9000);
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
 
     let res: Response;
     try {
