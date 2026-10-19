@@ -113,8 +113,6 @@ export function LiveOpsTab({
   const [selectedView, setSelectedView] = useState<'Today Shipped' | "Today's Orders" | 'Queue'>('Today Shipped');
   const [onlineOnly, setOnlineOnly] = useState(true);
   const [showSubCategory, setShowSubCategory] = useState(false);
-  // Category Charts Layout: 'maximized' (Full-Width Hero Chart) vs 'split' (Side-by-Side 50/50)
-  const [volumeChartLayout, setVolumeChartLayout] = useState<'maximized' | 'split'>('maximized');
   const [isVolumeModalOpen, setIsVolumeModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
@@ -1208,35 +1206,6 @@ export function LiveOpsTab({
           </div>
 
           <div className="flex items-center gap-3 select-none flex-wrap">
-            {/* Chart Layout Mode Switcher: Max Volume (Full Width) vs Split View */}
-            <div className="inline-flex bg-slate-100 dark:bg-[#1A1A1A] p-0.5 rounded-xl border border-slate-200 dark:border-[#2A2A2A] text-xs font-bold">
-              <button
-                type="button"
-                onClick={() => setVolumeChartLayout('maximized')}
-                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
-                  volumeChartLayout === 'maximized'
-                    ? 'bg-white dark:bg-[#282828] text-rose-600 dark:text-rose-400 shadow-2xs font-black'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-                title="Maximized full-width view for Sales Volume by Category"
-              >
-                <span>⛶</span>
-                <span>Max Volume</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setVolumeChartLayout('split')}
-                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
-                  volumeChartLayout === 'split'
-                    ? 'bg-white dark:bg-[#282828] text-slate-900 dark:text-white shadow-2xs font-black'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-                title="Side-by-side 50/50 split view with Revenue Donut"
-              >
-                <span>◫</span>
-                <span>Split View</span>
-              </button>
-            </div>
 
             {/* Show Sub-Category View Toggle with clear Active/Inactive State */}
             <div className="flex items-center gap-2 select-none">
@@ -1339,175 +1308,79 @@ export function LiveOpsTab({
           </div>
         </div>
 
-        {/* Charts Section: Either Maximized Full-Width Hero View OR Side-by-Side Split View */}
-        {volumeChartLayout === 'maximized' ? (
-          <div className="space-y-4">
-            {/* Full-Width Maximized Sales Volume Bar Chart */}
-            <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-5 shadow-xs flex flex-col transition-all duration-300">
-              <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-                <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center gap-1.5 flex-wrap">
+        {/* Side-by-Side Charts (Donut & Volume Bar) - STRICTLY SPLIT VIEW */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Left Chart: Revenue Share (TK) Donut */}
+          <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-5 shadow-xs flex flex-col justify-between transition-all duration-300">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center justify-between gap-1.5 w-full">
+                <span className="flex items-center gap-1.5">
+                  <span>🔥</span>
+                  <span>{showSubCategory ? 'Revenue Share by Sub-Category (TK)' : 'Revenue Share by Category (TK)'}</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
+                    • {selectedHistoricalDate ? `${report.refDayName.slice(0, 3)} (${report.referenceDate.slice(5)})` : 'Today'}
+                  </span>
+                </span>
+                {categoryFilter !== 'ALL' && (
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                    Filter: {categoryFilter}
+                  </span>
+                )}
+              </h3>
+            </div>
+
+            <LiveRevenueDonutChart
+              items={activeCategoryItems}
+              totalRevenue={report.salesRevenue.rawValue}
+              selectsShare={report.selectsStats.selectsRevShare}
+              selectedCategory={categoryFilter}
+              onSelectCategory={(cat) => setCategoryFilter((prev) => (prev === cat ? 'ALL' : cat))}
+              isSubCategory={showSubCategory}
+            />
+          </div>
+
+          {/* Right Chart: Sales Volume by Category Bar Chart */}
+          <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-5 shadow-xs flex flex-col justify-between transition-all duration-300">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center justify-between gap-1.5 w-full">
+                <span className="flex items-center gap-1.5">
                   <span>📦</span>
                   <span>{showSubCategory ? 'Sales Volume by Sub-Category' : 'Sales Volume by Category'}</span>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
                     • {selectedHistoricalDate ? `${report.refDayName.slice(0, 3)} (${report.referenceDate.slice(5)})` : 'Today'}
                   </span>
-                  <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800 ml-1">
-                    Maximized View
-                  </span>
+                </span>
+                <div className="flex items-center gap-1.5">
                   {categoryFilter !== 'ALL' && (
                     <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
                       Filter: {categoryFilter}
                     </span>
                   )}
-                </h3>
-
-                {/* Card Header Action Buttons */}
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setVolumeChartLayout('split')}
-                    className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-[#1A1A1A] dark:hover:bg-[#252525] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2A2A2A] transition-all flex items-center gap-1"
-                    title="Switch to side-by-side 50/50 split view with Revenue Donut"
-                  >
-                    <span>◫</span>
-                    <span>Split View</span>
-                  </button>
                   <button
                     type="button"
                     onClick={() => setIsVolumeModalOpen(true)}
-                    className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-[#1A1A1A] dark:hover:bg-[#252525] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2A2A2A] transition-all flex items-center gap-1"
+                    className="p-1 px-2 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-[#1A1A1A] dark:hover:bg-[#252525] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2A2A2A] transition-all flex items-center gap-1"
                     title="Open in fullscreen modal"
                   >
                     <span>⛶</span>
-                    <span>Fullscreen</span>
+                    <span className="text-[10px]">Fullscreen</span>
                   </button>
                 </div>
-              </div>
-
-              <div className="w-full flex-1 min-h-[420px] mt-2">
-                <LiveVolumeBarChart
-                  items={activeCategoryItems}
-                  avgUnitsSold={report.avgUnitsSold}
-                  selectedCategory={categoryFilter}
-                  onSelectCategory={(cat) => setCategoryFilter((prev) => (prev === cat ? 'ALL' : cat))}
-                  isSubCategory={showSubCategory}
-                  isFullWidth={true}
-                />
-              </div>
+              </h3>
             </div>
 
-            {/* Complementary Revenue Share (TK) Donut Chart */}
-            <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-5 shadow-xs flex flex-col justify-between transition-all duration-300">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center justify-between gap-1.5 w-full">
-                  <span className="flex items-center gap-1.5">
-                    <span>🔥</span>
-                    <span>{showSubCategory ? 'Revenue Share by Sub-Category (TK)' : 'Revenue Share by Category (TK)'}</span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
-                      • {selectedHistoricalDate ? `${report.refDayName.slice(0, 3)} (${report.referenceDate.slice(5)})` : 'Today'}
-                    </span>
-                  </span>
-                  {categoryFilter !== 'ALL' && (
-                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
-                      Filter: {categoryFilter}
-                    </span>
-                  )}
-                </h3>
-              </div>
-
-              <LiveRevenueDonutChart
+            <div className="w-full flex-1 min-h-[380px] flex flex-col justify-end">
+              <LiveVolumeBarChart
                 items={activeCategoryItems}
-                totalRevenue={report.salesRevenue.rawValue}
-                selectsShare={report.selectsStats.selectsRevShare}
+                avgUnitsSold={report.avgUnitsSold}
                 selectedCategory={categoryFilter}
                 onSelectCategory={(cat) => setCategoryFilter((prev) => (prev === cat ? 'ALL' : cat))}
                 isSubCategory={showSubCategory}
+                isFullWidth={false}
               />
             </div>
           </div>
-        ) : (
-          /* Side-by-Side 50/50 Split View */
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Left Chart: Revenue Share (TK) Donut */}
-            <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-5 shadow-xs flex flex-col justify-between transition-all duration-300">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center justify-between gap-1.5 w-full">
-                  <span className="flex items-center gap-1.5">
-                    <span>🔥</span>
-                    <span>{showSubCategory ? 'Revenue Share by Sub-Category (TK)' : 'Revenue Share by Category (TK)'}</span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
-                      • {selectedHistoricalDate ? `${report.refDayName.slice(0, 3)} (${report.referenceDate.slice(5)})` : 'Today'}
-                    </span>
-                  </span>
-                  {categoryFilter !== 'ALL' && (
-                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
-                      Filter: {categoryFilter}
-                    </span>
-                  )}
-                </h3>
-              </div>
-
-              <LiveRevenueDonutChart
-                items={activeCategoryItems}
-                totalRevenue={report.salesRevenue.rawValue}
-                selectsShare={report.selectsStats.selectsRevShare}
-                selectedCategory={categoryFilter}
-                onSelectCategory={(cat) => setCategoryFilter((prev) => (prev === cat ? 'ALL' : cat))}
-                isSubCategory={showSubCategory}
-              />
-            </div>
-
-            {/* Right Chart: Sales Volume by Category Bar Chart */}
-            <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-5 shadow-xs flex flex-col justify-between transition-all duration-300">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center justify-between gap-1.5 w-full">
-                  <span className="flex items-center gap-1.5">
-                    <span>📦</span>
-                    <span>{showSubCategory ? 'Sales Volume by Sub-Category' : 'Sales Volume by Category'}</span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
-                      • {selectedHistoricalDate ? `${report.refDayName.slice(0, 3)} (${report.referenceDate.slice(5)})` : 'Today'}
-                    </span>
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    {categoryFilter !== 'ALL' && (
-                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
-                        Filter: {categoryFilter}
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setVolumeChartLayout('maximized')}
-                      className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-[#1A1A1A] dark:hover:bg-[#252525] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2A2A2A] transition-all flex items-center gap-1"
-                      title="Expand to Full-Width Maximized View"
-                    >
-                      <span>⤢</span>
-                      <span>Maximize</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsVolumeModalOpen(true)}
-                      className="p-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-[#1A1A1A] dark:hover:bg-[#252525] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2A2A2A] transition-all"
-                      title="Open in fullscreen modal"
-                    >
-                      <span>⛶</span>
-                    </button>
-                  </div>
-                </h3>
-              </div>
-
-              <div className="w-full flex-1 min-h-[380px] flex flex-col justify-end">
-                <LiveVolumeBarChart
-                  items={activeCategoryItems}
-                  avgUnitsSold={report.avgUnitsSold}
-                  selectedCategory={categoryFilter}
-                  onSelectCategory={(cat) => setCategoryFilter((prev) => (prev === cat ? 'ALL' : cat))}
-                  isSubCategory={showSubCategory}
-                  isFullWidth={false}
-                />
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
 
       {/* ── Fullscreen Modal for Sales Volume by Category ── */}
