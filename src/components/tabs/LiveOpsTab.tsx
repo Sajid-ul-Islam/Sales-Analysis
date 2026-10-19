@@ -43,7 +43,7 @@ import { LiveRevenueDonutChart } from '@/components/charts/LiveRevenueDonutChart
 import { LiveVolumeBarChart } from '@/components/charts/LiveVolumeBarChart';
 import { KpiSparkline } from '@/components/charts/KpiSparkline';
 import { classifyProductLine } from '@/lib/selectsAnalytics';
-import { getCategoryForSales, getSubCategoryForSales } from '@/lib/liveCategoryEngine';
+import { getCategoryForSales, getSubCategoryForSales, getShortSubCategoryLabel } from '@/lib/liveCategoryEngine';
 import {
   LiveTerminalStats,
   DiscrepancyAlert,
@@ -407,8 +407,19 @@ export function LiveOpsTab({
       }
 
       if (categoryFilter !== 'ALL') {
-        const cat = getCategoryForSales(String(o['Item Name'] || ''));
-        if (cat !== categoryFilter) return false;
+        const itemName = String(o['Item Name'] || '');
+        const cat = getCategoryForSales(itemName);
+        const subCat = getSubCategoryForSales(itemName, cat);
+        const shortSub = getShortSubCategoryLabel(subCat);
+        const matchesCategory = (cat === categoryFilter);
+        const matchesSubCategory = (
+          subCat === categoryFilter ||
+          shortSub === categoryFilter ||
+          (categoryFilter === 'Regular Fit' && /regular/i.test(itemName) && cat === 'Jeans') ||
+          (categoryFilter === 'Slim Fit' && /slim/i.test(itemName) && cat === 'Jeans') ||
+          (categoryFilter === 'Straight Fit' && /straight/i.test(itemName) && cat === 'Jeans')
+        );
+        if (!matchesCategory && !matchesSubCategory) return false;
       }
 
       if (courierFilter !== 'ALL' && courierFilter !== 'EXCHANGES_ONLY') {
@@ -445,11 +456,18 @@ export function LiveOpsTab({
     const set = new Set<string>();
     for (const o of report.activeOrders) {
       if (isOrderOnline(o) && !isOrderExchange(o)) {
-        set.add(getCategoryForSales(String(o['Item Name'] || '')));
+        const itemName = String(o['Item Name'] || '');
+        const cat = getCategoryForSales(itemName);
+        if (showSubCategory) {
+          const subCat = getSubCategoryForSales(itemName, cat);
+          set.add(getShortSubCategoryLabel(subCat));
+        } else {
+          set.add(cat);
+        }
       }
     }
     return Array.from(set).sort();
-  }, [report.activeOrders]);
+  }, [report.activeOrders, showSubCategory]);
 
   // Export current table to Excel with full courier details sorted by order number
   // Strictly excludes POS and non-checkout exchange orders from commercial sales sheet
@@ -1063,12 +1081,18 @@ export function LiveOpsTab({
             </h2>
           </div>
 
-          {/* Show Sub-Category View Toggle (Red switch on the LEFT of text matching screenshot) */}
+          {/* Show Sub-Category View Toggle with clear Active/Inactive State */}
           <div className="flex items-center gap-2 select-none">
             <label className="flex items-center gap-2 cursor-pointer">
               <div
-                onClick={() => setShowSubCategory((prev) => !prev)}
-                className="w-9 h-5 flex items-center rounded-full p-0.5 cursor-pointer transition-colors duration-200 bg-rose-500"
+                onClick={() => {
+                  setShowSubCategory((prev) => !prev);
+                  setCategoryFilter('ALL');
+                }}
+                className={`w-9 h-5 flex items-center rounded-full p-0.5 cursor-pointer transition-colors duration-200 ${
+                  showSubCategory ? 'bg-rose-500' : 'bg-slate-300 dark:bg-slate-700'
+                }`}
+                title={showSubCategory ? 'Switch to Top-Level Category View' : 'Switch to Granular Sub-Category View'}
               >
                 <div
                   className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
@@ -1076,9 +1100,21 @@ export function LiveOpsTab({
                   }`}
                 />
               </div>
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Show Sub-Category View</span>
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                <span>{showSubCategory ? 'Sub-Category View' : 'Category View'}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-bold ${
+                  showSubCategory
+                    ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                    : 'bg-slate-100 text-slate-700 dark:bg-[#1A1A1A] dark:text-slate-300 border border-slate-200 dark:border-[#2A2A2A]'
+                }`}>
+                  {showSubCategory ? 'Granular' : 'Top Families'}
+                </span>
+              </span>
             </label>
-            <span className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-help text-xs" title="Toggle between top-level store categories and detailed garment sub-types">
+            <span
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-help text-xs"
+              title="Category View groups by top apparel families (e.g. Jeans, Twill, FS Shirt). Sub-Category View breaks them down into fit & fabric variants (e.g. Regular Fit / Slim Fit Jeans, Flannel Shirt, Oxford Shirt, 5-Pocket Twill)."
+            >
               (?)
             </span>
           </div>
@@ -1153,7 +1189,7 @@ export function LiveOpsTab({
               <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center justify-between gap-1.5 w-full">
                 <span className="flex items-center gap-1.5">
                   <span>🔥</span>
-                  <span>Revenue Share (TK)</span>
+                  <span>{showSubCategory ? 'Revenue Share by Sub-Category (TK)' : 'Revenue Share by Category (TK)'}</span>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
                     • {selectedHistoricalDate ? `${report.refDayName.slice(0, 3)} (${report.referenceDate.slice(5)})` : 'Today'}
                   </span>
@@ -1172,6 +1208,7 @@ export function LiveOpsTab({
               selectsShare={report.selectsStats.selectsRevShare}
               selectedCategory={categoryFilter}
               onSelectCategory={(cat) => setCategoryFilter((prev) => (prev === cat ? 'ALL' : cat))}
+              isSubCategory={showSubCategory}
             />
           </div>
 
@@ -1181,7 +1218,7 @@ export function LiveOpsTab({
               <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center justify-between gap-1.5 w-full">
                 <span className="flex items-center gap-1.5">
                   <span>📦</span>
-                  <span>Sales Volume by Category</span>
+                  <span>{showSubCategory ? 'Sales Volume by Sub-Category' : 'Sales Volume by Category'}</span>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
                     • {selectedHistoricalDate ? `${report.refDayName.slice(0, 3)} (${report.referenceDate.slice(5)})` : 'Today'}
                   </span>
@@ -1199,6 +1236,7 @@ export function LiveOpsTab({
               avgUnitsSold={report.avgUnitsSold}
               selectedCategory={categoryFilter}
               onSelectCategory={(cat) => setCategoryFilter((prev) => (prev === cat ? 'ALL' : cat))}
+              isSubCategory={showSubCategory}
             />
           </div>
         </div>

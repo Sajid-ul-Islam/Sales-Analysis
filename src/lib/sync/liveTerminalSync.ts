@@ -1,6 +1,6 @@
 import { RawOrderRow, DatasetSnapshot } from '@/types';
-import { fetchWooCommerceOrders, formatWooCommerceToOrderRows, testWooCommerceConnection, WcCredentials } from '@/lib/woocommerceClient';
-import { batchFetchPathaoOrders, getPathaoToken, PathaoCredentials } from '@/lib/pathaoClient';
+import { fetchWooCommerceOrders, formatWooCommerceToOrderRows, testWooCommerceConnection, WcCredentials, cleanCustomerPhone } from '@/lib/woocommerceClient';
+import { batchFetchPathaoOrders, batchFetchPathaoOrdersByOrderIds, fetchRecentPathaoOrders, getPathaoToken, PathaoCredentials, PathaoOrderDetail } from '@/lib/pathaoClient';
 import { getSecretsWithOverrides } from '@/lib/secrets';
 import { createDataProvenance, DataProvenanceInfo } from '@/lib/dataAudit';
 import { buildTimelineIndex, extractCustomerBilling, classifyCustomer } from '@/lib/customerRegistry';
@@ -383,6 +383,135 @@ export function detectCourierDiscrepancy(
 }
 
 /**
+ * Parses dates across Excel serial floats, ISO strings, and epoch timestamps into numeric ms epoch.
+ */
+export function parseDateToEpoch(val: unknown): number {
+  if (val === null || val === undefined || val === '') return 0;
+  if (typeof val === 'number') {
+    if (isNaN(val)) return 0;
+    // Excel serial date (e.g. 46295.72)
+    if (val > 30000 && val < 60000) {
+      return Math.round((val - 25569) * 86400 * 1000);
+    }
+    // Unix epoch ms
+    if (val > 1000000000000) return Math.round(val);
+    // Unix epoch seconds
+    if (val > 1000000000) return Math.round(val * 1000);
+    return Math.round(val);
+  }
+  const s = String(val).trim();
+  if (!s) return 0;
+  const num = Number(s);
+  if (!isNaN(num) && /^\d+(\.\d+)?$/.test(s)) {
+    return parseDateToEpoch(num);
+  }
+  const parsed = Date.parse(s);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
+/**
+ * Indexes a Pathao order record across consignment ID, exact order ID, base order ID,
+ * and customer phone (sorted descending by timestamp to prioritize the latest order).
+ */
+export function indexTrackingRecord(
+  po: PathaoOrderDetail | Record<string, unknown>,
+  courierTrackingMap: Record<string, CourierTrackingInfo>,
+  phoneTrackingMap: Map<string, CourierTrackingInfo[]>
+) {
+  const consId = String(
+    po['Order consignment id'] ||
+    po.order_consignment_id ||
+    po['Consignment ID'] ||
+    po.consignment_id ||
+    po.order_id ||
+    ''
+  ).trim();
+
+  const rawOid = cleanOrderId(
+    po['Merchant order id'] ||
+    po.merchant_order_id ||
+    po['Order ID'] ||
+    po.order_id
+  );
+  const baseOid = extractBaseOrderId(rawOid);
+
+  const rawPhone = String(
+    po['Recipient phone'] ||
+    po.recipient_phone ||
+    po.phone ||
+    ''
+  );
+  const cleanPhone = cleanCustomerPhone(rawPhone).displayPhone;
+
+  if (!consId && !rawOid && !cleanPhone) return;
+
+  const branchInfo = detectFulfillmentBranch(po['Merchant order id'] || po.merchant_order_id || rawOid);
+  const rawStatus = String(po['Order status'] || po.order_status || '');
+  const status = normalizeCourierStatus(rawStatus);
+  const collected = parseFloat(String(po['Collected amount'] || po.collected_amount || po.order_amount || 0)) || 0;
+  const fee = parseFloat(String(po['Total fee'] || po.total_fee || po.delivery_fee || 0)) || 0;
+  const codFee = parseFloat(String(po['Cod fee'] || po.cod_fee || 0)) || 0;
+
+  const dateVal =
+    po['Order status updated at'] ||
+    po.order_status_updated_at ||
+    po['Order created at'] ||
+    po.order_created_at ||
+    po.created_at ||
+    '';
+  const updatedAt = dateVal ? String(dateVal) : undefined;
+
+  const tracking: CourierTrackingInfo = {
+    consignmentId: consId,
+    orderId: rawOid,
+    baseOrderId: baseOid,
+    courierStatus: status,
+    rawStatus,
+    collectedAmount: collected,
+    deliveryFee: fee,
+    codFee,
+    recipientName: String(po['Recipient name'] || po.recipient_name || ''),
+    recipientPhone: rawPhone,
+    recipientCity: String(po.City || po.city_name || po.recipient_city || ''),
+    updatedAt,
+    hasDiscrepancy: false,
+    discrepancyType: 'NONE',
+    fulfillmentBranch: branchInfo.branchName,
+    isBranchFulfillment: branchInfo.isBranchFulfillment,
+  };
+
+  // 1. Index by Consignment ID
+  if (consId) {
+    const k = consId.toLowerCase();
+    if (!courierTrackingMap[k]) courierTrackingMap[k] = tracking;
+  }
+
+  // 2. Index by Exact Merchant Order ID
+  if (rawOid) {
+    const k = `oid_${rawOid}`;
+    if (!courierTrackingMap[k]) courierTrackingMap[k] = tracking;
+  }
+
+  // 3. Index by Base Order ID
+  if (baseOid && baseOid !== rawOid) {
+    const k = `oid_${baseOid}`;
+    if (!courierTrackingMap[k]) courierTrackingMap[k] = tracking;
+  }
+
+  // 4. Index by Customer Phone (sorted with newest order first)
+  if (cleanPhone) {
+    if (!phoneTrackingMap.has(cleanPhone)) {
+      phoneTrackingMap.set(cleanPhone, []);
+    }
+    const list = phoneTrackingMap.get(cleanPhone)!;
+    if (!list.some((existing) => existing.consignmentId && existing.consignmentId === tracking.consignmentId)) {
+      list.push(tracking);
+      list.sort((a, b) => parseDateToEpoch(b.updatedAt) - parseDateToEpoch(a.updatedAt));
+    }
+  }
+}
+
+/**
  * Primary synchronization orchestrator for the Live Operations Terminal.
  * Combines WooCommerce order data and Pathao courier consignment telemetry.
  */
@@ -473,6 +602,8 @@ export async function syncLiveTerminalData(options: {
   // ── Step 2: Harvest Consignment & Merchant IDs ──
   const consignmentIdSet = new Set<string>();
   const orderIdMap = new Map<string, RawOrderRow[]>();
+  const unconsignedOrderIds = new Set<string>();
+  const unconsignedPhones = new Set<string>();
 
   for (const row of rawOrders) {
     const cid =
@@ -483,6 +614,12 @@ export async function syncLiveTerminalData(options: {
       row['Tracking ID'];
     if (cid && typeof cid === 'string' && cid.trim().length > 3) {
       consignmentIdSet.add(cid.trim());
+    } else {
+      const oid = cleanOrderId(row['Order ID'] || row.orderId);
+      if (oid) unconsignedOrderIds.add(oid);
+      const rawPhone = row.Phone || row.phone || (row as Record<string, unknown>)['Billing Phone'] || (row as Record<string, unknown>)['Shipping Phone'] || '';
+      const cleanPhone = cleanCustomerPhone(rawPhone).displayPhone;
+      if (cleanPhone) unconsignedPhones.add(cleanPhone);
     }
 
     const oid = cleanOrderId(row['Order ID'] || row.orderId);
@@ -494,7 +631,10 @@ export async function syncLiveTerminalData(options: {
 
   // ── Step 3: Query Pathao Courier Aladdin API ──
   const courierTrackingMap: Record<string, CourierTrackingInfo> = {};
-  const harvestedList = Array.from(consignmentIdSet).slice(0, options.limitConsignments || 20);
+  const phoneTrackingMap = new Map<string, CourierTrackingInfo[]>();
+
+  const harvestedConsignments = Array.from(consignmentIdSet).slice(0, options.limitConsignments || 20);
+  const harvestedOrderIds = Array.from(unconsignedOrderIds).slice(0, 15);
 
   if (!options.skipNetwork) {
     try {
@@ -503,44 +643,34 @@ export async function syncLiveTerminalData(options: {
         const token = await getPathaoToken(options.pathaoCredentials);
         if (token) {
           pathaoConnected = true;
-          if (harvestedList.length > 0) {
-            const pathaoOrders = await batchFetchPathaoOrders(harvestedList, 4, options.pathaoCredentials);
-            for (const po of pathaoOrders) {
-              const consId = String(po.consignment_id || po.order_consignment_id || '').trim();
-              const rawOid = cleanOrderId(po.merchant_order_id || po.order_id);
-              const baseOid = extractBaseOrderId(rawOid);
-              const branchInfo = detectFulfillmentBranch(po.merchant_order_id || po.order_id);
-              const rawStatus = po.order_status || '';
-              const status = normalizeCourierStatus(rawStatus);
-              const collected = parseFloat(String(po.collected_amount || po.order_amount || 0)) || 0;
-              const fee = parseFloat(String(po.total_fee || po.delivery_fee || 0)) || 0;
-              const codFee = parseFloat(String(po.cod_fee || 0)) || 0;
+          const liveOrdersToProcess: PathaoOrderDetail[] = [];
 
-              const tracking: CourierTrackingInfo = {
-                consignmentId: consId,
-                orderId: rawOid,
-                baseOrderId: baseOid,
-                courierStatus: status,
-                rawStatus,
-                collectedAmount: collected,
-                deliveryFee: fee,
-                codFee,
-                recipientName: po.recipient_name || '',
-                recipientPhone: po.recipient_phone || '',
-                recipientCity: String(po.city_name || ''),
-                updatedAt: String(po.order_status_updated_at || po.order_created_at || ''),
-                hasDiscrepancy: false,
-                discrepancyType: 'NONE',
-                fulfillmentBranch: branchInfo.branchName,
-                isBranchFulfillment: branchInfo.isBranchFulfillment,
-              };
+          // 3A: Explicit Consignment ID lookups
+          if (harvestedConsignments.length > 0) {
+            const byCons = await batchFetchPathaoOrders(harvestedConsignments, 4, options.pathaoCredentials);
+            liveOrdersToProcess.push(...byCons);
+          }
 
-              if (consId) courierTrackingMap[consId.toLowerCase()] = tracking;
-              if (rawOid) courierTrackingMap[`oid_${rawOid}`] = tracking;
-              if (baseOid && baseOid !== rawOid && !courierTrackingMap[`oid_${baseOid}`]) {
-                courierTrackingMap[`oid_${baseOid}`] = tracking;
+          // 3B: If orders lack consignment IDs, query Pathao by order ID
+          if (harvestedOrderIds.length > 0) {
+            const byOid = await batchFetchPathaoOrdersByOrderIds(harvestedOrderIds, 3, options.pathaoCredentials);
+            liveOrdersToProcess.push(...byOid);
+          }
+
+          // 3C: Fetch recent dispatches from Pathao to match active dispatches
+          if (harvestedOrderIds.length > 0 || unconsignedPhones.size > 0) {
+            try {
+              const recent = await fetchRecentPathaoOrders(1, options.pathaoCredentials);
+              if (Array.isArray(recent) && recent.length > 0) {
+                liveOrdersToProcess.push(...recent);
               }
+            } catch {
+              // ignore
             }
+          }
+
+          for (const po of liveOrdersToProcess) {
+            indexTrackingRecord(po, courierTrackingMap, phoneTrackingMap);
           }
         }
       }
@@ -558,47 +688,7 @@ export async function syncLiveTerminalData(options: {
 
   if (fallbackDelivery.length > 0) {
     for (const po of fallbackDelivery) {
-      const consId = String(po['Order consignment id'] || po.consignment_id || '').trim();
-      const rawOid = cleanOrderId(po['Merchant order id'] || po.order_id);
-      const baseOid = extractBaseOrderId(rawOid);
-      if (!consId && !rawOid) continue;
-
-      const existingByCons = consId ? courierTrackingMap[consId.toLowerCase()] : undefined;
-      const existingByOid = rawOid ? courierTrackingMap[`oid_${rawOid}`] : undefined;
-      const existingByBase = baseOid ? courierTrackingMap[`oid_${baseOid}`] : undefined;
-
-      if (!existingByCons && !existingByOid && !existingByBase) {
-        const branchInfo = detectFulfillmentBranch(po['Merchant order id'] || po.order_id);
-        const rawStatus = String(po['Order status'] || po.order_status || '');
-        const status = normalizeCourierStatus(rawStatus);
-        const collected = parseFloat(String(po['Collected amount'] || po.collected_amount || 0)) || 0;
-        const fee = parseFloat(String(po['Total fee'] || po.total_fee || 0)) || 0;
-
-        const tracking: CourierTrackingInfo = {
-          consignmentId: consId,
-          orderId: rawOid,
-          baseOrderId: baseOid,
-          courierStatus: status,
-          rawStatus,
-          collectedAmount: collected,
-          deliveryFee: fee,
-          codFee: parseFloat(String(po['Cod fee'] || 0)) || 0,
-          recipientName: String(po['Recipient name'] || po.recipient_name || ''),
-          recipientPhone: String(po['Recipient phone'] || ''),
-          recipientCity: String(po.City || ''),
-          updatedAt: (po['Order status updated at'] || po['Order created at']) ? String(po['Order status updated at'] || po['Order created at']) : undefined,
-          hasDiscrepancy: false,
-          discrepancyType: 'NONE',
-          fulfillmentBranch: branchInfo.branchName,
-          isBranchFulfillment: branchInfo.isBranchFulfillment,
-        };
-
-        if (consId) courierTrackingMap[consId.toLowerCase()] = tracking;
-        if (rawOid) courierTrackingMap[`oid_${rawOid}`] = tracking;
-        if (baseOid && baseOid !== rawOid && !courierTrackingMap[`oid_${baseOid}`]) {
-          courierTrackingMap[`oid_${baseOid}`] = tracking;
-        }
-      }
+      indexTrackingRecord(po, courierTrackingMap, phoneTrackingMap);
     }
   }
 
@@ -627,12 +717,30 @@ export async function syncLiveTerminalData(options: {
         row.tracking_number ||
         ''
     ).trim();
+    const rawPhone = row.Phone || row.phone || (row as Record<string, unknown>)['Billing Phone'] || (row as Record<string, unknown>)['Shipping Phone'] || '';
+    const cleanPhone = cleanCustomerPhone(rawPhone).displayPhone;
 
-    // Find courier tracking record by consignment ID, exact order ID, or base order ID
-    const tracking =
-      (consId ? courierTrackingMap[consId.toLowerCase()] : undefined) ||
-      (rawOid ? courierTrackingMap[`oid_${rawOid}`] : undefined) ||
-      (baseOid ? courierTrackingMap[`oid_${baseOid}`] : undefined);
+    // Multi-tier Resolution Hierarchy:
+    // Tier 1: Match by explicit Consignment ID
+    let tracking = consId ? courierTrackingMap[consId.toLowerCase()] : undefined;
+
+    // Tier 2: Match by exact Merchant Order ID
+    if (!tracking && rawOid) {
+      tracking = courierTrackingMap[`oid_${rawOid}`];
+    }
+
+    // Tier 3: Match by base Order ID (e.g. without branch suffix or exchange prefix)
+    if (!tracking && baseOid) {
+      tracking = courierTrackingMap[`oid_${baseOid}`];
+    }
+
+    // Tier 4: Match by Customer Phone Number (pick latest Pathao order for this customer)
+    if (!tracking && cleanPhone && phoneTrackingMap.has(cleanPhone)) {
+      const candidates = phoneTrackingMap.get(cleanPhone)!;
+      if (candidates.length > 0) {
+        tracking = candidates[0];
+      }
+    }
 
     const courierStatus: StandardCourierStatus = tracking ? tracking.courierStatus : 'Untracked';
     const effectiveConsId = tracking?.consignmentId || consId || '';

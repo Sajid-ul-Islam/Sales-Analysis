@@ -7,7 +7,7 @@
 
 import { RawOrderRow } from '@/types';
 import { classifyProductLine, computeSelectsStats, SelectsStats } from './selectsAnalytics';
-import { getCategoryForSales, getSubCategoryForSales, getShortCategoryLabel, CATEGORY_COLOR_MAP } from './liveCategoryEngine';
+import { getCategoryForSales, getSubCategoryForSales, getShortCategoryLabel, getShortSubCategoryLabel, CATEGORY_COLOR_MAP } from './liveCategoryEngine';
 import { computeCustomerMix } from './customerRegistry';
 import {
   getDhakaIsoDate,
@@ -1158,14 +1158,15 @@ export function processLiveOpsData(
 
   const buildItemsList = (
     map: Map<string, { revenue: number; volume: number; selectsVolume: number; regularVolume: number; selectsRevenue: number; regularRevenue: number }>,
-    totRev: number
+    totRev: number,
+    isSubCategory = false
   ): LiveCategoryItem[] => {
     const list: LiveCategoryItem[] = [];
     for (const [key, val] of map.entries()) {
-      const shortName = getShortCategoryLabel(key);
+      const shortName = isSubCategory ? getShortSubCategoryLabel(key) : getShortCategoryLabel(key);
       const revShare = totRev > 0 ? (val.revenue / totRev) * 100 : 0;
       const avgPrice = val.volume > 0 ? Math.round(val.revenue / val.volume) : 0;
-      const color = CATEGORY_COLOR_MAP[key] || CATEGORY_COLOR_MAP[shortName] || '#64748b';
+      const color = CATEGORY_COLOR_MAP[key] || CATEGORY_COLOR_MAP[shortName] || (isSubCategory ? '#8b5cf6' : '#64748b');
 
       list.push({
         name: key,
@@ -1186,8 +1187,8 @@ export function processLiveOpsData(
     return list.sort((a, b) => b.revenue - a.revenue);
   };
 
-  const rawCatItems = buildItemsList(catMap, activeRevenue);
-  const rawSubCatItems = buildItemsList(subCatMap, activeRevenue);
+  const rawCatItems = buildItemsList(catMap, activeRevenue, false);
+  const rawSubCatItems = buildItemsList(subCatMap, activeRevenue, true);
 
   const categoryItems = rawCatItems.length > 0
     ? rawCatItems
@@ -1497,4 +1498,46 @@ export function processLiveOpsData(
     totalDispatchedItems: activeItemsCount,
     totalUniqueOrders: activeOrdersCount,
   };
+}
+
+/**
+ * Dynamically computes chart top ceiling and tick intervals based on actual data volume.
+ * Avoids rigid static limits (e.g. 0 to 14) and dynamically expands or contracts according to needed data.
+ */
+export function computeDynamicYAxis(maxActualVolume: number): { maxVolume: number; yTicks: number[] } {
+  if (maxActualVolume <= 0) {
+    return { maxVolume: 4, yTicks: [0, 1, 2, 3, 4] };
+  }
+  if (maxActualVolume <= 4) {
+    const ticks: number[] = [];
+    for (let i = 0; i <= maxActualVolume; i++) ticks.push(i);
+    return { maxVolume: maxActualVolume, yTicks: ticks };
+  }
+  if (maxActualVolume <= 8) {
+    const top = Math.ceil(maxActualVolume / 2) * 2;
+    const ticks: number[] = [];
+    for (let i = 0; i <= top; i += 2) ticks.push(i);
+    return { maxVolume: top, yTicks: ticks };
+  }
+  if (maxActualVolume <= 16) {
+    const step = maxActualVolume <= 10 ? 2 : (maxActualVolume <= 14 ? 2 : 4);
+    const top = Math.ceil(maxActualVolume / step) * step;
+    const ticks: number[] = [];
+    for (let i = 0; i <= top; i += step) ticks.push(i);
+    return { maxVolume: top, yTicks: ticks };
+  }
+
+  // Dynamic division for larger datasets (target ~4 to 6 divisions)
+  const roughStep = maxActualVolume / 5;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)));
+  const normalized = roughStep / magnitude;
+  let niceMultiplier = 1;
+  if (normalized > 5) niceMultiplier = 10;
+  else if (normalized > 2) niceMultiplier = 5;
+  else if (normalized > 1) niceMultiplier = 2;
+  const step = Math.max(1, Math.round(niceMultiplier * magnitude));
+  const top = Math.ceil(maxActualVolume / step) * step;
+  const ticks: number[] = [];
+  for (let i = 0; i <= top; i += step) ticks.push(i);
+  return { maxVolume: top, yTicks: ticks };
 }

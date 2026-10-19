@@ -129,6 +129,41 @@ describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
       expect(extractConsignmentTracking({}, meta)).toBe('RD290926W5BWHU');
     });
 
+    it('extracts tracking from numeric consignment values', () => {
+      const meta = [{ key: '_pathao_consignment_id', value: 10582914 }];
+      expect(extractConsignmentTracking({}, meta)).toBe('10582914');
+    });
+
+    it('extracts tracking from JSON response meta payload', () => {
+      const meta = [
+        {
+          key: '_pathao_response',
+          value: '{"type":"success","data":{"consignment_id":"RD88332211","order_status":"Pending"}}',
+        },
+      ];
+      expect(extractConsignmentTracking({}, meta)).toBe('RD88332211');
+    });
+
+    it('extracts tracking from parsed object meta data', () => {
+      const meta = [
+        {
+          key: 'pathao_data',
+          value: { consignment_id: 'RD77665544', order_status: 'In Transit' },
+        },
+      ];
+      expect(extractConsignmentTracking({}, meta)).toBe('RD77665544');
+    });
+
+    it('extracts tracking from _pathao_tracking_url URL parameter', () => {
+      const meta = [
+        {
+          key: '_pathao_tracking_url',
+          value: 'https://hermes.pathao.com/tracking?consignment_id=RD44332211',
+        },
+      ];
+      expect(extractConsignmentTracking({}, meta)).toBe('RD44332211');
+    });
+
     it('extracts tracking from shipment tracking JSON items', () => {
       const meta = [
         {
@@ -142,6 +177,11 @@ describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
     it('extracts tracking code from customer note regex fallback', () => {
       const order = { customer_note: 'Pathao Consignment: RD99887766AA' };
       expect(extractConsignmentTracking(order, [])).toBe('RD99887766AA');
+    });
+
+    it('extracts numeric tracking code from order notes with phrase', () => {
+      const order = { order_notes: 'Pathao Consignment: 10582914 created' };
+      expect(extractConsignmentTracking(order, [])).toBe('10582914');
     });
   });
 

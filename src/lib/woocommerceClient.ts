@@ -382,53 +382,176 @@ export function detectBranchFromOrder(order: WcOrder, meta: WcMetaItem[], orderI
 }
 
 /**
+ * Parses potential courier consignment tracking candidates across strings, numbers, JSON structures, and URLs.
+ */
+export function parseTrackingCandidate(val: unknown): string {
+  if (val === null || val === undefined) return '';
+
+  // Numeric tracking code (e.g. 10582914)
+  if (typeof val === 'number') {
+    const s = String(val).trim();
+    return s.length >= 4 ? s : '';
+  }
+
+  // Object tracking structure (e.g. parsed JSON payload from WooCommerce REST API or plugin meta)
+  if (typeof val === 'object') {
+    const obj = val as Record<string, unknown>;
+    const directCandidate =
+      obj.consignment_id ||
+      obj.order_consignment_id ||
+      obj.consignmentId ||
+      obj.tracking_code ||
+      obj.tracking_number ||
+      obj.trackingCode ||
+      obj.trackingId ||
+      obj.order_id ||
+      obj.orderId;
+
+    if (directCandidate) {
+      const parsed = parseTrackingCandidate(directCandidate);
+      if (parsed) return parsed;
+    }
+
+    if (obj.data && typeof obj.data === 'object') {
+      const parsed = parseTrackingCandidate(obj.data);
+      if (parsed) return parsed;
+    }
+
+    if (Array.isArray(obj) && obj.length > 0) {
+      const parsed = parseTrackingCandidate(obj[0]);
+      if (parsed) return parsed;
+    }
+    return '';
+  }
+
+  // String tracking code, JSON string, or URL
+  if (typeof val === 'string') {
+    let s = val.trim();
+    if (!s) return '';
+
+    // Check if JSON serialized object
+    if ((s.startsWith('{') && s.endsWith('}')) || (s.startsWith('[') && s.endsWith(']'))) {
+      try {
+        const parsed = JSON.parse(s);
+        const extracted = parseTrackingCandidate(parsed);
+        if (extracted) return extracted;
+      } catch {
+        // Not valid JSON, continue with string extraction
+      }
+    }
+
+    // Check if URL (e.g. https://hermes.pathao.com/tracking?consignment_id=RD12345 or /track/12345)
+    if (s.includes('http') || s.includes('pathao') || s.includes('consignment_id=') || s.includes('/track')) {
+      const urlParamMatch = s.match(/[?&]consignment_id=([a-zA-Z0-9_-]+)/i);
+      if (urlParamMatch && urlParamMatch[1]) return urlParamMatch[1].trim();
+
+      const trackPathMatch = s.match(/\/(?:tracking|track)\/([a-zA-Z0-9_-]+)/i);
+      if (trackPathMatch && trackPathMatch[1]) return trackPathMatch[1].trim();
+    }
+
+    // Strip wrapping quotes
+    s = s.replace(/^["']|["']$/g, '').trim();
+
+    // Ignore placeholder / boolean values
+    if (/^(na|n\/a|none|null|undefined|false|true|0|test)$/i.test(s)) return '';
+
+    return s.length >= 4 ? s : '';
+  }
+
+  return '';
+}
+
+/**
  * Extracts courier consignment tracking code across major Bangladesh shipping plugins and meta keys.
+ * Supports string, numeric, JSON payload, tracking URL, and order note patterns.
  */
 export function extractConsignmentTracking(order: WcOrder, meta: WcMetaItem[]): string {
   const trackingKeys = [
+    // Primary Pathao keys
     '_pathao_consignment_id',
     'pathao_consignment_id',
+    '_pathao_tracking_code',
     'pathao_tracking_code',
     '_pathao_tracking_id',
+    'pathao_tracking_id',
     '_pathao_order_id',
+    'pathao_order_id',
+    '_pathao_consignment',
+    'pathao_consignment',
+    'consignment_id_pathao',
+    '_consignment_id_pathao',
+    // Plugin response & data payloads
+    '_pathao_response',
+    'pathao_response',
+    '_pathao_data',
+    'pathao_data',
+    '_pathao_order_response',
+    'pathao_order_info',
+    '_pathao_order_info',
+    // Tracking URLs
+    '_pathao_tracking_url',
+    'pathao_tracking_url',
+    // Generic & Courier keys
     '_consignment_id',
     'consignment_id',
-    'consignment_id_pathao',
     '_tracking_number',
+    'tracking_number',
     '_shipping_tracking_number',
     '_courier_tracking_id',
+    'courier_tracking_id',
+    '_courier_consignment_id',
+    'courier_consignment_id',
     '_steadfast_consignment_id',
+    'steadfast_consignment_id',
     '_redx_tracking_id',
+    'redx_tracking_id',
+    '_paperfly_tracking_id',
   ];
 
+  // 1. Search priority meta keys
   for (const k of trackingKeys) {
     const found = meta.find((m: WcMetaItem) => String(m.key || '').toLowerCase() === k);
-    if (found && found.value && typeof found.value === 'string' && found.value.trim().length > 3) {
-      return found.value.trim();
+    if (found && found.value !== undefined && found.value !== null) {
+      const parsed = parseTrackingCandidate(found.value);
+      if (parsed) return parsed;
     }
   }
 
-  // Check shipment tracking items array
+  // 2. Search any other meta keys with courier / pathao keywords
+  for (const m of meta) {
+    const k = String(m.key || '').toLowerCase();
+    if (k.includes('pathao') || k.includes('consignment') || k.includes('courier_tracking')) {
+      const parsed = parseTrackingCandidate(m.value);
+      if (parsed) return parsed;
+    }
+  }
+
+  // 3. Check shipment tracking items array
   const shipmentMeta = meta.find((m: WcMetaItem) => String(m.key || '').toLowerCase().includes('shipment_tracking'));
   if (shipmentMeta && shipmentMeta.value) {
-    let items = shipmentMeta.value;
-    if (typeof items === 'string' && (items.startsWith('[') || items.startsWith('{'))) {
-      try {
-        items = JSON.parse(items);
-      } catch {
-        // ignore
-      }
-    }
-    if (Array.isArray(items) && items.length > 0 && (items[0] as { tracking_number?: string }).tracking_number) {
-      return String((items[0] as { tracking_number?: string }).tracking_number).trim();
-    }
+    const parsed = parseTrackingCandidate(shipmentMeta.value);
+    if (parsed) return parsed;
   }
 
-  // Fallback: Check customer or order notes for Pathao/Steadfast consignment pattern
+  // 4. Fallback: Check customer or order notes for courier consignment pattern
   const notes = `${order.customer_note || ''} ${order.order_notes || ''}`;
-  const match = notes.match(/\b(RD[A-Z0-9]{10,20}|[A-Z0-9]{12,25})\b/i);
-  if (match && /^RD/i.test(match[1])) {
-    return match[1];
+  
+  // 4A: Check explicit phrase (e.g. "Pathao Consignment: RD12345" or "Consignment ID: 10482914")
+  const phraseMatch = notes.match(/(?:pathao\s*(?:consignment|tracking|code|id)?|consignment\s*(?:id|code|#)?|tracking\s*(?:code|id|#)?)\s*[:#-]?\s*([a-zA-Z0-9_-]{4,32})/i);
+  if (phraseMatch && phraseMatch[1] && !/^(true|false|yes|no|pending|none)$/i.test(phraseMatch[1])) {
+    return phraseMatch[1].trim();
+  }
+
+  // 4B: Standard Pathao RD consignment format (e.g. RD290926W5BWHU)
+  const rdMatch = notes.match(/\b(RD[a-zA-Z0-9]{8,24})\b/i);
+  if (rdMatch && rdMatch[1]) {
+    return rdMatch[1].trim();
+  }
+
+  // 4C: General alphanumeric fallback
+  const generalMatch = notes.match(/\b(RD[A-Z0-9]{10,20}|[A-Z0-9]{12,25})\b/i);
+  if (generalMatch && /^RD/i.test(generalMatch[1])) {
+    return generalMatch[1].trim();
   }
 
   return '';

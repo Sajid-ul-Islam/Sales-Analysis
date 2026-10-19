@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { LiveCategoryItem, DEFAULT_DEEN_OPS_CATEGORY_ITEMS } from '@/lib/liveOpsProcessor';
+import { LiveCategoryItem, DEFAULT_DEEN_OPS_CATEGORY_ITEMS, computeDynamicYAxis } from '@/lib/liveOpsProcessor';
 
 interface LiveVolumeBarChartProps {
   items: LiveCategoryItem[];
   avgUnitsSold: number;
   selectedCategory?: string;
   onSelectCategory?: (category: string) => void;
+  isSubCategory?: boolean;
 }
 
 export function LiveVolumeBarChart({
@@ -15,6 +16,7 @@ export function LiveVolumeBarChart({
   avgUnitsSold,
   selectedCategory,
   onSelectCategory,
+  isSubCategory = false,
 }: LiveVolumeBarChartProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
@@ -37,17 +39,9 @@ export function LiveVolumeBarChart({
   }, [sourceItems]);
 
   const maxActualVolume = displayItems.reduce((max, item) => Math.max(max, item.volume), 0);
-  const maxVolume = Math.max(14, Math.ceil(maxActualVolume / 2) * 2);
 
-  // Y-axis grid ticks (e.g. 0, 2, 4, 6, 8, 10, 12, 14)
-  const yTicks = useMemo(() => {
-    const step = maxVolume <= 14 ? 2 : Math.ceil(maxVolume / 7 / 2) * 2;
-    const ticks: number[] = [];
-    for (let t = 0; t <= maxVolume; t += step) {
-      ticks.push(t);
-    }
-    return ticks;
-  }, [maxVolume]);
+  // Dynamic Y-axis scale: Automatically expands or contracts to fit actual category volume data
+  const { maxVolume, yTicks } = useMemo(() => computeDynamicYAxis(maxActualVolume), [maxActualVolume]);
 
   if (sourceItems.length === 0) {
     return (
@@ -155,9 +149,11 @@ export function LiveVolumeBarChart({
           {displayItems.map((item, idx) => {
             const x = paddingLeft + idx * slotWidth + (slotWidth - barWidth) / 2;
             const totalVol = item.volume;
-            const isStackedJeans = (item.displayName === 'Jeans' || item.name === 'Jeans') && item.selectsVolume > 0;
-            const selVol = isStackedJeans ? item.selectsVolume : 0;
-            const regVol = isStackedJeans ? (item.regularVolume || totalVol - selVol) : totalVol;
+            const isStacked = isSubCategory
+              ? item.selectsVolume > 0
+              : (item.displayName === 'Jeans' || item.name === 'Jeans') && item.selectsVolume > 0;
+            const selVol = isStacked ? item.selectsVolume : 0;
+            const regVol = isStacked ? (item.regularVolume || totalVol - selVol) : totalVol;
             const regHeight = (regVol / maxVolume) * innerHeight;
             const selHeight = (selVol / maxVolume) * innerHeight;
 
@@ -167,13 +163,15 @@ export function LiveVolumeBarChart({
 
             const isHovered = hoveredIdx === idx;
 
-            // X-axis label: Unify all Twill categories to strictly "Twill", and show strictly "Jacket" (never "Denim Jacket")
+            // X-axis label: In Sub-Category view, preserve distinct fits/cuts; in Category view unify Twill and Jacket
             const rawLabel = item.displayName || item.name;
             let xLabel = rawLabel;
-            if (/^Twill(\s+(Five\s+Pockets?|5\s*Pockets?))?$/i.test(rawLabel.trim()) || /^5\s*Pockets?$/i.test(rawLabel.trim())) {
-              xLabel = 'Twill';
-            } else if (/^Denim\s+Jacket$/i.test(rawLabel.trim()) || rawLabel.trim() === 'Jacket') {
-              xLabel = 'Jacket';
+            if (!isSubCategory) {
+              if (/^Twill(\s+(Five\s+Pockets?|5\s*Pockets?))?$/i.test(rawLabel.trim()) || /^5\s*Pockets?$/i.test(rawLabel.trim())) {
+                xLabel = 'Twill';
+              } else if (/^Denim\s+Jacket$/i.test(rawLabel.trim()) || rawLabel.trim() === 'Jacket') {
+                xLabel = 'Jacket';
+              }
             }
 
             const isSelected = Boolean(
@@ -181,13 +179,16 @@ export function LiveVolumeBarChart({
               selectedCategory !== 'ALL' &&
               (selectedCategory === item.name ||
                 selectedCategory === item.displayName ||
-                (selectedCategory === 'Twill' && /^Twill/i.test(rawLabel)) ||
-                (selectedCategory === 'Jacket' && /Jacket/i.test(rawLabel)))
+                selectedCategory === xLabel ||
+                (!isSubCategory && selectedCategory === 'Twill' && /^Twill/i.test(rawLabel)) ||
+                (!isSubCategory && selectedCategory === 'Jacket' && /Jacket/i.test(rawLabel)))
             );
             const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);
 
-            // Bar color
-            const barFillColor = CANONICAL_BAR_COLORS[xLabel] || CANONICAL_BAR_COLORS[item.displayName] || CANONICAL_BAR_COLORS[item.name] || item.color;
+            // Bar color: In Sub-Category view prioritize item.color for distinct fit/cut shades
+            const barFillColor = isSubCategory
+              ? (item.color || CANONICAL_BAR_COLORS[xLabel] || CANONICAL_BAR_COLORS[item.displayName] || CANONICAL_BAR_COLORS[item.name])
+              : (CANONICAL_BAR_COLORS[xLabel] || CANONICAL_BAR_COLORS[item.displayName] || CANONICAL_BAR_COLORS[item.name] || item.color);
 
             return (
               <g

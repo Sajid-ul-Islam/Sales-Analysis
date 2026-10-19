@@ -216,6 +216,152 @@ export async function batchFetchPathaoOrders(
 }
 
 /**
+ * Queries Pathao Aladdin API by merchant order ID (order number) to resolve tracking details and consignment ID.
+ */
+export async function getPathaoOrderByMerchantOrderId(
+  orderId: string,
+  credentials?: PathaoCredentials
+): Promise<PathaoOrderDetail | null> {
+  const cleanId = String(orderId || '').trim();
+  if (!cleanId) return null;
+
+  try {
+    const token = await getPathaoToken(credentials);
+    const { pathao } = getSecretsWithOverrides({ pathao: credentials });
+
+    return await withExponentialBackoff(async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6500);
+
+      try {
+        // 1. Try querying orders endpoint with merchant_order_id query parameter
+        const searchUrl = `${pathao.base_url.replace(/\/+$/, '')}/aladdin/api/v1/orders?merchant_order_id=${encodeURIComponent(cleanId)}`;
+        const res = await fetch(searchUrl, {
+          signal: controller.signal,
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
+          },
+        });
+
+        if (res.ok) {
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const json = await res.json().catch(() => null);
+            const list = json?.data?.data || json?.data;
+            if (Array.isArray(list) && list.length > 0) {
+              return list[0];
+            }
+            if (list && typeof list === 'object' && (list.consignment_id || list.order_consignment_id)) {
+              return list;
+            }
+          }
+        }
+
+        // 2. Direct identifier endpoint fallback
+        const directUrl = `${pathao.base_url.replace(/\/+$/, '')}/aladdin/api/v1/orders/${encodeURIComponent(cleanId)}`;
+        const directRes = await fetch(directUrl, {
+          signal: controller.signal,
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
+          },
+        });
+
+        if (directRes.ok) {
+          const contentType = directRes.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const json = await directRes.json().catch(() => null);
+            return json?.data || null;
+          }
+        }
+
+        return null;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }, { maxRetries: 1, baseDelayMs: 250 });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetches recent order dispatches from Pathao to match active orders without consignment IDs.
+ */
+export async function fetchRecentPathaoOrders(
+  page = 1,
+  credentials?: PathaoCredentials
+): Promise<PathaoOrderDetail[]> {
+  try {
+    const token = await getPathaoToken(credentials);
+    const { pathao } = getSecretsWithOverrides({ pathao: credentials });
+
+    return await withExponentialBackoff(async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 7500);
+
+      try {
+        const res = await fetch(`${pathao.base_url.replace(/\/+$/, '')}/aladdin/api/v1/orders?page=${page}`, {
+          signal: controller.signal,
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
+          },
+        });
+
+        if (!res.ok) return [];
+
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) return [];
+
+        const json = await res.json().catch(() => null);
+        const list = json?.data?.data || json?.data || [];
+        return Array.isArray(list) ? list : [];
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }, { maxRetries: 1, baseDelayMs: 250 });
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Batch queries Pathao Aladdin API by merchant order IDs.
+ */
+export async function batchFetchPathaoOrdersByOrderIds(
+  orderIds: string[],
+  concurrency = 3,
+  credentials?: PathaoCredentials
+): Promise<PathaoOrderDetail[]> {
+  const results: PathaoOrderDetail[] = [];
+  const queue = [...orderIds];
+
+  const worker = async () => {
+    while (queue.length > 0) {
+      const id = queue.shift();
+      if (!id) break;
+      try {
+        const order = await getPathaoOrderByMerchantOrderId(id, credentials);
+        if (order) {
+          results.push(order);
+        }
+      } catch {
+        // Continue worker
+      }
+    }
+  };
+
+  const workers = Array.from({ length: Math.min(concurrency, orderIds.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
+}
+
+/**
  * Converts Pathao Aladdin order responses into standardized reconciliation return rows.
  */
 export function formatPathaoToReturnRows(pathaoOrders: PathaoOrderDetail[]): RawOrderRow[] {

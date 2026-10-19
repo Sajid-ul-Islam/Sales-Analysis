@@ -9,6 +9,7 @@ interface LiveRevenueDonutChartProps {
   selectsShare: number;
   selectedCategory?: string;
   onSelectCategory?: (category: string) => void;
+  isSubCategory?: boolean;
 }
 
 // Canonical clockwise sequence matching the DEEN-OPS Screenshot degree-for-degree:
@@ -80,20 +81,21 @@ export function LiveRevenueDonutChart({
   selectsShare,
   selectedCategory,
   onSelectCategory,
+  isSubCategory = false,
 }: LiveRevenueDonutChartProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   // If items has elements, use them; if empty with totalRevenue === 0, render empty state; otherwise fallback
-  const hasRealItems = Boolean(items && items.length > 0);
   const sourceItems = useMemo(() => {
+    const hasRealItems = Boolean(items && items.length > 0);
     return hasRealItems ? items : (totalRevenue === 0 ? [] : DEFAULT_DEEN_OPS_CATEGORY_ITEMS);
-  }, [items, hasRealItems, totalRevenue]);
+  }, [items, totalRevenue]);
 
   // Slices to render (up to 10)
   const topSlices: LiveCategoryItem[] = sourceItems.slice(0, 10);
   const sumSliceRevenue = topSlices.reduce((sum, s) => sum + s.revenue, 0);
   const effectiveTotal = sumSliceRevenue > 0 ? sumSliceRevenue : (totalRevenue > 0 ? totalRevenue : 43273);
-  const effectiveRevenue = totalRevenue > 0 ? totalRevenue : (effectiveTotal > 0 ? effectiveTotal : (hasRealItems ? 0 : 43273));
+  const effectiveRevenue = totalRevenue > 0 ? totalRevenue : (effectiveTotal > 0 ? effectiveTotal : (items && items.length > 0 ? 0 : 43273));
   const effectiveSelectsShare = selectsShare !== undefined && selectsShare !== null && selectsShare >= 0
     ? selectsShare
     : (sourceItems === DEFAULT_DEEN_OPS_CATEGORY_ITEMS ? 43.7 : 0);
@@ -105,9 +107,12 @@ export function LiveRevenueDonutChart({
   const rOuter = 138;
   const rInner = 74;
 
-  // Order slices to match DEEN-OPS Screenshot layout
+  // Order slices: In Category view match DEEN-OPS Screenshot canonical layout; in Sub-Category view sort by revenue
   const orderedSlices = useMemo(() => {
     if (topSlices.length <= 1) return topSlices;
+    if (isSubCategory) {
+      return [...topSlices].sort((a, b) => b.revenue - a.revenue);
+    }
     return [...topSlices].sort((a, b) => {
       const pA = CANONICAL_CLOCKWISE_SEQUENCE[a.displayName] || CANONICAL_CLOCKWISE_SEQUENCE[a.name] || 99;
       const pB = CANONICAL_CLOCKWISE_SEQUENCE[b.displayName] || CANONICAL_CLOCKWISE_SEQUENCE[b.name] || 99;
@@ -116,7 +121,7 @@ export function LiveRevenueDonutChart({
       if (pB !== 99) return 1;
       return b.revenue - a.revenue;
     });
-  }, [topSlices]);
+  }, [topSlices, isSubCategory]);
 
   if (sourceItems.length === 0 && effectiveRevenue === 0) {
     return (
@@ -182,7 +187,9 @@ export function LiveRevenueDonutChart({
       smallOrder = smallSliceCounter++;
     }
 
-    const fillColor = CANONICAL_SLICE_COLORS[slice.displayName] || CANONICAL_SLICE_COLORS[slice.name] || slice.color;
+    const fillColor = isSubCategory
+      ? (slice.color || CANONICAL_SLICE_COLORS[slice.displayName] || CANONICAL_SLICE_COLORS[slice.name])
+      : (CANONICAL_SLICE_COLORS[slice.displayName] || CANONICAL_SLICE_COLORS[slice.name] || slice.color);
 
     return {
       slice,
@@ -212,13 +219,15 @@ export function LiveRevenueDonutChart({
           {/* Slice Paths */}
           {slicePaths.map((sp) => {
             const rawName = sp.slice.displayName || sp.slice.name;
+            const sliceLabel = isSubCategory ? rawName : formatShortCategoryName(rawName);
             const isSelected = Boolean(
               selectedCategory &&
               selectedCategory !== 'ALL' &&
               (selectedCategory === sp.slice.name ||
                 selectedCategory === sp.slice.displayName ||
-                (selectedCategory === 'Twill' && /^Twill/i.test(rawName)) ||
-                (selectedCategory === 'Jacket' && /Jacket/i.test(rawName)))
+                selectedCategory === sliceLabel ||
+                (!isSubCategory && selectedCategory === 'Twill' && /^Twill/i.test(rawName)) ||
+                (!isSubCategory && selectedCategory === 'Jacket' && /Jacket/i.test(rawName)))
             );
             const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);
 
@@ -262,15 +271,16 @@ export function LiveRevenueDonutChart({
           {/* Leader Lines and External Callout Labels for Slices */}
           {slicePaths.map((sp) => {
             const rawName = sp.slice.displayName || sp.slice.name;
-            const sliceLabel = formatShortCategoryName(rawName);
+            const sliceLabel = isSubCategory ? rawName : formatShortCategoryName(rawName);
 
             const isSelected = Boolean(
               selectedCategory &&
               selectedCategory !== 'ALL' &&
               (selectedCategory === sp.slice.name ||
                 selectedCategory === sp.slice.displayName ||
-                (selectedCategory === 'Twill' && /^Twill/i.test(rawName)) ||
-                (selectedCategory === 'Jacket' && /Jacket/i.test(rawName)))
+                selectedCategory === sliceLabel ||
+                (!isSubCategory && selectedCategory === 'Twill' && /^Twill/i.test(rawName)) ||
+                (!isSubCategory && selectedCategory === 'Jacket' && /Jacket/i.test(rawName)))
             );
             const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);
 
@@ -356,7 +366,7 @@ export function LiveRevenueDonutChart({
           {slicePaths.map((sp) => {
             if (sp.isSmall) return null; // Small slices are rendered with callouts above
             const rawName = sp.slice.displayName || sp.slice.name;
-            const sliceLabel = formatShortCategoryName(rawName);
+            const sliceLabel = isSubCategory ? rawName : formatShortCategoryName(rawName);
 
             const hoverScale = sp.isHovered ? 1.25 : 1;
             return (

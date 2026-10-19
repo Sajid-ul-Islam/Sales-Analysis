@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { classifyProductLine, computeSelectsStats } from '@/lib/selectsAnalytics';
-import { getCategoryForSales, getSubCategoryForSales, getShortCategoryLabel } from '@/lib/liveCategoryEngine';
+import { getCategoryForSales, getSubCategoryForSales, getShortCategoryLabel, getShortSubCategoryLabel } from '@/lib/liveCategoryEngine';
 import {
   getPreviousWorkingDay,
   processLiveOpsData,
@@ -13,6 +13,7 @@ import { RawOrderRow } from '@/types';
 import { normalizePhone, normalizeEmail, normalizeName, normalizeCity } from '@/lib/customerRegistry';
 import * as XLSX from 'xlsx';
 import { buildLiveShippedOrdersWorkbook } from '@/lib/excelExport';
+import { computeDynamicYAxis } from '@/lib/liveOpsProcessor';
 
 describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () => {
   describe('DEEN Selects vs DEEN Regular Classification', () => {
@@ -72,6 +73,27 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(getShortCategoryLabel('Denim Jacket Winter Edition')).toBe('Denim Jacket');
       expect(getShortCategoryLabel('Twill Five Pockets Casual')).toBe('Twill');
       expect(getShortCategoryLabel('FS Shirt - Formal Executive')).toBe('Formal');
+    });
+
+    it('differentiates main category names and sub-category names for charts and filters', () => {
+      // Main category: Jeans -> Sub categories: Regular Fit, Slim Fit, Straight Fit
+      expect(getCategoryForSales('Classic Regular Jeans')).toBe('Jeans');
+      expect(getShortSubCategoryLabel(getSubCategoryForSales('Classic Regular Jeans', 'Jeans'))).toBe('Regular Fit');
+
+      expect(getCategoryForSales('Indigo Slim Fit Jeans')).toBe('Jeans');
+      expect(getShortSubCategoryLabel(getSubCategoryForSales('Indigo Slim Fit Jeans', 'Jeans'))).toBe('Slim Fit');
+
+      expect(getCategoryForSales('Straight Cut Denim Jeans')).toBe('Jeans');
+      expect(getShortSubCategoryLabel(getSubCategoryForSales('Straight Cut Denim Jeans', 'Jeans'))).toBe('Straight Fit');
+
+      // Twill: 5-Pocket Twill vs Twill Joggers
+      expect(getShortSubCategoryLabel('Twill Five Pockets')).toBe('5-Pocket Twill');
+      expect(getShortSubCategoryLabel('Twill Joggers')).toBe('Twill Joggers');
+
+      // Shirts: Flannel vs Oxford vs Cuban
+      expect(getShortSubCategoryLabel('Flannel Shirt')).toBe('Flannel');
+      expect(getShortSubCategoryLabel('Oxford Shirt')).toBe('Oxford');
+      expect(getShortSubCategoryLabel('Cuban Shirt')).toBe('Cuban');
     });
   });
 
@@ -1236,6 +1258,38 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       });
 
       expect(report.customerMix.newCount + report.customerMix.retCount).toBe(1);
+    });
+  });
+
+  describe('Sales Volume by Category Dynamic Scaling (LiveVolumeBarChart)', () => {
+    it('scales dynamically down for small volumes rather than statically clamping to 14', () => {
+      // When max volume is small (e.g. 3), top scale is 3, not 14
+      const res3 = computeDynamicYAxis(3);
+      expect(res3.maxVolume).toBe(3);
+      expect(res3.yTicks).toEqual([0, 1, 2, 3]);
+
+      // When max volume is 6, top scale is 6, not 14
+      const res6 = computeDynamicYAxis(6);
+      expect(res6.maxVolume).toBe(6);
+      expect(res6.yTicks).toEqual([0, 2, 4, 6]);
+    });
+
+    it('scales dynamically up for larger volumes', () => {
+      // When max volume is 25, top scale dynamically expands to 25
+      const res25 = computeDynamicYAxis(25);
+      expect(res25.maxVolume).toBe(25);
+      expect(res25.yTicks).toEqual([0, 5, 10, 15, 20, 25]);
+
+      // When max volume is 50, top scale dynamically expands to 50
+      const res50 = computeDynamicYAxis(50);
+      expect(res50.maxVolume).toBe(50);
+      expect(res50.yTicks).toEqual([0, 10, 20, 30, 40, 50]);
+    });
+
+    it('handles zero or negative volume gracefully', () => {
+      const res0 = computeDynamicYAxis(0);
+      expect(res0.maxVolume).toBe(4);
+      expect(res0.yTicks).toEqual([0, 1, 2, 3, 4]);
     });
   });
 });

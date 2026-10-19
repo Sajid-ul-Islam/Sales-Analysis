@@ -6,6 +6,9 @@ import {
   extractBaseOrderId,
   detectFulfillmentBranch,
   syncLiveTerminalData,
+  parseDateToEpoch,
+  indexTrackingRecord,
+  CourierTrackingInfo,
 } from '@/lib/sync/liveTerminalSync';
 
 describe('Live Terminal Synchronization & Courier Reconciliation Engine', () => {
@@ -222,6 +225,115 @@ describe('Live Terminal Synchronization & Courier Reconciliation Engine', () => 
       const enrichedOrder2 = result.orders.find((o) => o['Order ID'] === '17001');
       expect(enrichedOrder2).toBeDefined();
       expect(enrichedOrder2?.['Courier Status']).toBe('Untracked');
+    });
+
+    it('resolves consignment tracking by order ID when consignment ID is missing in WooCommerce', async () => {
+      // Order 16048 has no consignment ID specified, but exists in baseline pathaoDelivery
+      const mockOrders = [
+        {
+          'Order ID': '16048',
+          orderId: '16048',
+          'Order Date': '2026-10-15 10:30',
+          'Customer Name': 'Tanvir Ahmed',
+          Phone: '01700000000',
+          'Item Name': 'DEEN High-End Raw Washed Jeans',
+          SKU: '101-0100-149',
+          Quantity: 1,
+          'Item Cost': 2490,
+          'Order Amount': 2490,
+          'Delivery Status': 'shipped',
+          'Consignment ID': '', // Empty in WooCommerce
+        },
+      ];
+
+      const result = await syncLiveTerminalData({
+        activeOrders: mockOrders,
+        limitConsignments: 5,
+        skipNetwork: true,
+      });
+
+      expect(result.success).toBe(true);
+      const enrichedOrder = result.orders.find((o) => o['Order ID'] === '16048');
+      expect(enrichedOrder).toBeDefined();
+      expect(enrichedOrder?.consignmentId).toBe('RD290926W5BWHU');
+      expect(enrichedOrder?.['Courier Status']).toBe('Returned');
+    });
+
+    it('resolves consignment tracking by customer phone when order ID mismatches', async () => {
+      // Order ID is completely different, but phone number matches baseline Pathao record (1952700500)
+      const mockOrders = [
+        {
+          'Order ID': 'MISMATCH-99999',
+          orderId: 'MISMATCH-99999',
+          'Order Date': '2026-10-15 10:30',
+          'Customer Name': 'Deen Customer',
+          Phone: '01952700500',
+          'Item Name': 'DEEN Apparel Item',
+          SKU: 'GEN-001',
+          Quantity: 1,
+          'Item Cost': 2000,
+          'Order Amount': 2000,
+          'Delivery Status': 'processing',
+          'Consignment ID': '',
+        },
+      ];
+
+      const result = await syncLiveTerminalData({
+        activeOrders: mockOrders,
+        limitConsignments: 5,
+        skipNetwork: true,
+      });
+
+      expect(result.success).toBe(true);
+      const enrichedOrder = result.orders.find((o) => o['Order ID'] === 'MISMATCH-99999');
+      expect(enrichedOrder).toBeDefined();
+      expect(enrichedOrder?.consignmentId).toBe('RD260926A2ADZ2');
+      expect(enrichedOrder?.['Courier Status']).toBe('Returned');
+    });
+
+    it('selects the latest Pathao order when multiple orders exist for the same customer phone', () => {
+      const courierMap: Record<string, CourierTrackingInfo> = {};
+      const phoneMap = new Map<string, CourierTrackingInfo[]>();
+
+      const olderOrder = {
+        'Order consignment id': 'RD-OLD-1111',
+        'Merchant order id': '1001',
+        'Recipient phone': '01711223344',
+        'Order status': 'Delivered',
+        'Order created at': '2026-10-10 10:00:00',
+      };
+
+      const newerOrder = {
+        'Order consignment id': 'RD-NEW-2222',
+        'Merchant order id': '1002',
+        'Recipient phone': '01711223344',
+        'Order status': 'In Transit',
+        'Order created at': '2026-10-16 15:30:00',
+      };
+
+      indexTrackingRecord(olderOrder, courierMap, phoneMap);
+      indexTrackingRecord(newerOrder, courierMap, phoneMap);
+
+      const candidateList = phoneMap.get('01711223344');
+      expect(candidateList).toBeDefined();
+      expect(candidateList?.length).toBe(2);
+      // The newest order must be prioritized first
+      expect(candidateList?.[0].consignmentId).toBe('RD-NEW-2222');
+      expect(candidateList?.[0].courierStatus).toBe('In Transit');
+    });
+
+    it('parses timestamps across Excel serial floats, ISO strings, and epoch numbers', () => {
+      // Excel serial 46295.72 -> October 2026
+      const excelEpoch = parseDateToEpoch(46295.72);
+      expect(excelEpoch).toBeGreaterThan(1700000000000);
+
+      // ISO string
+      const isoEpoch = parseDateToEpoch('2026-10-16T12:00:00Z');
+      expect(isoEpoch).toBe(Date.parse('2026-10-16T12:00:00Z'));
+
+      // Empty or invalid
+      expect(parseDateToEpoch('')).toBe(0);
+      expect(parseDateToEpoch(null)).toBe(0);
     });
 
     it('falls back to bundled baseline data when no orders are provided', async () => {
