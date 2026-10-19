@@ -65,6 +65,12 @@ import {
   filterOrderWiseGroups,
   exportOrderWiseLedgerExcel,
 } from '@/lib/orderGrouping';
+import { CustomerRatingBadge } from '@/components/courier/CustomerRatingBadge';
+import {
+  CustomerRatingData,
+  normalizeCustomerPhone,
+  batchResolveCustomerRatings,
+} from '@/lib/customerRating';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 import { DataProvenanceInfo } from '@/lib/dataAudit';
 
@@ -121,9 +127,29 @@ export function LiveOpsTab({
   const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
   const [localSyncing, setLocalSyncing] = useState(false);
 
-  // Table Granularity Switcher: Line Items (Item-Wise) vs Consolidated Orders (Order-Wise)
-  const [ledgerViewMode, setLedgerViewMode] = useState<'ITEM_WISE' | 'ORDER_WISE'>('ITEM_WISE');
+  // Table Granularity Switcher: Consolidated Orders (Order-Wise default) vs Line Items (Item-Wise)
+  const [ledgerViewMode, setLedgerViewMode] = useState<'ITEM_WISE' | 'ORDER_WISE'>('ORDER_WISE');
   const [expandedOrderIds, setExpandedOrderIds] = useState<Set<string>>(new Set());
+
+  // Customer Delivery Ratings & Fraud Intelligence State
+  const [customerRatings, setCustomerRatings] = useState<Record<string, CustomerRatingData>>({});
+  const customerRatingsRef = React.useRef(customerRatings);
+  useEffect(() => {
+    customerRatingsRef.current = customerRatings;
+  }, [customerRatings]);
+
+  const getRatingForPhone = useCallback(
+    (ph: unknown): CustomerRatingData | undefined => {
+      const s = String(ph || '').trim();
+      if (!s || s === 'N/A' || s === 'nan' || s === 'none') return undefined;
+      if (customerRatings[s]) return customerRatings[s];
+      const { full, suffix10 } = normalizeCustomerPhone(s);
+      if (full && customerRatings[full]) return customerRatings[full];
+      if (suffix10 && customerRatings[suffix10]) return customerRatings[suffix10];
+      return undefined;
+    },
+    [customerRatings]
+  );
 
   const toggleOrderExpanded = useCallback((orderId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -184,6 +210,7 @@ export function LiveOpsTab({
     if (urlCourier) setCourierFilter(urlCourier);
     const urlLedger = p.get('ledgerView');
     if (urlLedger === 'ORDER_WISE' || urlLedger === 'orderwise') setLedgerViewMode('ORDER_WISE');
+    if (urlLedger === 'ITEM_WISE' || urlLedger === 'itemwise') setLedgerViewMode('ITEM_WISE');
 
     const cached = getCacheItem<LiveTerminalCacheEnvelope>(DEEN_CACHE_KEYS.LIVE_TERMINAL);
     if (cached) {
@@ -515,6 +542,53 @@ export function LiveOpsTab({
     return grouped[0] || null;
   }, [selectedDetailOrder, report.activeOrders]);
 
+  // Batch resolve customer delivery ratings & fraud risk for displayed ledger orders
+  useEffect(() => {
+    const rawPhones: string[] = [];
+    for (const g of filteredOrderWiseGroups) {
+      if (g.phone) rawPhones.push(g.phone);
+    }
+    for (const o of filteredOrders) {
+      const p = getExportPhoneNumber(o) || o.Phone;
+      if (p) rawPhones.push(String(p));
+    }
+
+    const uniqueList = Array.from(new Set(rawPhones.filter(Boolean)));
+    if (uniqueList.length === 0) return;
+
+    // 1. Instant local baseline resolution (0ms synchronous lookup from store history)
+    batchResolveCustomerRatings(uniqueList, { skipPathaoApi: true, liveOrders: report.activeOrders })
+      .then((localRatings) => {
+        setCustomerRatings((prev) => ({ ...localRatings, ...prev }));
+      })
+      .catch(() => {});
+
+    // 2. Asynchronous Pathao API verification in background for unverified numbers
+    const unverified = uniqueList.filter((ph) => {
+      const { full } = normalizeCustomerPhone(ph);
+      const existing = customerRatingsRef.current[full] || customerRatingsRef.current[ph];
+      return !existing || existing.source !== 'PATHAO';
+    }).slice(0, 30);
+
+    if (unverified.length > 0) {
+      fetch('/api/courier/customer-rating', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getClientAuthHeaders(),
+        },
+        body: JSON.stringify({ phones: unverified }),
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.ratings && typeof data.ratings === 'object') {
+            setCustomerRatings((prev) => ({ ...prev, ...data.ratings }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [filteredOrderWiseGroups, filteredOrders, report.activeOrders]);
+
   // Unique categories for table filter dropdown (pure online commercial items)
   const uniqueCategories = useMemo(() => {
     const set = new Set<string>();
@@ -546,6 +620,7 @@ export function LiveOpsTab({
     if (ledgerViewMode === 'ORDER_WISE') {
       exportOrderWiseLedgerExcel(filteredOrderWiseGroups, report, {
         isExchangesView: courierFilter === 'EXCHANGES_ONLY',
+        ratings: customerRatings,
       });
       return;
     }
@@ -558,27 +633,32 @@ export function LiveOpsTab({
     const isExchangesView = courierFilter === 'EXCHANGES_ONLY';
 
     if (ledgerViewMode === 'ORDER_WISE') {
-      const exportData = filteredOrderWiseGroups.map((g) => ({
-        'Order ID': g.orderId,
-        'Date': g.orderDate,
-        'Customer Name': g.customerName,
-        'Phone Number': g.phone,
-        'City': g.city,
-        'Total Items (Pcs)': g.totalQuantity,
-        'Products': g.items.map((i) => `${i.itemName} (x${i.quantity})`).join('; '),
-        'Collection Type':
-          g.collectionType === 'SELECTS'
-            ? 'DEEN Selects'
-            : g.collectionType === 'REGULAR'
-            ? 'DEEN Regular'
-            : 'Mixed (Selects + Regular)',
-        'Order Total': g.totalAmount,
-        'WooCommerce Status': g.wcStatus,
-        'Courier Status': g.courierStatus,
-        'Consignment ID': g.consignmentIds.join(', ') || 'N/A',
-        'Fulfillment Branch': g.branch.branchName,
-        'Discrepancy': g.hasDiscrepancy ? 'YES' : 'NO',
-      }));
+      const exportData = filteredOrderWiseGroups.map((g) => {
+        const r = getRatingForPhone(g.phone);
+        return {
+          'Order ID': g.orderId,
+          'Date': g.orderDate,
+          'Customer Name': g.customerName,
+          'Phone Number': g.phone,
+          'Customer Rating': r?.ratingLabel || 'Standard Buyer',
+          'Delivery Success Rate': r?.successRate !== undefined ? `${r.successRate}%` : 'N/A',
+          'City': g.city,
+          'Total Items (Pcs)': g.totalQuantity,
+          'Products': g.items.map((i) => `${i.itemName} (x${i.quantity})`).join('; '),
+          'Collection Type':
+            g.collectionType === 'SELECTS'
+              ? 'DEEN Selects'
+              : g.collectionType === 'REGULAR'
+              ? 'DEEN Regular'
+              : 'Mixed (Selects + Regular)',
+          'Order Total': g.totalAmount,
+          'WooCommerce Status': g.wcStatus,
+          'Courier Status': g.courierStatus,
+          'Consignment ID': g.consignmentIds.join(', ') || 'N/A',
+          'Fulfillment Branch': g.branch.branchName,
+          'Discrepancy': g.hasDiscrepancy ? 'YES' : 'NO',
+        };
+      });
 
       const ws = XLSX.utils.json_to_sheet(exportData);
       const csvOutput = XLSX.utils.sheet_to_csv(ws);
@@ -2481,8 +2561,13 @@ export function LiveOpsTab({
                             <div className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
                               {group.phone || 'N/A'}
                             </div>
+                            {group.phone && (
+                              <div className="mt-1">
+                                <CustomerRatingBadge rating={getRatingForPhone(group.phone)} phone={group.phone} />
+                              </div>
+                            )}
                             {group.city && (
-                              <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate max-w-[140px]">
+                              <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate max-w-[140px] mt-0.5">
                                 {group.city}
                               </div>
                             )}
@@ -2787,6 +2872,14 @@ export function LiveOpsTab({
                           <div className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
                             {String(getExportPhoneNumber(row) || row.Phone || 'N/A')}
                           </div>
+                          {Boolean(getExportPhoneNumber(row) || row.Phone) && (
+                            <div className="mt-1">
+                              <CustomerRatingBadge
+                                rating={getRatingForPhone(getExportPhoneNumber(row) || row.Phone)}
+                                phone={String(getExportPhoneNumber(row) || row.Phone)}
+                              />
+                            </div>
+                          )}
                         </td>
                         <td className="py-2.5 px-3.5 max-w-[220px]">
                           <div className="font-semibold text-slate-800 dark:text-white truncate" title={prodName}>
@@ -3041,12 +3134,36 @@ export function LiveOpsTab({
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Phone:</span>
-                  <span className="font-semibold">{String(getExportPhoneNumber(selectedDetailOrder) || selectedDetailOrder.Phone || 'N/A')}</span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-semibold">{String(getExportPhoneNumber(selectedDetailOrder) || selectedDetailOrder.Phone || 'N/A')}</span>
+                    <CustomerRatingBadge
+                      rating={getRatingForPhone(getExportPhoneNumber(selectedDetailOrder) || selectedDetailOrder.Phone)}
+                      phone={String(getExportPhoneNumber(selectedDetailOrder) || selectedDetailOrder.Phone)}
+                    />
+                  </div>
                 </div>
                 <div className="col-span-2">
                   <span className="text-slate-400 block text-[10px]">City / Area:</span>
                   <span className="font-semibold">{String(selectedDetailOrder.City || 'Dhaka')}</span>
                 </div>
+                {(() => {
+                  const detailPhone = String(getExportPhoneNumber(selectedDetailOrder) || selectedDetailOrder.Phone || '');
+                  const r = getRatingForPhone(detailPhone);
+                  if (!r) return null;
+                  return (
+                    <div className="col-span-2 pt-1.5 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                        <span>Pathao / Store Rating:</span>
+                        <strong className="text-slate-800 dark:text-slate-200">{r.ratingLabel}</strong>
+                      </span>
+                      <span className="text-slate-400 dark:text-slate-500 text-[10px]">
+                        {r.totalOrders > 0
+                          ? `${r.deliveredOrders} delivered / ${r.returnedOrders} returned (${r.totalOrders} total)`
+                          : 'First-time buyer'}
+                      </span>
+                    </div>
+                  );
+                })()}
                 {selectedDetailOrder['Order Notes'] && (
                   <div className="col-span-2 pt-1 border-t border-slate-200/60">
                     <span className="text-slate-400 block text-[10px]">Customer Note:</span>

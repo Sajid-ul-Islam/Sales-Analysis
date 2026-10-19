@@ -304,17 +304,23 @@ export function filterOrderWiseGroups(
 export function buildOrderWiseWorkbook(
   groups: OrderWiseGroup[],
   report: LiveOpsReport,
-  options: { isExchangesView?: boolean } = {}
+  options: {
+    isExchangesView?: boolean;
+    ratings?: Record<string, { ratingLabel?: string; successRate?: number }>;
+  } = {}
 ): XLSX.WorkBook {
   const wb = XLSX.utils.book_new();
   const isExchangesView = Boolean(options.isExchangesView);
 
   const exportData = groups.map((g) => {
+    const r = options.ratings?.[g.phone];
     return {
       'Order ID': g.orderId,
       'Order Date': g.orderDate,
       'Customer Name': g.customerName,
       'Phone': g.phone,
+      'Customer Rating': r?.ratingLabel || 'Standard Buyer',
+      'Delivery Success Rate': r?.successRate !== undefined ? `${r.successRate}%` : 'N/A',
       'City': g.city,
       'Total Items (Pcs)': g.totalQuantity,
       'Items Summary': g.items.map((i) => `${i.itemName} (x${i.quantity})`).join('; '),
@@ -340,21 +346,26 @@ export function buildOrderWiseWorkbook(
   // If there are replacement/non-checkout orders and not already on exchanges view, include sheet 2
   if (!isExchangesView && report?.exchangeStats?.replacementOrders?.length) {
     const exchangeGroups = groupOrdersByOrderId(report.exchangeStats.replacementOrders);
-    const exData = exchangeGroups.map((g) => ({
-      'Replacement Order ID': g.orderId,
-      'Original Order ID': g.exchangeInfo.referencedOrderId || 'N/A',
-      'Exchange Tag': g.exchangeInfo.displayTag || 'Exchange',
-      'Date': g.orderDate,
-      'Customer Name': g.customerName,
-      'Phone': g.phone,
-      'City': g.city,
-      'Total Items (Pcs)': g.totalQuantity,
-      'Items Summary': g.items.map((i) => `${i.itemName} (x${i.quantity})`).join('; '),
-      'Courier Status': g.courierStatus,
-      'Pathao Consignment ID': g.consignmentIds.join(', ') || 'N/A',
-      'Commercial Revenue Recognized': 0,
-      'Operational Notes': 'Customer exchange replacement parcel created manually via staff admin (zero new revenue)',
-    }));
+    const exData = exchangeGroups.map((g) => {
+      const r = options.ratings?.[g.phone];
+      return {
+        'Replacement Order ID': g.orderId,
+        'Original Order ID': g.exchangeInfo.referencedOrderId || 'N/A',
+        'Exchange Tag': g.exchangeInfo.displayTag || 'Exchange',
+        'Date': g.orderDate,
+        'Customer Name': g.customerName,
+        'Phone': g.phone,
+        'Customer Rating': r?.ratingLabel || 'Standard Buyer',
+        'Delivery Success Rate': r?.successRate !== undefined ? `${r.successRate}%` : 'N/A',
+        'City': g.city,
+        'Total Items (Pcs)': g.totalQuantity,
+        'Items Summary': g.items.map((i) => `${i.itemName} (x${i.quantity})`).join('; '),
+        'Courier Status': g.courierStatus,
+        'Pathao Consignment ID': g.consignmentIds.join(', ') || 'N/A',
+        'Commercial Revenue Recognized': 0,
+        'Operational Notes': 'Customer exchange replacement parcel created manually via staff admin (zero new revenue)',
+      };
+    });
     const wsEx = XLSX.utils.json_to_sheet(exData);
     XLSX.utils.book_append_sheet(wb, wsEx, 'Exchanges & Non-Checkout');
   }
@@ -368,7 +379,11 @@ export function buildOrderWiseWorkbook(
 export function exportOrderWiseLedgerExcel(
   groups: OrderWiseGroup[],
   report: LiveOpsReport,
-  options: { isExchangesView?: boolean; filenamePrefix?: string } = {}
+  options: {
+    isExchangesView?: boolean;
+    filenamePrefix?: string;
+    ratings?: Record<string, { ratingLabel?: string; successRate?: number }>;
+  } = {}
 ) {
   const wb = buildOrderWiseWorkbook(groups, report, options);
   const prefix = options.filenamePrefix || 'DEEN_Live_OrderWise_Ledger';
