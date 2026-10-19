@@ -469,6 +469,13 @@ export function LiveOpsTab({
     return Array.from(set).sort();
   }, [report.activeOrders, showSubCategory]);
 
+  // Authoritative day labels for KPI card sparklines (7-day timeline)
+  const kpiDayLabels = useMemo(() => {
+    return report.last7DaysHistory && report.last7DaysHistory.length > 0
+      ? report.last7DaysHistory.map((h) => (h.isToday ? 'Today' : h.dayName.slice(0, 3)))
+      : undefined;
+  }, [report.last7DaysHistory]);
+
   // Export current table to Excel with full courier details sorted by order number
   // Strictly excludes POS and non-checkout exchange orders from commercial sales sheet
   const handleExportExcel = () => {
@@ -857,10 +864,12 @@ export function LiveOpsTab({
           <div className="pt-1 -mx-2 -mb-2">
             <KpiSparkline
               data={report.shippedItems.sparkline}
+              labels={kpiDayLabels}
+              valueSuffix=" pcs"
               color="#f97316"
               gradientId="kpi-sparkline-items"
               fillOpacity={0.25}
-              height={32}
+              height={34}
             />
           </div>
         </div>
@@ -901,10 +910,12 @@ export function LiveOpsTab({
           <div className="pt-1 -mx-2 -mb-2">
             <KpiSparkline
               data={report.salesRevenue.sparkline}
+              labels={kpiDayLabels}
+              valuePrefix="৳"
               color="#e11d48"
               gradientId="kpi-sparkline-revenue"
               fillOpacity={0.25}
-              height={32}
+              height={34}
             />
           </div>
         </div>
@@ -976,10 +987,12 @@ export function LiveOpsTab({
           <div className="pt-1 -mx-2 -mb-2">
             <KpiSparkline
               data={report.shippedOrders.sparkline}
+              labels={kpiDayLabels}
+              valueSuffix=" pkgs"
               color="#3b82f6"
               gradientId="kpi-sparkline-orders"
               fillOpacity={0.25}
-              height={32}
+              height={34}
             />
           </div>
         </div>
@@ -1018,10 +1031,12 @@ export function LiveOpsTab({
           <div className="pt-1 -mx-2 -mb-2">
             <KpiSparkline
               data={report.basketSize.sparkline}
+              labels={kpiDayLabels}
+              valuePrefix="৳"
               color="#eab308"
               gradientId="kpi-sparkline-basket"
               fillOpacity={0.25}
-              height={32}
+              height={34}
             />
           </div>
         </div>
@@ -1052,10 +1067,12 @@ export function LiveOpsTab({
           <div className="pt-1 -mx-2 -mb-2">
             <KpiSparkline
               data={report.customerMix.sparkline}
+              labels={kpiDayLabels}
+              valueSuffix="% New"
               color="#a855f7"
               gradientId="kpi-sparkline-cust"
               fillOpacity={0.3}
-              height={32}
+              height={34}
             />
           </div>
         </div>
