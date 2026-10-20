@@ -17,6 +17,8 @@
   }
 
   html {
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;

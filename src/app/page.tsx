@@ -177,6 +177,7 @@ export default function DashboardPage() {
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -190,6 +191,13 @@ export default function DashboardPage() {
           setActiveTab(savedTab);
         }
       }
+
+      try {
+        const savedCollapsed = localStorage.getItem('deen_sidebar_collapsed');
+        if (savedCollapsed !== null) {
+          setIsSidebarCollapsed(savedCollapsed === 'true');
+        }
+      } catch {}
 
       const savedTheme = loadSavedThemeSettings();
       const isDark =
@@ -208,6 +216,16 @@ export default function DashboardPage() {
       window.addEventListener('deen-theme-changed', handler);
       return () => window.removeEventListener('deen-theme-changed', handler);
     }
+  }, []);
+
+  const handleToggleSidebarCollapse = useCallback(() => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('deen_sidebar_collapsed', String(next));
+      } catch {}
+      return next;
+    });
   }, []);
 
   const handleToggleTheme = () => {
@@ -889,6 +907,8 @@ export default function DashboardPage() {
         activeSourceMode={dataSourceMode}
         mobileOpen={mobileMenuOpen}
         onCloseMobile={() => setMobileMenuOpen(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={handleToggleSidebarCollapse}
       />
 
       {/* Main Content Area */}
@@ -911,22 +931,26 @@ export default function DashboardPage() {
           notificationCount={notificationCount}
           isDarkMode={isDarkMode}
           onToggleTheme={handleToggleTheme}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleCollapseSidebar={handleToggleSidebarCollapse}
         />
 
         <main
           className="px-2 py-3.5 sm:px-6 sm:py-6 pb-20 md:pb-6 space-y-5 max-w-[1920px] mx-auto w-full transition-colors duration-200"
           style={{ backgroundColor: 'var(--bg-surface, #FFFFFF)' }}
         >
-          {/* Status Alert Banner */}
+          {/* Status Alert Toast — Floating non-layout-shifting overlay */}
           {statusMessage && (
-            <div className="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 flex items-center justify-between shadow-sm">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="font-medium">{statusMessage}</span>
+            <div className="fixed bottom-6 right-6 z-50 max-w-md bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md border border-slate-200 dark:border-[#222] shadow-2xl px-4 py-3 rounded-2xl text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-2 duration-150">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="font-semibold truncate">{statusMessage}</span>
               </div>
               <button
+                type="button"
                 onClick={() => setStatusMessage(null)}
-                className="text-slate-400 hover:text-slate-700 text-xs font-bold"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs font-bold ml-2 shrink-0 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                title="Dismiss message"
               >
                 ✕
               </button>
@@ -1293,6 +1317,7 @@ export default function DashboardPage() {
           onToggleTheme={handleToggleTheme}
           onToggleCopilot={() => setIsCopilotOpen(prev => !prev)}
           onExportExcel={handleExport}
+          onToggleSidebar={handleToggleSidebarCollapse}
         />
 
         {/* Real-Time Sync & Logistics Notification Center & Event Drawer */}

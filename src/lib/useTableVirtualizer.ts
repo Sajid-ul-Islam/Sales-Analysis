@@ -103,20 +103,23 @@ export function useTableVirtualizer<T>({
     };
   }, [items, estimateItemHeight]);
 
-  // 3. Scroll and Resize listener with requestAnimationFrame throttling
+  // 3. Scroll and Resize listener with requestAnimationFrame throttling and hysteresis deadband
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     let ticking = false;
+    let lastScrollTop = container.scrollTop || 0;
+    let lastHeight = container.clientHeight || 600;
 
     const handleScroll = () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
           if (container) {
-            setScrollTop(container.scrollTop);
-            if (container.clientHeight !== viewportHeight && container.clientHeight > 0) {
-              setViewportHeight(container.clientHeight);
+            const st = container.scrollTop;
+            if (Math.abs(st - lastScrollTop) >= 1) {
+              lastScrollTop = st;
+              setScrollTop(st);
             }
           }
           ticking = false;
@@ -125,20 +128,46 @@ export function useTableVirtualizer<T>({
       }
     };
 
-    const handleResize = () => {
+    // Dedicated ResizeObserver with deadband hysteresis (>= 8px) to prevent
+    // scrollbar-toggle jitter from triggering continuous re-renders
+    const ro =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver((entries) => {
+            for (const entry of entries) {
+              const h = Math.round(entry.contentRect?.height || container.clientHeight || 0);
+              if (h > 0 && Math.abs(h - lastHeight) >= 8) {
+                lastHeight = h;
+                setViewportHeight(h);
+              }
+            }
+          })
+        : null;
+
+    if (ro) {
+      ro.observe(container);
+    }
+
+    const handleWindowResize = () => {
       if (container) {
-        setViewportHeight(container.clientHeight || 600);
+        const h = container.clientHeight || 600;
+        if (Math.abs(h - lastHeight) >= 8) {
+          lastHeight = h;
+          setViewportHeight(h);
+        }
       }
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleWindowResize);
 
     return () => {
       container.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', handleWindowResize);
+      if (ro) {
+        ro.disconnect();
+      }
     };
-  }, [containerRef, viewportHeight]);
+  }, [containerRef]);
 
   // 4. Calculate visible slice
   const { virtualItems, paddingTop, paddingBottom, startIndex, endIndex } = useMemo(() => {

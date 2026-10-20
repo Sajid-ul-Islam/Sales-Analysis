@@ -50,6 +50,10 @@ const criticalCSS = `
   * {
     box-sizing: border-box;
   }
+  html {
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+  }
   html, body {
     margin: 0;
     padding: 0;

@@ -89,11 +89,11 @@ export function MobileBottomNav({
       if (!ticking) {
         window.requestAnimationFrame(() => {
           const currentScrollY = window.scrollY;
-          // Hide when scrolling downwards past 60px
-          if (currentScrollY > 60 && currentScrollY > lastScrollYRef.current + 8) {
+          // Hide when scrolling downwards past 80px with clear intent (25px delta)
+          if (currentScrollY > 80 && currentScrollY > lastScrollYRef.current + 25) {
             setIsVisible(false);
-          } else if (currentScrollY < lastScrollYRef.current - 8 || currentScrollY <= 20) {
-            // Restore when scrolling upwards or near top of page
+          } else if (currentScrollY < lastScrollYRef.current - 25 || currentScrollY <= 20) {
+            // Restore when scrolling upwards with clear intent or near top of page
             setIsVisible(true);
           }
           lastScrollYRef.current = currentScrollY;

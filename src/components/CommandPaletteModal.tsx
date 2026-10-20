@@ -22,7 +22,8 @@ import {
   Tag,
   Store,
   Layers,
-  Clock
+  Clock,
+  PanelLeftClose
 } from 'lucide-react';
 import { ReconciliationResult } from '@/lib/reconciliationEngine';
 import { RawOrderRow } from '@/types';
@@ -43,6 +44,7 @@ export interface CommandPaletteModalProps {
   onToggleCopilot?: () => void;
   onExportExcel?: () => void;
   onInspectOrder?: (order: RawOrderRow) => void;
+  onToggleSidebar?: () => void;
 }
 
 interface PaletteItem {
@@ -83,7 +85,8 @@ export function CommandPaletteModal({
   onToggleTheme,
   onToggleCopilot,
   onExportExcel,
-  onInspectOrder
+  onInspectOrder,
+  onToggleSidebar
 }: CommandPaletteModalProps) {
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<'All' | 'Actions' | 'Tabs' | 'Orders' | 'Customers' | 'SKUs'>('All');
@@ -178,6 +181,22 @@ export function CommandPaletteModal({
         onToggleTheme?.();
       }
     });
+
+    if (onToggleSidebar) {
+      items.push({
+        id: 'action-toggle-sidebar',
+        category: 'Actions',
+        title: 'Toggle Sidebar Collapse (⌘B)',
+        subtitle: 'Switch desktop sidebar between full menu and compact icon rail',
+        badge: '⌘B',
+        badgeColor: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+        icon: <PanelLeftClose className="w-4 h-4 text-slate-500" />,
+        action: () => {
+          onClose();
+          onToggleSidebar();
+        }
+      });
+    }
 
     // 2. Navigation Tabs
     ALL_TABS_CONFIG.forEach((tab) => {
@@ -287,7 +306,7 @@ export function CommandPaletteModal({
     }
 
     return items;
-  }, [reconciliationResult, liveOrders, onClose, onSelectTab, onToggleCopilot, onTriggerSync, onExportExcel, onToggleTheme, onInspectOrder]);
+  }, [reconciliationResult, liveOrders, onClose, onSelectTab, onToggleCopilot, onTriggerSync, onExportExcel, onToggleTheme, onInspectOrder, onToggleSidebar]);
 
   // Filter items by search query and category
   const filteredItems = useMemo(() => {

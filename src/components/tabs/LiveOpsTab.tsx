@@ -114,6 +114,63 @@ interface LiveOpsTabProps {
   isSyncing?: boolean;
 }
 
+interface AutoSyncCountdownButtonProps {
+  onManualSync: () => void;
+  onAutoSync: () => void;
+  isSyncing: boolean;
+}
+
+/**
+ * Isolated, memoized leaf component for the 60-second background revalidation countdown.
+ * By keeping countdown state inside this leaf component, the 1-second interval never
+ * triggers a re-render of the parent LiveOpsTab or its virtualized data tables.
+ */
+const AutoSyncCountdownButton = React.memo(function AutoSyncCountdownButton({
+  onManualSync,
+  onAutoSync,
+  isSyncing,
+}: AutoSyncCountdownButtonProps) {
+  const [countdown, setCountdown] = useState(60);
+  const onAutoSyncRef = useRef(onAutoSync);
+
+  useEffect(() => {
+    onAutoSyncRef.current = onAutoSync;
+  }, [onAutoSync]);
+
+  useEffect(() => {
+    if (isSyncing) {
+      setCountdown(60);
+      return;
+    }
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          setTimeout(() => {
+            onAutoSyncRef.current();
+          }, 0);
+          return 60;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isSyncing]);
+
+  return (
+    <button
+      type="button"
+      onClick={onManualSync}
+      disabled={isSyncing}
+      className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs hover:bg-slate-800 dark:hover:bg-slate-100 active:scale-95 transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+      title={`Next auto-sync in ${countdown}s`}
+    >
+      <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+      <span>{isSyncing ? 'Syncing...' : 'Sync Now (WC + Pathao)'}</span>
+      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">({countdown}s)</span>
+    </button>
+  );
+});
+
 export function LiveOpsTab({
   orders = [],
   onSelectOrder,
@@ -236,9 +293,6 @@ export function LiveOpsTab({
     }, 4500);
     return () => clearTimeout(timer);
   }, [syncStatusMsg]);
-
-  // Auto-refresh timer countdown (60s loop)
-  const [countdown, setCountdown] = useState(60);
 
   // Guard to prevent concurrent sync loops
   const isSyncingRef = React.useRef(false);
@@ -402,7 +456,6 @@ export function LiveOpsTab({
       } else {
         if (isManual) setSyncStatusMsg('Operational snapshot active (WooCommerce REST API & Pathao Hermes).');
       }
-      setCountdown(60);
     } catch (e: unknown) {
       if (isManual) {
         const msg = e instanceof Error ? e.message : 'Using current snapshot';
@@ -422,23 +475,17 @@ export function LiveOpsTab({
     }
   }, [onRefreshLive]);
 
-  // SWR: Silent background revalidation on mount
-  useEffect(() => {
+  const handleManualSync = useCallback(() => {
+    handleSyncNow(true);
+  }, [handleSyncNow]);
+
+  const handleAutoSync = useCallback(() => {
     handleSyncNow(false);
   }, [handleSyncNow]);
 
-  // Automated 60-second periodic background revalidation (quiet, no toast noise)
+  // SWR: Silent background revalidation on mount
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          handleSyncNow(false);
-          return 60;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
+    handleSyncNow(false);
   }, [handleSyncNow]);
 
   // Filtered orders list for ledger table (Sorted by Order Number)
@@ -537,42 +584,39 @@ export function LiveOpsTab({
   // Table Container Ref for Scroll Virtualization
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
-  // Hook 1: Order-Wise Table Virtualizer
+  // Hook 1: Order-Wise Table Virtualizer (Calibrated to true rendered row dimensions)
   const orderWiseVirtualizer = useTableVirtualizer<OrderWiseGroup>({
     items: filteredOrderWiseGroups,
     estimateItemHeight: useCallback(
       (group: OrderWiseGroup) => {
         if (expandedOrderIds.has(group.orderId)) {
-          return 52 + 36 + group.items.length * 36 + 24;
+          return 74 + 36 + group.items.length * 36 + 24;
         }
-        return 52;
+        return 74;
       },
       [expandedOrderIds]
     ),
-    overscan: 12,
+    overscan: 16,
     scrollContainerRef: tableContainerRef,
   });
 
   // Hook 2: Item-Wise Table Virtualizer
   const itemWiseVirtualizer = useTableVirtualizer<RawOrderRow>({
     items: filteredOrders,
-    estimateItemHeight: useCallback(() => 50, []),
-    overscan: 12,
+    estimateItemHeight: useCallback(() => 54, []),
+    overscan: 16,
     scrollContainerRef: tableContainerRef,
   });
 
-  // Webhook Courier Telemetry live state
+  // Webhook Courier Telemetry live state (Stable interval without listener churn)
   const [webhookUpdatesCount, setWebhookUpdatesCount] = useState(0);
   useEffect(() => {
-    const checkUpdates = () => {
+    const timer = setInterval(() => {
       const updates = getLiveWebhookUpdates();
-      if (updates.size !== webhookUpdatesCount) {
-        setWebhookUpdatesCount(updates.size);
-      }
-    };
-    const timer = setInterval(checkUpdates, 4000);
+      setWebhookUpdatesCount((prev) => (updates.size !== prev ? updates.size : prev));
+    }, 4000);
     return () => clearInterval(timer);
-  }, [webhookUpdatesCount]);
+  }, []);
 
   // Modal order item group (resolves all multi-item basket items if inspecting in modal)
   const modalOrderGroup = useMemo(() => {
@@ -834,29 +878,23 @@ export function LiveOpsTab({
               <span>Online Only</span>
             </button>
 
-            {/* Sync Button */}
-            <button
-              type="button"
-              onClick={() => handleSyncNow(true)}
-              disabled={isActuallySyncing}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs hover:bg-slate-800 dark:hover:bg-slate-100 active:scale-95 transition-all shadow-xs disabled:opacity-50"
-              title={`Next auto-sync in ${countdown}s`}
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isActuallySyncing ? 'animate-spin' : ''}`} />
-              <span>{isActuallySyncing ? 'Syncing...' : 'Sync Now (WC + Pathao)'}</span>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">({countdown}s)</span>
-            </button>
+            {/* Sync Button with Isolated 1-Second Auto-Countdown */}
+            <AutoSyncCountdownButton
+              onManualSync={handleManualSync}
+              onAutoSync={handleAutoSync}
+              isSyncing={isActuallySyncing}
+            />
           </div>
         </div>
 
-        {/* Sync status alert notification */}
+        {/* Sync status alert notification — Non-disruptive stable banner */}
         {syncStatusMsg && (
-          <div className="text-xs bg-slate-50 dark:bg-[#121212] border border-slate-200 dark:border-[#222222] p-2.5 rounded-xl flex items-center justify-between text-slate-700 dark:text-slate-300">
-            <span className="font-medium flex items-center gap-2">
+          <div className="text-xs bg-slate-50 dark:bg-[#121212] border border-slate-200/80 dark:border-[#222222] px-3 py-2 rounded-xl flex items-center justify-between text-slate-700 dark:text-slate-300 shadow-2xs animate-in fade-in duration-150">
+            <span className="font-medium flex items-center gap-2 truncate">
               <Info className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-              <span>{syncStatusMsg}</span>
+              <span className="truncate">{syncStatusMsg}</span>
             </span>
-            <button onClick={() => setSyncStatusMsg(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold ml-2">✕</button>
+            <button onClick={() => setSyncStatusMsg(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold ml-2 shrink-0 cursor-pointer">✕</button>
           </div>
         )}
 
@@ -2505,7 +2543,7 @@ export function LiveOpsTab({
         {/* Data Table with Pathao Courier Status & Consignment ID */}
         <div
           ref={tableContainerRef}
-          className="overflow-x-auto overflow-y-auto max-h-[720px] min-w-0 rounded-2xl border border-slate-100 dark:border-[#1F1F1F] scroll-smooth"
+          className="overflow-x-auto overflow-y-auto max-h-[720px] min-w-0 rounded-2xl border border-slate-100 dark:border-[#1F1F1F]"
         >
           <table className="w-full text-left border-collapse text-xs">
             <thead className="sticky top-0 z-20 bg-slate-50 dark:bg-[#0A0A0A] shadow-xs backdrop-blur-md">

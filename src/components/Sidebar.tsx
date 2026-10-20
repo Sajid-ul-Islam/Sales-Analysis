@@ -17,7 +17,9 @@ import {
   BarChart3,
   X,
   User,
-  Activity
+  Activity,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 
 import { DeenLogo, DeenLogoMark } from './DeenLogo';
@@ -31,6 +33,8 @@ export interface SidebarProps {
   activeSourceMode?: 'UPLOAD' | 'API';
   mobileOpen?: boolean;
   onCloseMobile?: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 interface NavItemConfig {
@@ -54,8 +58,52 @@ export function Sidebar({
   exchangeCount = 0,
   activeSourceMode: _activeSourceMode = 'UPLOAD',
   mobileOpen = false,
-  onCloseMobile
+  onCloseMobile,
+  isCollapsed: propIsCollapsed,
+  onToggleCollapse: propOnToggleCollapse
 }: SidebarProps) {
+  // Internal collapse state with localStorage persistence
+  const [internalCollapsed, setInternalCollapsed] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('deen_sidebar_collapsed');
+        if (saved !== null) {
+          setInternalCollapsed(saved === 'true');
+        }
+      } catch {}
+    }
+  }, []);
+
+  const isCollapsed = propIsCollapsed !== undefined ? propIsCollapsed : internalCollapsed;
+
+  const handleToggleCollapse = React.useCallback(() => {
+    if (propOnToggleCollapse) {
+      propOnToggleCollapse();
+    } else {
+      setInternalCollapsed((prev) => {
+        const next = !prev;
+        try {
+          localStorage.setItem('deen_sidebar_collapsed', String(next));
+        } catch {}
+        return next;
+      });
+    }
+  }, [propOnToggleCollapse]);
+
+  // Global keyboard shortcut: ⌘B or Ctrl+B toggles sidebar collapse
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'b' || e.key === 'B')) {
+        e.preventDefault();
+        handleToggleCollapse();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleToggleCollapse]);
+
   // Floating tooltip state for tablet icon rail
   const [activeTooltip, setActiveTooltip] = useState<{
     label: string;
@@ -152,20 +200,29 @@ export function Sidebar({
       {/* Maximizes screen real estate for wide data tables on 768px-1024px screens  */}
       {/* ========================================================================= */}
       <aside
-        className="hidden md:flex lg:hidden w-16 border-r border-slate-200 dark:border-[#1F1F1F] bg-white dark:bg-[#050505] flex-col justify-between shrink-0 h-screen sticky top-0 z-30 select-none shadow-2xs"
+        className={`${isCollapsed ? 'hidden md:flex w-16' : 'hidden md:flex lg:hidden w-16'} border-r border-slate-200 dark:border-[#1F1F1F] bg-white dark:bg-[#050505] flex-col justify-between shrink-0 h-screen sticky top-0 z-30 select-none shadow-2xs transition-all duration-200`}
         aria-label="Tablet navigation rail"
       >
         <div className="flex flex-col min-h-0 flex-1">
-          {/* Brand Mark Header */}
-          <div className="h-16 flex items-center justify-center border-b border-slate-100 dark:border-[#1F1F1F] shrink-0">
+          {/* Brand Mark Header with Expand Button */}
+          <div className="h-16 flex flex-col items-center justify-center border-b border-slate-100 dark:border-[#1F1F1F] shrink-0 gap-0.5 py-1">
             <div
               className="relative group cursor-pointer"
               onClick={() => handleItemClick('tabExecutive')}
               title="DEEN Commerce - Executive Overview"
             >
-              <DeenLogoMark className="w-8 h-8 rounded-xl shadow-xs" />
-              <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-black animate-pulse" />
+              <DeenLogoMark className="w-6 h-6 rounded-xl shadow-xs" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-black animate-pulse" />
             </div>
+            <button
+              type="button"
+              onClick={handleToggleCollapse}
+              className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+              title="Expand sidebar (⌘B)"
+              aria-label="Expand sidebar"
+            >
+              <PanelLeftOpen className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {/* Icon List with Floating Tooltips */}
@@ -270,18 +327,27 @@ export function Sidebar({
       {/* Full-featured desktop navigation with brand header and workspace status   */}
       {/* ========================================================================= */}
       <aside
-        className="hidden lg:flex w-64 border-r border-slate-200 dark:border-[#1F1F1F] bg-white dark:bg-[#050505] flex-col justify-between shrink-0 h-screen sticky top-0 z-30 select-none shadow-2xs"
+        className={`${isCollapsed ? 'hidden' : 'hidden lg:flex w-64'} border-r border-slate-200 dark:border-[#1F1F1F] bg-white dark:bg-[#050505] flex-col justify-between shrink-0 h-screen sticky top-0 z-30 select-none shadow-2xs transition-all duration-200`}
         aria-label="Desktop sidebar navigation"
       >
         <div className="flex flex-col min-h-0 flex-1">
           {/* Brand Header */}
-          <div className="h-16 px-5 border-b border-slate-100 dark:border-[#1F1F1F] flex items-center justify-between shrink-0">
+          <div className="h-16 px-4 border-b border-slate-100 dark:border-[#1F1F1F] flex items-center justify-between shrink-0">
             <DeenLogo size="md" />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Live
               </span>
+              <button
+                type="button"
+                onClick={handleToggleCollapse}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                title="Collapse sidebar (⌘B)"
+                aria-label="Collapse sidebar"
+              >
+                <PanelLeftClose className="w-4 h-4" />
+              </button>
             </div>
           </div>
 

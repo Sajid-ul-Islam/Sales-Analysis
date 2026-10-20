@@ -13,7 +13,9 @@ import {
   Moon,
   MoreVertical,
   Bell,
-  Command
+  Command,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 import { DateScope, DateScopeCounts, CustomDateRange, FileWeek } from '@/lib/dateFilter';
 import { loadSavedThemeSettings, saveThemeSettings, BackgroundStyleId } from '@/lib/themeManager';
@@ -46,6 +48,8 @@ export interface HeaderProps {
   isDarkMode?: boolean;
   onToggleTheme?: () => void;
   isSyncing?: boolean;
+  isSidebarCollapsed?: boolean;
+  onToggleCollapseSidebar?: () => void;
 }
 
 export function Header({
@@ -75,7 +79,9 @@ export function Header({
   mobileOpen,
   isDarkMode: propIsDarkMode,
   onToggleTheme,
-  isSyncing = false
+  isSyncing = false,
+  isSidebarCollapsed = false,
+  onToggleCollapseSidebar
 }: HeaderProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
@@ -193,6 +199,21 @@ export function Header({
               <X className="w-5 h-5 text-primary" />
             ) : (
               <Menu className="w-5 h-5" />
+            )}
+          </button>
+        )}
+        {onToggleCollapseSidebar && (
+          <button
+            type="button"
+            onClick={onToggleCollapseSidebar}
+            className="hidden md:inline-flex p-2 min-w-[40px] min-h-[40px] rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all shrink-0 items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+            aria-label={isSidebarCollapsed ? "Expand sidebar (⌘B)" : "Collapse sidebar (⌘B)"}
+            title={isSidebarCollapsed ? "Expand sidebar (⌘B)" : "Collapse sidebar (⌘B)"}
+          >
+            {isSidebarCollapsed ? (
+              <PanelLeftOpen className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+            ) : (
+              <PanelLeftClose className="w-5 h-5 text-slate-600 dark:text-slate-300" />
             )}
           </button>
         )}
