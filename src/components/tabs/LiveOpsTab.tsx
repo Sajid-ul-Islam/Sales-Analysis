@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   Package,
   Truck,
@@ -64,6 +64,7 @@ import {
   groupOrdersByOrderId,
   filterOrderWiseGroups,
   exportOrderWiseLedgerExcel,
+  OrderWiseGroup,
 } from '@/lib/orderGrouping';
 import { CustomerRatingBadge } from '@/components/courier/CustomerRatingBadge';
 import {
@@ -73,6 +74,8 @@ import {
 } from '@/lib/customerRating';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 import { DataProvenanceInfo } from '@/lib/dataAudit';
+import { useTableVirtualizer } from '@/lib/useTableVirtualizer';
+import { getLiveWebhookUpdates } from '@/lib/pathaoWebhookEngine';
 
 function formatOrderDateTime(val: unknown): string {
   const d = parseOrderDateValue(val);
@@ -528,6 +531,46 @@ export function LiveOpsTab({
       selectedView,
     });
   }, [orderWiseGroups, searchQuery, categoryFilter, courierFilter, pipelineFilter, selectedView]);
+
+  // Table Container Ref for Scroll Virtualization
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+
+  // Hook 1: Order-Wise Table Virtualizer
+  const orderWiseVirtualizer = useTableVirtualizer<OrderWiseGroup>({
+    items: filteredOrderWiseGroups,
+    estimateItemHeight: useCallback(
+      (group: OrderWiseGroup) => {
+        if (expandedOrderIds.has(group.orderId)) {
+          return 52 + 36 + group.items.length * 36 + 24;
+        }
+        return 52;
+      },
+      [expandedOrderIds]
+    ),
+    overscan: 12,
+    scrollContainerRef: tableContainerRef,
+  });
+
+  // Hook 2: Item-Wise Table Virtualizer
+  const itemWiseVirtualizer = useTableVirtualizer<RawOrderRow>({
+    items: filteredOrders,
+    estimateItemHeight: useCallback(() => 50, []),
+    overscan: 12,
+    scrollContainerRef: tableContainerRef,
+  });
+
+  // Webhook Courier Telemetry live state
+  const [webhookUpdatesCount, setWebhookUpdatesCount] = useState(0);
+  useEffect(() => {
+    const checkUpdates = () => {
+      const updates = getLiveWebhookUpdates();
+      if (updates.size !== webhookUpdatesCount) {
+        setWebhookUpdatesCount(updates.size);
+      }
+    };
+    const timer = setInterval(checkUpdates, 4000);
+    return () => clearInterval(timer);
+  }, [webhookUpdatesCount]);
 
   // Modal order item group (resolves all multi-item basket items if inspecting in modal)
   const modalOrderGroup = useMemo(() => {
@@ -2244,6 +2287,17 @@ export function LiveOpsTab({
                 <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
                   ({ledgerViewMode === 'ORDER_WISE' ? `${filteredOrderWiseGroups.length} unique orders` : `${filteredOrders.length} line items`})
                 </span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#1A1A1A] text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-[#262626]">
+                  {ledgerViewMode === 'ORDER_WISE'
+                    ? `Showing ${orderWiseVirtualizer.virtualItems.length} of ${filteredOrderWiseGroups.length} (Virtualized 60fps)`
+                    : `Showing ${itemWiseVirtualizer.virtualItems.length} of ${filteredOrders.length} (Virtualized 60fps)`}
+                </span>
+                {webhookUpdatesCount > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Live Webhooks ({webhookUpdatesCount})</span>
+                  </span>
+                )}
               </h3>
 
               {/* View Mode Toggle: Line Items vs Consolidated Orders */}
@@ -2418,9 +2472,12 @@ export function LiveOpsTab({
         </div>
 
         {/* Data Table with Pathao Courier Status & Consignment ID */}
-        <div className="overflow-x-auto min-w-0 rounded-2xl border border-slate-100 dark:border-[#1F1F1F]">
+        <div
+          ref={tableContainerRef}
+          className="overflow-x-auto overflow-y-auto max-h-[720px] min-w-0 rounded-2xl border border-slate-100 dark:border-[#1F1F1F] scroll-smooth"
+        >
           <table className="w-full text-left border-collapse text-xs">
-            <thead>
+            <thead className="sticky top-0 z-20 bg-slate-50 dark:bg-[#0A0A0A] shadow-xs backdrop-blur-md">
               {ledgerViewMode === 'ORDER_WISE' ? (
                 <tr className="bg-slate-50 dark:bg-[#0A0A0A] text-slate-500 dark:text-slate-400 font-bold border-b border-slate-200/80 dark:border-[#1F1F1F] uppercase text-[10px] tracking-wider">
                   <th className="py-3 px-3.5">Order ID</th>
@@ -2461,12 +2518,24 @@ export function LiveOpsTab({
                     </td>
                   </tr>
                 ) : (
-                  filteredOrderWiseGroups.slice(0, 100).map((group, idx) => {
-                    const isExpanded = expandedOrderIds.has(group.orderId);
-                    const hasMultipleItems = group.items.length > 1;
+                  <>
+                    {orderWiseVirtualizer.paddingTop > 0 && (
+                      <tr className="pointer-events-none select-none border-0" aria-hidden="true">
+                        <td colSpan={11} style={{ height: `${orderWiseVirtualizer.paddingTop}px`, padding: 0, border: 0 }} />
+                      </tr>
+                    )}
+                    {orderWiseVirtualizer.virtualItems.map(({ item: group, index: idx }) => {
+                      const isExpanded = expandedOrderIds.has(group.orderId);
+                      const hasMultipleItems = group.items.length > 1;
+                      const liveUpdates = getLiveWebhookUpdates();
+                      const liveUpdate =
+                        (group.consignmentId && liveUpdates.get(group.consignmentId)) ||
+                        liveUpdates.get(`order_${group.baseOrderId}`) ||
+                        group.consignmentIds.map((cid) => liveUpdates.get(cid)).find(Boolean);
+                      const effectiveCourierStatus = liveUpdate ? liveUpdate.normalizedStatus : group.courierStatus;
 
-                    return (
-                      <React.Fragment key={`order-group-${group.orderId}-${idx}`}>
+                      return (
+                        <React.Fragment key={`order-group-${group.orderId}-${idx}`}>
                         <tr
                           onClick={() => setSelectedDetailOrder(group.primaryRow)}
                           className={`hover:bg-slate-50/80 dark:hover:bg-[#141414] transition-colors cursor-pointer group ${
@@ -2642,22 +2711,31 @@ export function LiveOpsTab({
 
                           {/* Courier Status */}
                           <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
-                            {group.courierStatus === 'Delivered' ? (
+                            {effectiveCourierStatus === 'Delivered' ? (
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                                 <span>Delivered</span>
+                                {liveUpdate && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Live webhook update" />}
                               </span>
-                            ) : group.courierStatus === 'In Transit' ? (
+                            ) : effectiveCourierStatus === 'In Transit' ? (
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 inline-flex items-center gap-1">
                                 <Truck className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                                 <span>In Transit</span>
+                                {liveUpdate && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" title="Live webhook update" />}
                               </span>
-                            ) : group.courierStatus === 'Returned' ? (
+                            ) : effectiveCourierStatus === 'Returned' ? (
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 inline-flex items-center gap-1">
                                 <AlertTriangle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
                                 <span>Returned</span>
+                                {liveUpdate && <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" title="Live webhook update" />}
                               </span>
-                            ) : group.courierStatus === 'Pending Pickup' ? (
+                            ) : effectiveCourierStatus === 'Partial' ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 inline-flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                                <span>Partial</span>
+                                {liveUpdate && <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" title="Live webhook update" />}
+                              </span>
+                            ) : effectiveCourierStatus === 'Pending Pickup' ? (
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 inline-flex items-center gap-1">
                                 <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                                 <span>Pending</span>
@@ -2780,18 +2858,30 @@ export function LiveOpsTab({
                         )}
                       </React.Fragment>
                     );
-                  })
-                )
+                  })}
+                  {orderWiseVirtualizer.paddingBottom > 0 && (
+                    <tr className="pointer-events-none select-none border-0" aria-hidden="true">
+                      <td colSpan={11} style={{ height: `${orderWiseVirtualizer.paddingBottom}px`, padding: 0, border: 0 }} />
+                    </tr>
+                  )}
+                </>
+              )
+            ) : (
+              filteredOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={11} className="py-12 text-center text-slate-400 dark:text-slate-500">
+                    <Package className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                    <p className="font-semibold">No orders found matching the filter criteria.</p>
+                  </td>
+                </tr>
               ) : (
-                filteredOrders.length === 0 ? (
-                  <tr>
-                    <td colSpan={11} className="py-12 text-center text-slate-400 dark:text-slate-500">
-                      <Package className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                      <p className="font-semibold">No orders found matching the filter criteria.</p>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredOrders.slice(0, 100).map((row, idx) => {
+                <>
+                  {itemWiseVirtualizer.paddingTop > 0 && (
+                    <tr className="pointer-events-none select-none border-0" aria-hidden="true">
+                      <td colSpan={11} style={{ height: `${itemWiseVirtualizer.paddingTop}px`, padding: 0, border: 0 }} />
+                    </tr>
+                  )}
+                  {itemWiseVirtualizer.virtualItems.map(({ item: row, index: idx }) => {
                     const oid = String(row['Order ID'] || row.orderId || '');
                     const prodName = String(row['Item Name'] || 'Apparel Item');
                     const sku = String(row.SKU || '');
@@ -2801,9 +2891,12 @@ export function LiveOpsTab({
                     const itemCost = Number(row['Item Cost']) || 0;
                     const orderAmt = Number(row['Order Amount']) || itemCost * qty;
                     const wcStatus = String(row['Delivery Status'] || (row as Record<string, unknown>).status || 'shipped');
-                    const courierStatus = String(row['Courier Status'] || row.courierStatus || 'Untracked');
+                    const rawCourierStatus = String(row['Courier Status'] || row.courierStatus || 'Untracked');
                     const consignmentId = String(row['Consignment ID'] || row.consignmentId || '').trim();
                     const hasDiscrepancy = Boolean(row.hasDiscrepancy);
+                    const liveUpdates = getLiveWebhookUpdates();
+                    const liveUpdate = (consignmentId && liveUpdates.get(consignmentId)) || liveUpdates.get(`order_${oid}`);
+                    const effectiveCourierStatus = liveUpdate ? liveUpdate.normalizedStatus : rawCourierStatus;
 
                     return (
                       <tr
@@ -2917,22 +3010,31 @@ export function LiveOpsTab({
                           </span>
                         </td>
                         <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
-                          {courierStatus === 'Delivered' ? (
+                          {effectiveCourierStatus === 'Delivered' ? (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                               <span>Delivered</span>
+                              {liveUpdate && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Live webhook update" />}
                             </span>
-                          ) : courierStatus === 'In Transit' ? (
+                          ) : effectiveCourierStatus === 'In Transit' ? (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 inline-flex items-center gap-1">
                               <Truck className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                               <span>In Transit</span>
+                              {liveUpdate && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" title="Live webhook update" />}
                             </span>
-                          ) : courierStatus === 'Returned' ? (
+                          ) : effectiveCourierStatus === 'Returned' ? (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 inline-flex items-center gap-1">
                               <AlertTriangle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
                               <span>Returned</span>
+                              {liveUpdate && <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" title="Live webhook update" />}
                             </span>
-                          ) : courierStatus === 'Pending Pickup' ? (
+                          ) : effectiveCourierStatus === 'Partial' ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 inline-flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                              <span>Partial</span>
+                              {liveUpdate && <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" title="Live webhook update" />}
+                            </span>
+                          ) : effectiveCourierStatus === 'Pending Pickup' ? (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 inline-flex items-center gap-1">
                               <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                               <span>Pending</span>
@@ -2962,9 +3064,15 @@ export function LiveOpsTab({
                         </td>
                       </tr>
                     );
-                  })
-                )
-              )}
+                  })}
+                  {itemWiseVirtualizer.paddingBottom > 0 && (
+                    <tr className="pointer-events-none select-none border-0" aria-hidden="true">
+                      <td colSpan={11} style={{ height: `${itemWiseVirtualizer.paddingBottom}px`, padding: 0, border: 0 }} />
+                    </tr>
+                  )}
+                </>
+              )
+            )}
             </tbody>
           </table>
         </div>

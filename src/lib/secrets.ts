@@ -14,6 +14,7 @@ export interface SecretsConfig {
     client_secret: string;
     username: string;
     password: string;
+    webhook_secret?: string;
   };
   llm: {
     openrouter_key?: string;
@@ -170,6 +171,9 @@ export function getSecretsConfig(): SecretsConfig {
       password:
         process.env.PATHAO_PASSWORD ||
         '',
+      webhook_secret:
+        process.env.PATHAO_WEBHOOK_SECRET ||
+        '',
     },
     llm: {
       openrouter_key:
@@ -313,6 +317,8 @@ export function getSecretsConfig(): SecretsConfig {
   return config;
 }
 
+export const getSecrets = getSecretsConfig;
+
 export type SecretsOverrides = {
   woocommerce?: Partial<SecretsConfig['woocommerce']>;
   pathao?: Partial<SecretsConfig['pathao']>;
@@ -384,6 +390,7 @@ export function getSecretsWithOverrides(overrides?: SecretsOverrides): SecretsCo
       client_secret: overrides.pathao?.client_secret || base.pathao.client_secret,
       username: overrides.pathao?.username || base.pathao.username,
       password: overrides.pathao?.password || base.pathao.password,
+      webhook_secret: (overrides.pathao as Record<string, string> | undefined)?.webhook_secret || base.pathao.webhook_secret,
     },
     ga4: {
       ...base.ga4,
