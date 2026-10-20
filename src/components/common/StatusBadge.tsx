@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { CheckCircle2, RotateCcw, Split, ArrowRightLeft, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, RotateCcw, Split, ArrowRightLeft } from 'lucide-react';
 
 export type StandardDeliveryStatus =
   | 'Delivered'

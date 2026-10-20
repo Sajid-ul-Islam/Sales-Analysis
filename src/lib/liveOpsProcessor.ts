@@ -1339,9 +1339,6 @@ export function processLiveOpsData(
     : (lastShippedOid !== 'N/A' ? `#${lastShippedOid}` : 'None');
 
   // Strict Rule: POS retail store orders and non-checkout exchange orders are excluded from commercial ecom briefing
-  const ecomCount = activeOrdersCount;
-  const outletCount = 0; // Excluded from executive briefing per rule
-  const totalOrdersCount = activeOrdersCount;
 
   // Format Top 3 Products
   const top3ProductsList = topProducts

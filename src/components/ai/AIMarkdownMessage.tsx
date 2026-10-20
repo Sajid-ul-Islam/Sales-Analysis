@@ -211,7 +211,7 @@ function parseTable(lines: string[]): { type: 'table'; headers: string[]; rows: 
   return { type: 'table', headers, rows };
 }
 
-function renderBlock(block: BlockType, key: number) {
+function renderBlock(block: BlockType, _key: number) {
   switch (block.type) {
     case 'header': {
       if (block.level === 1) {

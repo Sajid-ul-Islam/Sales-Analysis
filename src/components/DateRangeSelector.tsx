@@ -8,8 +8,7 @@ import {
   Check,
   RotateCcw,
   Clock,
-  Scale,
-  Sparkles
+  Scale
 } from 'lucide-react';
 import { DateScope, DateScopeCounts, CustomDateRange, FileWeek, AvailableMonth } from '@/lib/dateFilter';
 

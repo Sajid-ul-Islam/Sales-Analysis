@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { SummaryAnalytics } from '@/types';
-import { Coins, TrendingUp, Truck, Package, DollarSign, Megaphone, Target, Sparkles } from 'lucide-react';
+import { Coins, TrendingUp, Truck, Package, DollarSign, Megaphone } from 'lucide-react';
 
 interface UnitEconomicsTabProps {
   summary: SummaryAnalytics;

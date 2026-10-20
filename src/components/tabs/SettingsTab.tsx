@@ -728,7 +728,7 @@ interface ApiConnectionStatus {
         showToast('Settings configuration successfully imported!');
         logAuditAction('Config Imported', `Imported configuration from ${file.name}`);
         if (onRefreshReconciliation) onRefreshReconciliation();
-      } catch (_err: unknown) {
+      } catch {
         showToast(`Import error: Invalid JSON file.`);
       }
     };

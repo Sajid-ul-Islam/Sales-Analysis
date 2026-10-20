@@ -5,28 +5,17 @@ import { ReconciledOrderRow, SummaryAnalytics } from '@/types';
 import {
   Store,
   Building2,
-  Warehouse,
   Truck,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  CheckCircle2,
   RotateCcw,
   PackageCheck,
   Download,
   Search,
-  Filter,
   ChevronLeft,
   ChevronRight,
   PieChart,
   BarChart3,
-  MapPin,
-  Shirt,
-  ArrowRightLeft,
-  DollarSign,
   Package,
   ArrowUpRight,
-  Sparkles,
   Award
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -107,7 +96,7 @@ const OUTLET_CONFIG = [
   }
 ];
 
-export function OutletDispatchTab({ orders, summary }: OutletDispatchTabProps) {
+export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchTabProps) {
   const [selectedOutletFilter, setSelectedOutletFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');

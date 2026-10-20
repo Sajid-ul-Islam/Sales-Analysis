@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Store, Building2, ShoppingBag } from 'lucide-react';
+import { Store, Building2 } from 'lucide-react';
 
 export type BranchLocation =
   | 'Online Store (Central Warehouse)'

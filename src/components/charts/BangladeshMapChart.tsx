@@ -3,17 +3,11 @@
 import React, { useState, useMemo } from 'react';
 import { DivisionMetric, BangladeshDivision } from '@/lib/geo';
 import {
-  MapPin,
-  TrendingUp,
   Package,
   Coins,
   AlertTriangle,
-  CheckCircle2,
   Compass,
-  ArrowUpRight,
-  RotateCcw,
-  SlidersHorizontal,
-  ChevronRight
+  RotateCcw
 } from 'lucide-react';
 
 export type MapMetricType = 'orders' | 'revenue' | 'returnRate';
@@ -36,7 +30,7 @@ interface BangladeshMapChartProps {
 
 export function BangladeshMapChart({
   divisions,
-  nationalTotal,
+  nationalTotal: _nationalTotal,
   topNationwideDistricts = [],
   onSelectDivision
 }: BangladeshMapChartProps) {

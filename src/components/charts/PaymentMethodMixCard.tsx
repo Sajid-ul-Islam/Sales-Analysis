@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { ReconciledOrderRow } from '@/types';
-import { CreditCard, Banknote, ShieldCheck, AlertCircle, Sparkles, ArrowRightLeft } from 'lucide-react';
+import { CreditCard, Banknote, ShieldCheck, ArrowRightLeft } from 'lucide-react';
 
 interface PaymentMethodMixCardProps {
   orders: ReconciledOrderRow[];

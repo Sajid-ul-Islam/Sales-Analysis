@@ -71,9 +71,9 @@ export function MobileBottomNav({
   onOpenDrawer,
   returnCount = 0,
   orderCount,
-  activeSourceMode = 'UPLOAD',
-  onTriggerSync,
-  isSyncing = false
+  activeSourceMode: _activeSourceMode = 'UPLOAD',
+  onTriggerSync: _onTriggerSync,
+  isSyncing: _isSyncing = false
 }: MobileBottomNavProps) {
   // Check if current active tab is an extended module from the slide-over drawer
   const primaryTabIds = ['tabExecutive', 'tabLiveOps', 'tabOrders', 'tabItemReturns'];

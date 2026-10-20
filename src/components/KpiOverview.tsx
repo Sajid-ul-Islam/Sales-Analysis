@@ -14,12 +14,7 @@ import {
   Compass,
   Coins,
   RefreshCw,
-  Download,
-  UploadCloud,
   Calendar,
-  ArrowRight,
-  FileSpreadsheet,
-  Cloud,
   ArrowUpRight,
   Scale,
   CreditCard,
@@ -65,15 +60,15 @@ export function KpiOverview({
   skuAnalytics = [],
   customerRiskProfiles = [],
   courierMismatches = [],
-  onQuickRecalc,
-  onExport,
-  onSync,
+  onQuickRecalc: _onQuickRecalc,
+  onExport: _onExport,
+  onSync: _onSync,
   activeDateScope = '30d',
   customDateRange,
   onDateRangeSelect,
   onScopeChange,
   dateScopeCounts,
-  dateScopeLabel,
+  dateScopeLabel: _dateScopeLabel,
   dateScopeSubLabel,
   minDateIso,
   maxDateIso,
@@ -81,15 +76,14 @@ export function KpiOverview({
   availableMonths,
   activeSourceMode = 'UPLOAD',
   dataSourceName,
-  onSwitchSourceMode,
-  hasCloudData = false,
+  onSwitchSourceMode: _onSwitchSourceMode,
+  hasCloudData: _hasCloudData = false,
   onKpiClick,
   onOpenComparison,
   onAskAi,
   onExecuteAgenticAction
 }: KpiOverviewProps) {
   const s = summary;
-  const [isRecalculating, setIsRecalculating] = useState(false);
   const [explainerKpi, setExplainerKpi] = useState<KpiExplainerType | null>(null);
 
   // Dynamic COD vs Online Paid metrics for Payment Settlement Ratio KPI card
@@ -167,20 +161,6 @@ export function KpiOverview({
     };
   }, [orders, s]);
 
-  const handleRangeClick = (range: DateScope) => {
-    if (onDateRangeSelect) {
-      onDateRangeSelect(range);
-    }
-  };
-
-  const handleRecalcClick = () => {
-    setIsRecalculating(true);
-    if (onQuickRecalc) {
-      onQuickRecalc();
-    }
-    setTimeout(() => setIsRecalculating(false), 800);
-  };
-
   // Safe percentage calculation
   const deliverySuccessRate = s.grossOrders > 0
     ? ((s.fullDeliveredOrders / s.grossOrders) * 100).toFixed(1)
@@ -207,7 +187,6 @@ export function KpiOverview({
     (s.totalReturnedQty > 0 ? (s.partialReturnedQty / s.totalReturnedQty) * totalReturnedAmount : 0) ||
     0
   );
-  const exchangeCodAmount = Math.round(s.totalExchangeCodCollected || 0);
 
   return (
     <div className="flex flex-col gap-4">
@@ -459,7 +438,6 @@ export function KpiOverview({
             const totalPipeline = (deliveredCount + lossCount) || s.grossOrders || 1;
             const delivPct = Math.min(100, Math.max(0, Math.round((deliveredCount / totalPipeline) * 100)));
             const lossPct = 100 - delivPct;
-            const strokeDash = `${delivPct} ${100 - delivPct}`;
 
             return (
               <div className="my-2">
@@ -553,7 +531,6 @@ export function KpiOverview({
             const totalRetOrders = (paidCount + unpaidCount) || s.fullReturnedOrders || 1;
             const paidPct = Math.round((paidCount / totalRetOrders) * 100);
             const unpaidPct = 100 - paidPct;
-            const strokeDash = `${paidPct} ${100 - paidPct}`;
 
             const rtoQty = Math.round(s.regularReturnedQty || s.fullReturnedOrders || 0);
             const partialQty = Math.round(s.partialReturnedQty || s.partialOrders || 0);
@@ -665,7 +642,6 @@ export function KpiOverview({
             const partialTotal = (partialKept + partialRet) || 1;
             const keptPct = Math.round((partialKept / partialTotal) * 100);
             const retPct = 100 - keptPct;
-            const strokeDash = `${keptPct} ${100 - keptPct}`;
 
             return (
               <>
@@ -763,7 +739,6 @@ export function KpiOverview({
             const totalExFlow = (exchangeCollected + exchangePathaoCharge) || 1;
             const collectPct = Math.round((exchangeCollected / totalExFlow) * 100);
             const chargePct = 100 - collectPct;
-            const strokeDash = `${collectPct} ${100 - collectPct}`;
             const netExchange = exchangeCollected - exchangePathaoCharge;
 
             return (
@@ -851,7 +826,6 @@ export function KpiOverview({
             const totalPipelineRev = Math.round(s.grossRevenue) || 1;
             const realizationPct = Math.min(100, Math.max(0, Math.round((deliveredRev / totalPipelineRev) * 100)));
             const leakagePct = 100 - realizationPct;
-            const strokeDash = `${realizationPct} ${leakagePct}`;
 
             return (
               <div className="my-3">
@@ -929,7 +903,6 @@ export function KpiOverview({
             const netMarginAmount = Math.round(s.unitEconomics.netContributionMargin);
             const marginPct = Math.min(100, Math.max(0, Math.round(s.unitEconomics.netMarginPercentage)));
             const costPct = 100 - marginPct;
-            const strokeDash = `${marginPct} ${costPct}`;
             const roasVal = s.unitEconomics.roas ? s.unitEconomics.roas.toFixed(1) : '0.0';
 
             return (
@@ -1009,8 +982,6 @@ export function KpiOverview({
             const feeCollected = Math.round(s.courierCost.customerDeliveryFeeCollected || 0);
             const netCost = Math.max(0, netCharge - feeCollected);
             const recoveryPct = netCharge > 0 ? Math.min(100, Math.round((feeCollected / netCharge) * 100)) : 0;
-            const remainingPct = 100 - recoveryPct;
-            const strokeDash = `${recoveryPct} ${remainingPct}`;
 
             return (
               <>
@@ -1091,7 +1062,6 @@ export function KpiOverview({
             const outsidePct = Math.round((s.outsideOrders / totalTerritory) * 100);
             const insidePct = 100 - outsidePct;
             const ratioInt = Math.round(s.outsideOrders / (s.insideOrders || 1));
-            const strokeDash = `${outsidePct} ${100 - outsidePct}`;
 
             return (
               <>

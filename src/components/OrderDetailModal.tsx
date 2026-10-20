@@ -9,13 +9,8 @@ import {
   Phone,
   User,
   CreditCard,
-  Building2,
   AlertCircle,
-  CheckCircle2,
-  RotateCcw,
-  RefreshCw,
-  ShieldAlert,
-  ArrowRight
+  RotateCcw
 } from 'lucide-react';
 import {
   getManualOverrides,

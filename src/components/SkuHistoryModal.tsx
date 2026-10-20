@@ -1,18 +1,12 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { ReconciledOrderRow, SkuAnalytics } from '@/types';
 import {
   X,
-  Tag,
   Shirt,
   Search,
-  PackageCheck,
-  RotateCcw,
-  RefreshCw,
-  ExternalLink,
-  MapPin,
-  Calendar
+  ExternalLink
 } from 'lucide-react';
 import {
   compareOrdersByNumber,

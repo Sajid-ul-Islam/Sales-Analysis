@@ -30,7 +30,7 @@ export function CustomerRatingBadge({
     );
   }
 
-  const { ratingTier, successRate, totalOrders, deliveredOrders, returnedOrders, source, courierNotes } = rating;
+  const { ratingTier, successRate, totalOrders, deliveredOrders, returnedOrders, courierNotes } = rating;
 
   // Build descriptive tooltip
   const tooltip = totalOrders > 0

@@ -1,15 +1,18 @@
 "use client";
 
 import React from 'react';
+import Image from 'next/image';
 
 export function DeenLogoMark({ className = "w-8 h-8" }: { className?: string }) {
   return (
     <div className={`relative shrink-0 overflow-hidden rounded-xl shadow-xs aspect-square flex items-center justify-center bg-[#FF5500] ${className}`}>
-      <img
+      <Image
         src="/deencommerce_logo.jpg"
         alt="DEEN Commerce Logo"
+        width={48}
+        height={48}
+        priority
         className="w-full h-full object-cover select-none"
-        loading="eager"
       />
     </div>
   );

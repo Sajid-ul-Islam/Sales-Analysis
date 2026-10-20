@@ -16,7 +16,6 @@ import {
   Command
 } from 'lucide-react';
 import { DateScope, DateScopeCounts, CustomDateRange, FileWeek } from '@/lib/dateFilter';
-import { DateRangeSelector } from '@/components/DateRangeSelector';
 import { loadSavedThemeSettings, saveThemeSettings, BackgroundStyleId } from '@/lib/themeManager';
 
 export interface HeaderProps {
@@ -53,7 +52,7 @@ export function Header({
   onExport,
   hasData,
   onResetBaseline,
-  dataSourceName,
+  dataSourceName: _dataSourceName,
   onSearch,
   onOpenCommandPalette,
   onOpenNotificationCenter,
@@ -61,17 +60,17 @@ export function Header({
   activeSourceMode = 'UPLOAD',
   onSwitchSourceMode,
   hasCloudData = false,
-  onOpenSettings,
-  onToggleCopilot,
-  activeDateScope,
-  customDateRange,
-  onDateScopeChange,
-  dateScopeCounts,
-  dateScopeSubLabel,
-  minDateIso,
-  maxDateIso,
-  fileWeeks,
-  onOpenComparison,
+  onOpenSettings: _onOpenSettings,
+  onToggleCopilot: _onToggleCopilot,
+  activeDateScope: _activeDateScope,
+  customDateRange: _customDateRange,
+  onDateScopeChange: _onDateScopeChange,
+  dateScopeCounts: _dateScopeCounts,
+  dateScopeSubLabel: _dateScopeSubLabel,
+  minDateIso: _minDateIso,
+  maxDateIso: _maxDateIso,
+  fileWeeks: _fileWeeks,
+  onOpenComparison: _onOpenComparison,
   onToggleMobileMenu,
   mobileOpen,
   isDarkMode: propIsDarkMode,

@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { ReconciledOrderRow } from '@/types';
-import { Search, ChevronLeft, ChevronRight, Eye, AlertCircle } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { OrderDetailModal } from '@/components/OrderDetailModal';
 import { getManualOverrides, ManualOverride } from '@/lib/overrideStore';
 import { FulfillmentBadge, StatusBadge } from '@/components/common';
@@ -45,8 +45,6 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
     territoryFilter !== 'ALL' ||
     aiTagFilter !== 'ALL' ||
     searchTerm.trim() !== '';
-
-  const [hasActiveFilterRef, setHasActiveFilterRef] = useState(hasActiveFilter);
 
   useEffect(() => {
     if (initialStatusFilter) {
@@ -334,7 +332,6 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                 </tr>
               ) : (
                 paginatedOrders.map((o, idx) => {
-                  const isDelivered = o.orderCategory === 'DELIVERED';
                   const isPartial = o.orderCategory === 'PARTIAL';
                   const isReturn = o.orderCategory === 'FULL_RETURN';
                   const isExchange = o.isExchange || o.orderCategory === 'EXCHANGE';

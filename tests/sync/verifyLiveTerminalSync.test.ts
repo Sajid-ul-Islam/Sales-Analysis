@@ -5,6 +5,8 @@ import { syncLiveTerminalData } from '@/lib/sync/liveTerminalSync';
 import { testWooCommerceConnection, fetchWooCommerceOrders } from '@/lib/woocommerceClient';
 import { getPathaoToken, fetchRecentPathaoOrders } from '@/lib/pathaoClient';
 
+import { getSecretsConfig } from '@/lib/secrets';
+
 // Ensure .env.local variables are loaded for the test run
 function loadLocalEnv() {
   const envPath = path.join(process.cwd(), '.env.local');
@@ -30,8 +32,22 @@ function loadLocalEnv() {
 
 loadLocalEnv();
 
+const secrets = getSecretsConfig();
+const hasWcCreds = Boolean(
+  secrets.woocommerce?.consumer_key &&
+  secrets.woocommerce?.consumer_secret &&
+  !secrets.woocommerce.consumer_key.includes('placeholder')
+);
+const hasPathaoCreds = Boolean(
+  secrets.pathao?.client_id &&
+  secrets.pathao?.client_secret &&
+  secrets.pathao?.username &&
+  secrets.pathao?.password
+);
+const hasLiveCreds = hasWcCreds && hasPathaoCreds;
+
 describe('Live Terminal Synchronization Verification', () => {
-  it('validates WooCommerce live REST API connection and orders fetch', async () => {
+  it.runIf(hasLiveCreds)('validates WooCommerce live REST API connection and orders fetch', async () => {
     const t0 = performance.now();
     const conn = await testWooCommerceConnection();
     const tConn = Math.round(performance.now() - t0);
@@ -49,7 +65,7 @@ describe('Live Terminal Synchronization Verification', () => {
     expect(orders.length).toBeGreaterThan(0);
   }, 35000);
 
-  it('validates Pathao Aladdin/Hermes OAuth2 token and dispatch telemetry', async () => {
+  it.runIf(hasLiveCreds)('validates Pathao Aladdin/Hermes OAuth2 token and dispatch telemetry', async () => {
     const t0 = performance.now();
     const token = await getPathaoToken();
     const tToken = Math.round(performance.now() - t0);
@@ -69,7 +85,7 @@ describe('Live Terminal Synchronization Verification', () => {
     }
   }, 30000);
 
-  it('validates full syncLiveTerminalData integration and stats calculation', async () => {
+  it.runIf(hasLiveCreds)('validates full syncLiveTerminalData integration and stats calculation', async () => {
     const t0 = performance.now();
     const result = await syncLiveTerminalData({
       fetchLiveWc: true,
@@ -101,4 +117,17 @@ describe('Live Terminal Synchronization Verification', () => {
     expect(result.orders.length).toBeGreaterThan(0);
     expect(result.stats.totalOrders).toBeGreaterThan(0);
   }, 45000);
+
+  it.runIf(!hasLiveCreds)('gracefully handles unconfigured environment without crashing', async () => {
+    const conn = await testWooCommerceConnection();
+    expect(conn.success).toBe(false);
+    expect(conn.status).toBe(400);
+
+    const result = await syncLiveTerminalData({
+      fetchLiveWc: false,
+      skipNetwork: true,
+    });
+    expect(result.success).toBe(true);
+    expect(result.wcConnected).toBe(false);
+  });
 });

@@ -205,7 +205,7 @@ export function CopilotDrawer({
       const finalMessages = [...updatedWithUser, botMsg];
       setMessages(finalMessages);
       saveChatHistory(finalMessages);
-    } catch (_err: unknown) {
+    } catch {
       const errMsg: CopilotChatMessage = {
         id: `bot-err-${Date.now()}`,
         sender: 'assistant',

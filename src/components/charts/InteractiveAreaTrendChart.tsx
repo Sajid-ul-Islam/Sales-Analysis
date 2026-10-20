@@ -39,7 +39,7 @@ export function InteractiveAreaTrendChart({
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
-  const { points, secondaryPoints, maxVal, minVal, pathD, areaD, secondaryPathD, peakIdx, avgVal } = useMemo(() => {
+  const { points, secondaryPoints, maxVal, pathD, areaD, secondaryPathD, peakIdx, avgVal } = useMemo(() => {
     if (!data || data.length === 0) {
       return {
         points: [],

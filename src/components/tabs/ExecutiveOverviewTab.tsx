@@ -43,7 +43,7 @@ export function extractMasterSku(sku: string): string {
   return s.trim() || sku;
 }
 
-export function ExecutiveOverviewTab({ summary, orders = [], skuList = [] }: ExecutiveOverviewTabProps) {
+export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = [] }: ExecutiveOverviewTabProps) {
   const s = summary;
 
   // View Filter Toggle: 'CATEGORY' vs 'ITEM'
