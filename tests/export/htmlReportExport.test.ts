@@ -194,7 +194,7 @@ describe('HTML Report Exporter (htmlReportExport)', () => {
     expect(html).toContain('Sunday');
   });
 
-  it('renders all 6 KPI cards with accurate values and change indicators', () => {
+  it('renders all 5 core KPI cards with accurate values and change indicators', () => {
     const report = createMockReport();
     const html = generateLiveOpsHtmlReport(report);
 
@@ -219,9 +219,8 @@ describe('HTML Report Exporter (htmlReportExport)', () => {
     expect(html).toContain('Customer Mix');
     expect(html).toContain('68%');
 
-    // KPI 6: Selects Collection
-    expect(html).toContain('Selects Collection');
-    expect(html).toContain('42%');
+    // Excluded KPI card
+    expect(html).not.toContain('Selects Collection');
   });
 
   it('renders pure vector SVG Donut Chart and Category Volume Icon Bar Chart', () => {
@@ -251,13 +250,12 @@ describe('HTML Report Exporter (htmlReportExport)', () => {
     expect(html).toContain('In Transit:');
   });
 
-  it('renders executive briefing bullet points', () => {
+  it('does not render executive briefing in standalone HTML export', () => {
     const report = createMockReport();
     const html = generateLiveOpsHtmlReport(report);
 
-    expect(html).toContain('Executive Operational Briefing');
-    expect(html).toContain('Dispatched 86 unique orders (142 pcs)');
-    expect(html).toContain('DEEN Selects jeans represented 42% of revenue');
+    expect(html).not.toContain('Executive Operational Briefing');
+    expect(html).not.toContain('briefing-card');
   });
 
   it('renders top fast-moving products table', () => {

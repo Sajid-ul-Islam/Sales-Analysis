@@ -396,19 +396,9 @@ export function generateLiveOpsHtmlReport(
     `;
     })
     .join('');
-
-  // Executive briefing bullet points
-  const briefingPointsHtml = (report.executiveBriefing?.summaryPoints || [])
-    .map((pt) => `<li>${escapeHtml(pt)}</li>`)
-    .join('');
-
   const newCustPct = report.customerMix?.newPercent ?? 0;
   const retCustPct = report.customerMix?.retPercent ?? 0;
   const retCustCount = report.customerMix?.retCount ?? 0;
-
-  const selectsRevShare = report.selectsStats?.selectsRevShare ?? 0;
-  const selectsRev = report.selectsStats?.selectsRevenue || 0;
-  const selectsOrders = report.selectsStats?.selectsQty ?? 0;
 
   const itemsDeltaPct = report.shippedItems.deltaPercent ?? 0;
   const revDeltaPct = report.salesRevenue.deltaPercent ?? 0;
@@ -717,30 +707,6 @@ export function generateLiveOpsHtmlReport(
       margin-right: 4px;
     }
 
-    /* Executive Briefing Card */
-    .briefing-card {
-      background: linear-gradient(135deg, #1e1b4b, #312e81);
-      color: #ffffff;
-      border-radius: 20px;
-      padding: 24px;
-      margin-bottom: 24px;
-    }
-
-    .briefing-card h3 {
-      font-size: 16px;
-      font-weight: 800;
-      margin-bottom: 14px;
-      color: #e0e7ff;
-    }
-
-    .briefing-card ul {
-      padding-left: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      font-size: 13px;
-      color: #c7d2fe;
-    }
 
     /* Table Styles */
     .table-container {
@@ -832,9 +798,6 @@ export function generateLiveOpsHtmlReport(
       body { background: #ffffff !important; color: #000000 !important; padding: 0 !important; }
       .no-print { display: none !important; }
       .section-card { border: 1px solid #ccc !important; box-shadow: none !important; break-inside: avoid; }
-      .briefing-card { background: #f8fafc !important; color: #000000 !important; border: 1px solid #ccc !important; }
-      .briefing-card h3 { color: #000000 !important; }
-      .briefing-card ul { color: #333333 !important; }
       .donut-hole { fill: #ffffff !important; }
     }
   </style>
@@ -856,7 +819,7 @@ export function generateLiveOpsHtmlReport(
       </div>
     </div>
 
-    <!-- 6 KPI Metrics Cards -->
+    <!-- 5 KPI Metrics Cards -->
     <div class="kpi-grid">
       <div class="kpi-card">
         <div class="kpi-label">Shipped Items</div>
@@ -905,25 +868,7 @@ export function generateLiveOpsHtmlReport(
         <div class="kpi-value">${newCustPct}% <span style="font-size: 14px; font-weight: 600;">New</span></div>
         <div class="kpi-sub">${retCustPct}% Returning (${retCustCount} orders)</div>
       </div>
-
-      <div class="kpi-card">
-        <div class="kpi-label">Selects Collection</div>
-        <div class="kpi-value">${selectsRevShare}% <span style="font-size: 14px; font-weight: 600;">Share</span></div>
-        <div class="kpi-sub">৳${Math.round(selectsRev).toLocaleString()} (${selectsOrders} units)</div>
-      </div>
     </div>
-
-    <!-- Executive Briefing -->
-    ${
-      briefingPointsHtml
-        ? `
-      <div class="briefing-card">
-        <h3>📌 Executive Operational Briefing</h3>
-        <ul>${briefingPointsHtml}</ul>
-      </div>
-    `
-        : ''
-    }
 
     <!-- Charts Row: Donut + Category Volume Icon Bar Chart -->
     <div class="charts-row">
