@@ -23,6 +23,7 @@ import {
   ChevronDown,
   ChevronUp,
   Layers,
+  FileText,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -76,6 +77,7 @@ import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 import { DataProvenanceInfo } from '@/lib/dataAudit';
 import { useTableVirtualizer } from '@/lib/useTableVirtualizer';
 import { getLiveWebhookUpdates } from '@/lib/pathaoWebhookEngine';
+import { downloadLiveOpsHtmlReport } from '@/lib/htmlReportExport';
 
 function formatOrderDateTime(val: unknown): string {
   const d = parseOrderDateValue(val);
@@ -755,6 +757,15 @@ export function LiveOpsTab({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleExportHtml = () => {
+    downloadLiveOpsHtmlReport(report, {
+      includeOrdersTable: true,
+      maxOrdersInTable: 250,
+      orderWiseGroups: ledgerViewMode === 'ORDER_WISE' ? filteredOrderWiseGroups : undefined,
+      title: `DEEN Operations & Dispatch Report — ${report.referenceDate}`,
+    });
   };
 
   const isActuallySyncing = isSyncing || localSyncing;
@@ -1926,6 +1937,16 @@ export function LiveOpsTab({
               <Download className="w-3.5 h-3.5" />
               <span>Export {report.referenceDate} Excel</span>
             </button>
+
+            <button
+              type="button"
+              onClick={handleExportHtml}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-xs active:scale-95"
+              title="Export complete self-contained HTML report with KPI cards and charts"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Export HTML</span>
+            </button>
           </div>
         </div>
 
@@ -2398,6 +2419,16 @@ export function LiveOpsTab({
             >
               <Download className="w-3.5 h-3.5" />
               <span>CSV</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleExportHtml}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-xs font-bold transition-all shadow-2xs"
+              title="Export complete self-contained HTML report with KPI cards and charts"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>HTML</span>
             </button>
           </div>
         </div>
