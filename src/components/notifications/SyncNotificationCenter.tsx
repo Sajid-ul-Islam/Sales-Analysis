@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Bell,
   X,
@@ -49,13 +49,25 @@ export function SyncNotificationCenter({
   const [internalDrawerOpen, setInternalDrawerOpen] = useState(false);
   const isDrawerOpen = propIsOpen !== undefined ? propIsOpen : internalDrawerOpen;
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (propOnClose) {
       propOnClose();
     } else {
       setInternalDrawerOpen(false);
     }
-  };
+  }, [propOnClose]);
+
+  // Close drawer on Escape key
+  useEffect(() => {
+    if (!isDrawerOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDrawerOpen, handleClose]);
 
   useEffect(() => {
     onCountChange?.(toasts.length);
@@ -175,11 +187,16 @@ export function SyncNotificationCenter({
       {isDrawerOpen && (
         <div className="fixed inset-0 z-50 overflow-hidden flex justify-end animate-fadeIn">
           <div
-            className="fixed inset-0 bg-slate-900/40 dark:bg-black/70 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-slate-900/40 dark:bg-black/70 backdrop-blur-xs transition-opacity cursor-pointer"
             onClick={handleClose}
           />
 
-          <div className="relative w-full max-w-sm bg-white dark:bg-[#0E0E0E] shadow-2xl flex flex-col h-full border-l border-slate-200 dark:border-[#222] z-10 animate-slideInRight">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Sync & Logistics Events"
+            className="relative w-full max-w-sm bg-white dark:bg-[#0E0E0E] shadow-2xl flex flex-col h-full border-l border-slate-200 dark:border-[#222] z-10 animate-slideInRight"
+          >
             {/* Header */}
             <div className="p-4 border-b border-slate-200 dark:border-[#1F1F1F] flex items-center justify-between bg-slate-50 dark:bg-[#070707]">
               <div className="flex items-center gap-2">

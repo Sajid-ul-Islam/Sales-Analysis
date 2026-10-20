@@ -427,7 +427,7 @@ export function Header({
                 </button>
               )}
 
-              <div className="h-px bg-slate-100 dark:border-deepBlack-border my-1" />
+              <div className="h-px bg-slate-100 dark:bg-deepBlack-border my-1" />
 
               {/* Theme Toggle Option */}
               <button

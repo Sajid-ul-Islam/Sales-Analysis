@@ -365,7 +365,12 @@ export function CommandPaletteModal({
       />
 
       {/* Modal Container */}
-      <div className="relative w-full max-w-2xl bg-white dark:bg-deepBlack-card rounded-2xl shadow-2xl border border-slate-200 dark:border-deepBlack-border overflow-hidden flex flex-col max-h-[75vh] sm:max-h-[80vh] z-10 animate-slideDown">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command Palette"
+        className="relative w-full max-w-2xl bg-white dark:bg-deepBlack-card rounded-2xl shadow-2xl border border-slate-200 dark:border-deepBlack-border overflow-hidden flex flex-col max-h-[75vh] sm:max-h-[80vh] z-10 animate-slideDown"
+      >
         
         {/* Top Search Input Box */}
         <div className="p-3.5 sm:p-4 border-b border-slate-200 dark:border-deepBlack-border flex items-center gap-3 bg-slate-50/50 dark:bg-deepBlack-sidebar">
@@ -373,6 +378,10 @@ export function CommandPaletteModal({
           <input
             ref={inputRef}
             type="text"
+            role="combobox"
+            aria-expanded={filteredItems.length > 0}
+            aria-controls="command-palette-results"
+            aria-autocomplete="list"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -418,6 +427,9 @@ export function CommandPaletteModal({
         {/* Results List */}
         <div
           ref={listRef}
+          id="command-palette-results"
+          role="listbox"
+          aria-label="Command search results"
           className="flex-1 overflow-y-auto p-2 sm:p-2.5 space-y-1 no-scrollbar divide-y divide-slate-100/50 dark:divide-slate-900/50"
         >
           {filteredItems.length === 0 ? (
@@ -433,6 +445,8 @@ export function CommandPaletteModal({
                 <div
                   key={item.id}
                   data-index={idx}
+                  role="option"
+                  aria-selected={isSelected}
                   onClick={item.action}
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl cursor-pointer transition-colors ${

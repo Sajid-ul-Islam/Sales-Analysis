@@ -161,7 +161,9 @@ export function WeekComparisonModal({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+      aria-label="Comparative Performance Analyzer"
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-xs animate-in fade-in duration-150 cursor-pointer"
     >
       <div
         className="bg-white dark:bg-[#0C0C0C] w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 dark:border-[#1F1F1F] overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-150"

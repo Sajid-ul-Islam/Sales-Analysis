@@ -262,6 +262,19 @@ export function LiveOpsTab({
   const [briefingCopied, setBriefingCopied] = useState(false);
   const [briefingViewMode, setBriefingViewMode] = useState<'structured' | 'text'>('structured');
 
+  // Handle Escape key to close open inspection or fullscreen modals
+  useEffect(() => {
+    if (!selectedDetailOrder && !isVolumeModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (selectedDetailOrder) setSelectedDetailOrder(null);
+        if (isVolumeModalOpen) setIsVolumeModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedDetailOrder, isVolumeModalOpen]);
+
   // Hydrate client state from localStorage cache and URL parameters safely without SSR mismatch
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1558,11 +1571,14 @@ export function LiveOpsTab({
       {/* ── Fullscreen Modal for Sales Volume by Category ── */}
       {isVolumeModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 cursor-pointer"
           onClick={() => setIsVolumeModalOpen(false)}
         >
           <div
-            className="bg-white dark:bg-[#0A0A0A] border border-slate-200 dark:border-[#2A2A2A] rounded-3xl p-5 sm:p-8 w-full max-w-6xl max-h-[94vh] overflow-y-auto shadow-2xl flex flex-col justify-between"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Sales Volume by Category"
+            className="bg-white dark:bg-[#0A0A0A] border border-slate-200 dark:border-[#2A2A2A] rounded-3xl p-5 sm:p-8 w-full max-w-6xl max-h-[94vh] overflow-y-auto shadow-2xl flex flex-col justify-between cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-[#222222] mb-3">
@@ -3149,31 +3165,40 @@ export function LiveOpsTab({
 
       {/* ── Order Telemetry Inspection Modal ── */}
       {selectedDetailOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-2xl w-full border border-slate-200 shadow-2xl p-6 space-y-5 overflow-y-auto max-h-[90vh]">
-            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+        <div
+          onClick={() => setSelectedDetailOrder(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-xs animate-in fade-in duration-200 cursor-pointer"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Order #${String(selectedDetailOrder['Order ID'] || selectedDetailOrder.orderId || '')} Telemetry Details`}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-deepBlack-card rounded-3xl max-w-2xl w-full border border-slate-200 dark:border-deepBlack-border shadow-2xl p-6 space-y-5 overflow-y-auto max-h-[90vh] cursor-default"
+          >
+            <div className="flex items-start justify-between border-b border-slate-100 dark:border-deepBlack-border pb-3">
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-lg font-black text-slate-900 font-headline">
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white font-headline">
                     Order #{String(selectedDetailOrder['Order ID'] || selectedDetailOrder.orderId || '')}
                   </h3>
                   {(() => {
                     const branch = detectFulfillmentBranch(selectedDetailOrder);
                     if (!branch.isBranchFulfillment) return null;
                     return (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
                         {branch.branchName}
                       </span>
                     );
                   })()}
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-deepBlack-hover text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-deepBlack-border">
                     WC: {String(selectedDetailOrder['Delivery Status'] || 'shipped')}
                   </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
                     Pathao: {String(selectedDetailOrder['Courier Status'] || selectedDetailOrder.courierStatus || 'Untracked')}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Placed on {String(selectedDetailOrder['Order Date'] || '')} • Customer: {String(getExportCustomerName(selectedDetailOrder) || selectedDetailOrder['Customer Name'] || '')}
                 </p>
               </div>
@@ -3181,7 +3206,7 @@ export function LiveOpsTab({
               <button
                 type="button"
                 onClick={() => setSelectedDetailOrder(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 font-bold transition-colors"
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-deepBlack-hover hover:bg-slate-200 dark:hover:bg-deepBlack-border flex items-center justify-center text-slate-500 dark:text-slate-300 font-bold transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -3189,13 +3214,13 @@ export function LiveOpsTab({
 
             {/* Discrepancy Alert Banner inside Modal if applicable */}
             {selectedDetailOrder.hasDiscrepancy && (
-              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+              <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-2xl flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
                 <div className="text-xs">
-                  <h4 className="font-bold text-rose-900">
+                  <h4 className="font-bold text-rose-900 dark:text-rose-200">
                     Courier Discrepancy Detected ({String(selectedDetailOrder.discrepancyType || '')})
                   </h4>
-                  <p className="text-rose-700 mt-0.5">
+                  <p className="text-rose-700 dark:text-rose-300 mt-0.5">
                     {String(selectedDetailOrder.discrepancyMessage ||
                       'The status recorded in WooCommerce differs from the courier return status received from Pathao Hermes API.')}
                   </p>
@@ -3206,26 +3231,26 @@ export function LiveOpsTab({
             {/* Details Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               {/* Product Info */}
-              <div className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl space-y-2">
-                <h4 className="font-bold text-slate-800 flex items-center justify-between uppercase text-[10px] tracking-wider text-slate-500">
+              <div className="p-4 bg-slate-50/70 dark:bg-deepBlack-sidebar border border-slate-200/80 dark:border-deepBlack-border rounded-2xl space-y-2">
+                <h4 className="font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between uppercase text-[10px] tracking-wider text-slate-500 dark:text-slate-400">
                   <span className="flex items-center gap-1.5">
                     <Package className="w-3.5 h-3.5" /> Product & Apparel Line
                   </span>
                   {modalOrderGroup && modalOrderGroup.items.length > 1 && (
-                    <span className="px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-800 font-bold text-[9px]">
+                    <span className="px-1.5 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 font-bold text-[9px]">
                       {modalOrderGroup.items.length} items
                     </span>
                   )}
                 </h4>
                 {modalOrderGroup && modalOrderGroup.items.length > 1 ? (
-                  <div className="space-y-2 max-h-36 overflow-y-auto pr-1 divide-y divide-slate-200/60">
+                  <div className="space-y-2 max-h-36 overflow-y-auto pr-1 divide-y divide-slate-200/60 dark:divide-deepBlack-border">
                     {modalOrderGroup.items.map((it, itIdx) => (
                       <div key={itIdx} className="pt-1.5 first:pt-0">
-                        <div className="flex justify-between items-start text-xs font-semibold text-slate-900">
+                        <div className="flex justify-between items-start text-xs font-semibold text-slate-900 dark:text-white">
                           <span className="truncate pr-2">{it.itemName}</span>
                           <span className="font-bold shrink-0">x{it.quantity}</span>
                         </div>
-                        <div className="flex justify-between items-center text-[10px] text-slate-500 mt-0.5 font-mono">
+                        <div className="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 font-mono">
                           <span>SKU: {it.sku || 'N/A'}</span>
                           <span>৳ {it.amount.toLocaleString()}</span>
                         </div>
@@ -3234,50 +3259,50 @@ export function LiveOpsTab({
                   </div>
                 ) : (
                   <div>
-                    <div className="font-bold text-slate-900">{String(selectedDetailOrder['Item Name'] || '')}</div>
-                    <div className="text-slate-500 text-[11px] mt-0.5">SKU: {String(selectedDetailOrder.SKU || 'N/A')}</div>
+                    <div className="font-bold text-slate-900 dark:text-white">{String(selectedDetailOrder['Item Name'] || '')}</div>
+                    <div className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">SKU: {String(selectedDetailOrder.SKU || 'N/A')}</div>
                   </div>
                 )}
-                <div className="flex justify-between items-center pt-2 border-t border-slate-200/60 text-slate-600">
+                <div className="flex justify-between items-center pt-2 border-t border-slate-200/60 dark:border-deepBlack-border text-slate-600 dark:text-slate-300">
                   <span>Quantity:</span>
-                  <span className="font-bold text-slate-900">
+                  <span className="font-bold text-slate-900 dark:text-white">
                     {modalOrderGroup ? modalOrderGroup.totalQuantity : Number(selectedDetailOrder.Quantity || 1)} pcs
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-slate-600">
+                <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
                   <span>Order Total:</span>
-                  <span className="font-bold text-slate-900">
+                  <span className="font-bold text-slate-900 dark:text-white">
                     ৳ {Number(modalOrderGroup ? modalOrderGroup.totalAmount : selectedDetailOrder['Order Amount'] || 0).toLocaleString()}
                   </span>
                 </div>
               </div>
 
               {/* Pathao Telemetry */}
-              <div className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl space-y-2">
-                <h4 className="font-bold text-slate-800 flex items-center gap-1.5 uppercase text-[10px] tracking-wider text-slate-500">
+              <div className="p-4 bg-slate-50/70 dark:bg-deepBlack-sidebar border border-slate-200/80 dark:border-deepBlack-border rounded-2xl space-y-2">
+                <h4 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 uppercase text-[10px] tracking-wider text-slate-500 dark:text-slate-400">
                   <Truck className="w-3.5 h-3.5" /> Pathao Courier Telemetry
                 </h4>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-600">Consignment ID:</span>
-                  <span className="font-mono font-bold text-blue-600">
+                  <span className="text-slate-600 dark:text-slate-300">Consignment ID:</span>
+                  <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
                     {String(selectedDetailOrder['Consignment ID'] || selectedDetailOrder.consignmentId || 'Untracked')}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-600">Courier Status:</span>
-                  <span className="font-bold text-slate-900">
+                  <span className="text-slate-600 dark:text-slate-300">Courier Status:</span>
+                  <span className="font-bold text-slate-900 dark:text-white">
                     {String(selectedDetailOrder['Courier Status'] || selectedDetailOrder.courierStatus || 'Untracked')}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-600">COD Collected:</span>
-                  <span className="font-bold text-slate-900">
+                  <span className="text-slate-600 dark:text-slate-300">COD Collected:</span>
+                  <span className="font-bold text-slate-900 dark:text-white">
                     ৳ {Number(selectedDetailOrder.collectedAmount || 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-600">Fulfillment Hub:</span>
-                  <span className="font-bold text-slate-800">
+                  <span className="text-slate-600 dark:text-slate-300">Fulfillment Hub:</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">
                     {detectFulfillmentBranch(selectedDetailOrder).branchName}
                   </span>
                 </div>
@@ -3300,19 +3325,19 @@ export function LiveOpsTab({
             </div>
 
             {/* Customer & Delivery Address */}
-            <div className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl space-y-1.5 text-xs">
-              <h4 className="font-bold text-slate-800 uppercase text-[10px] tracking-wider text-slate-500">
+            <div className="p-4 bg-slate-50/70 dark:bg-deepBlack-sidebar border border-slate-200/80 dark:border-deepBlack-border rounded-2xl space-y-1.5 text-xs">
+              <h4 className="font-bold text-slate-800 dark:text-slate-200 uppercase text-[10px] tracking-wider text-slate-500 dark:text-slate-400">
                 Customer & Delivery Information
               </h4>
-              <div className="grid grid-cols-2 gap-2 text-slate-700">
+              <div className="grid grid-cols-2 gap-2 text-slate-700 dark:text-slate-300">
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Name:</span>
-                  <span className="font-semibold">{String(getExportCustomerName(selectedDetailOrder) || selectedDetailOrder['Customer Name'] || 'Customer')}</span>
+                  <span className="text-slate-400 dark:text-slate-500 block text-[10px]">Name:</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{String(getExportCustomerName(selectedDetailOrder) || selectedDetailOrder['Customer Name'] || 'Customer')}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Phone:</span>
+                  <span className="text-slate-400 dark:text-slate-500 block text-[10px]">Phone:</span>
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-semibold">{String(getExportPhoneNumber(selectedDetailOrder) || selectedDetailOrder.Phone || 'N/A')}</span>
+                    <span className="font-semibold text-slate-900 dark:text-white">{String(getExportPhoneNumber(selectedDetailOrder) || selectedDetailOrder.Phone || 'N/A')}</span>
                     <CustomerRatingBadge
                       rating={getRatingForPhone(getExportPhoneNumber(selectedDetailOrder) || selectedDetailOrder.Phone)}
                       phone={String(getExportPhoneNumber(selectedDetailOrder) || selectedDetailOrder.Phone)}
@@ -3320,15 +3345,15 @@ export function LiveOpsTab({
                   </div>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-slate-400 block text-[10px]">City / Area:</span>
-                  <span className="font-semibold">{String(selectedDetailOrder.City || 'Dhaka')}</span>
+                  <span className="text-slate-400 dark:text-slate-500 block text-[10px]">City / Area:</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{String(selectedDetailOrder.City || 'Dhaka')}</span>
                 </div>
                 {(() => {
                   const detailPhone = String(getExportPhoneNumber(selectedDetailOrder) || selectedDetailOrder.Phone || '');
                   const r = getRatingForPhone(detailPhone);
                   if (!r) return null;
                   return (
-                    <div className="col-span-2 pt-1.5 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                    <div className="col-span-2 pt-1.5 border-t border-slate-200/60 dark:border-deepBlack-border flex items-center justify-between text-[11px]">
                       <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">
                         <span>Pathao / Store Rating:</span>
                         <strong className="text-slate-800 dark:text-slate-200">{r.ratingLabel}</strong>
@@ -3342,9 +3367,9 @@ export function LiveOpsTab({
                   );
                 })()}
                 {selectedDetailOrder['Order Notes'] && (
-                  <div className="col-span-2 pt-1 border-t border-slate-200/60">
-                    <span className="text-slate-400 block text-[10px]">Customer Note:</span>
-                    <span className="italic text-slate-600">{String(selectedDetailOrder['Order Notes'] || '')}</span>
+                  <div className="col-span-2 pt-1 border-t border-slate-200/60 dark:border-deepBlack-border">
+                    <span className="text-slate-400 dark:text-slate-500 block text-[10px]">Customer Note:</span>
+                    <span className="italic text-slate-600 dark:text-slate-300">{String(selectedDetailOrder['Order Notes'] || '')}</span>
                   </div>
                 )}
               </div>
@@ -3357,18 +3382,18 @@ export function LiveOpsTab({
               const orderId = String(selectedDetailOrder['Order ID'] || selectedDetailOrder.orderId || '');
 
               return (
-                <div className="p-4 bg-emerald-50/80 border border-emerald-200/90 rounded-2xl space-y-3 text-xs">
+                <div className="p-4 bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/90 dark:border-emerald-800/50 rounded-2xl space-y-3 text-xs">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <h4 className="font-bold text-emerald-950 flex items-center gap-1.5 uppercase text-[10px] tracking-wider">
-                      <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                    <h4 className="font-bold text-emerald-950 dark:text-emerald-300 flex items-center gap-1.5 uppercase text-[10px] tracking-wider">
+                      <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       <span>WhatsApp Customer Operations</span>
                     </h4>
-                    <span className="text-[11px] text-emerald-800 font-mono font-semibold bg-emerald-100/70 px-2 py-0.5 rounded-md">
+                    <span className="text-[11px] text-emerald-800 dark:text-emerald-200 font-mono font-semibold bg-emerald-100/70 dark:bg-emerald-900/60 px-2 py-0.5 rounded-md">
                       {waVerify.formattedPhone ? `+${waVerify.formattedPhone}` : 'No phone provided'}
                     </span>
                   </div>
 
-                  <p className="text-[11px] text-emerald-800">
+                  <p className="text-[11px] text-emerald-800 dark:text-emerald-300">
                     Send one-click pre-composed WhatsApp message to confirm customer shipping address or request bKash advance delivery fee before courier cut-off.
                   </p>
 
@@ -3406,7 +3431,7 @@ export function LiveOpsTab({
                           setTimeout(() => setCopiedOrderId(null), 2500);
                         }
                       }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-emerald-300 text-emerald-800 font-bold text-xs transition-colors shadow-2xs"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-deepBlack-card hover:bg-slate-50 dark:hover:bg-deepBlack-hover border border-emerald-300 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 font-bold text-xs transition-colors shadow-2xs"
                     >
                       {copiedOrderId === orderId ? (
                         <>
@@ -3433,14 +3458,14 @@ export function LiveOpsTab({
                   if (onSelectOrder) onSelectOrder(String(selectedDetailOrder['Order ID'] || selectedDetailOrder.orderId));
                   setSelectedDetailOrder(null);
                 }}
-                className="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-colors shadow-xs"
+                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-bold text-xs transition-colors shadow-xs"
               >
                 Inspect in Reconciled Ledger
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedDetailOrder(null)}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 transition-colors"
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-deepBlack-border text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-50 dark:hover:bg-deepBlack-hover transition-colors"
               >
                 Close
               </button>

@@ -74,6 +74,17 @@ export function BYOKModal({ isOpen, onClose, onSaved }: BYOKModalProps) {
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   // Real-time Dynamic Detection on key keystroke / paste
   const handleKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -173,8 +184,17 @@ export function BYOKModal({ isOpen, onClose, onSaved }: BYOKModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 dark:bg-black/80 backdrop-blur-xs animate-fadeIn">
-      <div className="relative w-full max-w-2xl bg-white dark:bg-[#0A0A0A] rounded-3xl shadow-2xl border border-slate-200 dark:border-[#1F1F1F] overflow-hidden flex flex-col max-h-[92vh]">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 dark:bg-black/80 backdrop-blur-xs animate-fadeIn cursor-pointer"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Bring Your Own Key"
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-2xl bg-white dark:bg-[#0A0A0A] rounded-3xl shadow-2xl border border-slate-200 dark:border-[#1F1F1F] overflow-hidden flex flex-col max-h-[92vh] cursor-default"
+      >
         
         {/* Header */}
         <div className="p-5 sm:p-6 border-b border-slate-800 dark:border-[#1F1F1F] bg-[#0F172A] dark:bg-[#000000] text-white flex items-center justify-between">
@@ -306,26 +326,26 @@ export function BYOKModal({ isOpen, onClose, onSaved }: BYOKModalProps) {
           {/* SECTION 1: WHERE TO GET THE KEY */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
                 <Info className="w-4 h-4 text-[#EB5A19]" />
                 <span>1. Where to Get Your API Key</span>
               </h4>
-              <span className="text-[10px] text-slate-500">Takes under 60 seconds</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">Takes under 60 seconds</span>
             </div>
 
             {/* Primary Recommended: Google AI Studio */}
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-50/60 via-amber-50/40 to-white border border-orange-200/80 shadow-2xs space-y-3">
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-50/60 via-amber-50/40 to-white dark:from-orange-950/20 dark:via-deepBlack-card dark:to-deepBlack-card border border-orange-200/80 dark:border-orange-800/40 shadow-2xs space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs sm:text-sm text-slate-900 font-headline">
+                    <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white font-headline">
                       Google AI Studio (Gemini 2.5 Flash)
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#EB5A19] text-white shadow-2xs">
                       RECOMMENDED
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
                     100% Free with 15 requests/minute. <strong>No credit card required</strong>. Perfect for daily return diagnosis, courier audits, and assistant inquiries.
                   </p>
                 </div>
@@ -341,17 +361,17 @@ export function BYOKModal({ isOpen, onClose, onSaved }: BYOKModalProps) {
                 </a>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-orange-100 text-[10px] text-slate-600">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-orange-100 dark:border-orange-950/60 text-[10px] text-slate-600 dark:text-slate-300">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-4 h-4 rounded-full bg-orange-100 text-[#EB5A19] font-bold flex items-center justify-center shrink-0">1</span>
+                  <span className="w-4 h-4 rounded-full bg-orange-100 dark:bg-orange-950/60 text-[#EB5A19] dark:text-orange-400 font-bold flex items-center justify-center shrink-0">1</span>
                   <span>Sign in with Google</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-4 h-4 rounded-full bg-orange-100 text-[#EB5A19] font-bold flex items-center justify-center shrink-0">2</span>
+                  <span className="w-4 h-4 rounded-full bg-orange-100 dark:bg-orange-950/60 text-[#EB5A19] dark:text-orange-400 font-bold flex items-center justify-center shrink-0">2</span>
                   <span>Click &quot;Create API Key&quot;</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-4 h-4 rounded-full bg-orange-100 text-[#EB5A19] font-bold flex items-center justify-center shrink-0">3</span>
+                  <span className="w-4 h-4 rounded-full bg-orange-100 dark:bg-orange-950/60 text-[#EB5A19] dark:text-orange-400 font-bold flex items-center justify-center shrink-0">3</span>
                   <span>Copy & paste key above</span>
                 </div>
               </div>
@@ -363,59 +383,59 @@ export function BYOKModal({ isOpen, onClose, onSaved }: BYOKModalProps) {
                 href="https://console.groq.com/keys"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-left transition-colors group shadow-2xs"
+                className="p-2.5 rounded-xl bg-white dark:bg-[#141414] hover:bg-slate-50 dark:hover:bg-[#1c1c1c] border border-slate-200 dark:border-[#262626] text-left transition-colors group shadow-2xs"
               >
-                <div className="flex items-center justify-between text-slate-900 font-bold text-xs mb-1">
+                <div className="flex items-center justify-between text-slate-900 dark:text-white font-bold text-xs mb-1">
                   <span>Groq Cloud</span>
                   <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-primary transition-colors" />
                 </div>
-                <span className="text-[10px] text-slate-500 block">Llama 3.3 • Free tier</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Llama 3.3 • Free tier</span>
               </a>
 
               <a
                 href="https://platform.openai.com/api-keys"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-left transition-colors group shadow-2xs"
+                className="p-2.5 rounded-xl bg-white dark:bg-[#141414] hover:bg-slate-50 dark:hover:bg-[#1c1c1c] border border-slate-200 dark:border-[#262626] text-left transition-colors group shadow-2xs"
               >
-                <div className="flex items-center justify-between text-slate-900 font-bold text-xs mb-1">
+                <div className="flex items-center justify-between text-slate-900 dark:text-white font-bold text-xs mb-1">
                   <span>OpenAI</span>
                   <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-primary transition-colors" />
                 </div>
-                <span className="text-[10px] text-slate-500 block">GPT-4o mini</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">GPT-4o mini</span>
               </a>
 
               <a
                 href="https://openrouter.ai/keys"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-left transition-colors group shadow-2xs"
+                className="p-2.5 rounded-xl bg-white dark:bg-[#141414] hover:bg-slate-50 dark:hover:bg-[#1c1c1c] border border-slate-200 dark:border-[#262626] text-left transition-colors group shadow-2xs"
               >
-                <div className="flex items-center justify-between text-slate-900 font-bold text-xs mb-1">
+                <div className="flex items-center justify-between text-slate-900 dark:text-white font-bold text-xs mb-1">
                   <span>OpenRouter</span>
                   <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-primary transition-colors" />
                 </div>
-                <span className="text-[10px] text-slate-500 block">Multi-model gateway</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Multi-model gateway</span>
               </a>
 
               <a
                 href="https://console.anthropic.com/settings/keys"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-left transition-colors group shadow-2xs"
+                className="p-2.5 rounded-xl bg-white dark:bg-[#141414] hover:bg-slate-50 dark:hover:bg-[#1c1c1c] border border-slate-200 dark:border-[#262626] text-left transition-colors group shadow-2xs"
               >
-                <div className="flex items-center justify-between text-slate-900 font-bold text-xs mb-1">
+                <div className="flex items-center justify-between text-slate-900 dark:text-white font-bold text-xs mb-1">
                   <span>Anthropic</span>
                   <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-primary transition-colors" />
                 </div>
-                <span className="text-[10px] text-slate-500 block">Claude 3.5 Sonnet</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Claude 3.5 Sonnet</span>
               </a>
             </div>
           </div>
 
           {/* SECTION 2: WHERE TO PUT THE KEY */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
               <span>2. Where to Put Your Key (Two Flexible Options)</span>
             </h4>
@@ -427,20 +447,20 @@ export function BYOKModal({ isOpen, onClose, onSaved }: BYOKModalProps) {
                 onClick={() => setActiveTab('instant')}
                 className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
                   activeTab === 'instant'
-                    ? 'border-[#EB5A19] bg-orange-50/40 ring-2 ring-[#EB5A19]/10 shadow-xs'
-                    : 'border-slate-200 bg-white hover:bg-slate-50/60'
+                    ? 'border-[#EB5A19] bg-orange-50/40 dark:bg-orange-950/20 ring-2 ring-[#EB5A19]/10 shadow-xs'
+                    : 'border-slate-200 dark:border-[#262626] bg-white dark:bg-[#141414] hover:bg-slate-50/60 dark:hover:bg-[#1c1c1c]'
                 }`}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 rounded-lg bg-orange-100 text-[#EB5A19] flex items-center justify-center shrink-0">
+                  <div className="w-7 h-7 rounded-lg bg-orange-100 dark:bg-orange-950/60 text-[#EB5A19] dark:text-orange-400 flex items-center justify-center shrink-0">
                     <Laptop className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="font-bold text-xs text-slate-900 block font-headline">Option A: Instant Browser Vault</span>
+                    <span className="font-bold text-xs text-slate-900 dark:text-white block font-headline">Option A: Instant Browser Vault</span>
                     <span className="text-[10px] text-emerald-600 font-bold">Recommended • Zero Deployment</span>
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
+                <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
                   Paste directly into the input above and click <strong>Test & Save</strong>. Your key is stored locally in your browser storage and passed directly for AI analysis.
                 </p>
               </div>
@@ -450,28 +470,28 @@ export function BYOKModal({ isOpen, onClose, onSaved }: BYOKModalProps) {
                 onClick={() => setActiveTab('server')}
                 className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
                   activeTab === 'server'
-                    ? 'border-[#EB5A19] bg-orange-50/40 ring-2 ring-[#EB5A19]/10 shadow-xs'
-                    : 'border-slate-200 bg-white hover:bg-slate-50/60'
+                    ? 'border-[#EB5A19] bg-orange-50/40 dark:bg-orange-950/20 ring-2 ring-[#EB5A19]/10 shadow-xs'
+                    : 'border-slate-200 dark:border-[#262626] bg-white dark:bg-[#141414] hover:bg-slate-50/60 dark:hover:bg-[#1c1c1c]'
                 }`}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+                  <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-deepBlack-hover text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
                     <Server className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="font-bold text-xs text-slate-900 block font-headline">Option B: Server / Vercel Env</span>
-                    <span className="text-[10px] text-slate-500 font-bold">Team / Global Setup</span>
+                    <span className="font-bold text-xs text-slate-900 dark:text-white block font-headline">Option B: Server / Vercel Env</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">Team / Global Setup</span>
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Add <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px] text-slate-800 font-mono">GEMINI_API_KEY=AIzaSy...</code> to your <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px] text-slate-800 font-mono">.env.local</code> file or Vercel Environment Variables.
+                <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Add <code className="bg-slate-100 dark:bg-deepBlack-hover px-1 py-0.5 rounded text-[10px] text-slate-800 dark:text-slate-200 font-mono">GEMINI_API_KEY=AIzaSy...</code> to your <code className="bg-slate-100 dark:bg-deepBlack-hover px-1 py-0.5 rounded text-[10px] text-slate-800 dark:text-slate-200 font-mono">.env.local</code> file or Vercel Environment Variables.
                 </p>
               </div>
             </div>
 
             {/* Explanatory Code Snippet for Server Option */}
             {activeTab === 'server' && (
-              <div className="p-3.5 rounded-xl bg-slate-900 text-slate-100 font-mono text-[11px] leading-relaxed space-y-2 border border-slate-800">
+              <div className="p-3.5 rounded-xl bg-slate-900 dark:bg-black text-slate-100 font-mono text-[11px] leading-relaxed space-y-2 border border-slate-800 dark:border-[#1F1F1F]">
                 <div className="text-slate-400 text-[10px] font-sans">
                   # In your project root `.env.local` or Vercel Dashboard Settings:
                 </div>

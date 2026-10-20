@@ -272,18 +272,35 @@ export function CopilotDrawer({
   // Extract previous user questions for 1-click reuse
   const previousQueries = getPreviousUserQueries(messages);
 
+  // Close on Escape key if BYOK modal is not open
+  useEffect(() => {
+    if (!isOpen || isBYOKModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isBYOKModalOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden flex justify-end animate-fadeIn">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/40 dark:bg-black/70 backdrop-blur-2xs transition-opacity"
+        className="fixed inset-0 bg-slate-900/40 dark:bg-black/70 backdrop-blur-2xs transition-opacity cursor-pointer"
         onClick={onClose}
       />
 
       {/* Drawer Container */}
-      <div className="relative w-full max-w-xl bg-white dark:bg-[#0A0A0A] shadow-2xl flex flex-col h-full border-l border-slate-200 dark:border-[#1F1F1F] z-10 animate-slideInRight">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="DEEN Assistant Copilot"
+        className="relative w-full max-w-xl bg-white dark:bg-[#0A0A0A] shadow-2xl flex flex-col h-full border-l border-slate-200 dark:border-[#1F1F1F] z-10 animate-slideInRight"
+      >
         
         {/* Header */}
         <div className="p-4 border-b border-slate-800 dark:border-[#1F1F1F] flex items-center justify-between bg-[#0F172A] dark:bg-[#000000] text-white shadow-xs">

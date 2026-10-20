@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import {
   X,
   Sparkles,
@@ -475,40 +475,56 @@ export function AIKpiExplainerModal({
     }
   }, [kpiType, s, orders, metrics]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || !kpiType) return null;
 
   const HeroIcon = content.heroIcon;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-navy-deep/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-navy-deep/60 dark:bg-black/80 backdrop-blur-xs animate-in fade-in duration-200 cursor-pointer"
+    >
       <div
-        className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-2xl bg-white dark:bg-deepBlack-card rounded-2xl shadow-2xl border border-slate-200 dark:border-deepBlack-border overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200 cursor-default"
         role="dialog"
         aria-modal="true"
+        aria-label={content.title}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
+        <div className="px-5 py-4 border-b border-slate-200 dark:border-deepBlack-border flex items-center justify-between bg-slate-50/70 dark:bg-deepBlack-sidebar">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-primary">
+            <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-950/40 flex items-center justify-center text-primary dark:text-orange-400">
               <Sparkles className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-headline font-black text-sm sm:text-base text-navy-deep">
+                <h3 className="font-headline font-black text-sm sm:text-base text-navy-deep dark:text-white">
                   {content.title}
                 </h3>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${content.badgeColor}`}>
                   {content.badgeText}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                 Root-cause decomposition computed deterministically from active dataset
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-navy-deep hover:bg-slate-100 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-navy-deep hover:bg-slate-100 dark:hover:bg-deepBlack-hover dark:hover:text-slate-200 transition-colors"
             title="Close explainer"
           >
             <X className="w-4 h-4" />
@@ -518,35 +534,35 @@ export function AIKpiExplainerModal({
         {/* Modal Body */}
         <div className="p-5 overflow-y-auto space-y-4">
           {/* Headline Metric Card */}
-          <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-orange-50/30 border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-orange-50/30 dark:from-deepBlack-sidebar dark:to-deepBlack-card border border-slate-200/90 dark:border-deepBlack-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 {content.headlineLabel}
               </span>
-              <div className="font-headline font-black text-2xl sm:text-3xl text-navy-deep tracking-tight mt-0.5">
+              <div className="font-headline font-black text-2xl sm:text-3xl text-navy-deep dark:text-white tracking-tight mt-0.5">
                 {content.headlineNumber}
               </div>
-              <div className="text-xs font-semibold text-slate-600 mt-1">
+              <div className="text-xs font-semibold text-slate-600 dark:text-slate-300 mt-1">
                 {content.subHeadline}
               </div>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-primary shadow-xs shrink-0 self-start sm:self-auto">
+            <div className="w-12 h-12 rounded-xl bg-white dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border flex items-center justify-center text-primary dark:text-orange-400 shadow-xs shrink-0 self-start sm:self-auto">
               <HeroIcon className="w-6 h-6" />
             </div>
           </div>
 
           {/* Formula & Policy Rule */}
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs space-y-1.5">
+          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200/80 dark:border-deepBlack-border text-xs space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-primary text-[10px] uppercase tracking-wider">
+              <span className="font-bold text-primary dark:text-orange-400 text-[10px] uppercase tracking-wider">
                 Reconciliation Formula:
               </span>
-              <span className="font-mono text-[11px] text-slate-700 font-semibold">
+              <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300 font-semibold">
                 {content.formula}
               </span>
             </div>
-            <p className="text-[11px] text-slate-600 leading-relaxed">
-              <strong className="text-navy-deep">Policy Standard:</strong> {content.policyRule}
+            <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+              <strong className="text-navy-deep dark:text-white">Policy Standard:</strong> {content.policyRule}
             </p>
           </div>
 
@@ -561,20 +577,20 @@ export function AIKpiExplainerModal({
                 return (
                   <div
                     key={idx}
-                    className="p-3.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-colors"
+                    className="p-3.5 rounded-xl bg-white dark:bg-deepBlack-sidebar border border-slate-200/90 dark:border-deepBlack-border shadow-2xs hover:border-slate-300 dark:hover:border-deepBlack-border/80 transition-colors"
                   >
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <div className="flex items-center gap-2">
                         <div className={`w-6 h-6 rounded-md flex items-center justify-center ${driver.color} shrink-0`}>
                           <DriverIcon className="w-3.5 h-3.5" />
                         </div>
-                        <span className="font-bold text-xs text-navy-deep">{driver.title}</span>
+                        <span className="font-bold text-xs text-navy-deep dark:text-white">{driver.title}</span>
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 shrink-0">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-deepBlack-hover text-slate-700 dark:text-slate-300 shrink-0">
                         {driver.badge}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-600 leading-relaxed pl-8">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed pl-8">
                       {driver.description}
                     </p>
                   </div>
@@ -585,7 +601,7 @@ export function AIKpiExplainerModal({
         </div>
 
         {/* Modal Footer Actions */}
-        <div className="px-5 py-3.5 border-t border-slate-200 bg-slate-50/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+        <div className="px-5 py-3.5 border-t border-slate-200 dark:border-deepBlack-border bg-slate-50/80 dark:bg-deepBlack-sidebar flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
           <button
             onClick={() => {
               onClose();
@@ -593,7 +609,7 @@ export function AIKpiExplainerModal({
                 onAskAi(content.aiQuestion);
               }
             }}
-            className="px-3.5 py-2 rounded-xl text-xs font-bold text-primary bg-orange-100/70 hover:bg-orange-100 border border-orange-200/80 transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold text-primary dark:text-orange-400 bg-orange-100/70 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-950/60 border border-orange-200/80 dark:border-orange-800/60 transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>Deep-Dive with DEEN Assistant</span>
@@ -615,7 +631,7 @@ export function AIKpiExplainerModal({
             )}
             <button
               onClick={onClose}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-navy-deep hover:bg-slate-200/60 transition-colors"
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-navy-deep dark:text-slate-300 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-deepBlack-hover transition-colors"
             >
               Close
             </button>
