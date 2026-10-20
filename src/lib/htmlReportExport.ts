@@ -32,6 +32,40 @@ const PALETTE = [
   '#f97316', // Orange / Twill
 ];
 
+function getCategoryIcon(name: string): string {
+  const n = (name || '').toLowerCase();
+  if (n.includes('jean')) return '👖';
+  if (n.includes('twill') || n.includes('chino') || n.includes('trouser') || n.includes('pant')) return '👖';
+  if (n.includes('polo')) return '👕';
+  if (n.includes('t-shirt') || n.includes('tee')) return '👕';
+  if (n.includes('shirt') || n.includes('casual')) return '👔';
+  if (n.includes('jacket')) return '🧥';
+  if (n.includes('hoodie') || n.includes('sweat')) return '🧥';
+  if (n.includes('cargo')) return '📦';
+  if (n.includes('wallet') || n.includes('accessor') || n.includes('boxer') || n.includes('mask')) return '📦';
+  return '📦';
+}
+
+function formatShortCategoryName(name: string): string {
+  const trimmed = (name || '').trim();
+  if (/^Twill(\s+(Five\s+Pockets?|5\s*Pockets?))?$/i.test(trimmed) || /^5\s*Pockets?$/i.test(trimmed)) {
+    return 'Twill';
+  }
+  if (/^Denim\s+Jacket$/i.test(trimmed) || trimmed === 'Jacket') {
+    return 'Jacket';
+  }
+  if (/^Casual\s+Shirt$/i.test(trimmed)) {
+    return 'Casual';
+  }
+  if (/^Cargo\s+Trouser$/i.test(trimmed)) {
+    return 'Cargo';
+  }
+  if (/^Polo\s+Shirt$/i.test(trimmed)) {
+    return 'Polo';
+  }
+  return trimmed;
+}
+
 /**
  * Generates pure SVG Donut chart for category sales revenue.
  */
@@ -98,51 +132,80 @@ function renderDonutChartSvg(items: LiveCategoryItem[], totalRevenue: number): s
 }
 
 /**
- * Generates pure SVG 7-Day Trend Bar Chart.
+ * Generates pure SVG Category Volume Bar Chart with category icons (👖, 👔, 👕, 🧥, 📦).
  */
-function render7DayTrendSvg(history: LiveOpsReport['last7DaysHistory']): string {
-  const width = 560;
-  const height = 190;
+function renderCategoryVolumeBarChartSvg(items: LiveCategoryItem[]): string {
+  const width = 580;
+  const height = 210;
   const padLeft = 45;
   const padRight = 20;
   const padTop = 25;
-  const padBottom = 40;
+  const padBottom = 48;
 
-  if (!history || history.length === 0) {
-    return `<div style="text-align: center; color: #94a3b8; padding: 40px;">No historical trend data available</div>`;
+  const validItems = (items || []).filter((i) => (i.volume && i.volume > 0) || (i.revenue && i.revenue > 0));
+  if (validItems.length === 0) {
+    return `<div style="text-align: center; color: #94a3b8; padding: 40px;">No category volume data available</div>`;
   }
+
+  // Sort by volume descending, take top 9 categories
+  const displayItems = [...validItems]
+    .sort((a, b) => b.volume - a.volume || b.revenue - a.revenue)
+    .slice(0, 9);
 
   const plotW = width - padLeft - padRight;
   const plotH = height - padTop - padBottom;
-  const maxRevenue = Math.max(...history.map((d) => d.revenue), 1) * 1.15;
-  const slotW = plotW / history.length;
-  const barW = Math.min(36, slotW * 0.65);
+  const maxActualVolume = Math.max(...displayItems.map((d) => d.volume), 1);
+  const maxScaleVolume = Math.ceil(maxActualVolume * 1.18);
+  const slotW = plotW / displayItems.length;
+  const barW = Math.min(36, slotW * 0.72);
 
-  const bars = history.map((day, idx) => {
-    const h = Math.max(4, (day.revenue / maxRevenue) * plotH);
-    const x = padLeft + idx * slotW + (slotW - barW) / 2;
-    const y = padTop + plotH - h;
-    const barColor = day.isToday ? '#6366f1' : '#cbd5e1';
-    const dayLabel = day.isToday ? 'Today' : day.dayName.slice(0, 3);
-    const amountLabel = day.revenue >= 1000 ? `৳${Math.round(day.revenue / 1000)}k` : `৳${day.revenue}`;
-    const ordersCount = day.orderCount ?? (day.orders ? day.orders.length : 0);
+  // Y-axis ticks
+  const yTicks = [
+    maxScaleVolume,
+    Math.round(maxScaleVolume * 0.66),
+    Math.round(maxScaleVolume * 0.33),
+    0,
+  ];
 
-    return `
-      <g class="bar-group">
-        <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" rx="5" fill="${barColor}">
-          <title>${escapeHtml(day.dateIso || day.dateLabel || '')} (${escapeHtml(day.dayName)}): ৳${day.revenue.toLocaleString()} (${ordersCount} orders)</title>
-        </rect>
-        <text x="${(x + barW / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="${day.isToday ? '700' : '600'}" fill="${day.isToday ? '#4f46e5' : '#64748b'}">${amountLabel}</text>
-        <text x="${(x + barW / 2).toFixed(1)}" y="${(padTop + plotH + 16).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="${day.isToday ? '800' : '500'}" fill="${day.isToday ? '#4f46e5' : '#475569'}">${dayLabel}</text>
-        <text x="${(x + barW / 2).toFixed(1)}" y="${(padTop + plotH + 28).toFixed(1)}" text-anchor="middle" font-size="9" fill="#94a3b8">${ordersCount} ord</text>
+  const gridLines = yTicks
+    .map((tick) => {
+      const y = padTop + plotH - (tick / maxScaleVolume) * plotH;
+      return `
+      <g>
+        <line x1="${padLeft}" y1="${y.toFixed(1)}" x2="${width - padRight}" y2="${y.toFixed(1)}" stroke="#e2e8f0" stroke-width="0.8" stroke-dasharray="${tick === 0 ? '' : '3 3'}" />
+        <text x="${padLeft - 8}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="#94a3b8" font-family="sans-serif">${tick}</text>
       </g>
     `;
-  });
+    })
+    .join('');
+
+  const bars = displayItems
+    .map((item, idx) => {
+      const h = Math.max(4, (item.volume / maxScaleVolume) * plotH);
+      const x = padLeft + idx * slotW + (slotW - barW) / 2;
+      const y = padTop + plotH - h;
+      const color = item.color || PALETTE[idx % PALETTE.length];
+      const rawName = item.displayName || item.name;
+      const shortLabel = formatShortCategoryName(rawName);
+      const icon = getCategoryIcon(rawName);
+
+      return `
+      <g class="bar-group">
+        <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" rx="5" fill="${color}">
+          <title>${escapeHtml(rawName)}: ${item.volume} pcs (৳${item.revenue.toLocaleString()})</title>
+        </rect>
+        <text x="${(x + barW / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="${color}">${item.volume} pcs</text>
+        <text x="${(x + barW / 2).toFixed(1)}" y="${(padTop + plotH + 18).toFixed(1)}" text-anchor="middle" font-size="14">${icon}</text>
+        <text x="${(x + barW / 2).toFixed(1)}" y="${(padTop + plotH + 32).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="600" fill="#475569">${escapeHtml(shortLabel)}</text>
+      </g>
+    `;
+    })
+    .join('');
 
   return `
-    <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" class="trend-chart" xmlns="http://www.w3.org/2000/svg">
-      <line x1="${padLeft}" y1="${padTop + plotH}" x2="${width - padRight}" y2="${padTop + plotH}" stroke="#e2e8f0" stroke-width="1" />
-      <g>${bars.join('')}</g>
+    <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" class="volume-bar-chart" xmlns="http://www.w3.org/2000/svg">
+      <g>${gridLines}</g>
+      <g>${bars}</g>
     </svg>
   `;
 }
@@ -211,7 +274,7 @@ export function generateLiveOpsHtmlReport(
   const basketVal = Number(report.basketSize.rawValue ?? report.basketSize.value) || 0;
 
   const donutSvg = renderDonutChartSvg(report.categoryItems, revVal);
-  const trendSvg = render7DayTrendSvg(report.last7DaysHistory);
+  const volumeBarSvg = renderCategoryVolumeBarChartSvg(report.categoryItems);
   const courierBarHtml = renderCourierStatusBar(report.activeOrders);
 
   // Top products list
@@ -862,12 +925,12 @@ export function generateLiveOpsHtmlReport(
         : ''
     }
 
-    <!-- Charts Row: Donut + 7-Day Trend -->
+    <!-- Charts Row: Donut + Category Volume Icon Bar Chart -->
     <div class="charts-row">
       <div class="section-card">
         <div class="section-header">
           <div>
-            <div class="section-title">Revenue by Apparel Category</div>
+            <div class="section-title">Revenue Share by Category (TK)</div>
             <div class="section-sub">Product category contribution to net sales</div>
           </div>
         </div>
@@ -882,11 +945,11 @@ export function generateLiveOpsHtmlReport(
       <div class="section-card">
         <div class="section-header">
           <div>
-            <div class="section-title">7-Day Dispatch Trend</div>
-            <div class="section-sub">Historical daily revenue and orders comparison</div>
+            <div class="section-title">Sales Volume by Category (Units Sold)</div>
+            <div class="section-sub">Categorical parcel unit distribution across apparel lines</div>
           </div>
         </div>
-        ${trendSvg}
+        ${volumeBarSvg}
         <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-color);">
           <div style="font-size: 12px; font-weight: 700; color: var(--text-heading); margin-bottom: 4px;">Courier Delivery Telemetry</div>
           ${courierBarHtml}

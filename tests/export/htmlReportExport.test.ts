@@ -224,7 +224,7 @@ describe('HTML Report Exporter (htmlReportExport)', () => {
     expect(html).toContain('42%');
   });
 
-  it('renders pure vector SVG Donut Chart and 7-Day Trend Bar Chart', () => {
+  it('renders pure vector SVG Donut Chart and Category Volume Icon Bar Chart', () => {
     const report = createMockReport();
     const html = generateLiveOpsHtmlReport(report);
 
@@ -234,10 +234,12 @@ describe('HTML Report Exporter (htmlReportExport)', () => {
     expect(html).toContain('NET REVENUE');
     expect(html).toContain('৳185,600');
 
-    // 7-day trend SVG
-    expect(html).toContain('class="trend-chart"');
-    expect(html).toContain('Today');
-    expect(html).toContain('86 ord');
+    // Category volume icon bar chart SVG
+    expect(html).toContain('class="volume-bar-chart"');
+    expect(html).toContain('Sales Volume by Category (Units Sold)');
+    expect(html).toContain('40 pcs');
+    expect(html).toContain('👖');
+    expect(html).not.toContain('class="trend-chart"');
   });
 
   it('renders courier delivery telemetry progress bar', () => {
