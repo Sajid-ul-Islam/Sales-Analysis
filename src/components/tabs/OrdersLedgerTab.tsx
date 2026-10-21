@@ -311,7 +311,7 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-deepBlack-border">
               <tr>
-                <th className="py-3 px-3.5 bg-slate-50 dark:bg-deepBlack-sidebar sticky left-0 z-20 min-w-[140px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order ID</th>
+                <th className="py-3 px-3.5 bg-slate-50 dark:bg-deepBlack-sidebar sticky left-0 z-20 min-w-[140px] border-r border-slate-200 dark:border-deepBlack-border shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order ID</th>
                 <th className="py-3 px-3.5">Line Type</th>
                 <th className="py-3 px-3.5">Order Status</th>
                 <th className="py-3 px-3.5">Item Status</th>
@@ -366,7 +366,7 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                       className="hover:bg-orange-50/40 dark:hover:bg-deepBlack-hover cursor-pointer transition-colors group"
                       title="Click to view full order drill-down & item outcomes"
                     >
-                      <td className="py-3 px-3.5 font-bold text-slate-900 dark:text-white whitespace-nowrap sticky left-0 bg-white dark:bg-deepBlack-card group-hover:bg-[#FFF7ED] dark:group-hover:bg-deepBlack-hover z-10 min-w-[140px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
+                      <td className="py-3 px-3.5 font-bold text-slate-900 dark:text-white whitespace-nowrap sticky left-0 bg-white dark:bg-deepBlack-card group-hover:bg-[#FFF7ED] dark:group-hover:bg-deepBlack-hover z-10 min-w-[140px] border-r border-slate-200 dark:border-deepBlack-border shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="group-hover:text-primary transition-colors flex items-center gap-1">
                             {o.orderId}

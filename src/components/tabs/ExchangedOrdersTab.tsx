@@ -382,7 +382,7 @@ export function ExchangedOrdersTab({
           <table className="w-full text-left border-collapse text-xs">
             <thead className="bg-slate-50 dark:bg-deepBlack-sidebar text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[10px] font-bold sticky top-0 z-10 border-b border-slate-200 dark:border-deepBlack-border">
               <tr>
-                <th className="py-3 px-4 bg-slate-50 dark:bg-deepBlack-sidebar sticky top-0 left-0 z-20 min-w-[140px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order ID & Prefix</th>
+                <th className="py-3 px-4 bg-slate-50 dark:bg-deepBlack-sidebar sticky top-0 left-0 z-20 min-w-[140px] border-r border-slate-200 dark:border-deepBlack-border shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order ID & Prefix</th>
                 <th className="py-3 px-3">Consignment ID</th>
                 <th className="py-3 px-3">Recipient & Contact</th>
                 <th className="py-3 px-3">Destination / Address</th>
@@ -407,7 +407,7 @@ export function ExchangedOrdersTab({
                 filteredOrders.map((order, idx) => (
                   <tr key={`${order.orderId}-${order.consignmentId}-${idx}`} className="hover:bg-slate-50/70 dark:hover:bg-deepBlack-hover transition-colors group">
                     {/* Order ID & Prefix */}
-                    <td className="py-3 px-4 font-mono sticky left-0 bg-white dark:bg-deepBlack-card group-hover:bg-slate-50 dark:group-hover:bg-deepBlack-hover z-10 min-w-[140px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
+                    <td className="py-3 px-4 font-mono sticky left-0 bg-white dark:bg-deepBlack-card group-hover:bg-[#FFF7ED] dark:group-hover:bg-deepBlack-hover z-10 min-w-[140px] border-r border-slate-200 dark:border-deepBlack-border shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
                       <div className="flex items-center gap-1.5">
                         <span className="font-bold text-slate-900 dark:text-white text-xs">
                           #{order.orderId}

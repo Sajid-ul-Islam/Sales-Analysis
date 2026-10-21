@@ -339,7 +339,7 @@ export function CourierMismatchTab({
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="bg-slate-50 dark:bg-deepBlack-sidebar text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200/80 dark:border-deepBlack-border">
-                <th className="py-3 px-4 uppercase tracking-wider bg-slate-50 dark:bg-deepBlack-sidebar sticky left-0 z-20 min-w-[140px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order & Tracking</th>
+                <th className="py-3 px-4 uppercase tracking-wider bg-slate-50 dark:bg-deepBlack-sidebar sticky left-0 z-20 min-w-[140px] border-r border-slate-200 dark:border-deepBlack-border shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order & Tracking</th>
                 <th className="py-3 px-4 uppercase tracking-wider">Customer Info</th>
                 <th className="py-3 px-3 uppercase tracking-wider">Excel Status</th>
                 <th className="py-3 px-3 uppercase tracking-wider">Pathao Courier Status</th>
@@ -374,7 +374,7 @@ export function CourierMismatchTab({
                     }`}
                   >
                     {/* Order ID & Consignment */}
-                    <td className={`py-3 px-4 sticky left-0 z-10 min-w-[140px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] ${
+                    <td className={`py-3 px-4 sticky left-0 z-10 min-w-[140px] border-r border-slate-200 dark:border-deepBlack-border shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] ${
                       item.severity === 'CRITICAL'
                         ? 'bg-[#FFF1F2] dark:bg-[#1f0a0d] group-hover:bg-[#FFE4E6] dark:group-hover:bg-[#2c1015]'
                         : item.severity === 'WARNING'

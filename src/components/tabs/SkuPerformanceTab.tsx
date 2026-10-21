@@ -434,7 +434,7 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
           <table className="w-full text-left text-xs border-collapse">
             <thead className="bg-slate-50 dark:bg-deepBlack-sidebar text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[10px] font-bold sticky top-0 z-10 border-b border-slate-200 dark:border-deepBlack-border">
               <tr>
-                <th className="py-3 px-4 bg-slate-50 dark:bg-deepBlack-sidebar sticky top-0 left-0 z-20 min-w-[130px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">SKU Code</th>
+                <th className="py-3 px-4 bg-slate-50 dark:bg-deepBlack-sidebar sticky top-0 left-0 z-20 min-w-[130px] border-r border-slate-200 dark:border-deepBlack-border shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">SKU Code</th>
                 <th className="py-3 px-3">Product Description</th>
                 <th className="py-3 px-3">Category</th>
                 <th className="py-3 px-3 text-right">Unit Price</th>
@@ -476,7 +476,7 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
                       title="Click to view all orders and delivery history for this SKU"
                     >
                       {/* SKU Code */}
-                      <td className="py-3 px-4 font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap sticky left-0 bg-white dark:bg-deepBlack-card group-hover:bg-[#FFF7ED] dark:group-hover:bg-deepBlack-hover z-10 min-w-[130px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
+                      <td className="py-3 px-4 font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap sticky left-0 bg-white dark:bg-deepBlack-card group-hover:bg-[#FFF7ED] dark:group-hover:bg-deepBlack-hover z-10 min-w-[130px] border-r border-slate-200 dark:border-deepBlack-border shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
                         <span className="text-primary font-bold group-hover:underline flex items-center gap-1.5">
                           {s.sku}
                           <Eye className="w-3 h-3 text-slate-400 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity" />

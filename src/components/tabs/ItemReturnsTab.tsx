@@ -263,7 +263,7 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-deepBlack-border">
               <tr>
-                <th className="py-3 px-3.5 bg-slate-50 dark:bg-deepBlack-sidebar sticky left-0 z-20 min-w-[120px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order ID</th>
+                <th className="py-3 px-3.5 bg-slate-50 dark:bg-deepBlack-sidebar sticky left-0 z-20 min-w-[120px] border-r border-slate-200 dark:border-deepBlack-border shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order ID</th>
                 <th className="py-3 px-3.5">Return Classification</th>
                 <th className="py-3 px-3.5">Customer & Contact</th>
                 <th className="py-3 px-3.5">Territory</th>
@@ -286,7 +286,7 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
 
                   return (
                     <tr key={`${item.orderId}-${item.sku}-${idx}`} className="hover:bg-slate-50 dark:hover:bg-deepBlack-hover transition-colors group">
-                      <td className="py-3.5 px-3.5 font-bold text-slate-900 dark:text-white whitespace-nowrap sticky left-0 bg-white dark:bg-deepBlack-card group-hover:bg-slate-50 dark:group-hover:bg-deepBlack-hover z-10 min-w-[120px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
+                      <td className="py-3.5 px-3.5 font-bold text-slate-900 dark:text-white whitespace-nowrap sticky left-0 bg-white dark:bg-deepBlack-card group-hover:bg-[#FFF7ED] dark:group-hover:bg-deepBlack-hover z-10 min-w-[120px] border-r border-slate-200 dark:border-deepBlack-border shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
                         {item.orderId}
                       </td>
 

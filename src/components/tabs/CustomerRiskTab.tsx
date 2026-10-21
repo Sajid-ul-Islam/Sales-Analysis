@@ -228,7 +228,7 @@ export function CustomerRiskTab({ profiles }: CustomerRiskTabProps) {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-deepBlack-border">
               <tr>
-                <th className="py-3 px-4 bg-slate-50 dark:bg-deepBlack-sidebar sticky left-0 z-20 min-w-[160px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Customer Phone & Name</th>
+                <th className="py-3 px-4 bg-slate-50 dark:bg-deepBlack-sidebar sticky left-0 z-20 min-w-[160px] border-r border-slate-200 dark:border-deepBlack-border shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Customer Phone & Name</th>
                 <th className="py-3 px-4 text-center">Total Orders</th>
                 <th className="py-3 px-4 text-center">Delivered</th>
                 <th className="py-3 px-4 text-center">Partial</th>
@@ -253,7 +253,7 @@ export function CustomerRiskTab({ profiles }: CustomerRiskTabProps) {
 
                   return (
                     <tr key={`${p.phone}-${idx}`} className="hover:bg-slate-50 dark:hover:bg-deepBlack-hover transition-colors group">
-                      <td className="py-3.5 px-4 font-mono sticky left-0 bg-white dark:bg-deepBlack-card group-hover:bg-slate-50 dark:group-hover:bg-deepBlack-hover z-10 min-w-[160px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
+                      <td className="py-3.5 px-4 font-mono sticky left-0 bg-white dark:bg-deepBlack-card group-hover:bg-[#FFF7ED] dark:group-hover:bg-deepBlack-hover z-10 min-w-[160px] border-r border-slate-200 dark:border-deepBlack-border shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
                         <div className="font-bold text-slate-900 dark:text-white text-xs">{p.phone}</div>
                         <div className="text-[11px] text-slate-500 dark:text-slate-400 font-sans truncate max-w-[150px]">{p.customerName || 'Customer'}</div>
                       </td>
