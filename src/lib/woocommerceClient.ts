@@ -248,7 +248,25 @@ export function classifyPayment(paymentMethodTitle?: string, paymentMethodKey?: 
 }
 
 /**
+ * Detects whether a payment method represents an online / digital payment or ecom payment.
+ * DEEN Rule: If an order has an online marked payment method (bKash, Nagad, Card, SSLCommerz, ecom, sip_ecom, prepaid, etc.),
+ * or was placed via web checkout / courier COD, it is NEVER counted as an in-store POS retail order.
+ */
+export function isOnlinePaymentMethod(paymentMethod?: unknown, paymentTitle?: unknown): boolean {
+  const text = `${String(paymentMethod || '')} ${String(paymentTitle || '')}`.toLowerCase().trim();
+  if (!text) return false;
+  return (
+    text.includes('ecom') ||
+    text.includes('sip_ecom') ||
+    /bkash|nagad|rocket|card|bank|ssl|sslcommerz|prepaid|advance|online|visa|mastercard|amex|digital/i.test(text)
+  );
+}
+
+/**
  * Detects fulfillment branch according to DEEN Order Rules (.agents/rules/order_rules.md).
+ * Distinguishes between:
+ * 1. Offline in-store POS retail orders (isPos = true, walk-in register sales)
+ * 2. Online orders dispatched from retail branch outlets (isPos = false, suffix w/s/c/m or online marked payment/courier tracking)
  */
 export function detectBranchFromOrder(order: WcOrder, meta: WcMetaItem[], orderId: string): {
   isPos: boolean;
@@ -322,48 +340,61 @@ export function detectBranchFromOrder(order: WcOrder, meta: WcMetaItem[], orderI
     };
   }
 
-  // 2. Mirpur Outlet POS: 17263 m or POS Outlet ID 1
-  if (outletId === '1' || /[-_]?m$/i.test(cleanId) || /\s+m$/i.test(String(orderId).trim())) {
-    return {
-      isPos: true,
-      outletId: outletId || '1',
-      fulfillmentBranch: 'Mirpur Outlet POS',
-      branchCode: 'MIRPUR',
-    };
-  }
+  // 2. Identify Online order indicators (Payment method online marked, web checkout, or courier consignment)
+  const isOnlinePayment = isOnlinePaymentMethod(order?.payment_method, order?.payment_method_title);
+  const isWebCheckout = effectiveCreatedVia === 'checkout' || effectiveCreatedVia === 'store-api';
+  const hasCourierTracking = Boolean(order?.shipping_lines && order.shipping_lines.length > 0) ||
+    meta.some((m: WcMetaItem) => /pathao|consignment|tracking|ptc_/i.test(m.key || ''));
+
+  // If order is paid online, placed via web checkout, or booked with courier, it is an ONLINE order dispatched from outlet
+  const isOnlineDispatch = isOnlinePayment || isWebCheckout || hasCourierTracking;
 
   // 3. Cumilla Branch: 17263 c or POS Outlet ID 2
   if (outletId === '2' || /[-_]?c$/i.test(cleanId) || /\s+c$/i.test(String(orderId).trim())) {
+    const isPos = !isOnlineDispatch && (isPosMeta || effectiveCreatedVia === 'pos' || (Boolean(outletId) && !cleanId.endsWith('c')));
     return {
-      isPos: true,
+      isPos,
       outletId: outletId || '2',
-      fulfillmentBranch: 'Cumilla Branch',
+      fulfillmentBranch: isPos ? 'Cumilla Branch POS' : 'Cumilla Branch',
       branchCode: 'CUMILLA',
     };
   }
 
   // 4. Wari Branch: 17263 w or POS Outlet ID 9
   if (outletId === '9' || /[-_]?w$/i.test(cleanId) || /\s+w$/i.test(String(orderId).trim())) {
+    const isPos = !isOnlineDispatch && (isPosMeta || effectiveCreatedVia === 'pos' || (Boolean(outletId) && !cleanId.endsWith('w')));
     return {
-      isPos: true,
+      isPos,
       outletId: outletId || '9',
-      fulfillmentBranch: 'Wari Branch',
+      fulfillmentBranch: isPos ? 'Wari Branch POS' : 'Wari Branch',
       branchCode: 'WARI',
     };
   }
 
   // 5. Sylhet Branch: 17263 s or POS Outlet IDs 7 & 8
   if (outletId === '7' || outletId === '8' || /[-_]?s$/i.test(cleanId) || /\s+s$/i.test(String(orderId).trim())) {
+    const isPos = !isOnlineDispatch && (isPosMeta || effectiveCreatedVia === 'pos' || (Boolean(outletId) && !cleanId.endsWith('s')));
     return {
-      isPos: true,
+      isPos,
       outletId: outletId || '7',
-      fulfillmentBranch: 'Sylhet Branch',
+      fulfillmentBranch: isPos ? 'Sylhet Branch POS' : 'Sylhet Branch',
       branchCode: 'SYLHET',
     };
   }
 
-  // 6. Generic POS order if marked as POS but unknown outlet
-  if (isPosMeta) {
+  // 6. Mirpur Outlet POS: 17263 m or POS Outlet ID 1
+  if (outletId === '1' || /[-_]?m$/i.test(cleanId) || /\s+m$/i.test(String(orderId).trim())) {
+    const isPos = !isOnlineDispatch;
+    return {
+      isPos,
+      outletId: outletId || '1',
+      fulfillmentBranch: isPos ? 'Mirpur Outlet POS' : 'Mirpur Outlet (Online Dispatch)',
+      branchCode: 'MIRPUR',
+    };
+  }
+
+  // 7. Generic POS order if marked as POS metadata without online payment
+  if (isPosMeta && !isOnlineDispatch) {
     return {
       isPos: true,
       outletId: outletId || '',
@@ -372,7 +403,7 @@ export function detectBranchFromOrder(order: WcOrder, meta: WcMetaItem[], orderI
     };
   }
 
-  // 7. Default: Central Warehouse (Online Store)
+  // 8. Default: Central Warehouse (Online Store)
   return {
     isPos: false,
     outletId: '',
@@ -1158,7 +1189,7 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
         'isPaidReturnFromWp': wpMarks.isPaidReturnFromWp,
         isPos: branchInfo.isPos,
         outletId: branchInfo.outletId,
-        isBranchFulfillment: branchInfo.branchCode !== 'ONLINE',
+        isBranchFulfillment: branchInfo.branchCode !== 'ONLINE' && !branchInfo.isPos,
       });
     } else {
       for (const item of lineItems) {
@@ -1263,7 +1294,7 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
           'isPaidReturnFromWp': wpMarks.isPaidReturnFromWp,
           isPos: branchInfo.isPos,
           outletId: branchInfo.outletId,
-          isBranchFulfillment: branchInfo.branchCode !== 'ONLINE',
+          isBranchFulfillment: branchInfo.branchCode !== 'ONLINE' && !branchInfo.isPos,
         });
       }
     }

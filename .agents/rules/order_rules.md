@@ -15,13 +15,21 @@ The Pathao Courier Order ID reflects the physical origin/fulfillment location of
 
 * **Online Store (Central Warehouse Hub)**:
   * When items in the online store order are dispatched from the Central Warehouse, the Pathao Courier Order ID remains unchanged without any suffix (e.g., `17263`).
-* **Retail Branch & Outlet POS Locations (Suffix Codes & Registers)**:
-  * **Mirpur Outlet POS**: Physical retail store register / POS outlet (`17263 m` or WooCommerce POS outlet ID `1`). Strictly distinct from the Online Store.
-  * When items are fulfilled from retail branch locations, specific suffixes are appended to the courier order ID:
-    * `17263 c` (or `17263-c` / `17263c`): Dispatched from **Cumilla Branch** (POS outlet ID `2`)
-    * `17263 w` (or `17263-w` / `17263w`): Dispatched from **Wari Branch** (POS outlet ID `9`)
-    * `17263 s` (or `17263-s` / `17263s`): Dispatched from **Sylhet Branch** (POS outlet IDs `7` & `8`)
-    * `17263 m` (or `17263-m` / `17263m`): Dispatched from **Mirpur Outlet POS** (POS outlet ID `1`)
+* **Retail Branch Outlet Orders (Two Distinct Operational Categories)**:
+  1. **Type 1: POS / Non-Checkout Orders (Offline Retail Walk-In Orders)**:
+     * In-store retail walk-in customer sales made at physical branch registers (Mirpur, Cumilla, Wari, Sylhet).
+     * Identified by POS plugin metadata (`_sip_outlet_id: 1, 2, 9, 7/8`, cashier user IDs `_sip_created_by: 1508, 3, 572, 35, 69`, `created_via: "pos"`, `_sip_order_source: "pos"`).
+     * In-store payment: Cash at counter, register POS card swipe terminal (`sip_cash`, `sip_card`).
+     * Excluded from online commercial dispatch counts and Excel shipping manifests (`isPos: true`, `isOrderOnline: false`). Tracked strictly on `OutletSalesTab`.
+  2. **Type 2: Online Orders Dispatched from Outlets (Branch Courier Dispatches)**:
+     * Genuine online ecommerce checkout orders fulfilled from retail branch locations because central warehouse was out of stock.
+     * Suffixes appended to courier Order IDs to identify the origin branch:
+       * `17263 c`: Dispatched from **Cumilla Branch** (POS outlet ID `2`)
+       * `17263 w`: Dispatched from **Wari Branch** (POS outlet ID `9`)
+       * `17263 s`: Dispatched from **Sylhet Branch** (POS outlet IDs `7` & `8`)
+       * `17263 m`: Dispatched from **Mirpur Outlet** (POS outlet ID `1`)
+     * **Strict Invariant**: If an order has an online payment method (`bKash`, `Nagad`, `Rocket`, `Card`, `SSLCommerz`, `ecom`, `sip_ecom`, `online`, `prepaid`), was placed via web checkout (`created_via: "checkout"`), or has courier tracking, **NEVER count it as a POS order (`isPos: false`, `isBranchFulfillment: true`)**.
+     * Tracked on `OutletDispatchTab` (outlet parcel dispatches) and `LiveOpsTab` (commercial dispatches).
 * **ID Matching Logic**:
   * To reconcile branch shipments against store orders, extract the numeric base order ID (`17263`) while recording the branch tag (`Online Store`, `Mirpur POS`, `Cumilla`, `Wari`, `Sylhet`).
 

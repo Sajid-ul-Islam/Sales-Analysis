@@ -35,6 +35,7 @@ import { DateScope, CustomDateRange, parseOrderDate } from '@/lib/dateFilter';
 import { classifyProductCategory } from '@/lib/reconciliationEngine';
 import { cleanProductMainName, extractMasterSku } from './ExecutiveOverviewTab';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
+import { isOnlinePaymentMethod } from '@/lib/woocommerceClient';
 
 interface OutletSalesTabProps {
   orders?: ReconciledOrderRow[];
@@ -181,53 +182,66 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
     const paymentMethod = String(rawOrder.payment_method || '').toLowerCase();
     const paymentTitle = String(rawOrder.payment_method_title || '').toLowerCase();
 
-    // User rule: If payment is marked as ecom, then exclude them
-    const isEcom = paymentMethod === 'sip_ecom' || 
-                   paymentMethod === 'ecom' || 
-                   paymentTitle === 'ecom' || 
-                   paymentTitle.includes('ecom');
-    if (isEcom) {
+    // User rule: If payment is marked as online/ecom, then exclude them
+    const isOnlinePayment = isOnlinePaymentMethod(paymentMethod, paymentTitle);
+    if (isOnlinePayment) {
       return null;
     }
 
-    const isPos = sourceMeta?.value === 'pos' || 
-                  Boolean(posDomainMeta?.value) || 
-                  meta.some((m) => m.key === '_sip_pos_order') ||
-                  paymentMethod.startsWith('sip_') ||
-                  rawOrder.created_via === 'pos';
+    // Web checkout orders are online orders (even if fulfilled from an outlet), exclude them
+    const createdVia = String(rawOrder.created_via || '').toLowerCase().trim();
+    if (createdVia === 'checkout' || createdVia === 'store-api') {
+      return null;
+    }
+
+    // Check if order has courier tracking (Pathao consignment ID, tracking code, shipping fee)
+    const hasCourierConsignment = meta.some((m) => {
+      const k = String(m.key || '').toLowerCase();
+      const v = String(m.value || '').trim();
+      return (k.includes('consignment') || k.includes('pathao') || k.includes('tracking')) && v && v !== '-' && v !== 'null';
+    });
+    if (hasCourierConsignment) {
+      return null;
+    }
+
+    // In DEEN operations, suffixes w, s, c denote Online orders dispatched from outlets.
+    // They are not in-store POS walk-in orders unless explicitly created via POS register.
+    const isExplicitPos = sourceMeta?.value === 'pos' || 
+                          Boolean(posDomainMeta?.value) || 
+                          meta.some((m) => m.key === '_sip_pos_order') ||
+                          (paymentMethod.startsWith('sip_') && !isOnlinePayment) ||
+                          createdVia === 'pos' ||
+                          Boolean(createdByMeta?.value);
+
+    // If an order only has branch suffix w, s, c without POS metadata, it is an online dispatch from outlet -> exclude
+    if (!isExplicitPos && (/[-_\s]?[wcs]$/i.test(orderIdStr) || /\b\d+\s*[wcs]\b/i.test(orderIdStr))) {
+      return null;
+    }
+
     const outletId = String(outletMeta?.value || '');
     const createdBy = String(createdByMeta?.value || '');
 
     // 1. Check explicit POS outlet IDs or POS register domains
-    if (isPos || outletId) {
+    if (isExplicitPos || outletId) {
       if (outletId === '1' || createdBy === '1508' || note.includes('mirpur') || /\b\d+\s*m\b|[-_\s]m$/i.test(orderIdStr)) {
         return { outletId: '1', outletName: 'Mirpur Outlet POS', orderSource: 'pos' };
       }
-      if (outletId === '9' || createdBy === '572' || note.includes('wari') || /\b\d+\s*w\b|[-_\s]w$/i.test(orderIdStr)) {
+      if (outletId === '9' || createdBy === '572' || note.includes('wari')) {
         return { outletId: '9', outletName: 'Wari Branch POS', orderSource: 'pos' };
       }
-      if (outletId === '2' || createdBy === '3' || note.includes('cumilla') || note.includes('comilla') || /\b\d+\s*c\b|[-_\s]c$/i.test(orderIdStr)) {
+      if (outletId === '2' || createdBy === '3' || note.includes('cumilla') || note.includes('comilla')) {
         return { outletId: '2', outletName: 'Cumilla Branch POS', orderSource: 'pos' };
       }
-      if (outletId === '7' || outletId === '8' || createdBy === '35' || createdBy === '69' || note.includes('sylhet') || /\b\d+\s*s\b|[-_\s]s$/i.test(orderIdStr)) {
+      if (outletId === '7' || outletId === '8' || createdBy === '35' || createdBy === '69' || note.includes('sylhet')) {
         return { outletId: '7', outletName: 'Sylhet Branch POS', orderSource: 'pos' };
       }
       // Unspecified POS outlet defaults to primary Mirpur register
       return { outletId: outletId || '1', outletName: 'Mirpur Outlet POS', orderSource: 'pos' };
     }
 
-    // 2. Check for branch hints in notes or order number suffixes (m, w, c, s)
+    // 2. Check for Mirpur POS suffix on order number (17263 m)
     if (/\b\d+\s*m\b|[-_\s]m$/i.test(orderIdStr) || note.includes('mirpur')) {
       return { outletId: '1', outletName: 'Mirpur Outlet POS', orderSource: 'pos' };
-    }
-    if (/\b\d+\s*w\b|[-_\s]w$/i.test(orderIdStr) || note.includes('wari')) {
-      return { outletId: '9', outletName: 'Wari Branch POS', orderSource: 'pos' };
-    }
-    if (/\b\d+\s*c\b|[-_\s]c$/i.test(orderIdStr) || note.includes('cumilla') || note.includes('comilla')) {
-      return { outletId: '2', outletName: 'Cumilla Branch POS', orderSource: 'pos' };
-    }
-    if (/\b\d+\s*s\b|[-_\s]s$/i.test(orderIdStr) || note.includes('sylhet')) {
-      return { outletId: '7', outletName: 'Sylhet Branch POS', orderSource: 'pos' };
     }
 
     // Default: Online Store website checkout order — strictly filtered out from Outlet Sales
@@ -308,8 +322,20 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
     ordersList.forEach(r => {
       const rowAny = r as unknown as Record<string, unknown>;
       const pMethod = String(rowAny.paymentMethod || rowAny['Payment Method'] || r.paymentMethod || '').toLowerCase();
-      if (pMethod === 'sip_ecom' || pMethod === 'ecom' || pMethod.includes('ecom')) {
-        return; // Exclude Ecom marked orders from Outlet Sales
+      const pTitle = String(rowAny.paymentMethodTitle || rowAny['Payment Method Title'] || '').toLowerCase();
+      if (isOnlinePaymentMethod(pMethod, pTitle)) {
+        return; // Exclude online marked orders from Outlet POS Sales
+      }
+
+      // Exclude online orders dispatched from outlets (courier dispatches)
+      if (rowAny.isPos === false || (rowAny.isBranchFulfillment === true && !rowAny.isPos)) {
+        return;
+      }
+      if (rowAny.consignmentId || rowAny['Consignment ID']) {
+        return;
+      }
+      if (String(rowAny.created_via || rowAny['Created Via'] || '').toLowerCase().trim() === 'checkout') {
+        return;
       }
 
       let outletId = '';
@@ -319,21 +345,21 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
       const bOutlet = String(r.fulfillmentLocation || rowAny.branchOutlet || '');
       const bSuffix = String(r.branchSuffix || '');
 
-      if (bOutlet.includes('Mirpur') || /[-_\s]m$/i.test(oid) || bSuffix === 'm' || rowAny.posOutletId === '1') {
+      if (rowAny.posOutletId === '1' || bOutlet.includes('Mirpur Outlet POS') || (!bSuffix && /[-_\s]m$/i.test(oid))) {
         outletId = '1';
         outletName = 'Mirpur Outlet POS';
-      } else if (bOutlet.includes('Wari') || /[-_\s]w$/i.test(oid) || bSuffix === 'w' || rowAny.posOutletId === '9') {
+      } else if (rowAny.posOutletId === '9' || bOutlet.includes('Wari Branch POS')) {
         outletId = '9';
         outletName = 'Wari Branch POS';
-      } else if (bOutlet.includes('Cumilla') || /[-_\s]c$/i.test(oid) || bSuffix === 'c' || rowAny.posOutletId === '2') {
+      } else if (rowAny.posOutletId === '2' || bOutlet.includes('Cumilla Branch POS')) {
         outletId = '2';
         outletName = 'Cumilla Branch POS';
-      } else if (bOutlet.includes('Sylhet') || /[-_\s]s$/i.test(oid) || bSuffix === 's' || rowAny.posOutletId === '7' || rowAny.posOutletId === '8') {
+      } else if (rowAny.posOutletId === '7' || rowAny.posOutletId === '8' || bOutlet.includes('Sylhet Branch POS')) {
         outletId = '7';
         outletName = 'Sylhet Branch POS';
       }
 
-      if (!outletId) return; // Skip Online Store
+      if (!outletId) return; // Skip Online Store and branch courier dispatches
 
       const dateStr = r.orderDate instanceof Date 
         ? r.orderDate.toISOString() 
@@ -483,27 +509,38 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
         const parsedFallback: WcOrderRecord[] = [];
         data.orders.forEach((r: RawOrderRow, idx: number) => {
           const pMethod = String(r['Payment Method'] || r.paymentMethod || '').toLowerCase();
-          if (pMethod === 'sip_ecom' || pMethod === 'ecom' || pMethod.includes('ecom')) {
-            return; // Exclude Ecom marked orders from Outlet Sales
+          const pTitle = String((r as Record<string, unknown>).payment_method_title || '').toLowerCase();
+          if (isOnlinePaymentMethod(pMethod, pTitle)) {
+            return; // Exclude online marked orders from Outlet Sales
+          }
+          if (r.isPos === false || (r.isBranchFulfillment === true && !r.isPos)) {
+            return; // Exclude online orders dispatched from outlets
+          }
+          if (r['Consignment ID'] || r.consignmentId) {
+            return; // Exclude courier tracked orders
+          }
+          const createdVia = String(r['Created Via'] || (r as Record<string, unknown>).created_via || '').toLowerCase().trim();
+          if (createdVia === 'checkout' || createdVia === 'store-api') {
+            return;
           }
 
-          const isPos = r.isPos || r['Order Source'] === 'POS' || Boolean(r.outletId) || Boolean(r['Outlet ID']);
+          const isPos = r.isPos || r['Order Source'] === 'POS';
           const oid = String(r['Order ID'] || r.orderId || idx);
           const rawOutletId = String(r.outletId || r['Outlet ID'] || '');
 
           let outletId = '';
           let outletName = '';
 
-          if (rawOutletId === '1' || /[-_\s]m$/i.test(oid)) {
+          if (rawOutletId === '1' || (!rawOutletId && /[-_\s]m$/i.test(oid))) {
             outletId = '1';
             outletName = 'Mirpur Outlet POS';
-          } else if (rawOutletId === '9' || /[-_\s]w$/i.test(oid)) {
+          } else if (rawOutletId === '9') {
             outletId = '9';
             outletName = 'Wari Branch POS';
-          } else if (rawOutletId === '2' || /[-_\s]c$/i.test(oid)) {
+          } else if (rawOutletId === '2') {
             outletId = '2';
             outletName = 'Cumilla Branch POS';
-          } else if (rawOutletId === '7' || rawOutletId === '8' || /[-_\s]s$/i.test(oid)) {
+          } else if (rawOutletId === '7' || rawOutletId === '8') {
             outletId = '7';
             outletName = 'Sylhet Branch POS';
           } else if (isPos) {
@@ -511,7 +548,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
             outletName = 'Mirpur Outlet POS';
           }
 
-          if (!outletId) return; // Exclude Online Store
+          if (!outletId) return; // Exclude Online Store & online branch dispatches
 
           const total = parseFloat(String(r['Order Amount'] || r['Item Cost'] || '0')) || 0;
           parsedFallback.push({

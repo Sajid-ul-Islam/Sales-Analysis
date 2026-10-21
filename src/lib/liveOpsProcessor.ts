@@ -9,6 +9,7 @@ import { RawOrderRow } from '@/types';
 import { classifyProductLine, computeSelectsStats, SelectsStats } from './selectsAnalytics';
 import { getCategoryForSales, getSubCategoryForSales, getShortCategoryLabel, getShortSubCategoryLabel, CATEGORY_COLOR_MAP } from './liveCategoryEngine';
 import { computeCustomerMix } from './customerRegistry';
+import { isOnlinePaymentMethod } from './woocommerceClient';
 import {
   getDhakaIsoDate,
   getDhakaTodayIso,
@@ -674,39 +675,53 @@ export function isTodayOrdersEligible(order: RawOrderRow, targetDateIso: string)
 export const isAllOrdersEligible = isTodayOrdersEligible;
 
 /**
- * Identifies genuine Online Store orders fulfilled from Central Warehouse.
- * Strictly excludes POS outlet orders from Mirpur POS, Cumilla, Wari, and Sylhet retail branches.
+ * Identifies genuine Online Store orders (fulfilled from Central Warehouse or dispatched from branch outlets).
+ * Strictly excludes physical in-store POS outlet walk-in orders (Mirpur POS, Cumilla, Wari, and Sylhet retail branches).
  */
 export function isOrderOnline(order: RawOrderRow): boolean {
   const o = order as Record<string, unknown>;
 
-  // 1. Explicit POS / Outlet metadata
+  // 1. Explicit POS / in-store retail markers
   if (o.isPos === true) return false;
-  if (Boolean(o.outletId && String(o.outletId).trim())) return false;
-  if (Boolean(o['Outlet ID'] && String(o['Outlet ID']).trim())) return false;
-  if (o.isBranchFulfillment === true) return false;
-
-  // 2. Order Source & Created Via markers
   const src = String(order['Order Source'] || o.orderSource || '').toLowerCase().trim();
   if (src === 'pos') return false;
 
   const createdVia = String(o.created_via || o['Created Via'] || o.createdVia || '').toLowerCase().trim();
   if (createdVia.includes('pos')) return false;
 
-  // 3. Branch code (must be ONLINE if populated)
-  const branch = String(o.branchCode || o.branch || '').toUpperCase().trim();
-  if (branch && branch !== 'ONLINE') return false;
-
-  // 4. Fulfillment location / branch names (reject physical retail branches)
   const loc = String(o.fulfillmentLocation || o.fulfillmentBranch || '').toLowerCase().trim();
-  if (loc) {
-    if (loc.includes('pos') || loc.includes('retail outlet')) return false;
-    if (loc.includes('cumilla') || loc.includes('wari') || loc.includes('sylhet')) return false;
-    if (loc.includes('mirpur outlet') || loc.includes('mirpur pos')) return false;
-    if (loc.includes('branch') && !loc.includes('central') && !loc.includes('warehouse')) return false;
+  if (loc.includes('pos') || loc.includes('retail outlet') || loc.includes('register')) return false;
+
+  // 2. Online payment / Courier consignment / Web Checkout checks:
+  // DEEN Rule: Online orders dispatched from retail branch outlets (w, s, c, m) with web checkout,
+  // online marked payment (bKash, Nagad, Card, SSLCommerz, ecom, etc.), or courier tracking are genuine ONLINE orders!
+  const paymentMethod = String(order['Payment Method'] || o.paymentMethod || o.payment_method || '').toLowerCase().trim();
+  const paymentTitle = String(o.payment_method_title || o.paymentMethodTitle || '').toLowerCase().trim();
+  const isOnlinePayment = isOnlinePaymentMethod(paymentMethod, paymentTitle);
+
+  const consId = String(order['Consignment ID'] || o.consignmentId || o.consignment_id || o.tracking_number || '').trim();
+  const hasCourier = Boolean(consId && consId !== '-' && consId !== 'null');
+
+  if (createdVia === 'checkout' || createdVia === 'store-api' || isOnlinePayment || hasCourier) {
+    return true;
   }
 
-  // 5. Branch register suffixes on order ID (m, c, w, s)
+  // 3. Fallback: If order has outlet ID or physical retail branch without online indicators, it is an in-store POS order
+  if (loc.includes('warehouse') || loc.includes('central')) {
+    return true;
+  }
+  if (Boolean(o.outletId && String(o.outletId).trim()) || Boolean(o['Outlet ID'] && String(o['Outlet ID']).trim())) {
+    return false;
+  }
+  if (loc.includes('cumilla') || loc.includes('wari') || loc.includes('sylhet') || loc.includes('mirpur outlet') || loc.includes('mirpur pos')) {
+    return false;
+  }
+  const branch = String(o.branchCode || o.branch || '').toUpperCase().trim();
+  if (branch && branch !== 'ONLINE') {
+    return false;
+  }
+
+  // 4. Branch register suffix on order ID without courier or online payment
   const oid = String(order['Order ID'] || o.orderId || '').trim();
   if (/[-_\s]?[mcws]$/i.test(oid) || /\b\d+\s*[mcws]\b/i.test(oid)) return false;
 

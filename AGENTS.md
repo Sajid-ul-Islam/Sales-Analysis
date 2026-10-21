@@ -20,11 +20,14 @@ Refer to detailed rules in [.agents/rules/order_rules.md](.agents/rules/order_ru
 
 ### 2. Fulfillment Locations & Courier IDs
 * **Online Store (Central Warehouse)**: Pathao Courier ID remains unchanged without suffix (e.g., `17263`).
-* **Retail Outlet Branches & POS**:
-  * **Mirpur Outlet POS**: Physical retail store register / POS outlet (`17263 m` or outlet ID `1`). Strictly distinct from the Online Store.
-  * `17263 c`: Items sent from **Cumilla Branch** (POS outlet ID `2`)
-  * `17263 w`: Items sent from **Wari Branch** (POS outlet ID `9`)
-  * `17263 s`: Items sent from **Sylhet Branch** (POS outlet IDs `7` & `8`)
+* **Retail Outlet Branches & POS (Two Distinct Categories)**:
+  * **Type 1: POS / Non-Checkout Orders (Offline Retail Walk-In Orders)**: Physical store register sales (`_sip_outlet_id: 1, 2, 9, 7/8`, cashier user IDs `1508, 3, 572, 35, 69`, `created_via: "pos"`). Cash/register card terminal payments without courier tracking. Excluded from online commercial dispatches (`isPos: true`, `isOrderOnline: false`). Tracked strictly on `OutletSalesTab`.
+  * **Type 2: Online Orders Dispatched from Outlets (Branch Courier Dispatches)**: Web checkout orders fulfilled from physical branch outlets when central warehouse lacks stock:
+    * `17263 c`: Items sent from **Cumilla Branch** (POS outlet ID `2`)
+    * `17263 w`: Items sent from **Wari Branch** (POS outlet ID `9`)
+    * `17263 s`: Items sent from **Sylhet Branch** (POS outlet IDs `7` & `8`)
+    * `17263 m`: Items sent from **Mirpur Outlet** (POS outlet ID `1`)
+    * **Strict Invariant**: If payment method is online marked (`bKash`, `Nagad`, `Card`, `SSLCommerz`, `ecom`, `sip_ecom`, `online`, `prepaid`), was placed via web checkout, or has courier tracking, **NEVER count as a POS order (`isPos: false`, `isBranchFulfillment: true`)**. Tracked in `OutletDispatchTab` and `LiveOpsTab`.
 
 ### 3. Order Statuses
 * **Delivered**: Entire parcel delivered.

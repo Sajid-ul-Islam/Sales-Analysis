@@ -3,6 +3,7 @@ import {
   cleanCustomerPhone,
   detectDistrictArea,
   classifyPayment,
+  isOnlinePaymentMethod,
   detectBranchFromOrder,
   extractConsignmentTracking,
   extractPathaoPluginOrderInfo,
@@ -74,32 +75,32 @@ describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
   });
 
   describe('detectBranchFromOrder', () => {
-    it('identifies Mirpur Outlet POS by suffix "m"', () => {
+    it('identifies Mirpur Outlet POS by suffix "m" when in-store', () => {
       const res = detectBranchFromOrder({}, [], '17263 m');
       expect(res.branchCode).toBe('MIRPUR');
       expect(res.fulfillmentBranch).toBe('Mirpur Outlet POS');
       expect(res.isPos).toBe(true);
     });
 
-    it('identifies Cumilla Branch by suffix "c"', () => {
+    it('identifies Cumilla Branch by suffix "c" as Online Branch Dispatch (isPos = false)', () => {
       const res = detectBranchFromOrder({}, [], '17263 c');
       expect(res.branchCode).toBe('CUMILLA');
       expect(res.fulfillmentBranch).toBe('Cumilla Branch');
-      expect(res.isPos).toBe(true);
+      expect(res.isPos).toBe(false);
     });
 
-    it('identifies Wari Branch by suffix "w"', () => {
+    it('identifies Wari Branch by suffix "w" as Online Branch Dispatch (isPos = false)', () => {
       const res = detectBranchFromOrder({}, [], '17263-w');
       expect(res.branchCode).toBe('WARI');
       expect(res.fulfillmentBranch).toBe('Wari Branch');
-      expect(res.isPos).toBe(true);
+      expect(res.isPos).toBe(false);
     });
 
-    it('identifies Sylhet Branch by suffix "s"', () => {
+    it('identifies Sylhet Branch by suffix "s" as Online Branch Dispatch (isPos = false)', () => {
       const res = detectBranchFromOrder({}, [], '17263 s');
       expect(res.branchCode).toBe('SYLHET');
       expect(res.fulfillmentBranch).toBe('Sylhet Branch');
-      expect(res.isPos).toBe(true);
+      expect(res.isPos).toBe(false);
     });
 
     it('identifies Exchange Replacement by prefix "D-"', () => {
@@ -116,12 +117,28 @@ describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
       expect(res.isPos).toBe(false);
     });
 
-    it('identifies POS from metadata outlet ID', () => {
+    it('identifies POS from metadata outlet ID without online payment', () => {
       const meta = [{ key: '_sip_outlet_id', value: '2' }];
       const res = detectBranchFromOrder({}, meta, '17263');
       expect(res.branchCode).toBe('CUMILLA');
-      expect(res.fulfillmentBranch).toBe('Cumilla Branch');
+      expect(res.fulfillmentBranch).toBe('Cumilla Branch POS');
       expect(res.isPos).toBe(true);
+    });
+
+    it('identifies Online Branch Dispatch when metadata outlet ID has online payment (bKash/SSL)', () => {
+      const meta = [{ key: '_sip_outlet_id', value: '2' }];
+      const res = detectBranchFromOrder({ payment_method: 'bkash', payment_method_title: 'bKash' }, meta, '17263');
+      expect(res.branchCode).toBe('CUMILLA');
+      expect(res.fulfillmentBranch).toBe('Cumilla Branch');
+      expect(res.isPos).toBe(false);
+    });
+
+    it('identifies Online Branch Dispatch when metadata outlet ID was created via web checkout', () => {
+      const meta = [{ key: '_sip_outlet_id', value: '9' }];
+      const res = detectBranchFromOrder({ created_via: 'checkout' }, meta, '17263');
+      expect(res.branchCode).toBe('WARI');
+      expect(res.fulfillmentBranch).toBe('Wari Branch');
+      expect(res.isPos).toBe(false);
     });
   });
 

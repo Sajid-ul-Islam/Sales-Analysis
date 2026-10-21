@@ -131,7 +131,7 @@ describe('Timezone Invariance: Strictly Pinned to Asia/Dhaka (UTC+6)', () => {
       expect(isOrderOnline({ orderId: '17263', fulfillmentLocation: 'Online Store (Central Warehouse)' })).toBe(true);
       expect(isOrderOnline({ orderId: '17263', fulfillmentLocation: 'Warehouse (Mirpur)' })).toBe(true);
 
-      // Physical retail outlets (Mirpur POS, Cumilla, Wari, Sylhet) must evaluate to false
+      // Physical retail outlets (Mirpur POS, Cumilla, Wari, Sylhet) without online indicators must evaluate to false
       expect(isOrderOnline({ orderId: '17263 m', fulfillmentLocation: 'Mirpur Outlet POS' })).toBe(false);
       expect(isOrderOnline({ orderId: '17263', outletId: '1', fulfillmentLocation: 'Mirpur Outlet POS' })).toBe(false);
       expect(isOrderOnline({ orderId: '17263 c', fulfillmentLocation: 'Cumilla Branch' })).toBe(false);
@@ -140,6 +140,11 @@ describe('Timezone Invariance: Strictly Pinned to Asia/Dhaka (UTC+6)', () => {
       expect(isOrderOnline({ orderId: '17263', outletId: '9', fulfillmentLocation: 'Wari Branch' })).toBe(false);
       expect(isOrderOnline({ orderId: '17263 s', fulfillmentLocation: 'Sylhet Branch' })).toBe(false);
       expect(isOrderOnline({ orderId: '17263', outletId: '7', fulfillmentLocation: 'Sylhet Branch' })).toBe(false);
+
+      // Online orders dispatched from retail branch outlets (with courier tracking, online payment, or web checkout) evaluate to true
+      expect(isOrderOnline({ orderId: '17263 c', fulfillmentLocation: 'Cumilla Branch', consignmentId: 'RD12345678' })).toBe(true);
+      expect(isOrderOnline({ orderId: '17263 w', fulfillmentLocation: 'Wari Branch', paymentMethod: 'bKash' })).toBe(true);
+      expect(isOrderOnline({ orderId: '17263 s', fulfillmentLocation: 'Sylhet Branch', created_via: 'checkout' })).toBe(true);
     });
 
     it('filters out Friday from 7-day dispatch history when central warehouse is closed (0 dispatches)', () => {
