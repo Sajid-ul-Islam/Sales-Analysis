@@ -62,6 +62,9 @@ export interface OrderWiseGroup {
   branch: FulfillmentBranchInfo;
   isExchange: boolean;
   exchangeInfo: ExchangeInfo;
+  isPos: boolean;
+  isOnline: boolean;
+  orderSource?: string;
   orderNotes?: string;
   primaryRow: RawOrderRow;
   rawRows: RawOrderRow[];
@@ -73,6 +76,7 @@ export interface GroupOrdersFilterOptions {
   courierFilter?: string;
   pipelineFilter?: string;
   selectedView?: string;
+  channelFilter?: 'ALL' | 'ONLINE' | 'POS';
 }
 
 /**
@@ -92,10 +96,14 @@ export function groupOrdersByOrderId(rows: RawOrderRow[]): OrderWiseGroup[] {
       const baseOid = rawOid.replace(/[ \-_]?[cwsm]$/i, '').trim();
       const branch = detectFulfillmentBranch(row);
       const exInfo = extractExchangeInfo(row);
+      const isOnline = isOrderOnline(row);
 
       group = {
         orderId: rawOid,
         baseOrderId: baseOid,
+        isPos: !isOnline,
+        isOnline: isOnline,
+        orderSource: String(row['Order Source'] || (row as Record<string, unknown>).orderSource || (isOnline ? 'Online' : 'POS')),
         orderDate: String(row['Order Date'] || row.orderDate || row.date_created || ''),
         dateModified: String(row['Date Modified'] || row.dateModified || ''),
         customerName: String(getExportCustomerName(row) || row['Customer Name'] || row.customerName || 'Customer'),
@@ -220,13 +228,15 @@ export function filterOrderWiseGroups(
     courierFilter = 'ALL',
     pipelineFilter = 'ALL',
     selectedView = 'Today Shipped',
+    channelFilter = 'ONLINE',
   } = options;
 
   const query = searchQuery.toLowerCase().trim();
 
   return groups.filter((group) => {
-    // Online check
-    if (!isOrderOnline(group.primaryRow)) return false;
+    // Channel filter: Online Checkout vs POS Retail vs All
+    if (channelFilter === 'ONLINE' && !isOrderOnline(group.primaryRow)) return false;
+    if (channelFilter === 'POS' && isOrderOnline(group.primaryRow)) return false;
 
     // Exchange view isolation
     if (courierFilter === 'EXCHANGES_ONLY') {

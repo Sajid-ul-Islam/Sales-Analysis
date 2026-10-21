@@ -312,6 +312,18 @@ export interface LiveOpsReport {
 
   // Dedicated Exchange Dispatches & Logistics Tracking
   exchangeStats: ExchangeStats;
+
+  // Order Channel Counts for Live View (Online Checkout vs POS vs All)
+  channelStats?: ChannelStats;
+}
+
+export interface ChannelStats {
+  onlineCount: number;
+  posCount: number;
+  totalCount: number;
+  onlineItems: number;
+  posItems: number;
+  totalItems: number;
 }
 
 export interface ExchangeInfo {
@@ -651,8 +663,14 @@ export function isOrderShippedToday(order: RawOrderRow, targetDateIso: string): 
  * User Rule: Today's Orders = (All Today's Shipped) + (All orders with Processing status)
  * Non-checkout exchange orders are tracked separately in Exchange Logistics.
  */
-export function isTodayOrdersEligible(order: RawOrderRow, targetDateIso: string): boolean {
-  if (!isOrderOnline(order)) return false;
+export function isTodayOrdersEligible(
+  order: RawOrderRow,
+  targetDateIso: string,
+  options?: { channelFilter?: 'ALL' | 'ONLINE' | 'POS'; onlineOnly?: boolean }
+): boolean {
+  const channel = options?.channelFilter || (options?.onlineOnly === false ? 'ALL' : 'ONLINE');
+  if (channel === 'ONLINE' && !isOrderOnline(order)) return false;
+  if (channel === 'POS' && isOrderOnline(order)) return false;
   if (isOrderExchange(order)) return false;
   const o = order as Record<string, unknown>;
   const status = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
@@ -673,6 +691,13 @@ export function isTodayOrdersEligible(order: RawOrderRow, targetDateIso: string)
 
 // Backward compatibility alias
 export const isAllOrdersEligible = isTodayOrdersEligible;
+
+/**
+ * Identifies physical in-store POS retail orders (offline walk-in register sales).
+ */
+export function isOrderPos(order: RawOrderRow): boolean {
+  return !isOrderOnline(order);
+}
 
 /**
  * Identifies genuine Online Store orders (fulfilled from Central Warehouse or dispatched from branch outlets).
@@ -814,16 +839,21 @@ export function processLiveOpsData(
   options: {
     view?: 'Today Shipped' | "Today's Orders" | 'Today Orders' | 'All Orders' | 'Last Day Shipped' | 'Queue';
     onlineOnly?: boolean;
+    channelFilter?: 'ALL' | 'ONLINE' | 'POS';
     customDate?: string;
     anchorDate?: string;
     historicalOrders?: RawOrderRow[];
   } = {}
 ): LiveOpsReport {
   const view = options.view || 'Today Shipped';
-  const onlineOnly = options.onlineOnly !== false;
+  const channelFilter = options.channelFilter || (options.onlineOnly === false ? 'ALL' : 'ONLINE');
 
-  // 1. Filter out POS if onlineOnly is active
-  const source = onlineOnly ? orders.filter(isOrderOnline) : orders;
+  // 1. Filter out POS if onlineOnly / channelFilter is active
+  const source = channelFilter === 'ONLINE'
+    ? orders.filter(isOrderOnline)
+    : channelFilter === 'POS'
+    ? orders.filter((o) => !isOrderOnline(o))
+    : orders;
 
   // 2. Discover available dates across dataset
   const ordersWithDates = source
@@ -868,6 +898,35 @@ export function processLiveOpsData(
   const refDayName = getDayName(refDate);
   const _prevDayName = getDayName(prevWorkday);
 
+  // 2.5 Channel Telemetry Counts (Computed across full unfiltered orders for the active view)
+  let allViewOrders: RawOrderRow[] = [];
+  if (view === 'Queue') {
+    allViewOrders = orders.filter(isOrderInQueue);
+  } else if (view === 'Last Day Shipped') {
+    allViewOrders = orders.filter((o) => isOrderShippedOnDate(o, prevDateIso));
+  } else if (view === "Today's Orders" || view === 'Today Orders' || view === 'All Orders') {
+    allViewOrders = orders.filter((o) => isTodayOrdersEligible(o, refDateIso, { channelFilter: 'ALL' }));
+  } else {
+    allViewOrders = orders.filter((o) => isOrderShippedOnDate(o, refDateIso));
+  }
+
+  const onlineViewOrders = allViewOrders.filter(isOrderOnline);
+  const posViewOrders = allViewOrders.filter((o) => !isOrderOnline(o));
+
+  const countUniqueOrderIds = (list: RawOrderRow[]) =>
+    new Set(list.map((o) => String(o['Order ID'] || o.orderId || '')).filter(Boolean)).size;
+  const countOrderItemUnits = (list: RawOrderRow[]) =>
+    list.reduce((sum, o) => sum + (Number(o.Quantity ?? o.quantity ?? o.qty) || 1), 0);
+
+  const channelStats: ChannelStats = {
+    onlineCount: countUniqueOrderIds(onlineViewOrders),
+    posCount: countUniqueOrderIds(posViewOrders),
+    totalCount: countUniqueOrderIds(allViewOrders),
+    onlineItems: countOrderItemUnits(onlineViewOrders),
+    posItems: countOrderItemUnits(posViewOrders),
+    totalItems: countOrderItemUnits(allViewOrders),
+  };
+
   // 3. Partition orders into Active (Ref Date) vs Comparison (Prev Workday)
   let activeOrders: RawOrderRow[] = [];
   let prevOrders: RawOrderRow[] = [];
@@ -881,7 +940,7 @@ export function processLiveOpsData(
     prevOrders = source.filter((o) => isOrderShippedOnDate(o, refDateIso));
   } else if (view === "Today's Orders" || view === 'Today Orders' || view === 'All Orders') {
     // User Rule: Today's Orders = those orders shipped today, and those orders whose status is Processing
-    activeOrders = source.filter((o) => isTodayOrdersEligible(o, refDateIso));
+    activeOrders = source.filter((o) => isTodayOrdersEligible(o, refDateIso, { channelFilter }));
     prevOrders = source.filter((o) => {
       const d = getStatusModificationDate(o);
       const oRec = o as Record<string, unknown>;
@@ -1375,7 +1434,9 @@ export function processLiveOpsData(
   }
 
   // Strictly isolate commercial online checkout orders for executive briefing dispatches and telemetry
-  const commercialOnlineDispatches = commercialActiveOrders.filter(isOrderOnline);
+  const commercialOnlineDispatches = channelFilter === 'POS'
+    ? commercialActiveOrders
+    : commercialActiveOrders.filter(isOrderOnline);
 
   // Compute last shipped order and Pathao consignment ID strictly from commercial online orders
   const sortedDispatches = [...commercialOnlineDispatches].sort((a, b) => {
@@ -1547,6 +1608,7 @@ export function processLiveOpsData(
     avgUnitsSold,
 
     exchangeStats,
+    channelStats,
     activeOrders: [...commercialActiveOrders, ...replacementOrders],
     totalDispatchedItems: activeItemsCount,
     totalUniqueOrders: activeOrdersCount,

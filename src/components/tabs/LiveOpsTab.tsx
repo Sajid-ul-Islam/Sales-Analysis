@@ -37,6 +37,7 @@ import {
   isOrderShipped,
   isOrderExchange,
   isOrderOnline,
+  isOrderPos,
   extractExchangeInfo,
   generateWhatsAppConfirmationUrl,
   parseOrderDate,
@@ -179,7 +180,8 @@ export function LiveOpsTab({
 }: LiveOpsTabProps) {
   // Navigation & View state
   const [selectedView, setSelectedView] = useState<'Today Shipped' | "Today's Orders" | 'Queue'>('Today Shipped');
-  const [onlineOnly, setOnlineOnly] = useState(true);
+  const [channelFilter, setChannelFilter] = useState<'ALL' | 'ONLINE' | 'POS'>('ONLINE');
+  const onlineOnly = channelFilter === 'ONLINE';
   const [showSubCategory, setShowSubCategory] = useState(false);
   const [isVolumeModalOpen, setIsVolumeModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -286,6 +288,10 @@ export function LiveOpsTab({
     const urlLedger = p.get('ledgerView');
     if (urlLedger === 'ORDER_WISE' || urlLedger === 'orderwise') setLedgerViewMode('ORDER_WISE');
     if (urlLedger === 'ITEM_WISE' || urlLedger === 'itemwise') setLedgerViewMode('ITEM_WISE');
+    const urlChannel = (p.get('channel') || p.get('channelFilter') || '').toUpperCase();
+    if (urlChannel === 'POS' || urlChannel === 'ONLINE' || urlChannel === 'ALL') {
+      setChannelFilter(urlChannel as 'ALL' | 'ONLINE' | 'POS');
+    }
 
     const cached = getCacheItem<LiveTerminalCacheEnvelope>(DEEN_CACHE_KEYS.LIVE_TERMINAL);
     if (cached) {
@@ -334,12 +340,13 @@ export function LiveOpsTab({
   const report: LiveOpsReport = useMemo(() => {
     return processLiveOpsData(activeDataset, {
       view: selectedHistoricalDate ? 'Today Shipped' : selectedView,
+      channelFilter,
       onlineOnly,
       customDate: selectedHistoricalDate || undefined,
       anchorDate: snapshotAnchorDate,
       historicalOrders: orders,
     });
-  }, [activeDataset, selectedView, onlineOnly, selectedHistoricalDate, snapshotAnchorDate, orders]);
+  }, [activeDataset, selectedView, channelFilter, onlineOnly, selectedHistoricalDate, snapshotAnchorDate, orders]);
 
   const activeCategoryItems = showSubCategory ? report.subCategoryItems : report.categoryItems;
 
@@ -504,8 +511,9 @@ export function LiveOpsTab({
   // Filtered orders list for ledger table (Sorted by Order Number)
   const filteredOrders = useMemo(() => {
     const list = report.activeOrders.filter((o) => {
-      // Rule: Exclude POS outlet orders from online operations view
-      if (!isOrderOnline(o)) return false;
+      // Rule: Channel Filter (ONLINE vs POS vs ALL)
+      if (channelFilter === 'ONLINE' && !isOrderOnline(o)) return false;
+      if (channelFilter === 'POS' && isOrderOnline(o)) return false;
 
       // Rule: Exclude exchange replacements (and non-checkout orders) from standard commercial view unless 'EXCHANGES_ONLY' is selected
       if (courierFilter === 'EXCHANGES_ONLY') {
@@ -577,7 +585,7 @@ export function LiveOpsTab({
     });
 
     return list.sort(compareOrdersByNumber);
-  }, [report.activeOrders, searchQuery, categoryFilter, courierFilter, selectedView, pipelineFilter]);
+  }, [report.activeOrders, searchQuery, categoryFilter, courierFilter, selectedView, pipelineFilter, channelFilter]);
 
   // Grouped order-wise records for consolidated ledger table view
   const orderWiseGroups = useMemo(() => {
@@ -591,8 +599,9 @@ export function LiveOpsTab({
       courierFilter,
       pipelineFilter,
       selectedView,
+      channelFilter,
     });
-  }, [orderWiseGroups, searchQuery, categoryFilter, courierFilter, pipelineFilter, selectedView]);
+  }, [orderWiseGroups, searchQuery, categoryFilter, courierFilter, pipelineFilter, selectedView, channelFilter]);
 
   // Table Container Ref for Scroll Virtualization
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -691,11 +700,16 @@ export function LiveOpsTab({
     }
   }, [filteredOrderWiseGroups, filteredOrders, report.activeOrders]);
 
-  // Unique categories for table filter dropdown (pure online commercial items)
+  // Unique categories for table filter dropdown (respects active channel filter)
   const uniqueCategories = useMemo(() => {
     const set = new Set<string>();
     for (const o of report.activeOrders) {
-      if (isOrderOnline(o) && !isOrderExchange(o)) {
+      const matchChannel =
+        channelFilter === 'ALL' ||
+        (channelFilter === 'ONLINE' && isOrderOnline(o)) ||
+        (channelFilter === 'POS' && !isOrderOnline(o));
+
+      if (matchChannel && !isOrderExchange(o)) {
         const itemName = String(o['Item Name'] || '');
         const cat = getCategoryForSales(itemName);
         if (showSubCategory) {
@@ -707,7 +721,7 @@ export function LiveOpsTab({
       }
     }
     return Array.from(set).sort();
-  }, [report.activeOrders, showSubCategory]);
+  }, [report.activeOrders, showSubCategory, channelFilter]);
 
   // Authoritative day labels for KPI card sparklines (7-day timeline)
   const kpiDayLabels = useMemo(() => {
@@ -777,7 +791,7 @@ export function LiveOpsTab({
 
     const targetOrders = isExchangesView
       ? report.activeOrders.filter(isOrderExchange)
-      : filteredOrders.filter((o) => isOrderOnline(o) && !isOrderExchange(o));
+      : filteredOrders.filter((o) => !isOrderExchange(o));
 
     const sortedOrders = [...targetOrders].sort(compareOrdersByNumber);
     const exportData = sortedOrders.map((o) => {
@@ -877,19 +891,87 @@ export function LiveOpsTab({
 
           {/* Primary Action Controls */}
           <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-            {/* Online Only Filter Toggle Pill */}
-            <button
-              type="button"
-              onClick={() => setOnlineOnly(!onlineOnly)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
-                onlineOnly
-                  ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 shadow-2xs'
-                  : 'bg-slate-50 dark:bg-[#121212] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-[#1F1F1F] hover:text-slate-900 dark:hover:text-white'
-              }`}
+            {/* Channel Segmented Filter */}
+            <div
+              role="radiogroup"
+              aria-label="Filter orders by channel"
+              className="inline-flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-[#121212] border border-slate-200/80 dark:border-[#1F1F1F] text-xs font-bold shadow-2xs"
             >
-              <span className={`w-2 h-2 rounded-full ${onlineOnly ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`} />
-              <span>Online Only</span>
-            </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={channelFilter === 'ONLINE'}
+                onClick={() => setChannelFilter('ONLINE')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  channelFilter === 'ONLINE'
+                    ? 'bg-white dark:bg-[#1E1E1E] text-blue-700 dark:text-blue-400 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Web checkout dispatches and outlet courier fulfillment"
+              >
+                <span className={`w-2 h-2 rounded-full ${channelFilter === 'ONLINE' ? 'bg-blue-600 dark:bg-blue-400' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                <span>Online Checkout</span>
+                {report.channelStats && (
+                  <span className={`ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                    channelFilter === 'ONLINE'
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300'
+                      : 'bg-slate-200 dark:bg-[#202020] text-slate-600 dark:text-slate-400'
+                  }`}>
+                    {report.channelStats.onlineCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                role="radio"
+                aria-checked={channelFilter === 'POS'}
+                onClick={() => setChannelFilter('POS')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  channelFilter === 'POS'
+                    ? 'bg-white dark:bg-[#1E1E1E] text-emerald-700 dark:text-emerald-400 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Physical in-store walk-in POS sales"
+              >
+                <span className={`w-2 h-2 rounded-full ${channelFilter === 'POS' ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                <span>POS Retail</span>
+                {report.channelStats && (
+                  <span className={`ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                    channelFilter === 'POS'
+                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                      : 'bg-slate-200 dark:bg-[#202020] text-slate-600 dark:text-slate-400'
+                  }`}>
+                    {report.channelStats.posCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                role="radio"
+                aria-checked={channelFilter === 'ALL'}
+                onClick={() => setChannelFilter('ALL')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  channelFilter === 'ALL'
+                    ? 'bg-white dark:bg-[#1E1E1E] text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="All sales channels combined"
+              >
+                <span className={`w-2 h-2 rounded-full ${channelFilter === 'ALL' ? 'bg-slate-800 dark:bg-slate-200' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                <span>All</span>
+                {report.channelStats && (
+                  <span className={`ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                    channelFilter === 'ALL'
+                      ? 'bg-slate-200 text-slate-800 dark:bg-[#2A2A2A] dark:text-slate-200'
+                      : 'bg-slate-200 dark:bg-[#202020] text-slate-600 dark:text-slate-400'
+                  }`}>
+                    {report.channelStats.totalCount}
+                  </span>
+                )}
+              </button>
+            </div>
 
             {/* Sync Button with Isolated 1-Second Auto-Countdown */}
             <AutoSyncCountdownButton
@@ -2487,6 +2569,46 @@ export function LiveOpsTab({
           </div>
         </div>
 
+        {/* Order Channel Telemetry Filter Chips */}
+        <div className="flex items-center gap-2 flex-wrap pb-1">
+          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mr-1">
+            Order Channel:
+          </span>
+          {[
+            { id: 'ONLINE' as const, label: '🌐 Online Checkout', count: report.channelStats?.onlineCount },
+            { id: 'POS' as const, label: '🏬 POS Retail', count: report.channelStats?.posCount },
+            { id: 'ALL' as const, label: '📦 All Channels', count: report.channelStats?.totalCount },
+          ].map((pill) => (
+            <button
+              key={pill.id}
+              type="button"
+              onClick={() => setChannelFilter(pill.id)}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                channelFilter === pill.id
+                  ? pill.id === 'POS'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : pill.id === 'ONLINE'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-slate-900 dark:bg-white text-white dark:text-black shadow-xs'
+                  : 'bg-slate-100 dark:bg-[#121212] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#1A1A1A] border border-transparent dark:border-[#1F1F1F]'
+              }`}
+            >
+              <span>{pill.label}</span>
+              {pill.count !== undefined && (
+                <span
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                    channelFilter === pill.id
+                      ? 'bg-white/20 text-white' + (pill.id === 'ALL' ? ' dark:bg-black/20 dark:text-black' : '')
+                      : 'bg-slate-200 dark:bg-[#202020] text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  {pill.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
         {/* Courier Telemetry Filter Chips */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mr-1">
@@ -2676,6 +2798,17 @@ export function LiveOpsTab({
                                   );
                                 }
 
+                                if (group.isPos) {
+                                  return (
+                                    <span
+                                      className="inline-block self-start px-1.5 py-0.5 rounded text-[9.5px] font-bold tracking-tight bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 font-sans shadow-2xs"
+                                      title="Physical Walk-In In-Store POS Register Sale"
+                                    >
+                                      🏬 POS Store
+                                    </span>
+                                  );
+                                }
+
                                 if (!group.branch.isBranchFulfillment) return null;
                                 const badgeColor =
                                   group.branch.branchCode === 'MIRPUR'
@@ -2796,7 +2929,11 @@ export function LiveOpsTab({
 
                           {/* Courier Status */}
                           <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
-                            {effectiveCourierStatus === 'Delivered' ? (
+                            {group.isPos ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
+                                <span>🏪 In-Store</span>
+                              </span>
+                            ) : effectiveCourierStatus === 'Delivered' ? (
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                                 <span>Delivered</span>
@@ -2834,7 +2971,9 @@ export function LiveOpsTab({
 
                           {/* Consignment ID */}
                           <td className="py-2.5 px-3.5 text-center font-mono text-[11px] whitespace-nowrap">
-                            {group.consignmentIds.length > 0 ? (
+                            {group.isPos ? (
+                              <span className="text-slate-400 dark:text-slate-500 text-[10px] italic">In-Store Register</span>
+                            ) : group.consignmentIds.length > 0 ? (
                               <div className="flex flex-col gap-1 items-center">
                                 {group.consignmentIds.map((cid, cIdx) => (
                                   <a
@@ -3018,6 +3157,17 @@ export function LiveOpsTab({
                                 );
                               }
 
+                              if (isOrderPos(row)) {
+                                return (
+                                  <span
+                                    className="inline-block self-start px-1.5 py-0.5 rounded text-[9.5px] font-bold tracking-tight bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 font-sans shadow-2xs"
+                                    title="Physical Walk-In In-Store POS Register Sale"
+                                  >
+                                    🏬 POS Store
+                                  </span>
+                                );
+                              }
+
                               if (!branch.isBranchFulfillment) return null;
                               const badgeColor =
                                 branch.branchCode === 'MIRPUR'
@@ -3095,7 +3245,11 @@ export function LiveOpsTab({
                           </span>
                         </td>
                         <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
-                          {effectiveCourierStatus === 'Delivered' ? (
+                          {isOrderPos(row) ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
+                              <span>🏪 In-Store</span>
+                            </span>
+                          ) : effectiveCourierStatus === 'Delivered' ? (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                               <span>Delivered</span>
@@ -3131,7 +3285,9 @@ export function LiveOpsTab({
                           )}
                         </td>
                         <td className="py-2.5 px-3.5 text-center font-mono text-[11px] whitespace-nowrap">
-                          {consignmentId ? (
+                          {isOrderPos(row) ? (
+                            <span className="text-slate-400 dark:text-slate-500 text-[10px] italic">In-Store Register</span>
+                          ) : consignmentId ? (
                             <a
                               href={`https://pathao.com/courier/tracking/?consignment_id=${encodeURIComponent(consignmentId)}`}
                               target="_blank"

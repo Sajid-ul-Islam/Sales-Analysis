@@ -204,5 +204,77 @@ describe('Order-Wise Grouping & Filtering Engine', () => {
       expect(groups[0].totalAmount).toBe(2400);
     });
   });
+
+  describe('Channel Filtering (Online Checkout vs POS vs All)', () => {
+    const mixedRows = [
+      // Online web checkout order
+      {
+        orderId: '8001',
+        'Order ID': '8001',
+        'Item Name': 'DEEN Polo Shirt',
+        Quantity: 1,
+        'Item Cost': 1200,
+        'Order Amount': 1200,
+        'Payment Method': 'bKash',
+        'Consignment ID': 'PTC-9901',
+        'Created Via': 'checkout',
+      } as unknown as RawOrderRow,
+      // Physical walk-in POS order
+      {
+        orderId: '9001',
+        'Order ID': '9001',
+        'Item Name': 'DEEN Casual Trouser',
+        Quantity: 2,
+        'Item Cost': 1500,
+        'Order Amount': 3000,
+        'Order Source': 'POS',
+        'Created Via': 'pos',
+        isPos: true,
+      } as unknown as RawOrderRow,
+    ];
+
+    it('identifies isPos and isOnline accurately during grouping', () => {
+      const groups = groupOrdersByOrderId(mixedRows);
+      expect(groups).toHaveLength(2);
+
+      const onlineGroup = groups.find((g) => g.orderId === '8001');
+      const posGroup = groups.find((g) => g.orderId === '9001');
+
+      expect(onlineGroup?.isOnline).toBe(true);
+      expect(onlineGroup?.isPos).toBe(false);
+
+      expect(posGroup?.isOnline).toBe(false);
+      expect(posGroup?.isPos).toBe(true);
+    });
+
+    it('filters strictly to ONLINE orders by default or when channelFilter is ONLINE', () => {
+      const groups = groupOrdersByOrderId(mixedRows);
+
+      // Default (no channelFilter option)
+      const defaultFiltered = filterOrderWiseGroups(groups);
+      expect(defaultFiltered).toHaveLength(1);
+      expect(defaultFiltered[0].orderId).toBe('8001');
+
+      // Explicit ONLINE
+      const onlineFiltered = filterOrderWiseGroups(groups, { channelFilter: 'ONLINE' });
+      expect(onlineFiltered).toHaveLength(1);
+      expect(onlineFiltered[0].orderId).toBe('8001');
+    });
+
+    it('filters strictly to POS orders when channelFilter is POS', () => {
+      const groups = groupOrdersByOrderId(mixedRows);
+      const posFiltered = filterOrderWiseGroups(groups, { channelFilter: 'POS' });
+      expect(posFiltered).toHaveLength(1);
+      expect(posFiltered[0].orderId).toBe('9001');
+      expect(posFiltered[0].isPos).toBe(true);
+    });
+
+    it('returns both ONLINE and POS orders when channelFilter is ALL', () => {
+      const groups = groupOrdersByOrderId(mixedRows);
+      const allFiltered = filterOrderWiseGroups(groups, { channelFilter: 'ALL' });
+      expect(allFiltered).toHaveLength(2);
+      expect(allFiltered.map((g) => g.orderId).sort()).toEqual(['8001', '9001']);
+    });
+  });
 });
 
