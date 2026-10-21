@@ -97,31 +97,31 @@ export function ExchangedOrdersTab({
   return (
     <div className="space-y-6">
       {/* Executive Header Banner */}
-      <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-deepBlack-card rounded-xl border border-slate-200/80 dark:border-deepBlack-border p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 font-bold">
+            <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/40 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold">
               <ArrowRightLeft className="w-4 h-4" />
             </div>
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-purple-600 font-bold">
+              <span className="text-[10px] uppercase tracking-wider text-purple-600 dark:text-purple-400 font-bold">
                 Customer Size & Product Exchange Ledger
               </span>
-              <h2 className="font-headline text-base sm:text-lg font-bold text-navy-deep">
+              <h2 className="font-headline text-base sm:text-lg font-bold text-navy-deep dark:text-white">
                 Exchanged Orders & Parcel Replacement Audit
               </h2>
             </div>
           </div>
-          <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
             Tracks customer size replacement orders, strips <code>D-</code> prefix from order IDs, reconciles exchange COD doorstep collections against courier charges, and verifies delivery fulfillment.
           </p>
         </div>
 
         <button
           onClick={handleExportCsv}
-          className="px-3.5 py-2 rounded-lg bg-white border border-slate-200/80 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors shrink-0"
+          className="px-3.5 py-2 rounded-lg bg-white dark:bg-deepBlack-elevated border border-slate-200/80 dark:border-deepBlack-border hover:bg-slate-50 dark:hover:bg-deepBlack-hover text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/40"
         >
-          <Download className="w-3.5 h-3.5 text-slate-500" />
+          <Download className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
           <span>Export Exchange CSV</span>
         </button>
       </div>

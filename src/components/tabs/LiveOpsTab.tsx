@@ -1621,32 +1621,32 @@ export function LiveOpsTab({
 
       {/* ── Today's Orders Pipeline Status Strip (Only when Today's Orders view is selected) ── */}
       {(selectedView === "Today's Orders" || (selectedView as string) === 'All Orders') && report.allOrdersBreakdown && (
-        <div className="bg-slate-50 border border-slate-200/90 rounded-3xl p-4 shadow-xs space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-2.5">
+        <div className="bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200/90 dark:border-deepBlack-border rounded-3xl p-4 shadow-xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 dark:border-deepBlack-border pb-2.5">
             <div className="flex items-center gap-2">
               <span className="text-base">📦</span>
               <div>
-                <h3 className="text-xs sm:text-sm font-black text-slate-800 tracking-tight font-headline flex items-center gap-2">
+                <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center gap-2">
                   <span>Today&apos;s Orders Operational Pipeline</span>
-                  <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-blue-100 text-blue-800">
+                  <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300">
                     Shipped Today + Processing + Hold
                   </span>
                 </h3>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Active orders placed from online store checkout: {report.allOrdersBreakdown.totalActiveCount} orders (৳ {report.allOrdersBreakdown.totalActiveAmount.toLocaleString()})
                 </p>
               </div>
             </div>
 
             {/* Pipeline quick filter buttons */}
-            <div className="inline-flex bg-white p-0.5 rounded-xl border border-slate-200 text-xs font-bold">
+            <div className="inline-flex bg-white dark:bg-deepBlack-card p-0.5 rounded-xl border border-slate-200 dark:border-deepBlack-border text-xs font-bold">
               <button
                 type="button"
                 onClick={() => setPipelineFilter('ALL')}
                 className={`px-2.5 py-1 rounded-lg transition-all ${
                   pipelineFilter === 'ALL'
-                    ? 'bg-slate-900 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 All ({report.allOrdersBreakdown.totalActiveCount})
@@ -1657,7 +1657,7 @@ export function LiveOpsTab({
                 className={`px-2.5 py-1 rounded-lg transition-all ${
                   pipelineFilter === 'PROCESSING'
                     ? 'bg-blue-600 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 ⚡ Processing ({report.allOrdersBreakdown.processingCount})
@@ -1668,7 +1668,7 @@ export function LiveOpsTab({
                 className={`px-2.5 py-1 rounded-lg transition-all ${
                   pipelineFilter === 'HOLD'
                     ? 'bg-amber-600 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 ⏳ On-Hold ({report.allOrdersBreakdown.holdCount})
@@ -1679,7 +1679,7 @@ export function LiveOpsTab({
                 className={`px-2.5 py-1 rounded-lg transition-all ${
                   pipelineFilter === 'SHIPPED_TODAY'
                     ? 'bg-emerald-600 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 🚚 Today Shipped ({report.allOrdersBreakdown.todayShippedCount})
@@ -1693,21 +1693,21 @@ export function LiveOpsTab({
               onClick={() => setPipelineFilter(pipelineFilter === 'PROCESSING' ? 'ALL' : 'PROCESSING')}
               className={`p-3 rounded-2xl border transition-all cursor-pointer ${
                 pipelineFilter === 'PROCESSING'
-                  ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-500/20'
-                  : 'bg-white border-slate-200/80 hover:border-blue-200'
+                  ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-700/60 ring-2 ring-blue-500/20'
+                  : 'bg-white dark:bg-deepBlack-card border-slate-200/80 dark:border-deepBlack-border hover:border-blue-200 dark:hover:border-blue-900/60'
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
                   ⚡ Processing Queue
                 </span>
-                <span className="text-[10px] text-slate-400 font-medium">To Pack</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">To Pack</span>
               </div>
               <div className="mt-1 flex items-baseline justify-between">
-                <span className="text-xl font-black text-slate-900 font-headline">
-                  {report.allOrdersBreakdown.processingCount} <span className="text-xs font-normal text-slate-500">orders</span>
+                <span className="text-xl font-black text-slate-900 dark:text-white font-headline">
+                  {report.allOrdersBreakdown.processingCount} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">orders</span>
                 </span>
-                <span className="text-xs font-bold text-blue-700">
+                <span className="text-xs font-bold text-blue-700 dark:text-blue-400">
                   ৳ {report.allOrdersBreakdown.processingAmount.toLocaleString()}
                 </span>
               </div>
@@ -1717,21 +1717,21 @@ export function LiveOpsTab({
               onClick={() => setPipelineFilter(pipelineFilter === 'HOLD' ? 'ALL' : 'HOLD')}
               className={`p-3 rounded-2xl border transition-all cursor-pointer ${
                 pipelineFilter === 'HOLD'
-                  ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-500/20'
-                  : 'bg-white border-slate-200/80 hover:border-amber-200'
+                  ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700/60 ring-2 ring-amber-500/20'
+                  : 'bg-white dark:bg-deepBlack-card border-slate-200/80 dark:border-deepBlack-border hover:border-amber-200 dark:hover:border-amber-900/60'
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
                   ⏳ On-Hold (Verification)
                 </span>
-                <span className="text-[10px] text-slate-400 font-medium">Advance / Confirm</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Advance / Confirm</span>
               </div>
               <div className="mt-1 flex items-baseline justify-between">
-                <span className="text-xl font-black text-slate-900 font-headline">
-                  {report.allOrdersBreakdown.holdCount} <span className="text-xs font-normal text-slate-500">orders</span>
+                <span className="text-xl font-black text-slate-900 dark:text-white font-headline">
+                  {report.allOrdersBreakdown.holdCount} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">orders</span>
                 </span>
-                <span className="text-xs font-bold text-amber-700">
+                <span className="text-xs font-bold text-amber-700 dark:text-amber-400">
                   ৳ {report.allOrdersBreakdown.holdAmount.toLocaleString()}
                 </span>
               </div>
@@ -1741,21 +1741,21 @@ export function LiveOpsTab({
               onClick={() => setPipelineFilter(pipelineFilter === 'SHIPPED_TODAY' ? 'ALL' : 'SHIPPED_TODAY')}
               className={`p-3 rounded-2xl border transition-all cursor-pointer ${
                 pipelineFilter === 'SHIPPED_TODAY'
-                  ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20'
-                  : 'bg-white border-slate-200/80 hover:border-emerald-200'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/60 ring-2 ring-emerald-500/20'
+                  : 'bg-white dark:bg-deepBlack-card border-slate-200/80 dark:border-deepBlack-border hover:border-emerald-200 dark:hover:border-emerald-900/60'
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
                   🚚 Today Shipped / Completed
                 </span>
-                <span className="text-[10px] text-slate-400 font-medium">Handed Over</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Handed Over</span>
               </div>
               <div className="mt-1 flex items-baseline justify-between">
-                <span className="text-xl font-black text-slate-900 font-headline">
-                  {report.allOrdersBreakdown.todayShippedCount} <span className="text-xs font-normal text-slate-500">orders</span>
+                <span className="text-xl font-black text-slate-900 dark:text-white font-headline">
+                  {report.allOrdersBreakdown.todayShippedCount} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">orders</span>
                 </span>
-                <span className="text-xs font-bold text-emerald-700">
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
                   ৳ {report.allOrdersBreakdown.todayShippedAmount.toLocaleString()}
                 </span>
               </div>
