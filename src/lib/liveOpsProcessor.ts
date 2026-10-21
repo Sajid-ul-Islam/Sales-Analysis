@@ -531,6 +531,19 @@ export function parseOrderDateValue(val: unknown): Date | null {
     if (!isNaN(num) && num > 30000 && num < 70000) {
       return new Date(Math.round((num - 25569) * 86400 * 1000));
     }
+    // If string has date & time without timezone offset or Z, pin it to Asia/Dhaka (+06:00).
+    // WooCommerce and Bangladesh store databases persist wall-clock time in Dhaka (+06:00) without offset!
+    // In Vercel serverless (TZ=UTC), unzoned new Date(str) parses as UTC and shifts Thursday evening orders into Friday!
+    if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2})?/.test(trimmed) && !trimmed.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(trimmed)) {
+      const normalized = trimmed.replace(' ', 'T');
+      const d = new Date(`${normalized}+06:00`);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    // If date only (YYYY-MM-DD), parse at midday Dhaka (+06:00)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      const d = new Date(`${trimmed}T12:00:00+06:00`);
+      return isNaN(d.getTime()) ? null : d;
+    }
     const d = new Date(trimmed);
     return isNaN(d.getTime()) ? null : d;
   }
@@ -660,16 +673,44 @@ export function isTodayOrdersEligible(order: RawOrderRow, targetDateIso: string)
 // Backward compatibility alias
 export const isAllOrdersEligible = isTodayOrdersEligible;
 
+/**
+ * Identifies genuine Online Store orders fulfilled from Central Warehouse.
+ * Strictly excludes POS outlet orders from Mirpur POS, Cumilla, Wari, and Sylhet retail branches.
+ */
 export function isOrderOnline(order: RawOrderRow): boolean {
   const o = order as Record<string, unknown>;
-  const isPos = Boolean(o.isPos || o.outletId);
-  const src = String(order['Order Source'] || '').toLowerCase();
-  const loc = String(o.fulfillmentLocation || '').toLowerCase();
-  const branch = String(o.branchCode || o.branch || '').toUpperCase();
+
+  // 1. Explicit POS / Outlet metadata
+  if (o.isPos === true) return false;
+  if (Boolean(o.outletId && String(o.outletId).trim())) return false;
+  if (Boolean(o['Outlet ID'] && String(o['Outlet ID']).trim())) return false;
+  if (o.isBranchFulfillment === true) return false;
+
+  // 2. Order Source & Created Via markers
+  const src = String(order['Order Source'] || o.orderSource || '').toLowerCase().trim();
+  if (src === 'pos') return false;
+
+  const createdVia = String(o.created_via || o['Created Via'] || o.createdVia || '').toLowerCase().trim();
+  if (createdVia.includes('pos')) return false;
+
+  // 3. Branch code (must be ONLINE if populated)
+  const branch = String(o.branchCode || o.branch || '').toUpperCase().trim();
+  if (branch && branch !== 'ONLINE') return false;
+
+  // 4. Fulfillment location / branch names (reject physical retail branches)
+  const loc = String(o.fulfillmentLocation || o.fulfillmentBranch || '').toLowerCase().trim();
+  if (loc) {
+    if (loc.includes('pos') || loc.includes('retail outlet')) return false;
+    if (loc.includes('cumilla') || loc.includes('wari') || loc.includes('sylhet')) return false;
+    if (loc.includes('mirpur outlet') || loc.includes('mirpur pos')) return false;
+    if (loc.includes('branch') && !loc.includes('central') && !loc.includes('warehouse')) return false;
+  }
+
+  // 5. Branch register suffixes on order ID (m, c, w, s)
   const oid = String(order['Order ID'] || o.orderId || '').trim();
-  const isMirpurSuffix = /\b\d+\s*m\b|[-_\s]m$/i.test(oid) || /\d+m$/i.test(oid);
-  const isPosCreatedVia = String(o.created_via || '').toLowerCase().includes('pos');
-  return !isPos && src !== 'pos' && !loc.includes('pos') && !branch.includes('POS') && !isMirpurSuffix && !isPosCreatedVia;
+  if (/[-_\s]?[mcws]$/i.test(oid) || /\b\d+\s*[mcws]\b/i.test(oid)) return false;
+
+  return true;
 }
 
 export interface WhatsAppMessageOptions {
@@ -992,7 +1033,7 @@ export function processLiveOpsData(
     const isPrevDay = dIso === formatDateToIsoDay(getPreviousWorkingDay(anchor));
     const dateLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'Asia/Dhaka' });
     const dayName = getDayName(d);
-    const isFriday = dayName.toLowerCase().startsWith('fri') || d.getDay() === 5;
+    const isFriday = dayName.toLowerCase().startsWith('fri') || dateLabel.toLowerCase().startsWith('fri') || d.getDay() === 5;
     const isFridayClosed = isFriday && dayOrdersCount === 0;
 
     last7DaysHistory.push({

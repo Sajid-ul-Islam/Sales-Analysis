@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: auth.message }, { status: auth.statusCode });
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const { order } = body;
 
     if (!order) {

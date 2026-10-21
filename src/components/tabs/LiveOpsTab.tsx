@@ -347,7 +347,7 @@ export function LiveOpsTab({
   // In Bangladesh fulfillment operations, orders placed on Friday are dispatched on Saturday.
   const displayHistoryDays = useMemo(() => {
     return report.last7DaysHistory.filter((day) => {
-      const isFriday = day.dayName.toLowerCase().startsWith('fri');
+      const isFriday = day.dayName.toLowerCase().startsWith('fri') || (day.dateLabel && day.dateLabel.toLowerCase().startsWith('fri'));
       if (isFriday && (day.isFridayClosed || day.orderCount === 0)) {
         return false;
       }

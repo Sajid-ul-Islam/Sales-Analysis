@@ -11,18 +11,26 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: auth.message }, { status: auth.statusCode });
   }
 
-  const searchParams = request.nextUrl.searchParams;
-  const preset = searchParams.get('preset') || 'last_30d';
-  const customToken = searchParams.get('token') || undefined;
-  const checkOnly = searchParams.get('check') === 'true';
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const preset = searchParams.get('preset') || 'last_30d';
+    const customToken = searchParams.get('token') || undefined;
+    const checkOnly = searchParams.get('check') === 'true';
 
-  if (checkOnly) {
-    const status = await testMetaConnection(customToken);
-    return NextResponse.json(status);
+    if (checkOnly) {
+      const status = await testMetaConnection(customToken);
+      return NextResponse.json(status);
+    }
+
+    const report = await fetchFullMetaAnalytics(preset, customToken);
+    return NextResponse.json(report);
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to process Meta request';
+    return NextResponse.json(
+      { success: false, error: errorMsg },
+      { status: 500 }
+    );
   }
-
-  const report = await fetchFullMetaAnalytics(preset, customToken);
-  return NextResponse.json(report);
 }
 
 export async function POST(request: NextRequest) {

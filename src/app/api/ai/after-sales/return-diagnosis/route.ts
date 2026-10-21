@@ -39,7 +39,7 @@ Respond with a strictly formatted JSON object:
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const body = (await req.json().catch(() => ({}))) || {};
     const { returnedItems = [], summary, byok } = body as {
       returnedItems?: Record<string, unknown>[];
       summary?: { totalReturnedQty?: number; returnRate?: number; fullReturnedOrders?: number; partialOrders?: number };

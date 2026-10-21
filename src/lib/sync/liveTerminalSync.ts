@@ -410,6 +410,15 @@ export function parseDateToEpoch(val: unknown): number {
   if (!isNaN(num) && /^\d+(\.\d+)?$/.test(s)) {
     return parseDateToEpoch(num);
   }
+  if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2})?/.test(s) && !s.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(s)) {
+    const normalized = s.replace(' ', 'T');
+    const parsed = Date.parse(`${normalized}+06:00`);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const parsed = Date.parse(`${s}T12:00:00+06:00`);
+    return isNaN(parsed) ? 0 : parsed;
+  }
   const parsed = Date.parse(s);
   return isNaN(parsed) ? 0 : parsed;
 }

@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const { apiKey = '', provider: propProvider, model: propModel } = body;
 
     const trimmedKey = (apiKey || '').trim();

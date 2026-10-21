@@ -30,8 +30,9 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const credentials = body.credentials || undefined;
     const singlePhone = body.phone ? String(body.phone).trim() : null;
-    const phoneList: string[] = Array.isArray(body.phones)
-      ? body.phones.map((p: unknown) => String(p || '').trim()).filter(Boolean)
+    const batchInput = Array.isArray(body.batch) ? body.batch : (Array.isArray(body.phones) ? body.phones : null);
+    const phoneList: string[] = batchInput
+      ? batchInput.map((p: unknown) => String(p || '').trim()).filter(Boolean)
       : (singlePhone ? [singlePhone] : []);
 
     if (phoneList.length === 0) {
