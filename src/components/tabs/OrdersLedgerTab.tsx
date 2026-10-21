@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { ReconciledOrderRow } from '@/types';
-import { Search, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Eye, Copy, Check, RotateCcw } from 'lucide-react';
 import { OrderDetailModal } from '@/components/OrderDetailModal';
 import { getManualOverrides, ManualOverride } from '@/lib/overrideStore';
 import { FulfillmentBadge, StatusBadge } from '@/components/common';
@@ -30,6 +30,25 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [overrides, setOverrides] = useState<Record<string, ManualOverride>>({});
+  const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
+
+  const handleCopyOrderId = (e: React.MouseEvent, orderId: string) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(orderId);
+    setCopiedOrderId(orderId);
+    setTimeout(() => {
+      setCopiedOrderId((prev) => (prev === orderId ? null : prev));
+    }, 2000);
+  };
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('ALL');
+    setBranchFilter('ALL');
+    setTerritoryFilter('ALL');
+    setAiTagFilter('ALL');
+    setCurrentPage(1);
+  };
 
   const availableAiTags = useMemo(() => {
     const tagSet = new Set<string>();
@@ -307,11 +326,16 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
           <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">Order ID pinned</span>
         </div>
 
-        <div className="overflow-x-auto min-w-0">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-deepBlack-border">
+        <div
+          className="overflow-x-auto overflow-y-auto max-h-[72vh] min-w-0 relative focus:outline-none"
+          tabIndex={0}
+          role="region"
+          aria-label="Orders Ledger Table"
+        >
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="bg-slate-50 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-deepBlack-border sticky top-0 z-20">
               <tr>
-                <th className="py-3 px-3.5 bg-slate-50 dark:bg-deepBlack-sidebar sticky left-0 z-20 min-w-[140px] border-r border-slate-200 dark:border-deepBlack-border shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order ID</th>
+                <th className="py-3 px-3.5 bg-slate-50 dark:bg-deepBlack-sidebar sticky left-0 top-0 z-20 min-w-[140px] border-r border-slate-200 dark:border-deepBlack-border shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order ID</th>
                 <th className="py-3 px-3.5">Line Type</th>
                 <th className="py-3 px-3.5">Order Status</th>
                 <th className="py-3 px-3.5">Item Status</th>
@@ -326,8 +350,28 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
             <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border font-medium text-slate-700 dark:text-slate-200">
               {paginatedOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-slate-400 dark:text-slate-500">
-                    No matching order records found for the active filter.
+                  <td colSpan={10} className="py-16 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-deepBlack-elevated border border-slate-200 dark:border-deepBlack-border flex items-center justify-center text-slate-400">
+                        <Search className="w-6 h-6" />
+                      </div>
+                      <div className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                        No matching order records found
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm">
+                        Try adjusting your search query, filter criteria, or date selection to see results.
+                      </p>
+                      {hasActiveFilter && (
+                        <button
+                          type="button"
+                          onClick={handleResetFilters}
+                          className="mt-1 px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-95"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Reset All Filters</span>
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -368,13 +412,25 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                     >
                       <td className="py-3 px-3.5 font-bold text-slate-900 dark:text-white whitespace-nowrap sticky left-0 bg-white dark:bg-deepBlack-card group-hover:bg-[#FFF7ED] dark:group-hover:bg-deepBlack-hover z-10 min-w-[140px] border-r border-slate-200 dark:border-deepBlack-border shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="group-hover:text-primary transition-colors flex items-center gap-1">
+                          <span className="group-hover:text-primary transition-colors flex items-center gap-1 font-mono">
                             {o.orderId}
                             <Eye className="w-3 h-3 text-slate-400 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                           </span>
+                          <button
+                            type="button"
+                            onClick={(e) => handleCopyOrderId(e, o.orderId)}
+                            className="p-1 rounded text-slate-400 hover:text-primary dark:hover:text-primary hover:bg-slate-100 dark:hover:bg-deepBlack-elevated transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                            title={copiedOrderId === o.orderId ? "Copied!" : "Copy Order ID"}
+                          >
+                            {copiedOrderId === o.orderId ? (
+                              <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
+                          </button>
                           <FulfillmentBadge location={o.fulfillmentLocation} suffix={o.branchSuffix} size="sm" />
                           {o.hasSplitSuffix && (
-                            <span className="text-[10px] bg-amber-50 text-amber-700 px-1 py-0.5 rounded font-mono border border-amber-200">
+                            <span className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 px-1 py-0.5 rounded font-mono border border-amber-200 dark:border-amber-800">
                               split
                             </span>
                           )}

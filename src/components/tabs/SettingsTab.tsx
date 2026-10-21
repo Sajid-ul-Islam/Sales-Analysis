@@ -757,19 +757,19 @@ interface ApiConnectionStatus {
       )}
 
       {/* Settings Header Banner */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-primary shadow-xs">
+          <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/40 flex items-center justify-center text-primary shadow-xs">
             <SettingsIcon className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold font-headline text-slate-900">System Settings & Customization Hub</h2>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+              <h2 className="text-xl font-bold font-headline text-slate-900 dark:text-white">System Settings & Customization Hub</h2>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-deepBlack-border">
                 v2.6 Enterprise
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Configure custom visual themes, knapsack reconciliation math, courier fee assumptions, and cloud API integrations.
             </p>
           </div>
@@ -778,22 +778,22 @@ interface ApiConnectionStatus {
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
             onClick={handleResetTheme}
-            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95"
+            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-deepBlack-sidebar dark:hover:bg-deepBlack-hover text-slate-700 dark:text-slate-300 dark:border dark:border-deepBlack-border text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95"
             title="Reset to default brand theme"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset Defaults</span>
           </button>
           
-          <label className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95">
-            <Upload className="w-3.5 h-3.5 text-slate-500" />
+          <label className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 dark:bg-deepBlack-sidebar dark:hover:bg-deepBlack-hover text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-deepBlack-border text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95">
+            <Upload className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
             <span>Import JSON</span>
             <input type="file" accept=".json" onChange={handleImportConfig} className="hidden" />
           </label>
 
           <button
             onClick={handleExportDiagnostics}
-            className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs active:scale-95"
+            className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary-hover text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs active:scale-95"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export Config JSON</span>
@@ -807,24 +807,24 @@ interface ApiConnectionStatus {
         {/* ======================================================== */}
         {/* SECTION 1: CUSTOM THEME & VISUAL APPEARANCE ENGINE       */}
         {/* ======================================================== */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6 flex flex-col justify-between">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border p-6 shadow-xs space-y-6 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-deepBlack-border">
               <div className="flex items-center gap-2.5">
                 <Palette className="w-5 h-5 text-primary" />
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 font-headline">Appearance & Custom Themes</h3>
-                  <span className="text-[11px] text-slate-500 block">Personalize brand accents, contrast, and visual metrics</span>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white font-headline">Appearance & Custom Themes</h3>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">Personalize brand accents, contrast, and visual metrics</span>
                 </div>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-primary border border-orange-200">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-950/30 text-primary border border-orange-200 dark:border-orange-800/40">
                 Live Preview
               </span>
             </div>
 
             {/* Presets Gallery */}
             <div className="mt-5 space-y-3">
-              <label className="text-xs font-bold text-slate-700 block">Curated Brand Palettes</label>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Curated Brand Palettes</label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {THEME_PRESETS.map((p) => {
                   const isSelected = !themeSettings.isCustom && themeSettings.presetId === p.id;
@@ -834,20 +834,20 @@ interface ApiConnectionStatus {
                       onClick={() => handleSelectPreset(p)}
                       className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between gap-2.5 relative group ${
                         isSelected
-                          ? 'border-slate-900 ring-2 ring-slate-900/10 bg-slate-50/60 shadow-xs'
-                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/40'
+                          ? 'border-slate-900 ring-2 ring-slate-900/10 bg-slate-50/60 shadow-xs dark:border-primary dark:ring-primary/20 dark:bg-deepBlack-hover'
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/40 dark:border-deepBlack-border dark:hover:border-slate-700 dark:bg-deepBlack-sidebar dark:hover:bg-deepBlack-hover'
                       }`}
                     >
                       <div className="flex items-center justify-between w-full">
                         <div
-                          className="w-5 h-5 rounded-full shadow-2xs border border-white"
+                          className="w-5 h-5 rounded-full shadow-2xs border border-white dark:border-deepBlack-border"
                           style={{ backgroundColor: p.primary }}
                         />
-                        {isSelected && <Check className="w-3.5 h-3.5 text-slate-900" />}
+                        {isSelected && <Check className="w-3.5 h-3.5 text-slate-900 dark:text-white" />}
                       </div>
                       <div>
-                        <span className="text-xs font-bold text-slate-900 block truncate leading-tight">{p.name}</span>
-                        <span className="text-[10px] text-slate-400 font-mono">{p.primary}</span>
+                        <span className="text-xs font-bold text-slate-900 dark:text-white block truncate leading-tight">{p.name}</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">{p.primary}</span>
                       </div>
                     </button>
                   );
@@ -856,13 +856,13 @@ interface ApiConnectionStatus {
             </div>
 
             {/* Background Canvas Styling Selector */}
-            <div className="mt-6 pt-5 border-t border-slate-100 space-y-3">
+            <div className="mt-6 pt-5 border-t border-slate-100 dark:border-deepBlack-border space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-xs font-bold text-slate-800 block">Canvas Background Style</label>
-                  <span className="text-[10px] text-slate-400 block">Default Super White delivers a native app appearance</span>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">Canvas Background Style</label>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 block">Default Super White delivers a native app appearance</span>
                 </div>
-                <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-deepBlack-sidebar px-2 py-0.5 rounded-full border border-slate-200 dark:border-deepBlack-border">
                   {BACKGROUND_PRESETS.find(b => b.id === (themeSettings.backgroundId || 'super-white'))?.name || 'Native Super White'}
                 </span>
               </div>
@@ -876,22 +876,22 @@ interface ApiConnectionStatus {
                       onClick={() => handleSelectBackground(bg)}
                       className={`p-3 rounded-xl border text-left transition-all flex items-start gap-3 relative group ${
                         isSelected
-                          ? 'border-slate-900 ring-2 ring-slate-900/10 bg-slate-50 shadow-xs'
-                          : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/50'
+                          ? 'border-slate-900 ring-2 ring-slate-900/10 bg-slate-50 shadow-xs dark:border-primary dark:ring-primary/20 dark:bg-deepBlack-hover'
+                          : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/50 dark:border-deepBlack-border dark:hover:border-slate-700 dark:bg-deepBlack-sidebar dark:hover:bg-deepBlack-hover'
                       }`}
                     >
                       <span
-                        className="w-5 h-5 rounded-lg border border-slate-300 shadow-2xs shrink-0 mt-0.5"
+                        className="w-5 h-5 rounded-lg border border-slate-300 dark:border-deepBlack-border shadow-2xs shrink-0 mt-0.5"
                         style={{ backgroundColor: bg.bgHex }}
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-900 block truncate">
+                          <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
                             {bg.name}
                           </span>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-slate-900 shrink-0" />}
+                          {isSelected && <Check className="w-3.5 h-3.5 text-slate-900 dark:text-white shrink-0" />}
                         </div>
-                        <span className="text-[10px] text-slate-500 block line-clamp-2 mt-0.5 leading-tight">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block line-clamp-2 mt-0.5 leading-tight">
                           {bg.description}
                         </span>
                       </div>
@@ -902,21 +902,21 @@ interface ApiConnectionStatus {
             </div>
 
             {/* Custom Hex Color Picker */}
-            <div className="mt-5 pt-5 border-t border-slate-100 space-y-3">
+            <div className="mt-5 pt-5 border-t border-slate-100 dark:border-deepBlack-border space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                   Custom Primary Color
                 </label>
                 {themeSettings.isCustom && (
-                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/40">
                     Active Custom Color
                   </span>
                 )}
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="relative w-12 h-10 rounded-xl overflow-hidden border border-slate-200 shrink-0 cursor-pointer shadow-2xs">
+                <div className="relative w-12 h-10 rounded-xl overflow-hidden border border-slate-200 dark:border-deepBlack-border shrink-0 cursor-pointer shadow-2xs">
                   <input
                     type="color"
                     value={tempHex}
@@ -931,12 +931,12 @@ interface ApiConnectionStatus {
                     onChange={(e) => handleCustomHexChange(e.target.value)}
                     placeholder="#EB5A19"
                     maxLength={7}
-                    className="w-full px-3 py-2 text-xs font-mono font-bold uppercase bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900"
+                    className="w-full px-3 py-2 text-xs font-mono font-bold uppercase bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 dark:bg-deepBlack-canvas dark:border-deepBlack-border dark:text-white dark:hover:bg-deepBlack-sidebar dark:focus:bg-deepBlack-canvas"
                   />
                 </div>
                 <button
                   onClick={() => handleCustomHexChange(tempHex)}
-                  className="px-3.5 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-all active:scale-95 shrink-0"
+                  className="px-3.5 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary-hover transition-all active:scale-95 shrink-0"
                 >
                   Apply
                 </button>
@@ -944,8 +944,8 @@ interface ApiConnectionStatus {
             </div>
 
             {/* Live Interactive Preview Box */}
-            <div className="mt-5 p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+            <div className="mt-5 p-4 rounded-xl bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200/80 dark:border-deepBlack-border space-y-3">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
                 Live Theme Preview
               </span>
               <div className="flex flex-wrap items-center gap-2.5">
@@ -972,12 +972,12 @@ interface ApiConnectionStatus {
             </div>
 
             {/* Display Options */}
-            <div className="mt-5 pt-4 border-t border-slate-100 space-y-2.5">
-              <label className="text-xs font-bold text-slate-700 block">Visual Options</label>
+            <div className="mt-5 pt-4 border-t border-slate-100 dark:border-deepBlack-border space-y-2.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Visual Options</label>
               <div className="flex items-center justify-between py-1">
                 <div>
-                  <span className="text-xs font-medium text-slate-800 block">Show Mini Donut Meters</span>
-                  <span className="text-[10px] text-slate-400">Render SVG circular meters inside KPI cards</span>
+                  <span className="text-xs font-medium text-slate-800 dark:text-slate-200 block">Show Mini Donut Meters</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">Render SVG circular meters inside KPI cards</span>
                 </div>
                 <input
                   type="checkbox"
@@ -988,24 +988,24 @@ interface ApiConnectionStatus {
               </div>
 
               {/* Reset AI Assistant FAB Position */}
-              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-deepBlack-border">
                 <div>
-                  <span className="text-xs font-medium text-slate-800 block">Reset AI Assistant Position</span>
-                  <span className="text-[10px] text-slate-400">Restore the floating assistant button to the default corner</span>
+                  <span className="text-xs font-medium text-slate-800 dark:text-slate-200 block">Reset AI Assistant Position</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">Restore the floating assistant button to the default corner</span>
                 </div>
                 <button
                   type="button"
                   onClick={handleResetAssistant}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-deepBlack-border text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-deepBlack-hover transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
                 >
-                  <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                  <RotateCcw className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                   <span>{assistantResetDone ? 'Reset!' : 'Reset Position'}</span>
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="text-[11px] text-slate-400 pt-3 border-t border-slate-100 flex items-center justify-between">
+          <div className="text-[11px] text-slate-400 dark:text-slate-500 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between">
             <span>Theme auto-persists in your browser cache</span>
             <span className="font-mono">CSS: var(--primary)</span>
           </div>
@@ -1014,17 +1014,17 @@ interface ApiConnectionStatus {
         {/* ======================================================== */}
         {/* SECTION 2: RECONCILIATION & KNAPSACK DP MATH PARAMETERS  */}
         {/* ======================================================== */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6 flex flex-col justify-between">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border p-6 shadow-xs space-y-6 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-deepBlack-border">
               <div className="flex items-center gap-2.5">
                 <Sliders className="w-5 h-5 text-primary" />
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 font-headline">Reconciliation & Financial Model</h3>
-                  <span className="text-[11px] text-slate-500 block">Parameters governing subset-sum Knapsack solving & margin formulas</span>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white font-headline">Reconciliation & Financial Model</h3>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">Parameters governing subset-sum Knapsack solving & margin formulas</span>
                 </div>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
                 Audited Formulas
               </span>
             </div>
@@ -1033,57 +1033,57 @@ interface ApiConnectionStatus {
             <div className="mt-5 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     Inside Dhaka Delivery Fee
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">৳</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 dark:text-slate-500">৳</span>
                     <input
                       type="number"
                       value={insideDeliveryFee}
                       onChange={(e) => setInsideDeliveryFee(Number(e.target.value))}
-                      className="w-full pl-7 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-slate-900"
+                      className="w-full pl-7 pr-3 py-2 text-xs bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-xl focus:bg-white dark:focus:bg-deepBlack-canvas focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-slate-900 dark:text-white"
                     />
                   </div>
-                  <span className="text-[10px] text-slate-400 block mt-1">Deducted from COD before subset sum</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-1">Deducted from COD before subset sum</span>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     Outside Dhaka Delivery Fee
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">৳</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 dark:text-slate-500">৳</span>
                     <input
                       type="number"
                       value={outsideDeliveryFee}
                       onChange={(e) => setOutsideDeliveryFee(Number(e.target.value))}
-                      className="w-full pl-7 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-slate-900"
+                      className="w-full pl-7 pr-3 py-2 text-xs bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-xl focus:bg-white dark:focus:bg-deepBlack-canvas focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-slate-900 dark:text-white"
                     />
                   </div>
-                  <span className="text-[10px] text-slate-400 block mt-1">Standard nationwide courier charge</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-1">Standard nationwide courier charge</span>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     Packaging Sunk Cost per Return
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">৳</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 dark:text-slate-500">৳</span>
                     <input
                       type="number"
                       value={packagingCost}
                       onChange={(e) => setPackagingCost(Number(e.target.value))}
-                      className="w-full pl-7 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-slate-900"
+                      className="w-full pl-7 pr-3 py-2 text-xs bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-xl focus:bg-white dark:focus:bg-deepBlack-canvas focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-slate-900 dark:text-white"
                     />
                   </div>
-                  <span className="text-[10px] text-slate-400 block mt-1">Flyer bags + return handling labor</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-1">Flyer bags + return handling labor</span>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     Estimated COGS Rate (%)
                   </label>
                   <div className="relative">
@@ -1091,56 +1091,56 @@ interface ApiConnectionStatus {
                       type="number"
                       value={cogsPercent}
                       onChange={(e) => setCogsPercent(Number(e.target.value))}
-                      className="w-full pl-3 pr-7 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-slate-900"
+                      className="w-full pl-3 pr-7 py-2 text-xs bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-xl focus:bg-white dark:focus:bg-deepBlack-canvas focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-slate-900 dark:text-white"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">%</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 dark:text-slate-500">%</span>
                   </div>
-                  <span className="text-[10px] text-slate-400 block mt-1">Fabric & apparel manufacturing cost</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-1">Fabric & apparel manufacturing cost</span>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     Knapsack Exact Tolerance (৳)
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">৳</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 dark:text-slate-500">৳</span>
                     <input
                       type="number"
                       value={exactTolerance}
                       onChange={(e) => setExactTolerance(Number(e.target.value))}
-                      className="w-full pl-7 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-slate-900"
+                      className="w-full pl-7 pr-3 py-2 text-xs bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-xl focus:bg-white dark:focus:bg-deepBlack-canvas focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-slate-900 dark:text-white"
                     />
                   </div>
-                  <span className="text-[10px] text-slate-400 block mt-1">Allowed rounding margin for subset match</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-1">Allowed rounding margin for subset match</span>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     Meta Ad Performance Spend (৳)
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">৳</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 dark:text-slate-500">৳</span>
                     <input
                       type="number"
                       value={metaAdCost}
                       onChange={(e) => setMetaAdCost(Number(e.target.value))}
-                      className="w-full pl-7 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-slate-900"
+                      className="w-full pl-7 pr-3 py-2 text-xs bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-xl focus:bg-white dark:focus:bg-deepBlack-canvas focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-slate-900 dark:text-white"
                     />
                   </div>
-                  <span className="text-[10px] text-slate-400 block mt-1">Facebook & Instagram campaign ad spend</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-1">Facebook & Instagram campaign ad spend</span>
                 </div>
               </div>
 
               {/* Filter Toggles */}
-              <div className="pt-4 border-t border-slate-100 space-y-3">
-                <label className="text-xs font-bold text-slate-700 block">Default Ingestion Rules</label>
+              <div className="pt-4 border-t border-slate-100 dark:border-deepBlack-border space-y-3">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Default Ingestion Rules</label>
 
-                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/70">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200/70 dark:border-deepBlack-border">
                   <div>
-                    <span className="text-xs font-bold text-slate-900 block">Exclude August Pre-Period Dates</span>
-                    <span className="text-[10px] text-slate-500">Only analyze September clean operational cohort</span>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white block">Exclude August Pre-Period Dates</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">Only analyze September clean operational cohort</span>
                   </div>
                   <input
                     type="checkbox"
@@ -1150,10 +1150,10 @@ interface ApiConnectionStatus {
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/70">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200/70 dark:border-deepBlack-border">
                   <div>
-                    <span className="text-xs font-bold text-slate-900 block">Exclude In-Store POS Orders from Courier Returns</span>
-                    <span className="text-[10px] text-slate-500">Keeps retail physical register sales distinct from online deliveries</span>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white block">Exclude In-Store POS Orders from Courier Returns</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">Keeps retail physical register sales distinct from online deliveries</span>
                   </div>
                   <input
                     type="checkbox"
@@ -1166,8 +1166,8 @@ interface ApiConnectionStatus {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-[11px] text-slate-400">Strict Integer Constraint: Qty ∈ Z+</span>
+          <div className="pt-4 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between">
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">Strict Integer Constraint: Qty ∈ Z+</span>
             <button
               onClick={handleApplyMathParameters}
               className="px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all shadow-xs active:scale-95 flex items-center gap-1.5"
@@ -1181,29 +1181,29 @@ interface ApiConnectionStatus {
         {/* ======================================================== */}
         {/* SECTION 3: CLOUD API SYNC & INTEGRATION CENTER           */}
         {/* ======================================================== */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6 flex flex-col justify-between lg:col-span-2">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border p-6 shadow-xs space-y-6 flex flex-col justify-between lg:col-span-2">
           <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 dark:border-deepBlack-border gap-3">
               <div className="flex items-center gap-2.5">
                 <Cloud className="w-5 h-5 text-primary" />
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 font-headline">Cloud API Integrations & Synchronization Hub</h3>
-                  <span className="text-[11px] text-slate-500 block">WooCommerce REST API & Pathao Courier Hermes API configuration</span>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white font-headline">Cloud API Integrations & Synchronization Hub</h3>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">WooCommerce REST API & Pathao Courier Hermes API configuration</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => setShowCredentialDrawer(!showCredentialDrawer)}
-                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-800 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95"
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-deepBlack-sidebar dark:hover:bg-deepBlack-hover text-slate-800 dark:text-slate-200 dark:border dark:border-deepBlack-border text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95"
                 >
-                  <Key className="w-3.5 h-3.5 text-slate-600" />
+                  <Key className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
                   <span>{showCredentialDrawer ? 'Hide Credentials' : 'Manage Credentials'}</span>
                 </button>
                 <button
                   onClick={() => { checkApiStatus(); }}
                   disabled={loadingStatus}
-                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-deepBlack-sidebar dark:hover:bg-deepBlack-hover text-slate-700 dark:text-slate-300 dark:border dark:border-deepBlack-border text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${loadingStatus ? 'animate-spin' : ''}`} />
                   <span>Check Status</span>
@@ -1221,88 +1221,88 @@ interface ApiConnectionStatus {
 
             {/* Credential Drawer / Editor Panel */}
             {showCredentialDrawer && (
-              <div className="mt-4 p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <div className="mt-4 p-5 rounded-2xl bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200/80 dark:border-deepBlack-border space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-deepBlack-border">
                   <div className="flex items-center gap-2">
                     <Key className="w-4 h-4 text-primary" />
-                    <h4 className="text-xs font-bold text-slate-900">API Credentials & Endpoints</h4>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">API Credentials & Endpoints</h4>
                   </div>
-                  <span className="text-[10px] text-slate-400 font-mono">Local Browser Vault (Encrypted State)</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Local Browser Vault (Encrypted State)</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* WooCommerce Settings */}
-                  <div className="p-3.5 rounded-xl bg-white border border-slate-200 space-y-3">
-                    <span className="text-xs font-bold text-purple-700 flex items-center gap-1.5">
+                  <div className="p-3.5 rounded-xl bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border space-y-3">
+                    <span className="text-xs font-bold text-purple-700 dark:text-purple-400 flex items-center gap-1.5">
                       <ShoppingBag className="w-3.5 h-3.5" />
                       WooCommerce REST Configuration
                     </span>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Store URL</label>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Store URL</label>
                       <input
                         type="text"
                         value={wcStoreUrl}
                         onChange={(e) => setWcStoreUrl(e.target.value)}
                         placeholder="https://deencommerce.com"
-                        className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-purple-600 font-mono"
+                        className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-purple-600 font-mono"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Consumer Key (ck_...)</label>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Consumer Key (ck_...)</label>
                       <input
                         type="text"
                         value={wcConsumerKey}
                         onChange={(e) => setWcConsumerKey(e.target.value)}
                         placeholder="ck_xxxxxxxxxxxxxxxxxxxxxxxx"
-                        className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-purple-600 font-mono"
+                        className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-purple-600 font-mono"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Consumer Secret (cs_...)</label>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Consumer Secret (cs_...)</label>
                       <input
                         type="password"
                         value={wcConsumerSecret}
                         onChange={(e) => setWcConsumerSecret(e.target.value)}
                         placeholder="cs_xxxxxxxxxxxxxxxxxxxxxxxx"
-                        className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-purple-600 font-mono"
+                        className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-purple-600 font-mono"
                       />
                     </div>
                   </div>
 
                   {/* Pathao Hermes Settings */}
-                  <div className="p-3.5 rounded-xl bg-white border border-slate-200 space-y-3">
-                    <span className="text-xs font-bold text-rose-700 flex items-center gap-1.5">
+                  <div className="p-3.5 rounded-xl bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border space-y-3">
+                    <span className="text-xs font-bold text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
                       <Truck className="w-3.5 h-3.5" />
                       Pathao Hermes Courier Configuration
                     </span>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Client ID</label>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Client ID</label>
                       <input
                         type="text"
                         value={pathaoClientId}
                         onChange={(e) => setPathaoClientId(e.target.value)}
                         placeholder="Pathao OAuth Client ID"
-                        className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-rose-600 font-mono"
+                        className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-rose-600 font-mono"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Client Secret</label>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Client Secret</label>
                       <input
                         type="password"
                         value={pathaoClientSecret}
                         onChange={(e) => setPathaoClientSecret(e.target.value)}
                         placeholder="Pathao OAuth Client Secret"
-                        className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-rose-600 font-mono"
+                        className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-rose-600 font-mono"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Username / Account Email</label>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Username / Account Email</label>
                       <input
                         type="text"
                         value={pathaoUsername}
                         onChange={(e) => setPathaoUsername(e.target.value)}
                         placeholder="merchant@deencommerce.com"
-                        className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-rose-600 font-mono"
+                        className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-rose-600 font-mono"
                       />
                     </div>
                   </div>
@@ -1311,13 +1311,13 @@ interface ApiConnectionStatus {
                 <div className="flex items-center justify-end gap-2 pt-2">
                   <button
                     onClick={() => setShowCredentialDrawer(false)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200"
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-deepBlack-hover transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSaveCredentials}
-                    className="px-4 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs active:scale-95"
+                    className="px-4 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary-hover text-white text-xs font-bold shadow-xs active:scale-95 transition-all"
                   >
                     Save Credentials
                   </button>
@@ -1328,22 +1328,22 @@ interface ApiConnectionStatus {
             {/* Status cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
               {/* WooCommerce Status Card */}
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex items-start justify-between">
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-deepBlack-border bg-slate-50/50 dark:bg-deepBlack-sidebar flex items-start justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center text-purple-600 shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/40 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
                     <ShoppingBag className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900">WooCommerce REST API</h4>
-                    <span className="text-[11px] text-slate-500 font-mono block">https://deencommerce.com/wp-json/wc/v3</span>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">WooCommerce REST API</h4>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono block">https://deencommerce.com/wp-json/wc/v3</span>
                     <div className="flex items-center gap-2 mt-2">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        wcStatus?.configured ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        wcStatus?.configured ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40' : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40'
                       }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${wcStatus?.configured ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
                         {wcStatus?.configured ? 'Configured' : 'Credentials Missing'}
                       </span>
-                      <span className="text-[10px] text-slate-400">OAuth 1.0a / Key Protected</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500">OAuth 1.0a / Key Protected</span>
                     </div>
                   </div>
                 </div>
@@ -1351,7 +1351,7 @@ interface ApiConnectionStatus {
                 <button
                   onClick={handleSyncWooCommerce}
                   disabled={syncingWc || syncingBoth}
-                  className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-purple-700 border border-purple-200 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs active:scale-95 disabled:opacity-50"
+                  className="px-3 py-1.5 rounded-lg bg-white dark:bg-deepBlack-card hover:bg-slate-100 dark:hover:bg-deepBlack-hover text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-900/40 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs active:scale-95 disabled:opacity-50"
                 >
                   <RefreshCw className={`w-3 h-3 ${syncingWc ? 'animate-spin' : ''}`} />
                   <span>Sync</span>
@@ -1359,22 +1359,22 @@ interface ApiConnectionStatus {
               </div>
 
               {/* Pathao Status Card */}
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex items-start justify-between">
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-deepBlack-border bg-slate-50/50 dark:bg-deepBlack-sidebar flex items-start justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/40 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
                     <Truck className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900">Pathao Courier Hermes API</h4>
-                    <span className="text-[11px] text-slate-500 font-mono block">https://api-hermes.pathao.com</span>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">Pathao Courier Hermes API</h4>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono block">https://api-hermes.pathao.com</span>
                     <div className="flex items-center gap-2 mt-2">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        pathaoStatus?.configured ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        pathaoStatus?.configured ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40' : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40'
                       }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${pathaoStatus?.configured ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
                         {pathaoStatus?.configured ? 'Configured' : 'Credentials Missing'}
                       </span>
-                      <span className="text-[10px] text-slate-400">Bearer Token Caching (60s buffer)</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500">Bearer Token Caching (60s buffer)</span>
                     </div>
                   </div>
                 </div>
@@ -1382,7 +1382,7 @@ interface ApiConnectionStatus {
                 <button
                   onClick={handleSyncPathao}
                   disabled={syncingPathao || syncingBoth}
-                  className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-rose-700 border border-rose-200 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs active:scale-95 disabled:opacity-50"
+                  className="px-3 py-1.5 rounded-lg bg-white dark:bg-deepBlack-card hover:bg-slate-100 dark:hover:bg-deepBlack-hover text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs active:scale-95 disabled:opacity-50"
                 >
                   <RefreshCw className={`w-3 h-3 ${syncingPathao ? 'animate-spin' : ''}`} />
                   <span>Sync</span>
@@ -1390,24 +1390,24 @@ interface ApiConnectionStatus {
               </div>
 
               {/* Google Analytics 4 Status Card */}
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex items-start justify-between">
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-deepBlack-border bg-slate-50/50 dark:bg-deepBlack-sidebar flex items-start justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
                     <Activity className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900">Google Analytics 4 (GA4)</h4>
-                    <span className="text-[11px] text-slate-500 font-mono block">
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">Google Analytics 4 (GA4)</h4>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono block">
                       Property #{ga4Status?.propertyId || '123456789'}
                     </span>
                     <div className="flex items-center gap-2 mt-2">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        ga4Status?.connected ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        ga4Status?.connected ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40' : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40'
                       }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${ga4Status?.connected ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
                         {ga4Status?.connected ? `Connected (${ga4Status?.realtimeUsers ?? 125} active users)` : 'Checking Connectivity...'}
                       </span>
-                      <span className="text-[10px] text-slate-400">OAuth2 Service Account</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500">OAuth2 Service Account</span>
                     </div>
                   </div>
                 </div>
@@ -1415,7 +1415,7 @@ interface ApiConnectionStatus {
                 <button
                   onClick={() => { checkApiStatus(); }}
                   disabled={loadingStatus}
-                  className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-emerald-700 border border-emerald-200 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs active:scale-95 disabled:opacity-50"
+                  className="px-3 py-1.5 rounded-lg bg-white dark:bg-deepBlack-card hover:bg-slate-100 dark:hover:bg-deepBlack-hover text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs active:scale-95 disabled:opacity-50"
                   title="Test GA4 Live Connection"
                 >
                   <RefreshCw className={`w-3 h-3 ${loadingStatus ? 'animate-spin' : ''}`} />
@@ -1424,26 +1424,26 @@ interface ApiConnectionStatus {
               </div>
 
               {/* Meta Pixel & Marketing Status Card */}
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex items-start justify-between">
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-deepBlack-border bg-slate-50/50 dark:bg-deepBlack-sidebar flex items-start justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-primary shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/40 flex items-center justify-center text-primary dark:text-orange-400 shrink-0">
                     <Share2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900">Meta Pixel & Marketing API</h4>
-                    <span className="text-[11px] text-slate-500 font-mono block">
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">Meta Pixel & Marketing API</h4>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono block">
                       Pixel #{metaStatus?.pixelId || '1234567890123456'} • Account {metaStatus?.adAccountId || 'act_1234567890123456'}
                     </span>
                     <div className="flex items-center gap-2 mt-2">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                         metaStatus?.connected
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40'
+                          : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40'
                       }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${metaStatus?.connected ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
                         {metaStatus?.connected ? 'Live Connected' : 'Benchmark Mode (Token Expired)'}
                       </span>
-                      <span className="text-[10px] text-slate-400">Graph API v19.0</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500">Graph API v19.0</span>
                     </div>
                   </div>
                 </div>
@@ -1451,7 +1451,7 @@ interface ApiConnectionStatus {
                 <button
                   onClick={() => { checkApiStatus(); }}
                   disabled={loadingStatus}
-                  className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-primary border border-orange-200 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs active:scale-95 disabled:opacity-50"
+                  className="px-3 py-1.5 rounded-lg bg-white dark:bg-deepBlack-card hover:bg-slate-100 dark:hover:bg-deepBlack-hover text-primary dark:text-orange-400 border border-orange-200 dark:border-orange-900/40 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs active:scale-95 disabled:opacity-50"
                   title="Test Meta Connection"
                 >
                   <RefreshCw className={`w-3 h-3 ${loadingStatus ? 'animate-spin' : ''}`} />
@@ -1460,29 +1460,29 @@ interface ApiConnectionStatus {
               </div>
 
               {/* DEEN Assistant & Intelligence Engine (BYOK) Status Card */}
-              <div className="p-4 rounded-xl border border-orange-200/80 bg-gradient-to-r from-orange-50/40 via-amber-50/20 to-white flex items-start justify-between md:col-span-2 shadow-2xs">
+              <div className="p-4 rounded-xl border border-orange-200/80 dark:border-orange-800/40 bg-gradient-to-r from-orange-50/40 via-amber-50/20 to-white dark:from-orange-950/20 dark:via-deepBlack-sidebar dark:to-deepBlack-card flex items-start justify-between md:col-span-2 shadow-2xs">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-[#EB5A19] shrink-0 shadow-2xs">
+                  <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/40 flex items-center justify-center text-[#EB5A19] shrink-0 shadow-2xs">
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h4 className="text-xs font-bold text-slate-900 font-headline">
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white font-headline">
                         DEEN Assistant & Bring Your Own Key (BYOK)
                       </h4>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-orange-100 text-[#EB5A19]">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-orange-100 dark:bg-orange-950/50 text-[#EB5A19] dark:text-orange-400">
                         Multi-Provider Auto-Detect
                       </span>
                     </div>
-                    <span className="text-[11px] text-slate-500 block mt-0.5">
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
                       Powers DEEN Assistant, After-Sales QA Diagnosis, Courier Dispute Audits, and Customer Risk Profiling
                     </span>
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                       <span
                         className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                           byokConfig.isActive
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-slate-100 text-slate-600 border border-slate-200'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40'
+                            : 'bg-slate-100 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-deepBlack-border'
                         }`}
                       >
                         <span
@@ -1494,7 +1494,7 @@ interface ApiConnectionStatus {
                           ? `Connected: ${byokConfig.provider.toUpperCase()} (${byokConfig.model})`
                           : 'Offline Heuristic Fallback (Connect Free Gemini Key)'}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-mono">
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
                         {byokConfig.isActive ? 'Local Browser Vault' : 'No Credit Card Needed'}
                       </span>
                     </div>
@@ -1514,33 +1514,33 @@ interface ApiConnectionStatus {
             </div>
 
             {/* Date Range & Ingestion Scope */}
-            <div className="mt-5 p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-              <span className="text-xs font-bold text-slate-800 block mb-3">Sync Date Range & Filters</span>
+            <div className="mt-5 p-4 rounded-xl bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200/80 dark:border-deepBlack-border">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-3">Sync Date Range & Filters</span>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Start Date</label>
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Start Date</label>
                   <input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary font-mono"
+                    className="w-full px-3 py-1.5 text-xs bg-white dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary font-mono"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">End Date</label>
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">End Date</label>
                   <input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary font-mono"
+                    className="w-full px-3 py-1.5 text-xs bg-white dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary font-mono"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Order Status</label>
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Order Status</label>
                   <select
                     value={orderStatus}
                     onChange={(e) => setOrderStatus(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full px-3 py-1.5 text-xs bg-white dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary"
                   >
                     <option value="any">Any Status (Recommended)</option>
                     <option value="completed">Completed Only</option>
@@ -1550,7 +1550,7 @@ interface ApiConnectionStatus {
               </div>
 
               {apiMessage && (
-                <div className="mt-3 p-2.5 rounded-lg bg-blue-50 border border-blue-200/70 text-xs text-blue-800 flex items-center gap-2">
+                <div className="mt-3 p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200/70 dark:border-blue-800/40 text-xs text-blue-800 dark:text-blue-300 flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
                   <span>{apiMessage}</span>
                 </div>
@@ -1558,7 +1558,7 @@ interface ApiConnectionStatus {
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-between">
+          <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between">
             <span>Rate limiting enforced: max 5 concurrent worker requests</span>
             <span>Zero-500 Serverless Resilience Guaranteed</span>
           </div>
@@ -1567,21 +1567,21 @@ interface ApiConnectionStatus {
         {/* ======================================================== */}
         {/* SECTION 4: LOCAL CACHE & COOKIE OPERATIONS CENTER        */}
         {/* ======================================================== */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6 lg:col-span-2">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border p-6 shadow-xs space-y-6 lg:col-span-2">
           {/* Section Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-deepBlack-border">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-primary shadow-2xs">
+              <div className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/40 flex items-center justify-center text-primary shadow-2xs">
                 <HardDrive className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-900 font-headline flex items-center gap-2">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white font-headline flex items-center gap-2">
                   <span>Local Cache & Cookie Operations Center</span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
                     Offline First
                   </span>
                 </h3>
-                <span className="text-[11px] text-slate-500 block">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
                   Inspect browser quota, manage TTL dataset caches, and control active session cookies
                 </span>
               </div>
@@ -1591,7 +1591,7 @@ interface ApiConnectionStatus {
               <button
                 onClick={refreshStorageData}
                 disabled={isRefreshingStorage}
-                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-deepBlack-sidebar dark:hover:bg-deepBlack-hover text-slate-700 dark:text-slate-300 dark:border dark:border-deepBlack-border text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
                 title="Scan and calculate current browser storage usage"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingStorage ? 'animate-spin text-primary' : ''}`} />
@@ -1601,11 +1601,11 @@ interface ApiConnectionStatus {
           </div>
 
           {/* Real-Time Storage Health & Quota Overview */}
-          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 space-y-3.5">
+          <div className="p-4 rounded-xl border border-slate-200 dark:border-deepBlack-border bg-slate-50/60 dark:bg-deepBlack-sidebar space-y-3.5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-800">Browser Storage Consumption:</span>
-                <span className="font-mono text-slate-600 font-semibold">
+                <span className="font-bold text-slate-800 dark:text-slate-200">Browser Storage Consumption:</span>
+                <span className="font-mono text-slate-600 dark:text-slate-400 font-semibold">
                   {storageEstimate?.formattedDeenCache || '0 B'} used of ~5.0 MB quota ({storageEstimate?.percentUsed || 0}%)
                 </span>
               </div>
@@ -1614,7 +1614,7 @@ interface ApiConnectionStatus {
                   storageEstimate?.health === 'healthy' ? 'bg-emerald-500' : storageEstimate?.health === 'moderate' ? 'bg-amber-500' : 'bg-rose-500'
                 }`}></span>
                 <span className={`text-[11px] font-bold uppercase tracking-wider ${
-                  storageEstimate?.health === 'healthy' ? 'text-emerald-700' : storageEstimate?.health === 'moderate' ? 'text-amber-700' : 'text-rose-700'
+                  storageEstimate?.health === 'healthy' ? 'text-emerald-700 dark:text-emerald-400' : storageEstimate?.health === 'moderate' ? 'text-amber-700 dark:text-amber-400' : 'text-rose-700 dark:text-rose-400'
                 }`}>
                   Storage {storageEstimate?.health || 'healthy'}
                 </span>
@@ -1622,7 +1622,7 @@ interface ApiConnectionStatus {
             </div>
 
             {/* Visual Storage Quota Bar */}
-            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden flex shadow-inner">
+            <div className="w-full bg-slate-200 dark:bg-deepBlack-canvas rounded-full h-2 overflow-hidden flex shadow-inner">
               <div
                 className={`h-full transition-all duration-500 ${
                   storageEstimate?.health === 'healthy' ? 'bg-emerald-500' : storageEstimate?.health === 'moderate' ? 'bg-amber-500' : 'bg-rose-500'
@@ -1633,34 +1633,34 @@ interface ApiConnectionStatus {
 
             {/* Metric Pills */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-              <div className="bg-white p-3 rounded-lg border border-slate-200/90 shadow-2xs flex items-center justify-between">
+              <div className="bg-white dark:bg-deepBlack-card p-3 rounded-lg border border-slate-200/90 dark:border-deepBlack-border shadow-2xs flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">LocalStorage Cache</span>
-                  <span className="text-sm font-black text-navy-deep font-headline">{storageEstimate?.formattedDeenCache || '0 B'}</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider block">LocalStorage Cache</span>
+                  <span className="text-sm font-black text-navy-deep dark:text-white font-headline">{storageEstimate?.formattedDeenCache || '0 B'}</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-primary border border-orange-200">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 dark:bg-orange-950/30 text-primary border border-orange-200 dark:border-orange-800/40">
                   {cacheEntries.length} items
                 </span>
               </div>
 
-              <div className="bg-white p-3 rounded-lg border border-slate-200/90 shadow-2xs flex items-center justify-between">
+              <div className="bg-white dark:bg-deepBlack-card p-3 rounded-lg border border-slate-200/90 dark:border-deepBlack-border shadow-2xs flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Cookie Storage</span>
-                  <span className="text-sm font-black text-navy-deep font-headline">{storageEstimate?.formattedCookieBytes || '0 B'}</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider block">Cookie Storage</span>
+                  <span className="text-sm font-black text-navy-deep dark:text-white font-headline">{storageEstimate?.formattedCookieBytes || '0 B'}</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/40">
                   {cookieDetails.length} cookies
                 </span>
               </div>
 
-              <div className="bg-white p-3 rounded-lg border border-slate-200/90 shadow-2xs flex items-center justify-between">
+              <div className="bg-white dark:bg-deepBlack-card p-3 rounded-lg border border-slate-200/90 dark:border-deepBlack-border shadow-2xs flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Available Free Quota</span>
-                  <span className="text-sm font-black text-emerald-700 font-headline">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider block">Available Free Quota</span>
+                  <span className="text-sm font-black text-emerald-700 dark:text-emerald-400 font-headline">
                     ~{(Math.max(0, 5 - ((storageEstimate?.totalStorageBytes || 0) / (1024 * 1024)))).toFixed(2)} MB Free
                   </span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
                   Fast IO
                 </span>
               </div>
@@ -1668,18 +1668,18 @@ interface ApiConnectionStatus {
           </div>
 
           {/* Sub-Tab Navigation Bar */}
-          <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 w-fit flex-wrap">
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 dark:bg-deepBlack-sidebar rounded-xl border border-slate-200/80 dark:border-deepBlack-border w-fit flex-wrap">
             <button
               onClick={() => setActiveStorageTab('cache')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeStorageTab === 'cache'
-                  ? 'bg-white text-navy-deep shadow-2xs border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  ? 'bg-white dark:bg-deepBlack-card text-navy-deep dark:text-white shadow-2xs border border-slate-200 dark:border-deepBlack-border'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-deepBlack-hover'
               }`}
             >
               <HardDrive className="w-3.5 h-3.5 text-primary" />
               <span>Local Cache Inventory</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-orange-100 text-primary font-bold">
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-orange-100 dark:bg-orange-950/40 text-primary font-bold">
                 {cacheEntries.length}
               </span>
             </button>
@@ -1688,13 +1688,13 @@ interface ApiConnectionStatus {
               onClick={() => setActiveStorageTab('cookies')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeStorageTab === 'cookies'
-                  ? 'bg-white text-navy-deep shadow-2xs border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  ? 'bg-white dark:bg-deepBlack-card text-navy-deep dark:text-white shadow-2xs border border-slate-200 dark:border-deepBlack-border'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-deepBlack-hover'
               }`}
             >
-              <Cookie className="w-3.5 h-3.5 text-blue-600" />
+              <Cookie className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
               <span>Cookie Inspector</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-blue-100 text-blue-700 font-bold">
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 font-bold">
                 {cookieDetails.length}
               </span>
             </button>
@@ -1703,13 +1703,13 @@ interface ApiConnectionStatus {
               onClick={() => setActiveStorageTab('audit')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeStorageTab === 'audit'
-                  ? 'bg-white text-navy-deep shadow-2xs border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  ? 'bg-white dark:bg-deepBlack-card text-navy-deep dark:text-white shadow-2xs border border-slate-200 dark:border-deepBlack-border'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-deepBlack-hover'
               }`}
             >
-              <History className="w-3.5 h-3.5 text-slate-600" />
+              <History className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
               <span>System Activity Audit Log</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-slate-200 text-slate-700 font-bold">
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-slate-200 dark:bg-deepBlack-canvas text-slate-700 dark:text-slate-300 font-bold">
                 {auditLogs.length}
               </span>
             </button>
@@ -1718,9 +1718,9 @@ interface ApiConnectionStatus {
           {/* TAB 1: LOCAL CACHE INVENTORY */}
           {activeStorageTab === 'cache' && (
             <div className="space-y-4">
-              <div className="rounded-xl border border-slate-200 overflow-x-auto min-w-0 bg-white">
+              <div className="rounded-xl border border-slate-200 dark:border-deepBlack-border overflow-x-auto min-w-0 bg-white dark:bg-deepBlack-card">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  <thead className="bg-slate-50 dark:bg-deepBlack-sidebar border-b border-slate-200 dark:border-deepBlack-border text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     <tr>
                       <th className="py-2.5 px-3">Cache Entry & Key</th>
                       <th className="py-2.5 px-3">Category Tag</th>
@@ -1730,42 +1730,42 @@ interface ApiConnectionStatus {
                       <th className="py-2.5 px-3 text-right">Purge Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 font-sans">
+                  <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border font-sans">
                     {cacheEntries && cacheEntries.length > 0 ? (
                       cacheEntries.map((entry) => (
-                        <tr key={entry.key} className="hover:bg-slate-50/60 transition-colors">
+                        <tr key={entry.key} className="hover:bg-slate-50/60 dark:hover:bg-deepBlack-hover transition-colors">
                           <td className="py-2.5 px-3">
-                            <div className="font-bold text-slate-900">{entry.name}</div>
-                            <span className="text-[10px] text-slate-400 font-mono block mt-0.5">{entry.key}</span>
+                            <div className="font-bold text-slate-900 dark:text-white">{entry.name}</div>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono block mt-0.5">{entry.key}</span>
                           </td>
                           <td className="py-2.5 px-3">
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                              entry.tag === 'dataset' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
-                              entry.tag === 'reconciliation' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                              entry.tag === 'api' ? 'bg-purple-50 text-purple-700 border border-purple-200' :
-                              'bg-amber-50 text-amber-700 border border-amber-200'
+                              entry.tag === 'dataset' ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/40' :
+                              entry.tag === 'reconciliation' ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40' :
+                              entry.tag === 'api' ? 'bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800/40' :
+                              'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40'
                             }`}>
                               {entry.tag}
                             </span>
                           </td>
-                          <td className="py-2.5 px-3 font-mono font-bold text-slate-700 whitespace-nowrap">
+                          <td className="py-2.5 px-3 font-mono font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                             {entry.formattedSize}
                             {entry.itemCount !== undefined && (
-                              <span className="text-[10px] text-slate-400 font-sans font-medium block">
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-sans font-medium block">
                                 {entry.itemCount.toLocaleString()} records
                               </span>
                             )}
                           </td>
-                          <td className="py-2.5 px-3 text-slate-600 whitespace-nowrap">
+                          <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">
                             {entry.formattedAge}
                           </td>
                           <td className="py-2.5 px-3 whitespace-nowrap">
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                               entry.isExpired
-                                ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                                ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/40'
                                 : entry.ttlMs > 0
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : 'bg-slate-100 text-slate-600 border border-slate-200'
+                                ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40'
+                                : 'bg-slate-100 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-deepBlack-border'
                             }`}>
                               {entry.expiryStatus}
                             </span>
@@ -1773,7 +1773,7 @@ interface ApiConnectionStatus {
                           <td className="py-2.5 px-3 text-right">
                             <button
                               onClick={() => handlePurgeCacheItem(entry.key, entry.name)}
-                              className="px-2.5 py-1 rounded-lg bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-slate-200 hover:border-rose-200 text-xs font-bold transition-all inline-flex items-center gap-1 active:scale-95 shadow-2xs"
+                              className="px-2.5 py-1 rounded-lg bg-white dark:bg-deepBlack-sidebar hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 hover:text-rose-700 border border-slate-200 dark:border-deepBlack-border hover:border-rose-200 dark:hover:border-rose-800/40 text-xs font-bold transition-all inline-flex items-center gap-1 active:scale-95 shadow-2xs"
                               title={`Evict ${entry.name} from localStorage`}
                             >
                               <Trash2 className="w-3 h-3" />
@@ -1784,7 +1784,7 @@ interface ApiConnectionStatus {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={6} className="py-8 text-center text-xs text-slate-400">
+                        <td colSpan={6} className="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
                           No DEEN cache entries found in local storage.
                         </td>
                       </tr>
@@ -1798,7 +1798,7 @@ interface ApiConnectionStatus {
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     onClick={handlePurgeAllCache}
-                    className="px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
+                    className="px-3 py-1.5 rounded-xl bg-white dark:bg-deepBlack-sidebar hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
                     title="Purge all cached datasets & API payloads (preserves appearance parameters)"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -1807,10 +1807,10 @@ interface ApiConnectionStatus {
 
                   <button
                     onClick={handlePurgeApiCaches}
-                    className="px-3 py-1.5 rounded-xl bg-white hover:bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
+                    className="px-3 py-1.5 rounded-xl bg-white dark:bg-deepBlack-sidebar hover:bg-purple-50 dark:hover:bg-purple-950/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-900/40 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
                     title="Purge only cached API sync snapshots (WooCommerce and Pathao)"
                   >
-                    <Trash2 className="w-3.5 h-3.5 text-purple-600" />
+                    <Trash2 className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                     <span>Purge API Caches</span>
                   </button>
 
@@ -1820,7 +1820,7 @@ interface ApiConnectionStatus {
                       logAuditAction('Baseline Reset', 'Reloaded verified master baseline ledger.');
                       showToast('Reloaded verified master baseline ledger.');
                     }}
-                    className="px-3 py-1.5 rounded-xl bg-white hover:bg-orange-50 text-primary border border-orange-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
+                    className="px-3 py-1.5 rounded-xl bg-white dark:bg-deepBlack-sidebar hover:bg-orange-50 dark:hover:bg-orange-950/30 text-primary border border-orange-200 dark:border-orange-900/40 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                     <span>Reload Clean Baseline</span>
@@ -1828,7 +1828,7 @@ interface ApiConnectionStatus {
 
                   <button
                     onClick={handleClearLocalOverrides}
-                    className="px-3 py-1.5 rounded-xl bg-white hover:bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
+                    className="px-3 py-1.5 rounded-xl bg-white dark:bg-deepBlack-sidebar hover:bg-amber-50 dark:hover:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/40 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Purge Overrides</span>
@@ -1836,15 +1836,15 @@ interface ApiConnectionStatus {
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                  <label className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95">
-                    <Upload className="w-3.5 h-3.5 text-slate-500" />
+                  <label className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 dark:bg-deepBlack-sidebar dark:hover:bg-deepBlack-hover text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-deepBlack-border text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95">
+                    <Upload className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                     <span>Import Storage JSON</span>
                     <input type="file" accept=".json" onChange={handleImportStorage} className="hidden" />
                   </label>
 
                   <button
                     onClick={handleExportFullStorage}
-                    className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs active:scale-95"
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary-hover text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs active:scale-95"
                     title="Export complete storage, cache, and cookies as backup"
                   >
                     <Download className="w-3.5 h-3.5" />
@@ -1858,9 +1858,9 @@ interface ApiConnectionStatus {
           {/* TAB 2: COOKIE INSPECTOR & MANAGEMENT */}
           {activeStorageTab === 'cookies' && (
             <div className="space-y-4">
-              <div className="rounded-xl border border-slate-200 overflow-x-auto min-w-0 bg-white">
+              <div className="rounded-xl border border-slate-200 dark:border-deepBlack-border overflow-x-auto min-w-0 bg-white dark:bg-deepBlack-card">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  <thead className="bg-slate-50 dark:bg-deepBlack-sidebar border-b border-slate-200 dark:border-deepBlack-border text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     <tr>
                       <th className="py-2.5 px-3">Cookie Identifier</th>
                       <th className="py-2.5 px-3">Current Value</th>
@@ -1869,24 +1869,24 @@ interface ApiConnectionStatus {
                       <th className="py-2.5 px-3 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 font-sans">
+                  <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border font-sans">
                     {cookieDetails && cookieDetails.length > 0 ? (
                       cookieDetails.map((cookie) => (
-                        <tr key={cookie.name} className="hover:bg-slate-50/60 transition-colors">
+                        <tr key={cookie.name} className="hover:bg-slate-50/60 dark:hover:bg-deepBlack-hover transition-colors">
                           <td className="py-2.5 px-3">
                             <div className="flex items-center gap-1.5">
                               <Cookie className={`w-3.5 h-3.5 ${cookie.isDeenCookie ? 'text-primary' : 'text-slate-400'}`} />
-                              <span className="font-mono font-bold text-slate-900">{cookie.name}</span>
+                              <span className="font-mono font-bold text-slate-900 dark:text-white">{cookie.name}</span>
                             </div>
                             {cookie.isDeenCookie && (
-                              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200 mt-1 inline-block">
+                              <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.2 rounded border border-emerald-200 dark:border-emerald-800/40 mt-1 inline-block">
                                 DEEN Managed
                               </span>
                             )}
                           </td>
                           <td className="py-2.5 px-3">
                             <div className="flex items-center gap-1.5 max-w-xs">
-                              <span className="font-mono text-[11px] text-slate-700 bg-slate-100 px-2 py-0.5 rounded truncate">
+                              <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-deepBlack-sidebar border border-transparent dark:border-deepBlack-border px-2 py-0.5 rounded truncate">
                                 {cookie.value}
                               </span>
                               <button
@@ -1894,23 +1894,23 @@ interface ApiConnectionStatus {
                                   navigator.clipboard.writeText(cookie.value);
                                   showToast(`Copied value of "${cookie.name}".`);
                                 }}
-                                className="text-slate-400 hover:text-slate-700 p-1"
+                                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 transition-colors"
                                 title="Copy cookie value"
                               >
                                 <Copy className="w-3 h-3" />
                               </button>
                             </div>
                           </td>
-                          <td className="py-2.5 px-3 text-slate-600 text-[11px] max-w-sm">
+                          <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400 text-[11px] max-w-sm">
                             {cookie.description}
                           </td>
-                          <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                          <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
                             {cookie.sizeBytes} B
                           </td>
                           <td className="py-2.5 px-3 text-right">
                             <button
                               onClick={() => handleDeleteCookieItem(cookie.name)}
-                              className="px-2.5 py-1 rounded-lg bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-slate-200 hover:border-rose-200 text-xs font-bold transition-all inline-flex items-center gap-1 active:scale-95 shadow-2xs"
+                              className="px-2.5 py-1 rounded-lg bg-white dark:bg-deepBlack-sidebar hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 hover:text-rose-700 border border-slate-200 dark:border-deepBlack-border hover:border-rose-200 dark:hover:border-rose-800/40 text-xs font-bold transition-all inline-flex items-center gap-1 active:scale-95 shadow-2xs"
                               title={`Delete cookie "${cookie.name}"`}
                             >
                               <Trash2 className="w-3 h-3" />
@@ -1921,7 +1921,7 @@ interface ApiConnectionStatus {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={5} className="py-8 text-center text-xs text-slate-400">
+                        <td colSpan={5} className="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
                           No active cookies found in this browser origin.
                         </td>
                       </tr>
@@ -1934,14 +1934,14 @@ interface ApiConnectionStatus {
               <div className="flex items-center justify-between gap-3 pt-2">
                 <button
                   onClick={handleClearAllCookies}
-                  className="px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
+                  className="px-3 py-1.5 rounded-xl bg-white dark:bg-deepBlack-sidebar hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
                   title="Purge all DEEN application session and preference cookies"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Clear All DEEN Cookies</span>
                 </button>
 
-                <div className="text-[11px] text-slate-400 flex items-center gap-1">
+                <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
                   <Info className="w-3.5 h-3.5" />
                   <span>Cookies use SameSite=Lax and are path-scoped to current origin</span>
                 </div>
@@ -1952,35 +1952,35 @@ interface ApiConnectionStatus {
           {/* TAB 3: SYSTEM ACTIVITY AUDIT LOG */}
           {activeStorageTab === 'audit' && (
             <div className="space-y-3">
-              <div className="rounded-xl border border-slate-200 overflow-x-auto min-w-0 bg-white">
+              <div className="rounded-xl border border-slate-200 dark:border-deepBlack-border overflow-x-auto min-w-0 bg-white dark:bg-deepBlack-card">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  <thead className="bg-slate-50 dark:bg-deepBlack-sidebar border-b border-slate-200 dark:border-deepBlack-border text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     <tr>
                       <th className="py-2.5 px-3">Timestamp</th>
                       <th className="py-2.5 px-3">Action Event</th>
                       <th className="py-2.5 px-3">Operational Details</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 font-sans">
+                  <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border font-sans">
                     {auditLogs && auditLogs.length > 0 ? (
                       auditLogs.slice(0, 15).map((log, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
-                          <td className="py-2 px-3 text-[11px] text-slate-500 font-mono whitespace-nowrap">
+                        <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-deepBlack-hover transition-colors">
+                          <td className="py-2 px-3 text-[11px] text-slate-500 dark:text-slate-400 font-mono whitespace-nowrap">
                             {new Date(log.timestamp).toLocaleString()}
                           </td>
-                          <td className="py-2 px-3 font-semibold text-slate-800 whitespace-nowrap">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-700 border border-slate-200">
+                          <td className="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 dark:bg-deepBlack-sidebar text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-deepBlack-border">
                               {log.action}
                             </span>
                           </td>
-                          <td className="py-2 px-3 text-[11px] text-slate-600">
+                          <td className="py-2 px-3 text-[11px] text-slate-600 dark:text-slate-400">
                             {log.details || '—'}
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={3} className="py-6 text-center text-xs text-slate-400">
+                        <td colSpan={3} className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
                           No activity recorded in this session.
                         </td>
                       </tr>

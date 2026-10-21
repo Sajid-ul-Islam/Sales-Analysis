@@ -505,32 +505,32 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
   };
 
   return (
-    <div id="cloudSyncSection" className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all">
+    <div id="cloudSyncSection" className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border shadow-sm overflow-hidden transition-all">
       {/* Header Bar */}
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="p-4 px-6 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors select-none border-b border-slate-100"
+        className="p-4 px-6 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-deepBlack-hover transition-colors select-none border-b border-slate-100 dark:border-deepBlack-border"
       >
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-primary">
+          <div className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-100 dark:border-orange-900/40 flex items-center justify-center text-primary">
             <Cloud className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-headline text-sm font-bold text-slate-900">Cloud Sync & Omnichannel Hub</h3>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-mono font-semibold">
+              <h3 className="font-headline text-sm font-bold text-slate-900 dark:text-white">Cloud Sync & Omnichannel Hub</h3>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-deepBlack-sidebar text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-deepBlack-border font-mono font-semibold">
                 Live REST APIs
               </span>
               {currentProvenance && (
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border flex items-center gap-1 ${
                     currentProvenance.source === 'live_api'
-                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                       : currentProvenance.source === 'demo_anonymized'
-                      ? 'bg-amber-50 text-amber-800 border-amber-200'
+                      ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                       : currentProvenance.source === 'baseline_bundled'
-                      ? 'bg-purple-50 text-purple-800 border-purple-200'
-                      : 'bg-blue-50 text-blue-800 border-blue-200'
+                      ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+                      : 'bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800'
                   }`}
                   title={`Source: ${currentProvenance.source} | Environment: ${currentProvenance.environment} | PII Sanitized: ${currentProvenance.isPIISanitized ? 'Yes' : 'No'}`}
                 >
@@ -544,21 +544,21 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
                     : 'Disk Files'}
                 </span>
               )}
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold flex items-center gap-1">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-semibold flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 GA4 Live Stream
               </span>
               <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-semibold flex items-center gap-1 ${
                 metaStatus?.connected
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : 'bg-amber-50 text-amber-700 border-amber-200'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                  : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800'
               }`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${metaStatus?.connected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                 {metaStatus?.connected ? 'Meta Connected' : 'Meta Benchmark'}
               </span>
             </div>
-            <p className="text-[11px] text-slate-500">
-              Sync orders, returns, and marketing metrics directly from <code className="text-primary font-semibold">deencommerce.com</code>, <code className="text-emerald-600 font-semibold">Pathao</code>, and <code className="text-indigo-600 font-semibold">Google Analytics 4</code>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Sync orders, returns, and marketing metrics directly from <code className="text-primary font-semibold">deencommerce.com</code>, <code className="text-emerald-600 dark:text-emerald-400 font-semibold">Pathao</code>, and <code className="text-indigo-600 dark:text-indigo-400 font-semibold">Google Analytics 4</code>
             </p>
           </div>
         </div>
@@ -570,7 +570,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
               checkStatus();
             }}
             disabled={loadingStatus}
-            className="p-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-colors"
+            className="p-1.5 rounded-lg bg-slate-100 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-deepBlack-hover transition-colors"
             title="Refresh API Connection Status"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loadingStatus ? 'animate-spin text-primary' : ''}`} />
@@ -581,18 +581,18 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
 
       {/* Expanded Content */}
       {isOpen && (
-        <div className="p-6 space-y-5 bg-white">
+        <div className="p-6 space-y-5 bg-white dark:bg-deepBlack-card">
           {/* Preset Buttons & Date Filter Controls */}
-          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col gap-4">
+          <div className="bg-slate-50 dark:bg-deepBlack-sidebar rounded-xl p-4 border border-slate-200 dark:border-deepBlack-border flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-primary" />
-                <span className="text-xs font-bold text-slate-800">Date Range Filter</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Date Range Filter</span>
               </div>
 
               {/* Quick Presets */}
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[11px] text-slate-400 mr-1">Presets:</span>
+                <span className="text-[11px] text-slate-400 dark:text-slate-500 mr-1">Presets:</span>
                 {[
                   { id: 'september', label: 'September 2026 (Audit)' },
                   { id: 'october', label: 'October 2026 (MTD)' },
@@ -606,7 +606,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
                     className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
                       activePreset === p.id
                         ? 'bg-primary text-white border-primary shadow-xs'
-                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                        : 'bg-white dark:bg-deepBlack-card text-slate-600 dark:text-slate-300 border-slate-200 dark:border-deepBlack-border hover:bg-slate-100 dark:hover:bg-deepBlack-hover'
                     }`}
                   >
                     {p.label}
@@ -616,9 +616,9 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
             </div>
 
             {/* Custom Date Inputs */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-200">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-200 dark:border-deepBlack-border">
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">Start Date</label>
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Start Date</label>
                 <input
                   type="date"
                   value={startDate}
@@ -626,7 +626,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
                     setStartDate(e.target.value);
                     setActivePreset('custom');
                   }}
-                  className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-primary font-mono"
+                  className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-deepBlack-border bg-white dark:bg-deepBlack-card text-slate-800 dark:text-slate-100 focus:outline-none focus:border-primary font-mono"
                 />
               </div>
 
@@ -639,16 +639,16 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
                     setEndDate(e.target.value);
                     setActivePreset('custom');
                   }}
-                  className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-primary font-mono"
+                  className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-deepBlack-border bg-white dark:bg-deepBlack-card text-slate-800 dark:text-slate-100 focus:outline-none focus:border-primary font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">WooCommerce Order Status</label>
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">WooCommerce Order Status</label>
                 <select
                   value={orderStatus}
                   onChange={(e) => setOrderStatus(e.target.value)}
-                  className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-primary"
+                  className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-deepBlack-border bg-white dark:bg-deepBlack-card text-slate-800 dark:text-slate-100 focus:outline-none focus:border-primary"
                 >
                   <option value="any">Any Status (All Orders)</option>
                   <option value="processing">Processing (Active Handover)</option>
@@ -660,15 +660,15 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
             </div>
 
             {/* Cache Strategy & Bypass Controls */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200 text-[11px]">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-deepBlack-border text-[11px]">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white text-slate-700 font-bold border border-slate-200 shadow-2xs">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white dark:bg-deepBlack-card text-slate-700 dark:text-slate-300 font-bold border border-slate-200 dark:border-deepBlack-border shadow-2xs">
                   <HardDrive className="w-3 h-3 text-primary" />
                   <span>API Cache:</span>
                   <span className="text-primary font-mono font-bold">
                     {cacheStats.totalCachedEntries} saved (~{(cacheStats.totalCachedBytes / 1024).toFixed(0)} KB)
                   </span>
-                  <span className="text-emerald-600 font-semibold">
+                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
                     • ~{cacheStats.savedApiCallsEstimate} calls saved
                   </span>
                 </span>
@@ -677,12 +677,12 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
                   <span
                     className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-bold border shadow-2xs ${
                       currentProvenance.source === 'live_api'
-                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                         : currentProvenance.source === 'demo_anonymized'
-                        ? 'bg-amber-50 text-amber-800 border-amber-200'
+                        ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                         : currentProvenance.source === 'baseline_bundled'
-                        ? 'bg-purple-50 text-purple-800 border-purple-200'
-                        : 'bg-blue-50 text-blue-800 border-blue-200'
+                        ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+                        : 'bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800'
                     }`}
                     title={`Source: ${currentProvenance.source} (${currentProvenance.recordCount} rows) | PII Masked: ${currentProvenance.isPIISanitized ? 'Yes' : 'No'}`}
                   >
@@ -700,13 +700,13 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
                   </span>
                 )}
 
-                <span className="text-slate-400 font-mono text-[10px]">
+                <span className="text-slate-400 dark:text-slate-500 font-mono text-[10px]">
                   TTL: {isHistorical ? '🔒 Historical (7d cache)' : '⚡ Active MTD (2h cache)'}
                 </span>
               </div>
 
               <div className="flex items-center gap-3">
-                <label className="flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer select-none text-[11px]">
+                <label className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none text-[11px]">
                   <input
                     type="checkbox"
                     checked={forceLiveSync}
@@ -714,14 +714,14 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
                     className="w-3.5 h-3.5 accent-primary rounded cursor-pointer"
                   />
                   <span>Force Live Refresh</span>
-                  <span className="text-[10px] text-slate-400 font-normal">(Bypass Cache)</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">(Bypass Cache)</span>
                 </label>
 
                 {cacheStats.totalCachedEntries > 0 && (
                   <button
                     type="button"
                     onClick={handleClearApiCaches}
-                    className="text-[11px] text-rose-600 hover:text-rose-700 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                    className="text-[11px] text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 font-bold hover:underline flex items-center gap-1 cursor-pointer"
                     title="Clear all stored API sync responses from browser"
                   >
                     <Trash2 className="w-3 h-3" />
@@ -735,48 +735,48 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
           {/* Connection Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* WooCommerce Status Card */}
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-deepBlack-border bg-slate-50/50 dark:bg-deepBlack-sidebar/50 flex flex-col justify-between">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-primary shadow-xs">
+                  <div className="w-8 h-8 rounded-lg bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border flex items-center justify-center text-primary shadow-xs">
                     <ShoppingBag className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-headline text-xs font-bold text-slate-900">WooCommerce Store</h4>
-                    <span className="text-[10px] text-slate-500">deencommerce.com</span>
+                    <h4 className="font-headline text-xs font-bold text-slate-900 dark:text-white">WooCommerce Store</h4>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">deencommerce.com</span>
                   </div>
                 </div>
 
                 {wcStatus?.connected ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold border border-emerald-200 dark:border-emerald-800">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                     Connected
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-deepBlack-card text-slate-600 dark:text-slate-400 text-[10px] font-bold border border-slate-200 dark:border-deepBlack-border">
                     Checking...
                   </span>
                 )}
               </div>
 
-              <div className="space-y-1.5 text-[11px] text-slate-600 mb-4 bg-white p-3 rounded-lg border border-slate-200">
+              <div className="space-y-1.5 text-[11px] text-slate-600 dark:text-slate-300 mb-4 bg-white dark:bg-deepBlack-card p-3 rounded-lg border border-slate-200 dark:border-deepBlack-border">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Total Store Orders:</span>
-                  <span className="font-bold text-slate-800">{wcStatus?.totalOrdersCount || '1,500+'}</span>
+                  <span className="text-slate-400 dark:text-slate-500">Total Store Orders:</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{wcStatus?.totalOrdersCount || '1,500+'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Filter Window:</span>
+                  <span className="text-slate-400 dark:text-slate-500">Filter Window:</span>
                   <span className="font-mono text-primary font-semibold">{startDate} → {endDate}</span>
                 </div>
-                <div className="flex justify-between items-center pt-1 border-t border-slate-100">
-                  <span className="text-slate-400">Cache Status:</span>
+                <div className="flex justify-between items-center pt-1 border-t border-slate-100 dark:border-deepBlack-border">
+                  <span className="text-slate-400 dark:text-slate-500">Cache Status:</span>
                   {wcCached.hit && !forceLiveSync ? (
-                    <span className="font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-1 text-[10px]">
-                      <Zap className="w-3 h-3 text-emerald-600" />
+                    <span className="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 flex items-center gap-1 text-[10px]">
+                      <Zap className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                       Cached ({wcCached.ordersCount} orders • {wcCached.ageFormatted})
                     </span>
                   ) : (
-                    <span className="text-slate-500 font-mono text-[10px]">
+                    <span className="text-slate-500 dark:text-slate-400 font-mono text-[10px]">
                       {forceLiveSync ? 'Bypassed (Live Fetch)' : 'Not Cached (Live API)'}
                     </span>
                   )}
@@ -813,48 +813,48 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
             </div>
 
             {/* Pathao Hermes Status Card */}
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-deepBlack-border bg-slate-50/50 dark:bg-deepBlack-sidebar/50 flex flex-col justify-between">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-emerald-600 shadow-xs">
+                  <div className="w-8 h-8 rounded-lg bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-xs">
                     <Truck className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-headline text-xs font-bold text-slate-900">Pathao Hermes Courier</h4>
-                    <span className="text-[10px] text-slate-500">api-hermes.pathao.com</span>
+                    <h4 className="font-headline text-xs font-bold text-slate-900 dark:text-white">Pathao Hermes Courier</h4>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">api-hermes.pathao.com</span>
                   </div>
                 </div>
 
                 {pathaoStatus?.connected ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold border border-emerald-200 dark:border-emerald-800">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                     Token Active
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-deepBlack-card text-slate-600 dark:text-slate-400 text-[10px] font-bold border border-slate-200 dark:border-deepBlack-border">
                     Checking...
                   </span>
                 )}
               </div>
 
-              <div className="space-y-1.5 text-[11px] text-slate-600 mb-4 bg-white p-3 rounded-lg border border-slate-200">
+              <div className="space-y-1.5 text-[11px] text-slate-600 dark:text-slate-300 mb-4 bg-white dark:bg-deepBlack-card p-3 rounded-lg border border-slate-200 dark:border-deepBlack-border">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Verified Hubs:</span>
-                  <span className="font-bold text-slate-800">{pathaoStatus?.storesCount || 5} Logistics Stores</span>
+                  <span className="text-slate-400 dark:text-slate-500">Verified Hubs:</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{pathaoStatus?.storesCount || 5} Logistics Stores</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Primary Hub:</span>
-                  <span className="font-semibold text-slate-800">DEEN Logistics</span>
+                  <span className="text-slate-400 dark:text-slate-500">Primary Hub:</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">DEEN Logistics</span>
                 </div>
-                <div className="flex justify-between items-center pt-1 border-t border-slate-100">
-                  <span className="text-slate-400">Cache Status:</span>
+                <div className="flex justify-between items-center pt-1 border-t border-slate-100 dark:border-deepBlack-border">
+                  <span className="text-slate-400 dark:text-slate-500">Cache Status:</span>
                   {pathaoCached.hit && !forceLiveSync ? (
-                    <span className="font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-1 text-[10px]">
-                      <Zap className="w-3 h-3 text-emerald-600" />
+                    <span className="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 flex items-center gap-1 text-[10px]">
+                      <Zap className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                       Cached ({pathaoCached.ordersCount} consignments • {pathaoCached.ageFormatted})
                     </span>
                   ) : (
-                    <span className="text-slate-500 font-mono text-[10px]">
+                    <span className="text-slate-500 dark:text-slate-400 font-mono text-[10px]">
                       {forceLiveSync ? 'Bypassed (Live Fetch)' : 'Not Cached (Live API)'}
                     </span>
                   )}
@@ -893,7 +893,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
               type="button"
               onClick={handleSyncBoth}
               disabled={syncingBoth || syncingWc || syncingPathao}
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95"
+              className="w-full px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-deepBlack-sidebar dark:hover:bg-deepBlack-hover dark:border dark:border-deepBlack-border disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95"
             >
               {syncingBoth ? (
                 <>
@@ -920,41 +920,41 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
           </div>
 
           {/* 3-Tier Storage & Persistence Hub (Methods 1, 2, 3) */}
-          <div className="pt-4 border-t border-slate-100">
+          <div className="pt-4 border-t border-slate-100 dark:border-deepBlack-border">
             <div className="flex items-center justify-between mb-2.5">
               <div className="flex items-center gap-2">
                 <Database className="w-4 h-4 text-primary" />
-                <h4 className="text-xs font-bold text-slate-900 font-headline">
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white font-headline">
                   Dataset Storage & Persistence Hub (Methods 1, 2, 3)
                 </h4>
               </div>
-              <span className="text-[10px] text-slate-500 font-medium hidden sm:inline">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium hidden sm:inline">
                 Store fetched datasets so you never have to refetch repeatedly
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {/* Method 1: Bundled Baseline JSON & Export */}
-              <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between">
+              <div className="p-3 rounded-xl border border-slate-200 dark:border-deepBlack-border bg-slate-50/70 dark:bg-deepBlack-sidebar/70 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                       <Download className="w-3.5 h-3.5 text-primary" />
                       Method 1: Static JSON
                     </span>
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-orange-100 text-primary">
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-950/60 text-primary">
                       Zero Cost
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 mb-3 leading-relaxed">
-                    Download active dataset as JSON or save to <code className="text-slate-700 font-mono">baselineSample.json</code>. Bundled into Vercel build for 0ms startup.
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
+                    Download active dataset as JSON or save to <code className="text-slate-700 dark:text-slate-300 font-mono">baselineSample.json</code>. Bundled into Vercel build for 0ms startup.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={handleDownloadDatasetJson}
-                    className="flex-1 px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95"
+                    className="flex-1 px-2.5 py-1.5 rounded-lg bg-white dark:bg-deepBlack-card hover:bg-slate-100 dark:hover:bg-deepBlack-hover text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-deepBlack-border text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95"
                     title="Download active dataset as standardized JSON file"
                   >
                     <Download className="w-3 h-3 text-primary" />
@@ -964,13 +964,13 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
                     type="button"
                     onClick={handleSaveToLocalDisk}
                     disabled={savingToLocal}
-                    className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95 disabled:opacity-50"
+                    className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-deepBlack-card hover:bg-slate-100 dark:hover:bg-deepBlack-hover text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-deepBlack-border text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95 disabled:opacity-50"
                     title="Write directly to src/data/baselineSample.json in local development"
                   >
                     {savingToLocal ? (
                       <RefreshCw className="w-3 h-3 animate-spin text-primary" />
                     ) : (
-                      <FileSpreadsheet className="w-3 h-3 text-slate-600" />
+                      <FileSpreadsheet className="w-3 h-3 text-slate-600 dark:text-slate-400" />
                     )}
                     <span>Save Baseline</span>
                   </button>
@@ -978,18 +978,18 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
               </div>
 
               {/* Method 2: Browser Local Storage */}
-              <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between">
+              <div className="p-3 rounded-xl border border-slate-200 dark:border-deepBlack-border bg-slate-50/70 dark:bg-deepBlack-sidebar/70 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                      <HardDrive className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <HardDrive className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       Method 2: Browser Cache
                     </span>
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
                       Auto Active
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 mb-3 leading-relaxed">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
                     Browser localStorage caches live API queries for 7 days (historical) or 2 hours. Provides instant 0ms reload on refresh.
                   </p>
                 </div>
@@ -1001,16 +1001,16 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
                       const kb = Math.round(cacheStats.totalCachedBytes / 1024);
                       setMessage(`⚡ Browser local cache active: ${cacheStats.totalCachedEntries} snapshots (${kb} KB) stored.`);
                     }}
-                    className="flex-1 px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-emerald-800 border border-slate-200 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95"
+                    className="flex-1 px-2.5 py-1.5 rounded-lg bg-white dark:bg-deepBlack-card hover:bg-slate-100 dark:hover:bg-deepBlack-hover text-emerald-800 dark:text-emerald-300 border border-slate-200 dark:border-deepBlack-border text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95"
                     title="Restore active dataset from browser local storage"
                   >
-                    <Zap className="w-3 h-3 text-emerald-600" />
+                    <Zap className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                     <span>{cacheStats.totalCachedEntries} Cached ({Math.round(cacheStats.totalCachedBytes / 1024)} KB)</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleClearApiCaches}
-                    className="p-1.5 rounded-lg bg-white hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200 text-[11px] transition-all shadow-2xs active:scale-95"
+                    className="p-1.5 rounded-lg bg-white dark:bg-deepBlack-card hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 border border-slate-200 dark:border-deepBlack-border text-[11px] transition-all shadow-2xs active:scale-95"
                     title="Clear Browser Cache"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -1019,17 +1019,17 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
               </div>
 
               {/* Method 3: Vercel Blob Cloud Storage */}
-              <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between">
+              <div className="p-3 rounded-xl border border-slate-200 dark:border-deepBlack-border bg-slate-50/70 dark:bg-deepBlack-sidebar/70 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                      <Cloud className="w-3.5 h-3.5 text-indigo-600" />
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <Cloud className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                       Method 3: Vercel Blob
                     </span>
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${
                       blobStatus?.configured
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-amber-100 text-amber-800'
+                        ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+                        : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
                     }`}>
                       {blobStatus?.configured ? (
                         <>
@@ -1041,7 +1041,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
                       )}
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 mb-3 leading-relaxed">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
                     Serverless cloud object storage. Uploads & live syncs auto-save to Vercel Blob in the background so all remote team members share the latest cloud data instantly without re-uploading.
                   </p>
                 </div>
@@ -1064,13 +1064,13 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
                     type="button"
                     onClick={handleLoadFromVercelBlob}
                     disabled={loadingFromBlob || !blobStatus?.configured}
-                    className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-indigo-800 border border-indigo-200 disabled:opacity-50 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95"
+                    className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-deepBlack-card hover:bg-slate-100 dark:hover:bg-deepBlack-hover text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 disabled:opacity-50 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95"
                     title={blobStatus?.configured ? "Fetch latest dataset snapshot from Vercel Blob" : "Configure BLOB_READ_WRITE_TOKEN in Vercel Environment Variables"}
                   >
                     {loadingFromBlob ? (
-                      <RefreshCw className="w-3 h-3 animate-spin text-indigo-600" />
+                      <RefreshCw className="w-3 h-3 animate-spin text-indigo-600 dark:text-indigo-400" />
                     ) : (
-                      <Cloud className="w-3 h-3 text-indigo-600" />
+                      <Cloud className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                     )}
                     <span>Load</span>
                   </button>
@@ -1081,8 +1081,8 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
 
           {/* Feedback Message */}
           {message && (
-            <div className="p-3 rounded-lg bg-slate-100 border border-slate-200 text-xs text-slate-800 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <div className="p-3 rounded-lg bg-slate-100 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border text-xs text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>{message}</span>
             </div>
           )}

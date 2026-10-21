@@ -1176,23 +1176,23 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
   return (
     <div className="space-y-6">
       {/* Top Banner, Local Date Range Selector & WooCommerce Sync Bar */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-6 border border-slate-200 dark:border-deepBlack-border shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 shadow-xs">
+            <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-800/40 flex items-center justify-center text-purple-600 dark:text-purple-400 shadow-xs">
               <Store className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg font-black text-slate-900 font-headline">
+                <h2 className="text-lg font-black text-slate-900 dark:text-slate-100 font-headline">
                   Outlet Sales & POS Revenue Hub
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>
                   Retail Branch POS Only
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 In-store POS register transactions across physical branches (Mirpur, Wari, Cumilla, and Sylhet). Online website orders are excluded.
               </p>
             </div>
@@ -1219,20 +1219,20 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
           />
 
           {/* 2. Sync Depth & Live Sync Control Group */}
-          <div className="flex items-center rounded-xl bg-slate-100/90 p-1 border border-slate-200/80 shadow-2xs">
+          <div className="flex items-center rounded-xl bg-slate-100/90 dark:bg-deepBlack-sidebar p-1 border border-slate-200/80 dark:border-deepBlack-border shadow-2xs">
             {/* Sync Depth Picker */}
-            <div className="flex items-center gap-1 px-2 py-0.5 text-xs text-slate-600 font-semibold border-r border-slate-200 mr-1">
-              <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold hidden sm:inline">Depth:</span>
+            <div className="flex items-center gap-1 px-2 py-0.5 text-xs text-slate-600 dark:text-slate-300 font-semibold border-r border-slate-200 dark:border-deepBlack-border mr-1">
+              <span className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-bold hidden sm:inline">Depth:</span>
               <select
                 value={syncDepth}
                 onChange={(e) => setSyncDepth(e.target.value as SyncDepth)}
                 disabled={isLoading}
-                className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer pr-1"
+                className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer pr-1"
                 title="Select scan depth for WooCommerce order synchronization"
               >
-                <option value="300">Quick (300)</option>
-                <option value="800">Standard (800)</option>
-                <option value="1500">Deep (1,500)</option>
+                <option value="300" className="dark:bg-deepBlack-card dark:text-slate-100">Quick (300)</option>
+                <option value="800" className="dark:bg-deepBlack-card dark:text-slate-100">Standard (800)</option>
+                <option value="1500" className="dark:bg-deepBlack-card dark:text-slate-100">Deep (1,500)</option>
               </select>
             </div>
 
@@ -1250,7 +1250,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
           {/* 3. Cache Status Pill & Clear Cache */}
           {lastCachedTimestamp && (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 shadow-2xs">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/50 shadow-2xs">
               <span className="flex items-center gap-1 font-bold">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                 Cached {formatTimeAgo(lastCachedTimestamp)}
@@ -1258,7 +1258,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
               <button
                 onClick={handleClearCache}
                 title="Clear local browser cache"
-                className="ml-1 text-purple-400 hover:text-purple-900 transition-colors cursor-pointer p-0.5 rounded hover:bg-purple-100"
+                className="ml-1 text-purple-400 hover:text-purple-900 dark:hover:text-purple-200 transition-colors cursor-pointer p-0.5 rounded hover:bg-purple-100 dark:hover:bg-purple-900/50"
               >
                 <Trash2 className="w-3 h-3" />
               </button>
@@ -1268,10 +1268,10 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
           {/* 4. Export .XLSX Button */}
           <button
             onClick={handleExportSalesExcel}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border shadow-2xs active:scale-95 bg-white text-emerald-700 hover:bg-emerald-50 border-emerald-200/90 hover:border-emerald-300 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border shadow-2xs active:scale-95 bg-white dark:bg-deepBlack-card text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border-emerald-200/90 dark:border-emerald-800/40 hover:border-emerald-300 cursor-pointer"
             title="Export outlet sales report to Excel (.xlsx)"
           >
-            <Download className="w-3.5 h-3.5 text-emerald-600" />
+            <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>Export .XLSX</span>
           </button>
         </div>
@@ -1281,14 +1281,14 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
       {syncStatusMsg && (
         <div className={`p-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs shadow-2xs transition-all ${
           isFromCache 
-            ? 'bg-emerald-50/80 border border-emerald-200/90 text-emerald-950'
-            : 'bg-purple-50/70 border border-purple-200/80 text-purple-950'
+            ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/90 dark:border-emerald-800/60 text-emerald-950 dark:text-emerald-300'
+            : 'bg-purple-50/70 dark:bg-purple-950/40 border border-purple-200/80 dark:border-purple-800/60 text-purple-950 dark:text-purple-300'
         }`}>
           <div className="flex items-center gap-2">
             {isFromCache ? (
-              <Zap className="w-4 h-4 text-emerald-600 shrink-0" />
+              <Zap className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             ) : (
-              <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
             )}
             <span className="font-medium">{syncStatusMsg}</span>
           </div>
@@ -1298,14 +1298,14 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
               <button
                 onClick={() => handlePullFromWooCommerce(100, SYNC_DEPTH_CONFIG[syncDepth].pages, syncDepth)}
                 disabled={isLoading}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-100/80 hover:bg-emerald-200/80 px-2 py-0.5 rounded-md cursor-pointer transition-colors"
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 dark:hover:text-emerald-100 bg-emerald-100/80 dark:bg-emerald-900/60 hover:bg-emerald-200/80 dark:hover:bg-emerald-900 px-2 py-0.5 rounded-md cursor-pointer transition-colors"
               >
                 <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
                 Force Fresh Pull
               </button>
             )}
             <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-md ${
-              isFromCache ? 'bg-emerald-100/70 text-emerald-800' : 'bg-purple-100/70 text-purple-800'
+              isFromCache ? 'bg-emerald-100/70 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300' : 'bg-purple-100/70 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300'
             }`}>
               {dateFilteredOrders.length} orders in active scope
             </span>
@@ -1322,88 +1322,88 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
             setSelectedBranchFilter('ALL');
             setActiveViewMode('SUMMARY');
           }}
-          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-sm hover:border-emerald-300 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          className="bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-sm hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
           title="Click to view all branch metrics in Branch Summary"
         >
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
                 <ShoppingBag className="w-4.5 h-4.5" />
               </div>
               <div className="min-w-0">
-                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block truncate">Total Net Sales</span>
-                <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 inline-block mt-0.5">
+                <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block truncate">Total Net Sales</span>
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40 inline-block mt-0.5">
                   {kpiStats.realizationRate}% Realized
                 </span>
               </div>
             </div>
-            <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-emerald-600 group-hover:bg-emerald-50 transition-all shrink-0">
+            <div className="w-6 h-6 rounded-lg bg-slate-50 dark:bg-deepBlack-sidebar flex items-center justify-center text-slate-300 dark:text-slate-600 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-950/40 transition-all shrink-0">
               <ArrowUpRight className="w-3.5 h-3.5" />
             </div>
           </div>
 
           <div className="my-3 space-y-1.5">
-            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-emerald-600 font-headline tracking-tight">
+            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-emerald-600 dark:text-emerald-400 font-headline tracking-tight">
               ৳ {aggregateTotals.totalSales.toLocaleString()}
             </div>
-            <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5">
-              <span>Gross: <strong className="text-slate-800 font-semibold">৳ {kpiStats.grossSales.toLocaleString()}</strong></span>
-              <span className="text-[10px] font-semibold text-slate-400 bg-slate-100/80 px-1.5 py-0.5 rounded">0 Courier Risk</span>
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-0.5">
+              <span>Gross: <strong className="text-slate-800 dark:text-slate-200 font-semibold">৳ {kpiStats.grossSales.toLocaleString()}</strong></span>
+              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 bg-slate-100/80 dark:bg-deepBlack-sidebar px-1.5 py-0.5 rounded">0 Courier Risk</span>
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+          <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
             <span>Discounts Saved:</span>
-            <span className="font-bold text-slate-800">৳ {aggregateTotals.totalDiscounts.toLocaleString()}</span>
+            <span className="font-bold text-slate-800 dark:text-slate-200">৳ {aggregateTotals.totalDiscounts.toLocaleString()}</span>
           </div>
         </div>
 
         {/* KPI 2: Total POS Orders Pulled (Interactive -> POS Orders Stream) */}
         <div
           onClick={() => setActiveViewMode('ORDERS')}
-          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-sm hover:border-purple-300 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          className="bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-sm hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
           title="Click to view full real-time POS Orders Stream"
         >
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+              <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-800/40 flex items-center justify-center text-purple-600 dark:text-purple-400 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
                 <PackageCheck className="w-4.5 h-4.5" />
               </div>
               <div className="min-w-0">
-                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block truncate">POS Orders</span>
-                <span className="text-[10px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200/60 inline-block mt-0.5">
+                <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block truncate">POS Orders</span>
+                <span className="text-[10px] text-purple-700 dark:text-purple-300 font-bold bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-full border border-purple-200/60 dark:border-purple-800/40 inline-block mt-0.5">
                   Walk-in Checkouts
                 </span>
               </div>
             </div>
-            <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-purple-600 group-hover:bg-purple-50 transition-all shrink-0">
+            <div className="w-6 h-6 rounded-lg bg-slate-50 dark:bg-deepBlack-sidebar flex items-center justify-center text-slate-300 dark:text-slate-600 group-hover:text-purple-600 dark:group-hover:text-purple-400 group-hover:bg-purple-50 dark:group-hover:bg-purple-950/40 transition-all shrink-0">
               <ArrowUpRight className="w-3.5 h-3.5" />
             </div>
           </div>
 
           <div className="my-3 space-y-2">
-            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-slate-900 font-headline tracking-tight">
+            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-slate-900 dark:text-slate-100 font-headline tracking-tight">
               {aggregateTotals.totalOrders.toLocaleString()}
-              <span className="text-xs font-bold text-slate-400 ml-1.5">Orders</span>
+              <span className="text-xs font-bold text-slate-400 dark:text-slate-500 ml-1.5">Orders</span>
             </div>
             {/* 4 Branch Dot Distribution */}
             <div className="flex items-center gap-2.5 pt-0.5">
               {outletMetrics.map((m) => (
                 <div 
                   key={m.id} 
-                  className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium"
+                  className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium"
                   title={`${m.name}: ${m.ordersCount} orders`}
                 >
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: m.dotColor }}></span>
-                  <span className="font-mono font-bold text-slate-700">{m.ordersCount}</span>
+                  <span className="font-mono font-bold text-slate-700 dark:text-slate-200">{m.ordersCount}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+          <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
             <span>Store Network:</span>
-            <span className="font-bold text-purple-700 flex items-center gap-1">
+            <span className="font-bold text-purple-700 dark:text-purple-400 flex items-center gap-1">
               <span>4 Branches Active</span>
               <span className="text-purple-400 font-normal">→</span>
             </span>
@@ -1413,40 +1413,40 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
         {/* KPI 3: Total Garments / Items Sold (Interactive -> Item/SKU Sales) */}
         <div
           onClick={() => setActiveViewMode('ITEM')}
-          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-sm hover:border-sky-300 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          className="bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-sm hover:border-sky-300 dark:hover:border-sky-700 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
           title="Click to view Item & SKU Wise Sales Breakdown"
         >
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+              <div className="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-100 dark:border-sky-800/40 flex items-center justify-center text-sky-600 dark:text-sky-400 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
                 <Shirt className="w-4.5 h-4.5" />
               </div>
               <div className="min-w-0">
-                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block truncate">Units Sold</span>
-                <span className="text-[10px] text-sky-700 font-bold bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200/60 inline-block mt-0.5">
+                <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block truncate">Units Sold</span>
+                <span className="text-[10px] text-sky-700 dark:text-sky-400 font-bold bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded-full border border-sky-200/60 dark:border-sky-800/40 inline-block mt-0.5">
                   Physical Pcs
                 </span>
               </div>
             </div>
-            <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-sky-600 group-hover:bg-sky-50 transition-all shrink-0">
+            <div className="w-6 h-6 rounded-lg bg-slate-50 dark:bg-deepBlack-sidebar flex items-center justify-center text-slate-300 dark:text-slate-600 group-hover:text-sky-600 dark:group-hover:text-sky-400 group-hover:bg-sky-50 dark:group-hover:bg-sky-950/40 transition-all shrink-0">
               <ArrowUpRight className="w-3.5 h-3.5" />
             </div>
           </div>
 
           <div className="my-3 space-y-1.5">
-            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-sky-600 font-headline tracking-tight">
+            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-sky-600 dark:text-sky-400 font-headline tracking-tight">
               {aggregateTotals.totalUnits.toLocaleString()}
-              <span className="text-xs font-bold text-slate-400 ml-1.5">Pcs</span>
+              <span className="text-xs font-bold text-slate-400 dark:text-slate-500 ml-1.5">Pcs</span>
             </div>
-            <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5">
-              <span>ASP: <strong className="text-slate-800 font-semibold">৳ {kpiStats.unitAsp.toLocaleString()}</strong></span>
-              <span className="text-[11px] text-slate-400">{kpiStats.avgUnitsPerOrder} pcs/ord</span>
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-0.5">
+              <span>ASP: <strong className="text-slate-800 dark:text-slate-200 font-semibold">৳ {kpiStats.unitAsp.toLocaleString()}</strong></span>
+              <span className="text-[11px] text-slate-400 dark:text-slate-500">{kpiStats.avgUnitsPerOrder} pcs/ord</span>
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+          <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
             <span>Active Master SKUs:</span>
-            <span className="font-bold text-slate-800 flex items-center gap-1">
+            <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
               <span>{itemWiseSales.length} items</span>
               <span className="text-sky-500 font-normal">→</span>
             </span>
@@ -1456,41 +1456,41 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
         {/* KPI 4: Average Order Value (Interactive -> Category Sales) */}
         <div
           onClick={() => setActiveViewMode('CATEGORY')}
-          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-sm hover:border-amber-300 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          className="bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-sm hover:border-amber-300 dark:hover:border-amber-700 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
           title="Click to view Category Sales & Product Drivers"
         >
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-800/40 flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
                 <TrendingUp className="w-4.5 h-4.5" />
               </div>
               <div className="min-w-0">
-                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block truncate">Outlet AOV</span>
-                <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60 inline-block mt-0.5">
+                <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block truncate">Outlet AOV</span>
+                <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-200/60 dark:border-amber-800/40 inline-block mt-0.5">
                   Basket Value
                 </span>
               </div>
             </div>
-            <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-amber-600 group-hover:bg-amber-50 transition-all shrink-0">
+            <div className="w-6 h-6 rounded-lg bg-slate-50 dark:bg-deepBlack-sidebar flex items-center justify-center text-slate-300 dark:text-slate-600 group-hover:text-amber-600 dark:group-hover:text-amber-400 group-hover:bg-amber-50 dark:group-hover:bg-amber-950/40 transition-all shrink-0">
               <ArrowUpRight className="w-3.5 h-3.5" />
             </div>
           </div>
 
           <div className="my-3 space-y-1.5">
-            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-amber-600 font-headline tracking-tight">
+            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-amber-600 dark:text-amber-400 font-headline tracking-tight">
               ৳ {aggregateTotals.overallAov.toLocaleString()}
             </div>
-            <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5">
-              <span className="truncate max-w-[120px]">Top: <strong className="text-slate-800 font-semibold">{kpiStats.topCategoryName}</strong></span>
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-0.5">
+              <span className="truncate max-w-[120px]">Top: <strong className="text-slate-800 dark:text-slate-200 font-semibold">{kpiStats.topCategoryName}</strong></span>
+              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200/60 dark:border-emerald-800/40">
                 {kpiStats.cashPct}% Cash
               </span>
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+          <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
             <span>Basket Quality:</span>
-            <span className="font-bold text-emerald-700 flex items-center gap-1">
+            <span className="font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
               <span>{parseFloat(kpiStats.avgUnitsPerOrder) >= 1.5 ? 'High Density' : 'Healthy'}</span>
               <span className="text-amber-500 font-normal">→</span>
             </span>
@@ -1507,36 +1507,36 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
               setActiveViewMode('SUMMARY');
             }
           }}
-          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-sm hover:border-purple-300 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          className="bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-sm hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
           title={topBranch ? `Click to filter dashboard to ${topBranch.name}` : 'Awaiting data'}
         >
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+              <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-800/40 flex items-center justify-center text-purple-600 dark:text-purple-400 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
                 <Award className="w-4.5 h-4.5 text-amber-500" />
               </div>
               <div className="min-w-0">
-                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block truncate">Top Branch</span>
-                <span className="text-[10px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200/60 inline-block mt-0.5">
+                <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block truncate">Top Branch</span>
+                <span className="text-[10px] text-purple-700 dark:text-purple-300 font-bold bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-full border border-purple-200/60 dark:border-purple-800/40 inline-block mt-0.5">
                   {kpiStats.topBranchShare}% Share
                 </span>
               </div>
             </div>
-            <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-purple-600 group-hover:bg-purple-50 transition-all shrink-0">
+            <div className="w-6 h-6 rounded-lg bg-slate-50 dark:bg-deepBlack-sidebar flex items-center justify-center text-slate-300 dark:text-slate-600 group-hover:text-purple-600 dark:group-hover:text-purple-400 group-hover:bg-purple-50 dark:group-hover:bg-purple-950/40 transition-all shrink-0">
               <ArrowUpRight className="w-3.5 h-3.5" />
             </div>
           </div>
 
           <div className="my-3 space-y-1.5">
-            <div className="text-xl sm:text-2xl font-black text-purple-700 font-headline truncate" title={topBranch?.name || 'All Outlets'}>
+            <div className="text-xl sm:text-2xl font-black text-purple-700 dark:text-purple-400 font-headline truncate" title={topBranch?.name || 'All Outlets'}>
               {kpiStats.topBranchName}
             </div>
-            <div className="text-xs font-bold text-emerald-600 flex items-center justify-between pt-0.5">
+            <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-between pt-0.5">
               <span>৳ {topBranch ? topBranch.netSales.toLocaleString() : 0}</span>
-              <span className="text-[11px] font-semibold text-slate-400">{topBranch?.ordersCount || 0} orders</span>
+              <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">{topBranch?.ordersCount || 0} orders</span>
             </div>
             {/* Visual Revenue Share Bar */}
-            <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+            <div className="w-full bg-slate-100 dark:bg-deepBlack-sidebar rounded-full h-1.5 mt-2 overflow-hidden">
               <div 
                 className="h-full bg-purple-600 rounded-full transition-all duration-500"
                 style={{ width: `${Math.min(100, Math.max(5, parseFloat(kpiStats.topBranchShare)))}%` }}
@@ -1544,9 +1544,9 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+          <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
             <span>Branch Action:</span>
-            <span className="font-bold text-purple-700 flex items-center gap-1 group-hover:underline">
+            <span className="font-bold text-purple-700 dark:text-purple-400 flex items-center gap-1 group-hover:underline">
               <span>Filter Branch</span>
               <span className="text-purple-400 font-normal">⚡</span>
             </span>
@@ -1557,19 +1557,19 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
       {/* Visual Analytics Charts: Branch Revenue Breakdown & Payment Velocity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Chart 1: Retail Branch POS Revenue Comparison (2 Cols) */}
-        <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div className="lg:col-span-2 bg-white dark:bg-deepBlack-card rounded-2xl p-6 border border-slate-200 dark:border-deepBlack-border shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 font-headline">
-                  <BarChart3 className="w-4 h-4 text-purple-600" />
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 font-headline">
+                  <BarChart3 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                   Branch POS Sales Revenue Breakdown (BDT)
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-400 dark:text-slate-400 mt-0.5">
                   Comparison across Mirpur, Wari, Cumilla, and Sylhet physical store registers ({dateSubLabel})
                 </p>
               </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50">
                 Sorted by Revenue
               </span>
             </div>
@@ -1581,21 +1581,21 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                 const barPct = (m.netSales / maxSales) * 100;
 
                 return (
-                  <div key={m.id} className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-100">
+                  <div key={m.id} className="p-3.5 rounded-xl bg-slate-50/70 dark:bg-deepBlack-sidebar border border-slate-100 dark:border-deepBlack-border">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-900">{m.name}</span>
+                        <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{m.name}</span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${m.badgeColor}`}>
                           Branch ID: {m.id}
                         </span>
                       </div>
-                      <div className="text-xs text-slate-500 font-medium">
-                        {m.ordersCount} orders • <span className="font-bold text-slate-800">{m.unitsSold} pcs</span>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        {m.ordersCount} orders • <span className="font-bold text-slate-800 dark:text-slate-200">{m.unitsSold} pcs</span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3 text-xs">
-                      <div className="flex-1 bg-slate-200/80 rounded-full h-3 overflow-hidden">
+                      <div className="flex-1 bg-slate-200/80 dark:bg-deepBlack-border rounded-full h-3 overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-500"
                           style={{
@@ -1604,14 +1604,14 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                           }}
                         ></div>
                       </div>
-                      <span className="w-24 text-right font-bold text-emerald-600 text-xs shrink-0">
+                      <span className="w-24 text-right font-bold text-emerald-600 dark:text-emerald-400 text-xs shrink-0">
                         ৳ {m.netSales.toLocaleString()}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between mt-1.5 text-[11px] text-slate-400">
+                    <div className="flex items-center justify-between mt-1.5 text-[11px] text-slate-400 dark:text-slate-500">
                       <span>AOV: ৳{m.aov.toLocaleString()}</span>
-                      <span className="font-bold text-slate-700">Share: {m.revenueShare.toFixed(1)}%</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-300">Share: {m.revenueShare.toFixed(1)}%</span>
                     </div>
                   </div>
                 );
@@ -1621,14 +1621,14 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
         </div>
 
         {/* Chart 2: In-Store Payment Method Mix (1 Col) */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-6 border border-slate-200 dark:border-deepBlack-border shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 font-headline">
-                <CreditCard className="w-4 h-4 text-indigo-500" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 font-headline">
+                <CreditCard className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
                 In-Store Payment Mix
               </h3>
-              <span className="text-[11px] font-semibold text-slate-400">By BDT Volume</span>
+              <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">By BDT Volume</span>
             </div>
 
             {/* Payment Method Progress Breakdown */}
@@ -1636,15 +1636,15 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
               {paymentMethodTotals.slice(0, 5).map((pm, i) => (
                 <div key={pm.method} className="flex flex-col gap-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-800 truncate max-w-[140px]">{pm.method}</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[140px]">{pm.method}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-slate-500 font-medium">{pm.count} orders</span>
-                      <span className="font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded text-[11px]">
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">{pm.count} orders</span>
+                      <span className="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.2 rounded text-[11px]">
                         ৳ {pm.total.toLocaleString()}
                       </span>
                     </div>
                   </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-slate-100 dark:bg-deepBlack-sidebar rounded-full h-2 overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{
@@ -1658,17 +1658,17 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
             </div>
 
             {/* In-Store Outlet Overview Footer */}
-            <div className="mt-5 p-3.5 bg-slate-50/80 rounded-xl border border-slate-100 text-xs text-slate-600 space-y-1.5">
-              <div className="flex items-center justify-between font-bold text-slate-800">
+            <div className="mt-5 p-3.5 bg-slate-50/80 dark:bg-deepBlack-sidebar rounded-xl border border-slate-100 dark:border-deepBlack-border text-xs text-slate-600 dark:text-slate-300 space-y-1.5">
+              <div className="flex items-center justify-between font-bold text-slate-800 dark:text-slate-200">
                 <span className="flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-purple-600" />
+                  <MapPin className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                   Active Outlets:
                 </span>
-                <span className="text-purple-700">Mirpur, Wari, Cumilla, Sylhet</span>
+                <span className="text-purple-700 dark:text-purple-400">Mirpur, Wari, Cumilla, Sylhet</span>
               </div>
-              <div className="flex items-center justify-between font-bold text-slate-800">
+              <div className="flex items-center justify-between font-bold text-slate-800 dark:text-slate-200">
                 <span>Total In-Store Units:</span>
-                <span className="text-emerald-700">{aggregateTotals.totalUnits.toLocaleString()} pcs</span>
+                <span className="text-emerald-700 dark:text-emerald-400">{aggregateTotals.totalUnits.toLocaleString()} pcs</span>
               </div>
             </div>
           </div>
@@ -1679,7 +1679,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
       {/* 4-WAY PERFORMANCE MATRIX NAVIGATION TABS                                   */}
       {/* (Branch Summary | Category Sales | Item & SKU Sales | POS Orders Stream)   */}
       {/* ========================================================================= */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border shadow-sm p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           {/* 1. Branch Matrix */}
           <button
@@ -1687,13 +1687,13 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeViewMode === 'SUMMARY'
                 ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30'
-                : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200/80 border border-slate-200/60'
+                : 'bg-slate-100 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-deepBlack-hover border border-slate-200/60 dark:border-deepBlack-border'
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
             <span>Branch Summary</span>
             <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-              activeViewMode === 'SUMMARY' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              activeViewMode === 'SUMMARY' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-deepBlack-border text-slate-700 dark:text-slate-300'
             }`}>
               4 Branches
             </span>
@@ -1705,13 +1705,13 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeViewMode === 'CATEGORY'
                 ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30'
-                : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200/80 border border-slate-200/60'
+                : 'bg-slate-100 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-deepBlack-hover border border-slate-200/60 dark:border-deepBlack-border'
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
             <span>Category Wise Sales</span>
             <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-              activeViewMode === 'CATEGORY' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              activeViewMode === 'CATEGORY' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-deepBlack-border text-slate-700 dark:text-slate-300'
             }`}>
               {categorySales.length}
             </span>
@@ -1723,13 +1723,13 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeViewMode === 'ITEM'
                 ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30'
-                : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200/80 border border-slate-200/60'
+                : 'bg-slate-100 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-deepBlack-hover border border-slate-200/60 dark:border-deepBlack-border'
             }`}
           >
             <Shirt className="w-3.5 h-3.5" />
             <span>Item & SKU Wise Sales</span>
             <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-              activeViewMode === 'ITEM' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              activeViewMode === 'ITEM' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-deepBlack-border text-slate-700 dark:text-slate-300'
             }`}>
               {itemWiseSales.length}
             </span>
@@ -1741,21 +1741,21 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeViewMode === 'ORDERS'
                 ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30'
-                : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200/80 border border-slate-200/60'
+                : 'bg-slate-100 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-deepBlack-hover border border-slate-200/60 dark:border-deepBlack-border'
             }`}
           >
             <ShoppingBag className="w-3.5 h-3.5" />
             <span>POS Orders Stream</span>
             <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-              activeViewMode === 'ORDERS' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              activeViewMode === 'ORDERS' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-deepBlack-border text-slate-700 dark:text-slate-300'
             }`}>
               {dateFilteredOrders.length}
             </span>
           </button>
         </div>
 
-        <div className="text-xs text-slate-500 font-medium">
-          Date Scope: <span className="font-bold text-slate-800">{dateSubLabel}</span>
+        <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+          Date Scope: <span className="font-bold text-slate-800 dark:text-slate-200">{dateSubLabel}</span>
         </div>
       </div>
 
@@ -1763,25 +1763,25 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
       {/* VIEW 1: OUTLET SALES SUMMARY MATRIX TABLE                                  */}
       {/* ========================================================================= */}
       {activeViewMode === 'SUMMARY' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-slate-200 dark:border-deepBlack-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 font-headline">
-                <Building2 className="w-4 h-4 text-purple-600" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 font-headline">
+                <Building2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                 Physical Outlet Sales Matrix
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-400 dark:text-slate-400 mt-0.5">
                 Consolidated in-store register performance across Mirpur, Wari, Cumilla, and Sylhet ({dateSubLabel})
               </p>
             </div>
-            <div className="text-xs text-slate-500 font-medium">
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               {aggregateTotals.totalOrders.toLocaleString()} total POS orders analyzed
             </div>
           </div>
 
           <div className="overflow-x-auto min-w-0">
             <table className="w-full text-xs text-left">
-              <thead className="bg-slate-50/90 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+              <thead className="bg-slate-50/90 dark:bg-deepBlack-sidebar text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-deepBlack-border">
                 <tr>
                   <th className="py-3 px-4">Outlet / Branch</th>
                   <th className="py-3 px-3">Branch Channel</th>
@@ -1794,9 +1794,9 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                   <th className="py-3 px-4 text-center">Revenue Share</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+              <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border font-medium text-slate-800 dark:text-slate-200">
                 {outletMetrics.map((m) => (
-                  <tr key={m.id} className="hover:bg-slate-50/70 transition-colors">
+                  <tr key={m.id} className="hover:bg-slate-50/70 dark:hover:bg-deepBlack-hover transition-colors">
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2.5">
                         <div
@@ -1806,8 +1806,8 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                           {m.name.charAt(0)}
                         </div>
                         <div>
-                          <div className="font-bold text-slate-900">{m.name}</div>
-                          <span className="text-[10px] text-slate-400">Branch Register ID: {m.id}</span>
+                          <div className="font-bold text-slate-900 dark:text-slate-100">{m.name}</div>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500">Branch Register ID: {m.id}</span>
                         </div>
                       </div>
                     </td>
@@ -1816,28 +1816,28 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                         {m.channelType}
                       </span>
                     </td>
-                    <td className="py-3.5 px-3 text-right font-bold text-slate-900">
+                    <td className="py-3.5 px-3 text-right font-bold text-slate-900 dark:text-slate-100">
                       {m.ordersCount.toLocaleString()}
                     </td>
-                    <td className="py-3.5 px-3 text-right font-bold text-slate-800">
+                    <td className="py-3.5 px-3 text-right font-bold text-slate-800 dark:text-slate-200">
                       {m.unitsSold.toLocaleString()} pcs
                     </td>
-                    <td className="py-3.5 px-3 text-right text-slate-600">
+                    <td className="py-3.5 px-3 text-right text-slate-600 dark:text-slate-300">
                       ৳ {m.grossSales.toLocaleString()}
                     </td>
-                    <td className="py-3.5 px-3 text-right text-amber-600">
+                    <td className="py-3.5 px-3 text-right text-amber-600 dark:text-amber-400">
                       ৳ {m.discounts.toLocaleString()}
                     </td>
-                    <td className="py-3.5 px-3 text-right font-bold text-emerald-600">
+                    <td className="py-3.5 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
                       ৳ {m.netSales.toLocaleString()}
                     </td>
-                    <td className="py-3.5 px-3 text-right font-bold text-slate-800">
+                    <td className="py-3.5 px-3 text-right font-bold text-slate-800 dark:text-slate-200">
                       ৳ {m.aov.toLocaleString()}
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <div className="flex flex-col items-center gap-1">
-                        <span className="font-black text-slate-900">{m.revenueShare.toFixed(1)}%</span>
-                        <div className="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                        <span className="font-black text-slate-900 dark:text-slate-100">{m.revenueShare.toFixed(1)}%</span>
+                        <div className="w-16 bg-slate-100 dark:bg-deepBlack-sidebar rounded-full h-1.5 overflow-hidden">
                           <div
                             className="h-full rounded-full"
                             style={{
@@ -1851,30 +1851,30 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="bg-slate-50 font-bold text-slate-900 border-t-2 border-slate-200">
+              <tfoot className="bg-slate-50 dark:bg-deepBlack-sidebar font-bold text-slate-900 dark:text-slate-100 border-t-2 border-slate-200 dark:border-deepBlack-border">
                 <tr>
                   <td className="py-3 px-4 font-black" colSpan={2}>
                     Total Physical Outlet Sales (4 Branches)
                   </td>
-                  <td className="py-3 px-3 text-right text-purple-700">
+                  <td className="py-3 px-3 text-right text-purple-700 dark:text-purple-400">
                     {aggregateTotals.totalOrders.toLocaleString()}
                   </td>
                   <td className="py-3 px-3 text-right">
                     {aggregateTotals.totalUnits.toLocaleString()} pcs
                   </td>
-                  <td className="py-3 px-3 text-right text-slate-700">
+                  <td className="py-3 px-3 text-right text-slate-700 dark:text-slate-300">
                     ৳ {(aggregateTotals.totalSales + aggregateTotals.totalDiscounts).toLocaleString()}
                   </td>
-                  <td className="py-3 px-3 text-right text-amber-600">
+                  <td className="py-3 px-3 text-right text-amber-600 dark:text-amber-400">
                     ৳ {aggregateTotals.totalDiscounts.toLocaleString()}
                   </td>
-                  <td className="py-3 px-3 text-right text-emerald-600">
+                  <td className="py-3 px-3 text-right text-emerald-600 dark:text-emerald-400">
                     ৳ {aggregateTotals.totalSales.toLocaleString()}
                   </td>
-                  <td className="py-3 px-3 text-right text-slate-800">
+                  <td className="py-3 px-3 text-right text-slate-800 dark:text-slate-200">
                     ৳ {aggregateTotals.overallAov.toLocaleString()}
                   </td>
-                  <td className="py-3 px-4 text-center text-emerald-700">
+                  <td className="py-3 px-4 text-center text-emerald-700 dark:text-emerald-400">
                     100.0%
                   </td>
                 </tr>
@@ -1888,25 +1888,25 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
       {/* VIEW 2: CATEGORY-WISE SALES BREAKDOWN (Just like the Main Page)            */}
       {/* ========================================================================= */}
       {activeViewMode === 'CATEGORY' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-slate-200 dark:border-deepBlack-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 font-headline">
-                <Layers className="w-4 h-4 text-purple-600" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 font-headline">
+                <Layers className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                 Category Wise Outlet POS Sales
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-400 dark:text-slate-400 mt-0.5">
                 Breakdown of in-store garment sales by apparel product line across physical branch outlets ({dateSubLabel})
               </p>
             </div>
-            <div className="text-xs text-slate-500 font-medium">
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               {categorySales.length} categories active
             </div>
           </div>
 
           <div className="overflow-x-auto min-w-0">
             <table className="w-full text-xs text-left">
-              <thead className="bg-slate-50/90 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+              <thead className="bg-slate-50/90 dark:bg-deepBlack-sidebar text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-deepBlack-border">
                 <tr>
                   <th className="py-3.5 px-5">Apparel Category</th>
                   <th className="py-3.5 px-4">Top Selling Branch</th>
@@ -1916,48 +1916,48 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                   <th className="py-3.5 px-5 text-right">Net POS Revenue (BDT)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+              <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border font-medium text-slate-800 dark:text-slate-200">
                 {categorySales.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
+                    <td colSpan={6} className="py-12 text-center text-slate-400 dark:text-slate-500 font-medium">
                       No category sales data recorded in the active date range.
                     </td>
                   </tr>
                 ) : (
                   categorySales.map((c) => (
-                    <tr key={c.name} className="hover:bg-slate-50/70 transition-colors">
+                    <tr key={c.name} className="hover:bg-slate-50/70 dark:hover:bg-deepBlack-hover transition-colors">
                       <td className="py-3.5 px-5">
                         <div className="flex items-center gap-3">
-                          <span className="text-xl p-1.5 bg-slate-50 rounded-lg border border-slate-200/80 shadow-2xs">
+                          <span className="text-xl p-1.5 bg-slate-50 dark:bg-deepBlack-sidebar rounded-lg border border-slate-200/80 dark:border-deepBlack-border shadow-2xs">
                             {c.icon}
                           </span>
                           <div>
-                            <div className="font-headline font-bold text-slate-900 text-xs">
+                            <div className="font-headline font-bold text-slate-900 dark:text-slate-100 text-xs">
                               {c.name}
                             </div>
-                            <div className="text-[11px] text-slate-400 font-normal mt-0.5 max-w-xs">
+                            <div className="text-[11px] text-slate-400 dark:text-slate-400 font-normal mt-0.5 max-w-xs">
                               {c.sub}
                             </div>
                           </div>
                         </div>
                       </td>
                       <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40">
                           {c.topBranchName}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-right font-headline font-bold text-slate-900 text-xs">
-                        {c.unitsSold.toLocaleString()} <span className="text-slate-400 font-normal">pcs</span>
+                      <td className="py-3.5 px-4 text-right font-headline font-bold text-slate-900 dark:text-slate-100 text-xs">
+                        {c.unitsSold.toLocaleString()} <span className="text-slate-400 dark:text-slate-500 font-normal">pcs</span>
                       </td>
-                      <td className="py-3.5 px-4 text-right font-mono font-medium text-slate-700 text-xs">
+                      <td className="py-3.5 px-4 text-right font-mono font-medium text-slate-700 dark:text-slate-300 text-xs">
                         ৳ {c.asp.toLocaleString()}
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex flex-col items-end gap-1">
-                          <span className="text-[11px] font-bold text-slate-800 font-mono">
+                          <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 font-mono">
                             {c.revenueShare.toFixed(1)}%
                           </span>
-                          <div className="w-20 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                          <div className="w-20 bg-slate-100 dark:bg-deepBlack-sidebar rounded-full h-1.5 overflow-hidden">
                             <div
                               className="h-full bg-purple-600 rounded-full"
                               style={{ width: `${Math.min(c.revenueShare, 100)}%` }}
@@ -1965,30 +1965,30 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                           </div>
                         </div>
                       </td>
-                      <td className="py-3.5 px-5 text-right font-headline font-black text-emerald-600 text-xs">
+                      <td className="py-3.5 px-5 text-right font-headline font-black text-emerald-600 dark:text-emerald-400 text-xs">
                         ৳ {c.revenue.toLocaleString()}
                       </td>
                     </tr>
                   ))
                 )}
               </tbody>
-              <tfoot className="bg-slate-50 font-bold text-slate-900 border-t-2 border-slate-200">
+              <tfoot className="bg-slate-50 dark:bg-deepBlack-sidebar font-bold text-slate-900 dark:text-slate-100 border-t-2 border-slate-200 dark:border-deepBlack-border">
                 <tr>
                   <td className="py-3 px-5 font-black" colSpan={2}>
                     Total Category Sales
                   </td>
-                  <td className="py-3 px-4 text-right text-slate-900 font-black">
+                  <td className="py-3 px-4 text-right text-slate-900 dark:text-slate-100 font-black">
                     {categorySales.reduce((acc, c) => acc + c.unitsSold, 0).toLocaleString()} pcs
                   </td>
-                  <td className="py-3 px-4 text-right text-slate-600">
+                  <td className="py-3 px-4 text-right text-slate-600 dark:text-slate-300">
                     ৳ {categorySales.length > 0
                       ? Math.round(categorySales.reduce((acc, c) => acc + c.revenue, 0) / Math.max(1, categorySales.reduce((acc, c) => acc + c.unitsSold, 0))).toLocaleString()
                       : 0}
                   </td>
-                  <td className="py-3 px-4 text-right text-purple-700 font-bold">
+                  <td className="py-3 px-4 text-right text-purple-700 dark:text-purple-400 font-bold">
                     100.0%
                   </td>
-                  <td className="py-3 px-5 text-right font-black text-emerald-600 text-sm">
+                  <td className="py-3 px-5 text-right font-black text-emerald-600 dark:text-emerald-400 text-sm">
                     ৳ {categorySales.reduce((acc, c) => acc + c.revenue, 0).toLocaleString()}
                   </td>
                 </tr>
@@ -2002,20 +2002,20 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
       {/* VIEW 3: ITEM & MASTER SKU-WISE SALES BREAKDOWN (Just like the Main Page)   */}
       {/* ========================================================================= */}
       {activeViewMode === 'ITEM' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border shadow-sm overflow-hidden">
           {/* Filter Toolbar for Master Items */}
-          <div className="p-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="p-4 border-b border-slate-200 dark:border-deepBlack-border flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2.5">
               {/* Category Filter */}
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-400 font-medium">Category:</span>
+                <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Category:</span>
                 <select
                   value={selectedCategoryFilter}
                   onChange={(e) => {
                     setSelectedCategoryFilter(e.target.value);
                     setItemCurrentPage(1);
                   }}
-                  className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                  className="px-2.5 py-1.5 bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-lg text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                 >
                   <option value="ALL">All Categories ({itemWiseSales.length} items)</option>
                   {categorySales.map(c => (
@@ -2028,14 +2028,14 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
               {/* Branch Filter */}
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-400 font-medium">Branch:</span>
+                <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Branch:</span>
                 <select
                   value={selectedBranchFilter}
                   onChange={(e) => {
                     setSelectedBranchFilter(e.target.value);
                     setItemCurrentPage(1);
                   }}
-                  className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                  className="px-2.5 py-1.5 bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-lg text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                 >
                   <option value="ALL">All Physical Branches</option>
                   {PHYSICAL_OUTLETS.map(b => (
@@ -2049,7 +2049,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
             {/* Search Input */}
             <div className="relative w-full md:w-72">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={itemSearchQuery}
@@ -2058,14 +2058,14 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                   setItemCurrentPage(1);
                 }}
                 placeholder="Search Item Name, Master SKU, or Category..."
-                className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-lg text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 placeholder:dark:text-slate-500 focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
           </div>
 
           <div className="overflow-x-auto min-w-0">
             <table className="w-full text-xs text-left">
-              <thead className="bg-slate-50/90 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+              <thead className="bg-slate-50/90 dark:bg-deepBlack-sidebar text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-deepBlack-border">
                 <tr>
                   <th className="py-3 px-4">Item Name / Master SKU</th>
                   <th className="py-3 px-3">Category</th>
@@ -2076,23 +2076,23 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                   <th className="py-3 px-4 text-right">Total Net Revenue (BDT)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+              <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border font-medium text-slate-800 dark:text-slate-200">
                 {paginatedMasterItems.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400 font-semibold">
+                    <td colSpan={7} className="py-12 text-center text-slate-400 dark:text-slate-500 font-semibold">
                       No master garment items match the active search and filter criteria.
                     </td>
                   </tr>
                 ) : (
                   paginatedMasterItems.map((item, idx) => (
-                    <tr key={item.masterSku || idx} className="hover:bg-slate-50/70 transition-colors">
+                    <tr key={item.masterSku || idx} className="hover:bg-slate-50/70 dark:hover:bg-deepBlack-hover transition-colors">
                       {/* Product Name with Master SKU underneath */}
                       <td className="py-3 px-4 max-w-xs sm:max-w-sm">
-                        <span className="font-headline font-bold text-slate-900 block truncate" title={item.mainName}>
+                        <span className="font-headline font-bold text-slate-900 dark:text-slate-100 block truncate" title={item.mainName}>
                           {item.mainName}
                         </span>
                         <div className="flex items-center gap-1.5 mt-1">
-                          <span className="font-mono text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 shadow-2xs">
+                          <span className="font-mono text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-800/50 shadow-2xs">
                             {item.masterSku}
                           </span>
                         </div>
@@ -2100,35 +2100,35 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
                       {/* Category Badge */}
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <span className="text-[10px] font-semibold text-slate-600 px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200/60">
+                        <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-deepBlack-sidebar border border-slate-200/60 dark:border-deepBlack-border">
                           {item.category}
                         </span>
                       </td>
 
                       {/* Branches Sold In */}
                       <td className="py-3 px-3 max-w-[160px] truncate" title={item.branchesList}>
-                        <span className="text-[11px] text-slate-600 font-medium">
+                        <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
                           {item.branchesList || 'In-Store Register'}
                         </span>
                       </td>
 
                       {/* Units Sold */}
-                      <td className="py-3 px-3 text-right font-headline font-bold text-slate-900">
-                        {item.unitsSold.toLocaleString()} <span className="text-slate-400 font-normal">pcs</span>
+                      <td className="py-3 px-3 text-right font-headline font-bold text-slate-900 dark:text-slate-100">
+                        {item.unitsSold.toLocaleString()} <span className="text-slate-400 dark:text-slate-500 font-normal">pcs</span>
                       </td>
 
                       {/* Unit ASP */}
-                      <td className="py-3 px-4 text-right font-mono font-medium text-slate-700">
+                      <td className="py-3 px-4 text-right font-mono font-medium text-slate-700 dark:text-slate-300">
                         ৳ {item.asp.toLocaleString()}
                       </td>
 
                       {/* Revenue Share */}
                       <td className="py-3 px-4 text-right">
                         <div className="flex flex-col items-end gap-1">
-                          <span className="text-[11px] font-bold text-slate-800 font-mono">
+                          <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 font-mono">
                             {item.revenueShare.toFixed(1)}%
                           </span>
-                          <div className="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                          <div className="w-16 bg-slate-100 dark:bg-deepBlack-sidebar rounded-full h-1.5 overflow-hidden">
                             <div
                               className="h-full bg-purple-600 rounded-full"
                               style={{ width: `${Math.min(item.revenueShare, 100)}%` }}
@@ -2138,7 +2138,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                       </td>
 
                       {/* Total Net Revenue */}
-                      <td className="py-3 px-4 text-right font-headline font-black text-emerald-600">
+                      <td className="py-3 px-4 text-right font-headline font-black text-emerald-600 dark:text-emerald-400">
                         ৳ {item.revenue.toLocaleString()}
                       </td>
                     </tr>
@@ -2149,7 +2149,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
           </div>
 
           {/* Pagination Controls for Master Items */}
-          <div className="p-3 border-t border-slate-200 bg-slate-50/70 flex items-center justify-between text-xs text-slate-500">
+          <div className="p-3 border-t border-slate-200 dark:border-deepBlack-border bg-slate-50/70 dark:bg-deepBlack-sidebar flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
             <div>
               Showing {filteredMasterItems.length > 0 ? (itemCurrentPage - 1) * itemPageSize + 1 : 0} to{' '}
               {Math.min(itemCurrentPage * itemPageSize, filteredMasterItems.length)} of {filteredMasterItems.length.toLocaleString()} master styles
@@ -2158,17 +2158,17 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
               <button
                 onClick={() => setItemCurrentPage(p => Math.max(1, p - 1))}
                 disabled={itemCurrentPage === 1}
-                className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                className="p-1.5 rounded-lg border border-slate-200 dark:border-deepBlack-border bg-white dark:bg-deepBlack-card hover:bg-slate-50 dark:hover:bg-deepBlack-hover text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
-              <span className="px-2 font-bold text-slate-800">
+              <span className="px-2 font-bold text-slate-800 dark:text-slate-200">
                 Page {itemCurrentPage} of {totalItemPages}
               </span>
               <button
                 onClick={() => setItemCurrentPage(p => Math.min(totalItemPages, p + 1))}
                 disabled={itemCurrentPage === totalItemPages}
-                className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                className="p-1.5 rounded-lg border border-slate-200 dark:border-deepBlack-border bg-white dark:bg-deepBlack-card hover:bg-slate-50 dark:hover:bg-deepBlack-hover text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
@@ -2181,20 +2181,20 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
       {/* VIEW 4: LIVE IN-STORE POS ORDERS STREAM TABLE                              */}
       {/* ========================================================================= */}
       {activeViewMode === 'ORDERS' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border shadow-sm overflow-hidden">
           {/* Filter Toolbar */}
-          <div className="p-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="p-4 border-b border-slate-200 dark:border-deepBlack-border flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2.5">
               {/* Outlet Selector Dropdown (Physical Outlets Only) */}
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-400 font-medium">Branch:</span>
+                <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Branch:</span>
                 <select
                   value={selectedOutletFilter}
                   onChange={(e) => {
                     setSelectedOutletFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                  className="px-2.5 py-1.5 bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-lg text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                 >
                   <option value="ALL">All Branches ({dateFilteredOrders.length} orders)</option>
                   {PHYSICAL_OUTLETS.map(m => (
@@ -2207,14 +2207,14 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
               {/* Status Filter */}
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-400 font-medium">Status:</span>
+                <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Status:</span>
                 <select
                   value={statusFilter}
                   onChange={(e) => {
                     setStatusFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                  className="px-2.5 py-1.5 bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-lg text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                 >
                   <option value="ALL">All Statuses</option>
                   <option value="completed">Completed</option>
@@ -2227,7 +2227,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
             {/* Search Box */}
             <div className="relative w-full md:w-64">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={searchTerm}
@@ -2236,7 +2236,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                   setCurrentPage(1);
                 }}
                 placeholder="Search Order #, customer, phone, items..."
-                className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-lg text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 placeholder:dark:text-slate-500 focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
           </div>
@@ -2244,7 +2244,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
           {/* Table */}
           <div className="overflow-x-auto min-w-0">
             <table className="w-full text-xs text-left">
-              <thead className="bg-slate-50/90 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+              <thead className="bg-slate-50/90 dark:bg-deepBlack-sidebar text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-deepBlack-border">
                 <tr>
                   <th className="py-3 px-4">Order # & Timestamp</th>
                   <th className="py-3 px-3">Branch Location</th>
@@ -2255,55 +2255,55 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                   <th className="py-3 px-4 text-center">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+              <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border font-medium text-slate-800 dark:text-slate-200">
                 {paginatedOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400">
+                    <td colSpan={7} className="py-12 text-center text-slate-400 dark:text-slate-500">
                       No outlet POS orders matched the active branch and date filter criteria.
                     </td>
                   </tr>
                 ) : (
                   paginatedOrders.map((o) => (
-                    <tr key={o.id} className="hover:bg-slate-50/70 transition-colors">
+                    <tr key={o.id} className="hover:bg-slate-50/70 dark:hover:bg-deepBlack-hover transition-colors">
                       <td className="py-3 px-4">
                         <div className="flex flex-col">
-                          <span className="font-mono font-bold text-slate-900 text-xs">
+                          <span className="font-mono font-bold text-slate-900 dark:text-slate-100 text-xs">
                             #{o.orderNumber}
                           </span>
-                          <span className="text-[10px] text-slate-400 font-mono mt-0.5">
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">
                             {o.dateCreated ? o.dateCreated.slice(0, 16).replace('T', ' ') : 'N/A'}
                           </span>
                         </div>
                       </td>
                       <td className="py-3 px-3">
-                        <div className="font-bold text-slate-800">{o.outletName}</div>
-                        <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                        <div className="font-bold text-slate-800 dark:text-slate-200">{o.outletName}</div>
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40">
                           In-Store POS
                         </span>
                       </td>
                       <td className="py-3 px-3">
-                        <div className="font-bold text-slate-800">{getExportCustomerName(o) || o.customerName}</div>
-                        <div className="text-[10px] text-slate-400">{o.city} {getExportPhoneNumber(o) || o.phone ? `• ${getExportPhoneNumber(o) || o.phone}` : ''}</div>
+                        <div className="font-bold text-slate-800 dark:text-slate-200">{getExportCustomerName(o) || o.customerName}</div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500">{o.city} {getExportPhoneNumber(o) || o.phone ? `• ${getExportPhoneNumber(o) || o.phone}` : ''}</div>
                       </td>
                       <td className="py-3 px-3">
-                        <div className="text-slate-800 font-medium truncate max-w-xs">{o.itemsSummary}</div>
-                        <span className="text-[10px] text-slate-400">{o.itemsCount} total units</span>
+                        <div className="text-slate-800 dark:text-slate-200 font-medium truncate max-w-xs">{o.itemsSummary}</div>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500">{o.itemsCount} total units</span>
                       </td>
-                      <td className="py-3 px-3 text-right font-black text-emerald-600">
+                      <td className="py-3 px-3 text-right font-black text-emerald-600 dark:text-emerald-400">
                         ৳ {o.total.toLocaleString()}
                       </td>
                       <td className="py-3 px-3 text-center">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-deepBlack-sidebar text-slate-700 dark:text-slate-300">
                           {o.paymentMethodTitle}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-center">
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                           o.status === 'completed'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40'
                             : o.status === 'processing'
-                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40'
+                            : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40'
                         }`}>
                           {o.status}
                         </span>
@@ -2316,7 +2316,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
           </div>
 
           {/* Pagination */}
-          <div className="p-3 border-t border-slate-200 bg-slate-50/70 flex items-center justify-between text-xs text-slate-500">
+          <div className="p-3 border-t border-slate-200 dark:border-deepBlack-border bg-slate-50/70 dark:bg-deepBlack-sidebar flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
             <div>
               Showing {filteredOrders.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} to{' '}
               {Math.min(currentPage * pageSize, filteredOrders.length)} of {filteredOrders.length.toLocaleString()} POS orders
@@ -2325,17 +2325,17 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                className="p-1.5 rounded-lg border border-slate-200 dark:border-deepBlack-border bg-white dark:bg-deepBlack-card hover:bg-slate-50 dark:hover:bg-deepBlack-hover text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
-              <span className="px-2 font-bold text-slate-800">
+              <span className="px-2 font-bold text-slate-800 dark:text-slate-200">
                 Page {currentPage} of {totalPages}
               </span>
               <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                className="p-1.5 rounded-lg border border-slate-200 dark:border-deepBlack-border bg-white dark:bg-deepBlack-card hover:bg-slate-50 dark:hover:bg-deepBlack-hover text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>

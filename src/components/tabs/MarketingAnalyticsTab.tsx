@@ -256,21 +256,21 @@ export function MarketingAnalyticsTab({
   return (
     <div className="space-y-6">
       {/* Module Title & Control Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border p-5 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-primary shrink-0 shadow-2xs">
+          <div className="w-12 h-12 rounded-xl bg-orange-50 dark:bg-primary/10 border border-orange-100 dark:border-primary/20 flex items-center justify-center text-primary dark:text-primary-light shrink-0 shadow-2xs">
             <TrendingUp className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="font-headline text-lg font-bold text-slate-900 tracking-tight">
+              <h2 className="font-headline text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                 GA4 & Meta Marketing Intelligence
               </h2>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50">
                 OmniChannel v2.6
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Live Google Analytics 4 sessions, Meta Pixel conversions, campaign ROAS, and cross-reconciliation with Pathao settlements.
             </p>
           </div>
@@ -291,7 +291,7 @@ export function MarketingAnalyticsTab({
               align="right"
             />
           ) : (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-xl text-xs font-semibold text-slate-700">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-deepBlack-elevated rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300">
               <Calendar className="w-3.5 h-3.5 text-slate-400" />
               <span>{dateRange === 'today' ? 'Today' : dateRange === '7d' ? 'Last 7 Days' : dateRange === '30d' ? 'Last 30 Days' : 'Last 90 Days'}</span>
             </div>
@@ -301,17 +301,17 @@ export function MarketingAnalyticsTab({
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 shadow-2xs transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-deepBlack-elevated border border-slate-200 dark:border-deepBlack-border hover:bg-slate-50 dark:hover:bg-deepBlack-hover shadow-2xs transition-colors disabled:opacity-50"
             title="Refresh analytics data"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${refreshing ? 'animate-spin text-primary' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${refreshing ? 'animate-spin text-primary' : ''}`} />
             <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
           </button>
 
           {/* Meta Token Manager Trigger */}
           <button
             onClick={() => setShowTokenModal(!showTokenModal)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-primary bg-orange-50/80 border border-orange-200/60 hover:bg-orange-100/80 transition-colors shadow-2xs"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-primary dark:text-primary-light bg-orange-50/80 dark:bg-primary/10 border border-orange-200/60 dark:border-primary/20 hover:bg-orange-100/80 dark:hover:bg-primary/20 transition-colors shadow-2xs"
           >
             <Key className="w-3.5 h-3.5" />
             <span>Meta Token</span>
@@ -321,24 +321,24 @@ export function MarketingAnalyticsTab({
 
       {/* Meta Token Configuration Drawer */}
       {showTokenModal && (
-        <div className="bg-white rounded-2xl border border-orange-200 p-5 shadow-md transition-all animate-fadeIn">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-orange-200 dark:border-primary/30 p-5 shadow-md transition-all animate-fadeIn">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-deepBlack-border">
             <div className="flex items-center gap-2">
               <Key className="w-4 h-4 text-primary" />
-              <h3 className="font-headline text-sm font-bold text-slate-900">
+              <h3 className="font-headline text-sm font-bold text-slate-900 dark:text-slate-100">
                 Meta Marketing Access Token Configuration
               </h3>
             </div>
             <button
               onClick={() => setShowTokenModal(false)}
-              className="text-xs font-bold text-slate-400 hover:text-slate-700"
+              className="text-xs font-bold text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
             >
               ✕
             </button>
           </div>
 
           <div className="mt-3 space-y-3">
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               Meta access tokens expire periodically (typically 60 days). You can generate a fresh token from the{' '}
               <a
                 href="https://developers.facebook.com/tools/explorer/"
@@ -357,7 +357,7 @@ export function MarketingAnalyticsTab({
                 placeholder="Paste fresh Meta access token (starts with EAAB... or EAAZ...)"
                 value={customToken}
                 onChange={(e) => setCustomToken(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-deepBlack-border bg-white dark:bg-deepBlack-canvas text-slate-900 dark:text-slate-100 placeholder:text-slate-400 placeholder:dark:text-slate-500 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
               <button
                 onClick={handleTestAndSaveToken}
@@ -382,14 +382,14 @@ export function MarketingAnalyticsTab({
               <div
                 className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
                   tokenFeedback.success
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                    : 'bg-rose-50 text-rose-800 border border-rose-200'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
+                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60'
                 }`}
               >
                 {tokenFeedback.success ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 ) : (
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
                 )}
                 <span>{tokenFeedback.message}</span>
               </div>
@@ -401,25 +401,25 @@ export function MarketingAnalyticsTab({
       {/* Integration Status Pills Bar */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* GA4 Status Card */}
-        <div className="bg-white rounded-xl border border-slate-200 p-3.5 flex items-center justify-between shadow-2xs">
+        <div className="bg-white dark:bg-deepBlack-card rounded-xl border border-slate-200 dark:border-deepBlack-border p-3.5 flex items-center justify-between shadow-2xs">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-700 shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 flex items-center justify-center text-emerald-700 dark:text-emerald-400 shrink-0">
               <Activity className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-slate-900">Google Analytics 4</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-slate-100">Google Analytics 4</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-bold text-emerald-700 uppercase">Live Stream</span>
+                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">Live Stream</span>
               </div>
-              <div className="text-[11px] text-slate-500 truncate">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                 Property #{ov?.propertyId || '123456789'} • {ov?.timeZone || 'Asia/Dhaka'} ({ov?.currency || 'BDT'})
               </div>
             </div>
           </div>
           <div className="text-right shrink-0">
-            <span className="text-[10px] text-slate-400 block font-medium">Realtime Active</span>
-            <span className="font-headline text-base font-extrabold text-emerald-600 flex items-center justify-end gap-1">
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-medium">Realtime Active</span>
+            <span className="font-headline text-base font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center justify-end gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
               {ov?.realtimeActiveUsers ?? 125}
             </span>
@@ -427,33 +427,33 @@ export function MarketingAnalyticsTab({
         </div>
 
         {/* Meta Status Card */}
-        <div className="bg-white rounded-xl border border-slate-200 p-3.5 flex items-center justify-between shadow-2xs">
+        <div className="bg-white dark:bg-deepBlack-card rounded-xl border border-slate-200 dark:border-deepBlack-border p-3.5 flex items-center justify-between shadow-2xs">
           <div className="flex items-center gap-3 min-w-0">
             <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
               metaReport?.status?.connected
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40'
+                : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40'
             }`}>
               <Share2 className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-slate-900">Meta Pixel & Ads</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-slate-100">Meta Pixel & Ads</span>
                 <span className={`w-2 h-2 rounded-full ${metaReport?.status?.connected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                 <span className={`text-[10px] font-bold uppercase ${
-                  metaReport?.status?.connected ? 'text-emerald-700' : 'text-amber-700'
+                  metaReport?.status?.connected ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'
                 }`}>
                   {metaReport?.status?.connected ? 'Live Connected' : 'Benchmark Mode'}
                 </span>
               </div>
-              <div className="text-[11px] text-slate-500 truncate">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                 Pixel #{metaReport?.status?.pixelId || '1234567890123456'} • Account {metaReport?.status?.adAccountId || 'act_1234567890123456'}
               </div>
             </div>
           </div>
           <div className="text-right shrink-0">
-            <span className="text-[10px] text-slate-400 block font-medium">Campaign ROAS</span>
-            <span className="font-headline text-base font-extrabold text-slate-900">
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-medium">Campaign ROAS</span>
+            <span className="font-headline text-base font-extrabold text-slate-900 dark:text-slate-100">
               {meta?.purchaseRoas ? `${meta.purchaseRoas}x` : '4.26x'}
             </span>
           </div>
@@ -463,96 +463,96 @@ export function MarketingAnalyticsTab({
       {/* Main 4 Metric Hero Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4.5 xl:gap-5">
         {/* Card 1: Active Users & Sessions */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-5.5 xl:p-6 shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200/90 dark:border-deepBlack-border p-5 sm:p-5.5 xl:p-6 shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all">
           <div className="flex items-center justify-between mb-3.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-headline">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-headline">
               Active Store Visitors
             </span>
-            <div className="w-9 h-9 rounded-xl bg-indigo-50/90 border border-indigo-200/60 text-indigo-600 flex items-center justify-center shrink-0 shadow-2xs">
+            <div className="w-9 h-9 rounded-xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 shadow-2xs">
               <Users className="w-4.5 h-4.5" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-headline text-2xl sm:text-[26px] font-extrabold text-slate-900 tracking-tight">
+            <span className="font-headline text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
               {(ov?.activeUsers ?? 87113).toLocaleString()}
             </span>
-            <span className="text-[11px] font-semibold text-emerald-600 flex items-center">
+            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
               <ArrowUpRight className="w-3.5 h-3.5" />
               Live
             </span>
           </div>
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Sessions: <strong className="text-slate-800 font-bold">{(ov?.sessions ?? 143069).toLocaleString()}</strong></span>
-            <span>Pages: <strong className="text-slate-800 font-bold">{(ov?.screenPageViews ?? 418669).toLocaleString()}</strong></span>
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <span>Sessions: <strong className="text-slate-800 dark:text-slate-200 font-bold">{(ov?.sessions ?? 143069).toLocaleString()}</strong></span>
+            <span>Pages: <strong className="text-slate-800 dark:text-slate-200 font-bold">{(ov?.screenPageViews ?? 418669).toLocaleString()}</strong></span>
           </div>
         </div>
 
         {/* Card 2: Meta Ad Spend & Impressions */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-5.5 xl:p-6 shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200/90 dark:border-deepBlack-border p-5 sm:p-5.5 xl:p-6 shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all">
           <div className="flex items-center justify-between mb-3.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-headline">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-headline">
               Meta Paid Ad Spend
             </span>
-            <div className="w-9 h-9 rounded-xl bg-orange-50/90 border border-orange-200/60 text-primary flex items-center justify-center shrink-0 shadow-2xs">
+            <div className="w-9 h-9 rounded-xl bg-orange-50/90 dark:bg-primary/10 border border-orange-200/60 dark:border-primary/20 text-primary dark:text-primary-light flex items-center justify-center shrink-0 shadow-2xs">
               <DollarSign className="w-4.5 h-4.5" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-headline text-2xl sm:text-[26px] font-extrabold text-slate-900 tracking-tight">
+            <span className="font-headline text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
               {formatBDT(metaAdSpend)}
             </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/60">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-deepBlack-elevated text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-deepBlack-border">
               {dateRange.toUpperCase()}
             </span>
           </div>
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>CTR: <strong className="text-slate-800 font-bold">{meta?.ctrPercent || 2.99}%</strong></span>
-            <span>CPC: <strong className="text-slate-800 font-bold">{formatBDT(meta?.cpc || 7.55)}</strong></span>
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <span>CTR: <strong className="text-slate-800 dark:text-slate-200 font-bold">{meta?.ctrPercent || 2.99}%</strong></span>
+            <span>CPC: <strong className="text-slate-800 dark:text-slate-200 font-bold">{formatBDT(meta?.cpc || 7.55)}</strong></span>
           </div>
         </div>
 
         {/* Card 3: Online Conversion & Revenue */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-5.5 xl:p-6 shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200/90 dark:border-deepBlack-border p-5 sm:p-5.5 xl:p-6 shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all">
           <div className="flex items-center justify-between mb-3.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-headline">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-headline">
               Tracked Online Revenue
             </span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50/90 border border-emerald-200/60 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-2xs">
               <ShoppingBag className="w-4.5 h-4.5" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-headline text-2xl sm:text-[26px] font-extrabold text-emerald-600 tracking-tight">
+            <span className="font-headline text-2xl sm:text-[26px] font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight">
               {formatBDT(ov?.totalRevenue ?? 1905727)}
             </span>
           </div>
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Orders: <strong className="text-slate-800 font-bold">{(ov?.transactions ?? 1101).toLocaleString()}</strong></span>
-            <span>ARPU: <strong className="text-slate-800 font-bold">{formatBDT(ov?.averageRevenuePerUser ?? 22)}</strong></span>
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <span>Orders: <strong className="text-slate-800 dark:text-slate-200 font-bold">{(ov?.transactions ?? 1101).toLocaleString()}</strong></span>
+            <span>ARPU: <strong className="text-slate-800 dark:text-slate-200 font-bold">{formatBDT(ov?.averageRevenuePerUser ?? 22)}</strong></span>
           </div>
         </div>
 
         {/* Card 4: Blended ROAS & Retention */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-5.5 xl:p-6 shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200/90 dark:border-deepBlack-border p-5 sm:p-5.5 xl:p-6 shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all">
           <div className="flex items-center justify-between mb-3.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-headline">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-headline">
               Blended Omnichannel ROAS
             </span>
-            <div className="w-9 h-9 rounded-xl bg-purple-50/90 border border-purple-200/60 text-purple-600 flex items-center justify-center shrink-0 shadow-2xs">
+            <div className="w-9 h-9 rounded-xl bg-purple-50/90 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 shadow-2xs">
               <Zap className="w-4.5 h-4.5" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-headline text-2xl sm:text-[26px] font-extrabold text-purple-700 tracking-tight">
+            <span className="font-headline text-2xl sm:text-[26px] font-extrabold text-purple-700 dark:text-purple-400 tracking-tight">
               {blendedRoas}x
             </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 border border-purple-200/60">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/50">
               Blended
             </span>
           </div>
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Blended CAC: <strong className="text-slate-800 font-bold">{formatBDT(blendedCac)}</strong></span>
-            <span>Purchases: <strong className="text-slate-800 font-bold">{meta?.purchases || 1040}</strong></span>
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <span>Blended CAC: <strong className="text-slate-800 dark:text-slate-200 font-bold">{formatBDT(blendedCac)}</strong></span>
+            <span>Purchases: <strong className="text-slate-800 dark:text-slate-200 font-bold">{meta?.purchases || 1040}</strong></span>
           </div>
         </div>
       </div>
@@ -563,18 +563,18 @@ export function MarketingAnalyticsTab({
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-primary" />
-            <span className="font-headline text-sm font-bold text-slate-900">
+            <span className="font-headline text-sm font-bold text-slate-900 dark:text-slate-100">
               GA4 Daily Performance Timeline (30-Day Curve)
             </span>
           </div>
 
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-deepBlack-sidebar p-1 rounded-xl border border-slate-200 dark:border-deepBlack-border">
             <button
               onClick={() => setTrendMetric('traffic')}
               className={`px-3 py-1 rounded-lg text-xs font-headline font-bold transition-all ${
                 trendMetric === 'traffic'
-                  ? 'bg-white text-primary shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-deepBlack-card text-primary dark:text-primary-light shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               Traffic & Sessions
@@ -583,8 +583,8 @@ export function MarketingAnalyticsTab({
               onClick={() => setTrendMetric('revenue')}
               className={`px-3 py-1 rounded-lg text-xs font-headline font-bold transition-all ${
                 trendMetric === 'revenue'
-                  ? 'bg-white text-emerald-600 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-deepBlack-card text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               Online Revenue (BDT)
@@ -593,8 +593,8 @@ export function MarketingAnalyticsTab({
               onClick={() => setTrendMetric('orders')}
               className={`px-3 py-1 rounded-lg text-xs font-headline font-bold transition-all ${
                 trendMetric === 'orders'
-                  ? 'bg-white text-purple-600 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-deepBlack-card text-purple-600 dark:text-purple-400 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               Conversions / Orders
@@ -645,55 +645,55 @@ export function MarketingAnalyticsTab({
       </div>
 
       {/* Omnichannel Cross-Reconciliation & Cash Protection Audit */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+      <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border p-5 shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-deepBlack-border pb-3">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-primary" />
-            <h3 className="font-headline text-sm font-bold text-slate-900">
+            <h3 className="font-headline text-sm font-bold text-slate-900 dark:text-slate-100">
               Omnichannel Reconciliation: Ad Spend vs Retained Courier Cash
             </h3>
           </div>
-          <span className="text-[11px] text-slate-400">
+          <span className="text-[11px] text-slate-400 dark:text-slate-500">
             Cross-checks Google Analytics & Meta reported conversions against actual Pathao delivery settlements
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Box 1: Reported Online Sales */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-            <span className="text-[10px] font-bold text-indigo-700 uppercase block tracking-wider">
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200/80 dark:border-deepBlack-border">
+            <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-400 uppercase block tracking-wider">
               1. GA4 / Meta Reported Sales
             </span>
-            <span className="font-headline text-lg font-bold text-slate-900 block mt-1">
+            <span className="font-headline text-lg font-bold text-slate-900 dark:text-slate-100 block mt-1">
               {formatBDT(ov?.totalRevenue ?? 1905727)}
             </span>
-            <p className="text-[11px] text-slate-500 mt-1">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
               Raw gross orders tracked via pixels and checkout completions before delivery verification.
             </p>
           </div>
 
           {/* Box 2: Reconciled Dispatched Revenue */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-            <span className="text-[10px] font-bold text-emerald-700 uppercase block tracking-wider">
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200/80 dark:border-deepBlack-border">
+            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase block tracking-wider">
               2. Reconciled Dispatched Revenue
             </span>
-            <span className="font-headline text-lg font-bold text-slate-900 block mt-1">
+            <span className="font-headline text-lg font-bold text-slate-900 dark:text-slate-100 block mt-1">
               {formatBDT(storeRevenue)}
             </span>
-            <p className="text-[11px] text-slate-500 mt-1">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
               Actual parcels packed and dispatched across central warehouse and outlet branches.
             </p>
           </div>
 
           {/* Box 3: Return Loss Impact on Ad Spend */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-            <span className="text-[10px] font-bold text-rose-700 uppercase block tracking-wider">
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200/80 dark:border-deepBlack-border">
+            <span className="text-[10px] font-bold text-rose-700 dark:text-rose-400 uppercase block tracking-wider">
               3. Courier Return Loss Drag
             </span>
-            <span className="font-headline text-lg font-bold text-rose-600 block mt-1">
+            <span className="font-headline text-lg font-bold text-rose-600 dark:text-rose-400 block mt-1">
               -{formatBDT(returnLoss)}
             </span>
-            <p className="text-[11px] text-slate-500 mt-1">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
               Shipping & return overhead on uncollected parcels eroding marketing profit margin.
             </p>
           </div>
@@ -726,10 +726,10 @@ export function MarketingAnalyticsTab({
           />
 
           {/* Zero-Break Table Container */}
-          <div className="w-full overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs min-w-0">
+          <div className="w-full overflow-x-auto rounded-xl border border-slate-200 dark:border-deepBlack-border bg-white dark:bg-deepBlack-card shadow-2xs min-w-0">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50/90 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider font-headline">
+                <tr className="bg-slate-50/90 dark:bg-deepBlack-sidebar border-b border-slate-200 dark:border-deepBlack-border text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider font-headline">
                   <th className="py-2.5 px-3">Channel</th>
                   <th className="py-2.5 px-3 text-right">Sessions</th>
                   <th className="py-2.5 px-3 text-right">Users</th>
@@ -738,7 +738,7 @@ export function MarketingAnalyticsTab({
                   <th className="py-2.5 px-3 text-right">Share</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border">
                 {(ga4Report?.channels?.length ? ga4Report.channels : [
                   { channel: 'Paid Social', sessions: 81627, activeUsers: 51200, conversions: 540, totalRevenue: 948300, sharePercent: 57.1 },
                   { channel: 'Direct', sessions: 26364, activeUsers: 16800, conversions: 210, totalRevenue: 297067, sharePercent: 18.4 },
@@ -746,8 +746,8 @@ export function MarketingAnalyticsTab({
                   { channel: 'Organic Search', sessions: 9937, activeUsers: 6400, conversions: 130, totalRevenue: 259205, sharePercent: 6.9 },
                   { channel: 'Referral', sessions: 418, activeUsers: 310, conversions: 12, totalRevenue: 9054, sharePercent: 0.3 },
                 ]).map((ch, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-2.5 px-3 font-semibold text-slate-800 flex items-center gap-2">
+                  <tr key={idx} className="hover:bg-slate-50/80 dark:hover:bg-deepBlack-hover transition-colors">
+                    <td className="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full ${
                         ch.channel.includes('Paid Social') ? 'bg-primary' :
                         ch.channel.includes('Direct') ? 'bg-indigo-500' :
@@ -756,11 +756,11 @@ export function MarketingAnalyticsTab({
                       }`} />
                       <span>{ch.channel}</span>
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono text-slate-700">{ch.sessions.toLocaleString()}</td>
-                    <td className="py-2.5 px-3 text-right font-mono text-slate-700">{ch.activeUsers.toLocaleString()}</td>
-                    <td className="py-2.5 px-3 text-right font-mono font-semibold text-slate-900">{ch.conversions.toLocaleString()}</td>
-                    <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700">{formatBDT(ch.totalRevenue)}</td>
-                    <td className="py-2.5 px-3 text-right font-mono text-slate-500">{ch.sharePercent}%</td>
+                    <td className="py-2.5 px-3 text-right font-mono text-slate-700 dark:text-slate-300">{ch.sessions.toLocaleString()}</td>
+                    <td className="py-2.5 px-3 text-right font-mono text-slate-700 dark:text-slate-300">{ch.activeUsers.toLocaleString()}</td>
+                    <td className="py-2.5 px-3 text-right font-mono font-semibold text-slate-900 dark:text-slate-100">{ch.conversions.toLocaleString()}</td>
+                    <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700 dark:text-emerald-400">{formatBDT(ch.totalRevenue)}</td>
+                    <td className="py-2.5 px-3 text-right font-mono text-slate-500 dark:text-slate-400">{ch.sharePercent}%</td>
                   </tr>
                 ))}
               </tbody>
@@ -784,24 +784,24 @@ export function MarketingAnalyticsTab({
         )}
 
         {/* Detailed Table */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border p-5 shadow-2xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-deepBlack-border">
             <div className="flex items-center gap-2">
               <Target className="w-4 h-4 text-primary" />
-              <h3 className="font-headline text-sm font-bold text-slate-900">
+              <h3 className="font-headline text-sm font-bold text-slate-900 dark:text-slate-100">
                 Meta Ad Campaigns Ledger
               </h3>
             </div>
-            <span className="text-[11px] text-slate-400">
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">
               Ad Account #{metaReport?.status?.adAccountId || 'act_1234567890123456'}
             </span>
           </div>
 
           {/* Zero-Break Table Container */}
-          <div className="w-full overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs min-w-0">
+          <div className="w-full overflow-x-auto rounded-xl border border-slate-200 dark:border-deepBlack-border bg-white dark:bg-deepBlack-card shadow-2xs min-w-0">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50/90 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider font-headline">
+                <tr className="bg-slate-50/90 dark:bg-deepBlack-sidebar border-b border-slate-200 dark:border-deepBlack-border text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider font-headline">
                   <th className="py-2.5 px-3">Campaign Name</th>
                   <th className="py-2.5 px-3">Status</th>
                   <th className="py-2.5 px-3 text-right">Daily Budget</th>
@@ -812,10 +812,10 @@ export function MarketingAnalyticsTab({
                   <th className="py-2.5 px-3 text-right">ROAS</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border">
                 {(metaReport?.campaigns || []).map((camp, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-2.5 px-3 font-semibold text-slate-800 min-w-[240px]">
+                  <tr key={idx} className="hover:bg-slate-50/80 dark:hover:bg-deepBlack-hover transition-colors">
+                    <td className="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200 min-w-[240px]">
                       <div className="flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                         <span className="truncate">{camp.name}</span>
@@ -824,28 +824,28 @@ export function MarketingAnalyticsTab({
                     <td className="py-2.5 px-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
                         camp.status === 'ACTIVE'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-slate-100 text-slate-600 border border-slate-200'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40'
+                          : 'bg-slate-100 dark:bg-deepBlack-elevated text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-deepBlack-border'
                       }`}>
                         {camp.status}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono text-slate-700">
+                    <td className="py-2.5 px-3 text-right font-mono text-slate-700 dark:text-slate-300">
                       {camp.dailyBudget ? formatBDT(camp.dailyBudget) : '—'}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono font-semibold text-slate-900">
+                    <td className="py-2.5 px-3 text-right font-mono font-semibold text-slate-900 dark:text-slate-100">
                       {formatBDT(camp.spend)}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono text-slate-700">
+                    <td className="py-2.5 px-3 text-right font-mono text-slate-700 dark:text-slate-300">
                       {camp.impressions.toLocaleString()}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono text-slate-700">
+                    <td className="py-2.5 px-3 text-right font-mono text-slate-700 dark:text-slate-300">
                       {camp.clicks.toLocaleString()}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
+                    <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900 dark:text-slate-100">
                       {camp.purchases.toLocaleString()}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono font-bold text-purple-700">
+                    <td className="py-2.5 px-3 text-right font-mono font-bold text-purple-700 dark:text-purple-400">
                       {camp.roas}x
                     </td>
                   </tr>
@@ -859,27 +859,27 @@ export function MarketingAnalyticsTab({
       {/* Three Column Section: Top Pages, Geographic Distribution & Device Platform Split */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Column 1: Top Pages */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border p-5 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-deepBlack-border">
             <div className="flex items-center gap-2">
               <Laptop className="w-4 h-4 text-sky-600" />
-              <h3 className="font-headline text-sm font-bold text-slate-900">
+              <h3 className="font-headline text-sm font-bold text-slate-900 dark:text-slate-100">
                 Top Visited Pages
               </h3>
             </div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">GA4 PageViews</span>
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">GA4 PageViews</span>
           </div>
 
-          <div className="w-full overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs min-w-0">
+          <div className="w-full overflow-x-auto rounded-xl border border-slate-200 dark:border-deepBlack-border bg-white dark:bg-deepBlack-card shadow-2xs min-w-0">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50/90 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider font-headline">
+                <tr className="bg-slate-50/90 dark:bg-deepBlack-sidebar border-b border-slate-200 dark:border-deepBlack-border text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider font-headline">
                   <th className="py-2 px-3">Page Path</th>
                   <th className="py-2 px-3 text-right">Views</th>
                   <th className="py-2 px-3 text-right">Bounce</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border">
                 {(ga4Report?.topPages?.length ? ga4Report.topPages : [
                   { pagePath: '/', pageTitle: 'DEEN Commerce - Premium Apparel', screenPageViews: 142000, activeUsers: 48000, bounceRatePercent: 38.2 },
                   { pagePath: '/shop', pageTitle: 'All Products - DEEN Store', screenPageViews: 84000, activeUsers: 29000, bounceRatePercent: 41.5 },
@@ -887,12 +887,12 @@ export function MarketingAnalyticsTab({
                   { pagePath: '/product/leather-jacket', pageTitle: 'Biker Leather Jacket 2026', screenPageViews: 38000, activeUsers: 14500, bounceRatePercent: 29.8 },
                   { pagePath: '/checkout', pageTitle: 'Checkout - Complete Order', screenPageViews: 14200, activeUsers: 8400, bounceRatePercent: 18.4 },
                 ]).map((p, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-2.5 px-3 font-mono text-slate-800 max-w-[150px] truncate" title={p.pageTitle}>
+                  <tr key={idx} className="hover:bg-slate-50/80 dark:hover:bg-deepBlack-hover transition-colors">
+                    <td className="py-2.5 px-3 font-mono text-slate-800 dark:text-slate-200 max-w-[150px] truncate" title={p.pageTitle}>
                       {p.pagePath}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono text-slate-700">{p.screenPageViews.toLocaleString()}</td>
-                    <td className="py-2.5 px-3 text-right font-mono font-medium text-slate-500">{p.bounceRatePercent}%</td>
+                    <td className="py-2.5 px-3 text-right font-mono text-slate-700 dark:text-slate-300">{p.screenPageViews.toLocaleString()}</td>
+                    <td className="py-2.5 px-3 text-right font-mono font-medium text-slate-500 dark:text-slate-400">{p.bounceRatePercent}%</td>
                   </tr>
                 ))}
               </tbody>
@@ -901,27 +901,27 @@ export function MarketingAnalyticsTab({
         </div>
 
         {/* Column 2: Geographic City Distribution */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border p-5 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-deepBlack-border">
             <div className="flex items-center gap-2">
               <Globe className="w-4 h-4 text-emerald-600" />
-              <h3 className="font-headline text-sm font-bold text-slate-900">
+              <h3 className="font-headline text-sm font-bold text-slate-900 dark:text-slate-100">
                 Geographic Audience
               </h3>
             </div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Top Cities</span>
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Top Cities</span>
           </div>
 
-          <div className="w-full overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs min-w-0">
+          <div className="w-full overflow-x-auto rounded-xl border border-slate-200 dark:border-deepBlack-border bg-white dark:bg-deepBlack-card shadow-2xs min-w-0">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50/90 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider font-headline">
+                <tr className="bg-slate-50/90 dark:bg-deepBlack-sidebar border-b border-slate-200 dark:border-deepBlack-border text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider font-headline">
                   <th className="py-2 px-3">City</th>
                   <th className="py-2 px-3 text-right">Users</th>
                   <th className="py-2 px-3 text-right">Share</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border">
                 {(ga4Report?.geo?.length ? ga4Report.geo : [
                   { city: 'Dhaka', country: 'Bangladesh', activeUsers: 32899, sessions: 64200, sharePercent: 37.8 },
                   { city: 'Chattogram', country: 'Bangladesh', activeUsers: 5761, sessions: 11400, sharePercent: 6.6 },
@@ -929,8 +929,8 @@ export function MarketingAnalyticsTab({
                   { city: 'Sylhet', country: 'Bangladesh', activeUsers: 2840, sessions: 5400, sharePercent: 3.3 },
                   { city: 'Singapore', country: 'Singapore', activeUsers: 16830, sessions: 28400, sharePercent: 19.3 },
                 ]).map((g, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-2.5 px-3 font-semibold text-slate-800">
+                  <tr key={idx} className="hover:bg-slate-50/80 dark:hover:bg-deepBlack-hover transition-colors">
+                    <td className="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200">
                       <div className="flex items-center gap-1.5">
                         <span className={`w-2 h-2 rounded-full ${
                           g.city === 'Dhaka' ? 'bg-indigo-600' :
@@ -940,8 +940,8 @@ export function MarketingAnalyticsTab({
                         <span className="truncate max-w-[100px]">{g.city}</span>
                       </div>
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono text-slate-700">{g.activeUsers.toLocaleString()}</td>
-                    <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">{g.sharePercent}%</td>
+                    <td className="py-2.5 px-3 text-right font-mono text-slate-700 dark:text-slate-300">{g.activeUsers.toLocaleString()}</td>
+                    <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900 dark:text-slate-100">{g.sharePercent}%</td>
                   </tr>
                 ))}
               </tbody>
