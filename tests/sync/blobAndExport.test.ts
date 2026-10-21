@@ -12,6 +12,7 @@ vi.mock('@vercel/blob', () => ({
 
 import { isBlobConfigured, uploadDatasetToBlob, fetchDatasetFromBlob, getBlobStorageStatus } from '@/lib/blobStorage';
 import { downloadDatasetAsJson } from '@/lib/datasetExport';
+import { compareOrdersByNumber, getExportCustomerName } from '@/lib/excelExport';
 import { DatasetSnapshot } from '@/types';
 
 describe('Vercel Blob & Dataset Snapshot Persistence (Methods 1 & 3)', () => {
@@ -152,9 +153,7 @@ describe('Vercel Blob & Dataset Snapshot Persistence (Methods 1 & 3)', () => {
   });
 
   describe('Order Export Formatting & Sorting Invariants', () => {
-    it('sorts orders naturally by numeric order number including suffixes and prefixes', async () => {
-      const { compareOrdersByNumber } = await import('@/lib/excelExport');
-
+    it('sorts orders naturally by numeric order number including suffixes and prefixes', () => {
       const testOrders = [
         { 'Order ID': '18085' },
         { 'Order ID': '17263' },
@@ -179,9 +178,7 @@ describe('Vercel Blob & Dataset Snapshot Persistence (Methods 1 & 3)', () => {
       ]);
     });
 
-    it('extracts full unmasked customer name even if masked version with asterisks is present', async () => {
-      const { getExportCustomerName } = await import('@/lib/excelExport');
-
+    it('extracts full unmasked customer name even if masked version with asterisks is present', () => {
       // Masked in Customer Name, unmasked in rawCustomerName
       const order1 = {
         'Customer Name': 'T*** P***',

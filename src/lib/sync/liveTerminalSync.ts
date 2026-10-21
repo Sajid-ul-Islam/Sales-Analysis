@@ -185,16 +185,24 @@ export function detectFulfillmentBranch(orderIdOrRow: unknown): FulfillmentBranc
     const rawOid = String(rowObj['Order ID'] || rowObj.orderId || rowObj['Consignment ID'] || '');
     const baseOrderId = extractBaseOrderId(rawOid);
 
-    if (rowObj.fulfillmentBranch && rowObj.branchCode) {
+    if (rowObj.fulfillmentBranch && rowObj.branchCode && rowObj.branchCode !== 'ONLINE') {
       return {
         branchName: String(rowObj.fulfillmentBranch),
         branchCode: rowObj.branchCode as BranchFulfillmentCode,
-        isBranchFulfillment: rowObj.branchCode !== 'ONLINE',
+        isBranchFulfillment: true,
         baseOrderId,
       };
     }
 
-    const oid = String(rowObj.outletId || rowObj['Outlet ID'] || '').trim();
+    const oid = String(
+      rowObj.outletId ||
+      rowObj['Outlet ID'] ||
+      rowObj._sip_outlet_id ||
+      rowObj.sip_outlet_id ||
+      rowObj._pos_outlet_id ||
+      rowObj.pos_outlet_id ||
+      ''
+    ).trim();
     if (oid === '1') {
       return { branchName: 'Mirpur Outlet POS', branchCode: 'MIRPUR', isBranchFulfillment: true, baseOrderId };
     }
@@ -205,6 +213,41 @@ export function detectFulfillmentBranch(orderIdOrRow: unknown): FulfillmentBranc
       return { branchName: 'Wari Branch', branchCode: 'WARI', isBranchFulfillment: true, baseOrderId };
     }
     if (oid === '7' || oid === '8') {
+      return { branchName: 'Sylhet Branch', branchCode: 'SYLHET', isBranchFulfillment: true, baseOrderId };
+    }
+
+    const cashierId = String(rowObj.cashierId || rowObj.cashier_id || rowObj._sip_cashier_id || '').trim();
+    if (cashierId === '1508') {
+      return { branchName: 'Mirpur Outlet POS', branchCode: 'MIRPUR', isBranchFulfillment: true, baseOrderId };
+    }
+    if (cashierId === '3') {
+      return { branchName: 'Cumilla Branch', branchCode: 'CUMILLA', isBranchFulfillment: true, baseOrderId };
+    }
+    if (cashierId === '572') {
+      return { branchName: 'Wari Branch', branchCode: 'WARI', isBranchFulfillment: true, baseOrderId };
+    }
+    if (cashierId === '35' || cashierId === '69') {
+      return { branchName: 'Sylhet Branch', branchCode: 'SYLHET', isBranchFulfillment: true, baseOrderId };
+    }
+
+    const locText = String(
+      rowObj.fulfillmentBranch ||
+      rowObj.fulfillmentLocation ||
+      rowObj.storeName ||
+      rowObj.outletName ||
+      rowObj.branch ||
+      ''
+    ).toLowerCase();
+    if (locText.includes('mirpur')) {
+      return { branchName: 'Mirpur Outlet POS', branchCode: 'MIRPUR', isBranchFulfillment: true, baseOrderId };
+    }
+    if (locText.includes('cumilla') || locText.includes('comilla')) {
+      return { branchName: 'Cumilla Branch', branchCode: 'CUMILLA', isBranchFulfillment: true, baseOrderId };
+    }
+    if (locText.includes('wari')) {
+      return { branchName: 'Wari Branch', branchCode: 'WARI', isBranchFulfillment: true, baseOrderId };
+    }
+    if (locText.includes('sylhet')) {
       return { branchName: 'Sylhet Branch', branchCode: 'SYLHET', isBranchFulfillment: true, baseOrderId };
     }
   }

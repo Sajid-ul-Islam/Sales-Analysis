@@ -181,6 +181,7 @@ export function LiveOpsTab({
   // Navigation & View state
   const [selectedView, setSelectedView] = useState<'Today Shipped' | "Today's Orders" | 'Queue'>('Today Shipped');
   const [channelFilter, setChannelFilter] = useState<'ALL' | 'ONLINE' | 'POS'>('ONLINE');
+  const [posBranchFilter, setPosBranchFilter] = useState<'ALL' | 'MIRPUR' | 'WARI' | 'CUMILLA' | 'SYLHET'>('ALL');
   const onlineOnly = channelFilter === 'ONLINE';
   const [showSubCategory, setShowSubCategory] = useState(false);
   const [isVolumeModalOpen, setIsVolumeModalOpen] = useState(false);
@@ -292,6 +293,11 @@ export function LiveOpsTab({
     if (urlChannel === 'POS' || urlChannel === 'ONLINE' || urlChannel === 'ALL') {
       setChannelFilter(urlChannel as 'ALL' | 'ONLINE' | 'POS');
     }
+    const urlBranch = (p.get('branch') || p.get('posBranch') || '').toUpperCase();
+    if (urlBranch === 'MIRPUR' || urlBranch === 'WARI' || urlBranch === 'CUMILLA' || urlBranch === 'SYLHET') {
+      setChannelFilter('POS');
+      setPosBranchFilter(urlBranch as 'MIRPUR' | 'WARI' | 'CUMILLA' | 'SYLHET');
+    }
 
     const cached = getCacheItem<LiveTerminalCacheEnvelope>(DEEN_CACHE_KEYS.LIVE_TERMINAL);
     if (cached) {
@@ -341,12 +347,13 @@ export function LiveOpsTab({
     return processLiveOpsData(activeDataset, {
       view: selectedHistoricalDate ? 'Today Shipped' : selectedView,
       channelFilter,
+      posBranchFilter,
       onlineOnly,
       customDate: selectedHistoricalDate || undefined,
       anchorDate: snapshotAnchorDate,
       historicalOrders: orders,
     });
-  }, [activeDataset, selectedView, channelFilter, onlineOnly, selectedHistoricalDate, snapshotAnchorDate, orders]);
+  }, [activeDataset, selectedView, channelFilter, posBranchFilter, onlineOnly, selectedHistoricalDate, snapshotAnchorDate, orders]);
 
   const activeCategoryItems = showSubCategory ? report.subCategoryItems : report.categoryItems;
 
@@ -513,7 +520,13 @@ export function LiveOpsTab({
     const list = report.activeOrders.filter((o) => {
       // Rule: Channel Filter (ONLINE vs POS vs ALL)
       if (channelFilter === 'ONLINE' && !isOrderOnline(o)) return false;
-      if (channelFilter === 'POS' && isOrderOnline(o)) return false;
+      if (channelFilter === 'POS') {
+        if (isOrderOnline(o)) return false;
+        if (posBranchFilter !== 'ALL') {
+          const branch = detectFulfillmentBranch(o);
+          if (branch.branchCode !== posBranchFilter) return false;
+        }
+      }
 
       // Rule: Exclude exchange replacements (and non-checkout orders) from standard commercial view unless 'EXCHANGES_ONLY' is selected
       if (courierFilter === 'EXCHANGES_ONLY') {
@@ -576,6 +589,7 @@ export function LiveOpsTab({
       }
 
       if ((selectedView === "Today's Orders" || (selectedView as string) === 'All Orders') && pipelineFilter !== 'ALL') {
+        if (!isOrderOnline(o)) return false;
         if (pipelineFilter === 'PROCESSING' && !isOrderProcessing(o)) return false;
         if (pipelineFilter === 'HOLD' && !isOrderOnHold(o)) return false;
         if (pipelineFilter === 'SHIPPED_TODAY' && !isOrderShipped(o)) return false;
@@ -585,7 +599,7 @@ export function LiveOpsTab({
     });
 
     return list.sort(compareOrdersByNumber);
-  }, [report.activeOrders, searchQuery, categoryFilter, courierFilter, selectedView, pipelineFilter, channelFilter]);
+  }, [report.activeOrders, searchQuery, categoryFilter, courierFilter, selectedView, pipelineFilter, channelFilter, posBranchFilter]);
 
   // Grouped order-wise records for consolidated ledger table view
   const orderWiseGroups = useMemo(() => {
@@ -600,8 +614,9 @@ export function LiveOpsTab({
       pipelineFilter,
       selectedView,
       channelFilter,
+      posBranchFilter,
     });
-  }, [orderWiseGroups, searchQuery, categoryFilter, courierFilter, pipelineFilter, selectedView, channelFilter]);
+  }, [orderWiseGroups, searchQuery, categoryFilter, courierFilter, pipelineFilter, selectedView, channelFilter, posBranchFilter]);
 
   // Table Container Ref for Scroll Virtualization
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -700,7 +715,7 @@ export function LiveOpsTab({
     }
   }, [filteredOrderWiseGroups, filteredOrders, report.activeOrders]);
 
-  // Unique categories for table filter dropdown (respects active channel filter)
+  // Unique categories for table filter dropdown (respects active channel filter and branch)
   const uniqueCategories = useMemo(() => {
     const set = new Set<string>();
     for (const o of report.activeOrders) {
@@ -709,7 +724,12 @@ export function LiveOpsTab({
         (channelFilter === 'ONLINE' && isOrderOnline(o)) ||
         (channelFilter === 'POS' && !isOrderOnline(o));
 
-      if (matchChannel && !isOrderExchange(o)) {
+      const matchBranch =
+        channelFilter !== 'POS' ||
+        posBranchFilter === 'ALL' ||
+        detectFulfillmentBranch(o).branchCode === posBranchFilter;
+
+      if (matchChannel && matchBranch && !isOrderExchange(o)) {
         const itemName = String(o['Item Name'] || '');
         const cat = getCategoryForSales(itemName);
         if (showSubCategory) {
@@ -721,7 +741,7 @@ export function LiveOpsTab({
       }
     }
     return Array.from(set).sort();
-  }, [report.activeOrders, showSubCategory, channelFilter]);
+  }, [report.activeOrders, showSubCategory, channelFilter, posBranchFilter]);
 
   // Authoritative day labels for KPI card sparklines (7-day timeline)
   const kpiDayLabels = useMemo(() => {
@@ -932,10 +952,10 @@ export function LiveOpsTab({
                     ? 'bg-white dark:bg-[#1E1E1E] text-emerald-700 dark:text-emerald-400 shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
-                title="Physical in-store walk-in POS sales"
+                title="Physical in-store walk-in outlet sales"
               >
                 <span className={`w-2 h-2 rounded-full ${channelFilter === 'POS' ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-slate-300 dark:bg-slate-600'}`} />
-                <span>POS Retail</span>
+                <span>Outlet</span>
                 {report.channelStats && (
                   <span className={`ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
                     channelFilter === 'POS'
@@ -1000,7 +1020,7 @@ export function LiveOpsTab({
             {/* Reference Snapshot Date */}
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-[#141414] text-slate-700 dark:text-slate-300 font-semibold border border-slate-200/60 dark:border-[#222222]">
               <span>🗓️</span>
-              <span>Operational snapshot: <strong className="text-slate-900 dark:text-white font-bold">{report.refDayName} ({report.referenceDate})</strong></span>
+              <span>{channelFilter === 'POS' ? 'Outlet Sales Date: ' : 'Operational snapshot: '}<strong className="text-slate-900 dark:text-white font-bold">{report.refDayName} ({report.referenceDate})</strong></span>
             </span>
 
             {/* 7-Day Baseline Pill */}
@@ -1023,64 +1043,148 @@ export function LiveOpsTab({
             )}
           </div>
 
-          {/* Segmented View Mode Switcher */}
-          <div className="inline-flex bg-slate-100 dark:bg-[#121212] p-1 rounded-2xl border border-slate-200/80 dark:border-[#1F1F1F] text-xs font-bold self-start md:self-auto shadow-2xs">
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedHistoricalDate(null);
-                setSelectedView('Today Shipped');
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                selectedView === 'Today Shipped' && !selectedHistoricalDate
-                  ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <span>🚚</span>
-              <span>Today Shipped</span>
-            </button>
+          {/* Segmented View Mode Switcher OR Outlet Retail Branch Switcher */}
+          {channelFilter === 'POS' ? (
+            <div className="inline-flex bg-slate-100 dark:bg-[#121212] p-1 rounded-2xl border border-slate-200/80 dark:border-[#1F1F1F] text-xs font-bold self-start md:self-auto shadow-2xs flex-wrap gap-1">
+              <button
+                type="button"
+                onClick={() => setPosBranchFilter('ALL')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  posBranchFilter === 'ALL'
+                    ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span>🏬</span>
+                <span>All Outlets</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-[#262626] text-slate-700 dark:text-slate-300 font-semibold">
+                  {report.channelStats?.posCount || 0}
+                </span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedHistoricalDate(null);
-                setSelectedView("Today's Orders");
-                setPipelineFilter('ALL');
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                selectedView === "Today's Orders" && !selectedHistoricalDate
-                  ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-              title="Today's Orders = Shipped today + all orders with Processing status"
-            >
-              <span>📦</span>
-              <span>Today&apos;s Orders</span>
-              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-semibold border border-blue-200/60 dark:border-blue-800/60">
-                Active
-              </span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setPosBranchFilter('MIRPUR')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  posBranchFilter === 'MIRPUR'
+                    ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span>📍</span>
+                <span>Mirpur</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-semibold border border-amber-200/60 dark:border-amber-800/60">
+                  {report.channelStats?.posBranches?.mirpur || 0}
+                </span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedHistoricalDate(null);
-                setSelectedView('Queue');
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                selectedView === 'Queue' && !selectedHistoricalDate
-                  ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <span>📋</span>
-              <span>Queue</span>
-              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-[#262626] text-slate-700 dark:text-slate-300 font-semibold">
-                {report.allOrdersBreakdown.processingCount + report.allOrdersBreakdown.holdCount}
-              </span>
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => setPosBranchFilter('WARI')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  posBranchFilter === 'WARI'
+                    ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span>📍</span>
+                <span>Wari</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-semibold border border-blue-200/60 dark:border-blue-800/60">
+                  {report.channelStats?.posBranches?.wari || 0}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPosBranchFilter('CUMILLA')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  posBranchFilter === 'CUMILLA'
+                    ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span>📍</span>
+                <span>Cumilla</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-200/60 dark:border-emerald-800/60">
+                  {report.channelStats?.posBranches?.cumilla || 0}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPosBranchFilter('SYLHET')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  posBranchFilter === 'SYLHET'
+                    ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span>📍</span>
+                <span>Sylhet</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-semibold border border-purple-200/60 dark:border-purple-800/60">
+                  {report.channelStats?.posBranches?.sylhet || 0}
+                </span>
+              </button>
+            </div>
+          ) : (
+            <div className="inline-flex bg-slate-100 dark:bg-[#121212] p-1 rounded-2xl border border-slate-200/80 dark:border-[#1F1F1F] text-xs font-bold self-start md:self-auto shadow-2xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedHistoricalDate(null);
+                  setSelectedView('Today Shipped');
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  selectedView === 'Today Shipped' && !selectedHistoricalDate
+                    ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span>🚚</span>
+                <span>Today Shipped</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedHistoricalDate(null);
+                  setSelectedView("Today's Orders");
+                  setPipelineFilter('ALL');
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  selectedView === "Today's Orders" && !selectedHistoricalDate
+                    ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Today's Orders = Shipped today + all orders with Processing status"
+              >
+                <span>📦</span>
+                <span>Today&apos;s Orders</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-semibold border border-blue-200/60 dark:border-blue-800/60">
+                  Active
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedHistoricalDate(null);
+                  setSelectedView('Queue');
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  selectedView === 'Queue' && !selectedHistoricalDate
+                    ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span>📋</span>
+                <span>Queue</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-[#262626] text-slate-700 dark:text-slate-300 font-semibold">
+                  {report.allOrdersBreakdown.processingCount + report.allOrdersBreakdown.holdCount}
+                </span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Row 3: Integrated 7-Day Dispatch History Timeline */}
@@ -1191,6 +1295,8 @@ export function LiveOpsTab({
             <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
               {selectedHistoricalDate
                 ? `Shipped Items (${report.refDayName.slice(0, 3)} ${report.referenceDate.slice(5)})`
+                : channelFilter === 'POS'
+                ? 'Outlet Units Sold - Today'
                 : (selectedView === "Today's Orders" ? "Today's Items - Total" : 'Shipped Items - Today')}
             </span>
             <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs">
@@ -1254,6 +1360,8 @@ export function LiveOpsTab({
             <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
               {selectedHistoricalDate
                 ? `Sales Revenue (${report.refDayName.slice(0, 3)} ${report.referenceDate.slice(5)})`
+                : channelFilter === 'POS'
+                ? 'Outlet Sales Revenue - Today'
                 : (selectedView === "Today's Orders" ? "Today's Revenue - Total" : 'Sales Revenue - Today')}
             </span>
             <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sky-600 dark:text-sky-400 font-bold text-sm shadow-2xs">
@@ -1300,6 +1408,8 @@ export function LiveOpsTab({
             <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
               {selectedHistoricalDate
                 ? `Shipped Orders (${report.refDayName.slice(0, 3)} ${report.referenceDate.slice(5)})`
+                : channelFilter === 'POS'
+                ? 'Outlet Transactions - Today'
                 : (selectedView === "Today's Orders" ? "Today's Orders - Total" : 'Shipped Orders - Today')}
             </span>
             <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs">
@@ -1466,7 +1576,11 @@ export function LiveOpsTab({
                 </span>
               ) : (
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#1A1A1A] text-slate-600 dark:text-slate-400">
-                  {selectedView === "Today's Orders" ? "Today's Active Orders" : "Today Shipped"}
+                  {channelFilter === 'POS'
+                    ? (posBranchFilter === 'ALL' ? 'All Outlets' : `${posBranchFilter} Outlet`)
+                    : selectedView === "Today's Orders"
+                    ? "Today's Active Orders"
+                    : "Today Shipped"}
                 </span>
               )}
             </h2>
@@ -1701,8 +1815,8 @@ export function LiveOpsTab({
         </div>
       )}
 
-      {/* ── Today's Orders Pipeline Status Strip (Only when Today's Orders view is selected) ── */}
-      {(selectedView === "Today's Orders" || (selectedView as string) === 'All Orders') && report.allOrdersBreakdown && (
+      {/* ── Today's Orders Pipeline Status Strip (Only when Today's Orders view is selected AND not POS) ── */}
+      {channelFilter !== 'POS' && (selectedView === "Today's Orders" || (selectedView as string) === 'All Orders') && report.allOrdersBreakdown && (
         <div className="bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200/90 dark:border-deepBlack-border rounded-3xl p-4 shadow-xs space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 dark:border-deepBlack-border pb-2.5">
             <div className="flex items-center gap-2">
@@ -2440,7 +2554,7 @@ export function LiveOpsTab({
             <div className="flex items-center gap-3 flex-wrap">
               <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight font-headline flex items-center gap-2">
                 <span>📋</span>
-                <span>Everyday Dispatched Orders Ledger</span>
+                <span>{channelFilter === 'POS' ? 'Outlet Sales Ledger' : 'Everyday Dispatched Orders Ledger'}</span>
                 <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
                   ({ledgerViewMode === 'ORDER_WISE' ? `${filteredOrderWiseGroups.length} unique orders` : `${filteredOrders.length} line items`})
                 </span>
@@ -2501,7 +2615,9 @@ export function LiveOpsTab({
             </div>
 
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              {ledgerViewMode === 'ORDER_WISE'
+              {channelFilter === 'POS'
+                ? 'Physical retail outlet store sales with immediate customer handover across Mirpur, Wari, Cumilla, and Sylhet branches.'
+                : ledgerViewMode === 'ORDER_WISE'
                 ? 'Consolidated view grouping multi-item baskets into single authoritative rows with expandable product breakdowns.'
                 : 'Granular line-item record of each apparel product dispatched matching the active shift view with live Pathao delivery status.'}
             </p>
@@ -2576,8 +2692,8 @@ export function LiveOpsTab({
           </span>
           {[
             { id: 'ONLINE' as const, label: '🌐 Online Checkout', count: report.channelStats?.onlineCount },
-            { id: 'POS' as const, label: '🏬 POS Retail', count: report.channelStats?.posCount },
-            { id: 'ALL' as const, label: '📦 All Channels', count: report.channelStats?.totalCount },
+            { id: 'POS' as const, label: '🏬 Outlet', count: report.channelStats?.posCount },
+            { id: 'ALL' as const, label: '📦 All', count: report.channelStats?.totalCount },
           ].map((pill) => (
             <button
               key={pill.id}
@@ -2609,36 +2725,75 @@ export function LiveOpsTab({
           ))}
         </div>
 
-        {/* Courier Telemetry Filter Chips */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mr-1">
-            Courier Filter:
-          </span>
-          {[
-            { id: 'ALL', label: 'All Orders' },
-            { id: 'Delivered', label: '✓ Delivered' },
-            { id: 'In Transit', label: '🚚 In Transit' },
-            { id: 'Returned', label: '⚠ Returned' },
-            { id: 'Untracked', label: '○ Untracked' },
-            ...(report.exchangeStats && report.exchangeStats.count > 0 ? [{ id: 'EXCHANGES_ONLY', label: `🔄 Exchanges (${report.exchangeStats.count})` }] : []),
-            { id: 'DISCREPANCY_ONLY', label: '🚨 Discrepancies Only' },
-          ].map((pill) => (
-            <button
-              key={pill.id}
-              type="button"
-              onClick={() => setCourierFilter(pill.id)}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
-                courierFilter === pill.id
-                  ? pill.id === 'DISCREPANCY_ONLY'
-                    ? 'bg-rose-600 text-white shadow-xs'
-                    : 'bg-slate-900 dark:bg-white text-white dark:text-black shadow-xs'
-                  : 'bg-slate-100 dark:bg-[#121212] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#1A1A1A] border border-transparent dark:border-[#1F1F1F]'
-              }`}
-            >
-              {pill.label}
-            </button>
-          ))}
-        </div>
+        {/* Outlet Branch Filter Chips (When Outlet is selected) OR Courier Telemetry Filter Chips (When Online/All is selected) */}
+        {channelFilter === 'POS' ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mr-1">
+              Outlet Branch:
+            </span>
+            {[
+              { id: 'ALL' as const, label: '🏬 All Outlets', count: report.channelStats?.posCount },
+              { id: 'MIRPUR' as const, label: 'Mirpur', count: report.channelStats?.posBranches?.mirpur },
+              { id: 'WARI' as const, label: 'Wari', count: report.channelStats?.posBranches?.wari },
+              { id: 'CUMILLA' as const, label: 'Cumilla', count: report.channelStats?.posBranches?.cumilla },
+              { id: 'SYLHET' as const, label: 'Sylhet', count: report.channelStats?.posBranches?.sylhet },
+            ].map((pill) => (
+              <button
+                key={pill.id}
+                type="button"
+                onClick={() => setPosBranchFilter(pill.id)}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  posBranchFilter === pill.id
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-[#121212] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#1A1A1A] border border-transparent dark:border-[#1F1F1F]'
+                }`}
+              >
+                <span>{pill.label}</span>
+                {pill.count !== undefined && (
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                      posBranchFilter === pill.id
+                        ? 'bg-white/20 text-white'
+                        : 'bg-slate-200 dark:bg-[#202020] text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    {pill.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mr-1">
+              Courier Filter:
+            </span>
+            {[
+              { id: 'ALL', label: 'All Orders' },
+              { id: 'Delivered', label: '✓ Delivered' },
+              { id: 'In Transit', label: '🚚 In Transit' },
+              { id: 'Returned', label: '⚠ Returned' },
+              { id: 'Untracked', label: '○ Untracked' },
+              ...(report.exchangeStats && report.exchangeStats.count > 0 ? [{ id: 'EXCHANGES_ONLY', label: `🔄 Exchanges (${report.exchangeStats.count})` }] : []),
+              { id: 'DISCREPANCY_ONLY', label: '🚨 Discrepancies Only' },
+            ].map((pill) => (
+              <button
+                key={pill.id}
+                type="button"
+                onClick={() => setCourierFilter(pill.id)}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  courierFilter === pill.id
+                    ? pill.id === 'DISCREPANCY_ONLY'
+                      ? 'bg-rose-600 text-white shadow-xs'
+                      : 'bg-slate-900 dark:bg-white text-white dark:text-black shadow-xs'
+                    : 'bg-slate-100 dark:bg-[#121212] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#1A1A1A] border border-transparent dark:border-[#1F1F1F]'
+                }`}
+              >
+                {pill.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Filters Bar: Search & Category Dropdown */}
         <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -2799,12 +2954,18 @@ export function LiveOpsTab({
                                 }
 
                                 if (group.isPos) {
+                                  const bCode = group.branch.branchCode;
+                                  const label = bCode === 'MIRPUR' ? 'Mirpur Outlet'
+                                    : bCode === 'WARI' ? 'Wari Outlet'
+                                    : bCode === 'CUMILLA' ? 'Cumilla Outlet'
+                                    : bCode === 'SYLHET' ? 'Sylhet Outlet'
+                                    : 'Outlet';
                                   return (
                                     <span
                                       className="inline-block self-start px-1.5 py-0.5 rounded text-[9.5px] font-bold tracking-tight bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 font-sans shadow-2xs"
-                                      title="Physical Walk-In In-Store POS Register Sale"
+                                      title="Physical Walk-In In-Store Outlet Sale"
                                     >
-                                      🏬 POS Store
+                                      🏬 {label}
                                     </span>
                                   );
                                 }
@@ -3158,12 +3319,18 @@ export function LiveOpsTab({
                               }
 
                               if (isOrderPos(row)) {
+                                const bCode = branch.branchCode;
+                                const label = bCode === 'MIRPUR' ? 'Mirpur Outlet'
+                                  : bCode === 'WARI' ? 'Wari Outlet'
+                                  : bCode === 'CUMILLA' ? 'Cumilla Outlet'
+                                  : bCode === 'SYLHET' ? 'Sylhet Outlet'
+                                  : 'Outlet';
                                 return (
                                   <span
                                     className="inline-block self-start px-1.5 py-0.5 rounded text-[9.5px] font-bold tracking-tight bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 font-sans shadow-2xs"
-                                    title="Physical Walk-In In-Store POS Register Sale"
+                                    title="Physical Walk-In In-Store Outlet Sale"
                                   >
-                                    🏬 POS Store
+                                    🏬 {label}
                                   </span>
                                 );
                               }

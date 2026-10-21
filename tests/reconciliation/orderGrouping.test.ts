@@ -275,6 +275,86 @@ describe('Order-Wise Grouping & Filtering Engine', () => {
       expect(allFiltered).toHaveLength(2);
       expect(allFiltered.map((g) => g.orderId).sort()).toEqual(['8001', '9001']);
     });
+
+    it('strictly isolates online checkout orders from outlet branch register orders (m, c, w, s)', () => {
+      const outletRows: Partial<RawOrderRow>[] = [
+        {
+          orderId: '17263',
+          'Order ID': '17263',
+          'Item Name': 'Central Warehouse Tee',
+          'Created Via': 'checkout',
+          Quantity: 1,
+          'Order Amount': 1200,
+        },
+        {
+          orderId: '17264 m',
+          'Order ID': '17264 m',
+          'Item Name': 'Mirpur Outlet Polo',
+          outletId: '1',
+          'Payment Method': 'bKash', // Counter bKash payment at outlet
+          Quantity: 1,
+          'Order Amount': 1500,
+        },
+        {
+          orderId: '17265 c',
+          'Order ID': '17265 c',
+          'Item Name': 'Cumilla Branch Denim',
+          outletId: '2',
+          Quantity: 1,
+          'Order Amount': 2500,
+        },
+        {
+          orderId: '17266 w',
+          'Order ID': '17266 w',
+          'Item Name': 'Wari Branch Hoodie',
+          outletId: '9',
+          Quantity: 1,
+          'Order Amount': 2200,
+        },
+        {
+          orderId: '17267 s',
+          'Order ID': '17267 s',
+          'Item Name': 'Sylhet Branch Shirt',
+          outletId: '7',
+          Quantity: 1,
+          'Order Amount': 1800,
+        },
+      ];
+
+      const groups = groupOrdersByOrderId(outletRows as RawOrderRow[]);
+      expect(groups).toHaveLength(5);
+
+      // Online checkout filter must ONLY contain genuine central checkout order (17263)
+      const onlineOnly = filterOrderWiseGroups(groups, { channelFilter: 'ONLINE' });
+      expect(onlineOnly).toHaveLength(1);
+      expect(onlineOnly[0].orderId).toBe('17263');
+
+      // Outlet filter must contain all 4 outlet store orders
+      const outletAll = filterOrderWiseGroups(groups, { channelFilter: 'POS', posBranchFilter: 'ALL' });
+      expect(outletAll).toHaveLength(4);
+      expect(outletAll.map((g) => g.orderId)).toEqual(['17264 m', '17265 c', '17266 w', '17267 s']);
+
+      // Branch-specific filters
+      const mirpurOnly = filterOrderWiseGroups(groups, { channelFilter: 'POS', posBranchFilter: 'MIRPUR' });
+      expect(mirpurOnly).toHaveLength(1);
+      expect(mirpurOnly[0].orderId).toBe('17264 m');
+
+      const cumillaOnly = filterOrderWiseGroups(groups, { channelFilter: 'POS', posBranchFilter: 'CUMILLA' });
+      expect(cumillaOnly).toHaveLength(1);
+      expect(cumillaOnly[0].orderId).toBe('17265 c');
+
+      const wariOnly = filterOrderWiseGroups(groups, { channelFilter: 'POS', posBranchFilter: 'WARI' });
+      expect(wariOnly).toHaveLength(1);
+      expect(wariOnly[0].orderId).toBe('17266 w');
+
+      const sylhetOnly = filterOrderWiseGroups(groups, { channelFilter: 'POS', posBranchFilter: 'SYLHET' });
+      expect(sylhetOnly).toHaveLength(1);
+      expect(sylhetOnly[0].orderId).toBe('17267 s');
+
+      // ALL channel filter must contain all 5 orders (all outlet orders + online checkout)
+      const allChannels = filterOrderWiseGroups(groups, { channelFilter: 'ALL' });
+      expect(allChannels).toHaveLength(5);
+    });
   });
 });
 

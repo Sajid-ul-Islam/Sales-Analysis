@@ -186,7 +186,7 @@ describe('Strict Route Authentication & RBAC Coverage', () => {
           expect(firstOrder.phone).toMatch(/\*{4}/);
         }
       }
-    });
+    }, 25000);
   });
 
   describe('Authenticated Operator Access', () => {

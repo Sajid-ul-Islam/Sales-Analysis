@@ -10,6 +10,7 @@ import { classifyProductLine, computeSelectsStats, SelectsStats } from './select
 import { getCategoryForSales, getSubCategoryForSales, getShortCategoryLabel, getShortSubCategoryLabel, CATEGORY_COLOR_MAP } from './liveCategoryEngine';
 import { computeCustomerMix } from './customerRegistry';
 import { isOnlinePaymentMethod } from './woocommerceClient';
+import { detectFulfillmentBranch } from './sync/liveTerminalSync';
 import {
   getDhakaIsoDate,
   getDhakaTodayIso,
@@ -324,6 +325,12 @@ export interface ChannelStats {
   onlineItems: number;
   posItems: number;
   totalItems: number;
+  posBranches?: {
+    mirpur: number;
+    wari: number;
+    cumilla: number;
+    sylhet: number;
+  };
 }
 
 export interface ExchangeInfo {
@@ -666,12 +673,32 @@ export function isOrderShippedToday(order: RawOrderRow, targetDateIso: string): 
 export function isTodayOrdersEligible(
   order: RawOrderRow,
   targetDateIso: string,
-  options?: { channelFilter?: 'ALL' | 'ONLINE' | 'POS'; onlineOnly?: boolean }
+  options?: {
+    channelFilter?: 'ALL' | 'ONLINE' | 'POS';
+    posBranchFilter?: 'ALL' | 'MIRPUR' | 'WARI' | 'CUMILLA' | 'SYLHET';
+    onlineOnly?: boolean;
+  }
 ): boolean {
   const channel = options?.channelFilter || (options?.onlineOnly === false ? 'ALL' : 'ONLINE');
   if (channel === 'ONLINE' && !isOrderOnline(order)) return false;
-  if (channel === 'POS' && isOrderOnline(order)) return false;
+  if (channel === 'POS') {
+    if (isOrderOnline(order)) return false;
+    if (options?.posBranchFilter && options.posBranchFilter !== 'ALL') {
+      const branch = detectFulfillmentBranch(order);
+      if (branch.branchCode !== options.posBranchFilter) return false;
+    }
+  }
   if (isOrderExchange(order)) return false;
+
+  // Outlet store orders (physical in-store sales on targetDateIso)
+  if (!isOrderOnline(order)) {
+    const oDate = parseOrderDate(order);
+    const mDate = getStatusModificationDate(order);
+    const oDateIso = oDate ? formatDateToIsoDay(oDate) : '';
+    const mDateIso = mDate ? formatDateToIsoDay(mDate) : '';
+    return oDateIso === targetDateIso || mDateIso === targetDateIso;
+  }
+
   const o = order as Record<string, unknown>;
   const status = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
   if (CANCELLED_STATUSES.has(status)) return false;
@@ -699,14 +726,16 @@ export function isOrderPos(order: RawOrderRow): boolean {
   return !isOrderOnline(order);
 }
 
+export const isOrderOutlet = isOrderPos;
+
 /**
- * Identifies genuine Online Store orders (fulfilled from Central Warehouse or dispatched from branch outlets).
- * Strictly excludes physical in-store POS outlet walk-in orders (Mirpur POS, Cumilla, Wari, and Sylhet retail branches).
+ * Identifies genuine Online Store Checkout orders (fulfilled from Central Warehouse or web checkout courier dispatch).
+ * Strictly excludes physical in-store retail outlet walk-in counter sales.
  */
 export function isOrderOnline(order: RawOrderRow): boolean {
   const o = order as Record<string, unknown>;
 
-  // 1. Explicit POS / in-store retail markers
+  // 1. Explicit POS / Outlet retail markers
   if (o.isPos === true) return false;
   const src = String(order['Order Source'] || o.orderSource || '').toLowerCase().trim();
   if (src === 'pos') return false;
@@ -714,41 +743,64 @@ export function isOrderOnline(order: RawOrderRow): boolean {
   const createdVia = String(o.created_via || o['Created Via'] || o.createdVia || '').toLowerCase().trim();
   if (createdVia.includes('pos')) return false;
 
-  const loc = String(o.fulfillmentLocation || o.fulfillmentBranch || '').toLowerCase().trim();
-  if (loc.includes('pos') || loc.includes('retail outlet') || loc.includes('register')) return false;
+  const loc = String(o.fulfillmentLocation || o.fulfillmentBranch || o.outletName || o.storeName || '').toLowerCase().trim();
+  if (loc.includes('pos') || loc.includes('register')) return false;
 
-  // 2. Online payment / Courier consignment / Web Checkout checks:
-  // DEEN Rule: Online orders dispatched from retail branch outlets (w, s, c, m) with web checkout,
-  // online marked payment (bKash, Nagad, Card, SSLCommerz, ecom, etc.), or courier tracking are genuine ONLINE orders!
+  const outletId = String(o.outletId || o['Outlet ID'] || o._sip_outlet_id || o._pos_outlet_id || '').trim();
+  const cashierId = String(o.cashierId || o.cashier_id || o._sip_cashier_id || '').trim();
+  const isPosCashier = cashierId === '1508' || cashierId === '3' || cashierId === '572' || cashierId === '35' || cashierId === '69';
+  const hasPosOutlet = Boolean(outletId && outletId !== '0');
+
+  // 2. Central Warehouse orders are always online store orders
+  if (loc.includes('warehouse') || loc.includes('central')) {
+    return true;
+  }
+
+  // 3. Genuine Web Checkout or Courier Dispatch (e.g. branch fulfillment for online customer)
+  const consId = String(order['Consignment ID'] || o.consignmentId || o.consignment_id || o.tracking_number || '').trim();
+  const hasCourier = Boolean(consId && consId !== '-' && consId !== 'null');
+  const isWebCheckout = createdVia === 'checkout' || createdVia === 'store-api';
+
+  if (isWebCheckout || hasCourier) {
+    return true;
+  }
+
+  // If order was created on a physical outlet register (outletId or cashierId) without web checkout or courier,
+  // it is strictly a physical retail outlet order (even if customer paid via bKash QR at counter).
+  if (hasPosOutlet || isPosCashier) {
+    return false;
+  }
+
+  // 4. Online payment indicators for branch fulfillment orders (w, s, c, m)
   const paymentMethod = String(order['Payment Method'] || o.paymentMethod || o.payment_method || '').toLowerCase().trim();
   const paymentTitle = String(o.payment_method_title || o.paymentMethodTitle || '').toLowerCase().trim();
   const isOnlinePayment = isOnlinePaymentMethod(paymentMethod, paymentTitle);
 
-  const consId = String(order['Consignment ID'] || o.consignmentId || o.consignment_id || o.tracking_number || '').trim();
-  const hasCourier = Boolean(consId && consId !== '-' && consId !== 'null');
-
-  if (createdVia === 'checkout' || createdVia === 'store-api' || isOnlinePayment || hasCourier) {
+  if (isOnlinePayment) {
     return true;
   }
 
-  // 3. Fallback: If order has outlet ID or physical retail branch without online indicators, it is an in-store POS order
-  if (loc.includes('warehouse') || loc.includes('central')) {
-    return true;
-  }
-  if (Boolean(o.outletId && String(o.outletId).trim()) || Boolean(o['Outlet ID'] && String(o['Outlet ID']).trim())) {
-    return false;
-  }
-  if (loc.includes('cumilla') || loc.includes('wari') || loc.includes('sylhet') || loc.includes('mirpur outlet') || loc.includes('mirpur pos')) {
-    return false;
-  }
-  const branch = String(o.branchCode || o.branch || '').toUpperCase().trim();
-  if (branch && branch !== 'ONLINE') {
+  // 5. Outlet / Branch indicators without web checkout, courier, or online payment are physical retail outlet orders
+  if (
+    loc.includes('outlet') ||
+    loc.includes('cumilla') ||
+    loc.includes('comilla') ||
+    loc.includes('wari') ||
+    loc.includes('sylhet') ||
+    loc.includes('mirpur')
+  ) {
     return false;
   }
 
-  // 4. Branch register suffix on order ID without courier or online payment
+  // Suffix checks on order ID: m, c, w, s are branch outlet registers
   const oid = String(order['Order ID'] || o.orderId || '').trim();
   if (/[-_\s]?[mcws]$/i.test(oid) || /\b\d+\s*[mcws]\b/i.test(oid)) return false;
+
+  // Branch code from fulfillment branch detection
+  const branchInfo = detectFulfillmentBranch(order);
+  if (branchInfo.branchCode !== 'ONLINE' && branchInfo.branchCode !== 'EXCHANGE') {
+    return false;
+  }
 
   return true;
 }
@@ -840,6 +892,7 @@ export function processLiveOpsData(
     view?: 'Today Shipped' | "Today's Orders" | 'Today Orders' | 'All Orders' | 'Last Day Shipped' | 'Queue';
     onlineOnly?: boolean;
     channelFilter?: 'ALL' | 'ONLINE' | 'POS';
+    posBranchFilter?: 'ALL' | 'MIRPUR' | 'WARI' | 'CUMILLA' | 'SYLHET';
     customDate?: string;
     anchorDate?: string;
     historicalOrders?: RawOrderRow[];
@@ -847,13 +900,18 @@ export function processLiveOpsData(
 ): LiveOpsReport {
   const view = options.view || 'Today Shipped';
   const channelFilter = options.channelFilter || (options.onlineOnly === false ? 'ALL' : 'ONLINE');
+  const posBranchFilter = options.posBranchFilter || 'ALL';
 
-  // 1. Filter out POS if onlineOnly / channelFilter is active
-  const source = channelFilter === 'ONLINE'
-    ? orders.filter(isOrderOnline)
-    : channelFilter === 'POS'
-    ? orders.filter((o) => !isOrderOnline(o))
-    : orders;
+  // 1. Filter out POS if onlineOnly / channelFilter is active, and filter by posBranchFilter if set
+  let source = orders;
+  if (channelFilter === 'ONLINE') {
+    source = source.filter(isOrderOnline);
+  } else if (channelFilter === 'POS') {
+    source = source.filter((o) => !isOrderOnline(o));
+    if (posBranchFilter !== 'ALL') {
+      source = source.filter((o) => detectFulfillmentBranch(o).branchCode === posBranchFilter);
+    }
+  }
 
   // 2. Discover available dates across dataset
   const ordersWithDates = source
@@ -898,6 +956,15 @@ export function processLiveOpsData(
   const refDayName = getDayName(refDate);
   const _prevDayName = getDayName(prevWorkday);
 
+  // Helper to determine POS walk-in transaction date (placed or modified on date)
+  const isPosOrderOnDate = (o: RawOrderRow, targetIso: string) => {
+    const oDate = parseOrderDate(o);
+    const mDate = getStatusModificationDate(o);
+    const oDateIso = oDate ? formatDateToIsoDay(oDate) : '';
+    const mDateIso = mDate ? formatDateToIsoDay(mDate) : '';
+    return oDateIso === targetIso || mDateIso === targetIso;
+  };
+
   // 2.5 Channel Telemetry Counts (Computed across full unfiltered orders for the active view)
   let allViewOrders: RawOrderRow[] = [];
   if (view === 'Queue') {
@@ -907,31 +974,59 @@ export function processLiveOpsData(
   } else if (view === "Today's Orders" || view === 'Today Orders' || view === 'All Orders') {
     allViewOrders = orders.filter((o) => isTodayOrdersEligible(o, refDateIso, { channelFilter: 'ALL' }));
   } else {
-    allViewOrders = orders.filter((o) => isOrderShippedOnDate(o, refDateIso));
+    // In default Shipped view: all outlet retail sales + all shipped online checkout orders
+    allViewOrders = orders.filter((o) => (!isOrderOnline(o) ? isPosOrderOnDate(o, refDateIso) : isOrderShippedOnDate(o, refDateIso)));
   }
 
   const onlineViewOrders = allViewOrders.filter(isOrderOnline);
-  const posViewOrders = allViewOrders.filter((o) => !isOrderOnline(o));
+  // Outlet orders are physical in-store retail sales on reference date
+  const posViewOrders = orders.filter((o) => !isOrderOnline(o) && isPosOrderOnDate(o, refDateIso));
 
   const countUniqueOrderIds = (list: RawOrderRow[]) =>
     new Set(list.map((o) => String(o['Order ID'] || o.orderId || '')).filter(Boolean)).size;
   const countOrderItemUnits = (list: RawOrderRow[]) =>
     list.reduce((sum, o) => sum + (Number(o.Quantity ?? o.quantity ?? o.qty) || 1), 0);
 
+  const getBranchOrderCount = (list: RawOrderRow[], code: 'MIRPUR' | 'WARI' | 'CUMILLA' | 'SYLHET') => {
+    const branchOrders = list.filter((o) => detectFulfillmentBranch(o).branchCode === code);
+    return countUniqueOrderIds(branchOrders);
+  };
+
   const channelStats: ChannelStats = {
     onlineCount: countUniqueOrderIds(onlineViewOrders),
     posCount: countUniqueOrderIds(posViewOrders),
-    totalCount: countUniqueOrderIds(allViewOrders),
+    totalCount: countUniqueOrderIds(onlineViewOrders) + countUniqueOrderIds(posViewOrders),
     onlineItems: countOrderItemUnits(onlineViewOrders),
     posItems: countOrderItemUnits(posViewOrders),
-    totalItems: countOrderItemUnits(allViewOrders),
+    totalItems: countOrderItemUnits(onlineViewOrders) + countOrderItemUnits(posViewOrders),
+    posBranches: {
+      mirpur: getBranchOrderCount(posViewOrders, 'MIRPUR'),
+      wari: getBranchOrderCount(posViewOrders, 'WARI'),
+      cumilla: getBranchOrderCount(posViewOrders, 'CUMILLA'),
+      sylhet: getBranchOrderCount(posViewOrders, 'SYLHET'),
+    },
   };
 
   // 3. Partition orders into Active (Ref Date) vs Comparison (Prev Workday)
   let activeOrders: RawOrderRow[] = [];
   let prevOrders: RawOrderRow[] = [];
 
-  if (view === 'Queue') {
+  // User Rule: Outlet retail orders are physical in-store retail walk-in purchases already handed to customers.
+  // Neither queue, nor courier shipping pipeline apply to outlet orders.
+  if (channelFilter === 'POS') {
+    activeOrders = source.filter(
+      (o) =>
+        !isOrderOnline(o) &&
+        isPosOrderOnDate(o, refDateIso) &&
+        (posBranchFilter === 'ALL' || detectFulfillmentBranch(o).branchCode === posBranchFilter)
+    );
+    prevOrders = source.filter(
+      (o) =>
+        !isOrderOnline(o) &&
+        isPosOrderOnDate(o, prevDateIso) &&
+        (posBranchFilter === 'ALL' || detectFulfillmentBranch(o).branchCode === posBranchFilter)
+    );
+  } else if (view === 'Queue') {
     activeOrders = source.filter(isOrderInQueue);
     prevOrders = [];
   } else if (view === 'Last Day Shipped') {
@@ -940,7 +1035,7 @@ export function processLiveOpsData(
     prevOrders = source.filter((o) => isOrderShippedOnDate(o, refDateIso));
   } else if (view === "Today's Orders" || view === 'Today Orders' || view === 'All Orders') {
     // User Rule: Today's Orders = those orders shipped today, and those orders whose status is Processing
-    activeOrders = source.filter((o) => isTodayOrdersEligible(o, refDateIso, { channelFilter }));
+    activeOrders = source.filter((o) => isTodayOrdersEligible(o, refDateIso, { channelFilter, posBranchFilter }));
     prevOrders = source.filter((o) => {
       const d = getStatusModificationDate(o);
       const oRec = o as Record<string, unknown>;
@@ -954,8 +1049,14 @@ export function processLiveOpsData(
     });
   } else {
     // Default: 'Today Shipped'
-    activeOrders = source.filter((o) => isOrderShippedOnDate(o, refDateIso));
-    prevOrders = source.filter((o) => isOrderShippedOnDate(o, prevDateIso));
+    if (channelFilter === 'ALL') {
+      // User Rule: In "All Orders", all outlet orders + all shipped checkout/online/ecom orders
+      activeOrders = source.filter((o) => (!isOrderOnline(o) ? isPosOrderOnDate(o, refDateIso) : isOrderShippedOnDate(o, refDateIso)));
+      prevOrders = source.filter((o) => (!isOrderOnline(o) ? isPosOrderOnDate(o, prevDateIso) : isOrderShippedOnDate(o, prevDateIso)));
+    } else {
+      activeOrders = source.filter((o) => isOrderShippedOnDate(o, refDateIso));
+      prevOrders = source.filter((o) => isOrderShippedOnDate(o, prevDateIso));
+    }
   }
 
   // Helper to compute order item amount

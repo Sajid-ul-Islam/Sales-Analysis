@@ -77,6 +77,7 @@ export interface GroupOrdersFilterOptions {
   pipelineFilter?: string;
   selectedView?: string;
   channelFilter?: 'ALL' | 'ONLINE' | 'POS';
+  posBranchFilter?: 'ALL' | 'MIRPUR' | 'WARI' | 'CUMILLA' | 'SYLHET';
 }
 
 /**
@@ -229,6 +230,7 @@ export function filterOrderWiseGroups(
     pipelineFilter = 'ALL',
     selectedView = 'Today Shipped',
     channelFilter = 'ONLINE',
+    posBranchFilter = 'ALL',
   } = options;
 
   const query = searchQuery.toLowerCase().trim();
@@ -236,7 +238,10 @@ export function filterOrderWiseGroups(
   return groups.filter((group) => {
     // Channel filter: Online Checkout vs POS Retail vs All
     if (channelFilter === 'ONLINE' && !isOrderOnline(group.primaryRow)) return false;
-    if (channelFilter === 'POS' && isOrderOnline(group.primaryRow)) return false;
+    if (channelFilter === 'POS') {
+      if (isOrderOnline(group.primaryRow)) return false;
+      if (posBranchFilter !== 'ALL' && group.branch.branchCode !== posBranchFilter) return false;
+    }
 
     // Exchange view isolation
     if (courierFilter === 'EXCHANGES_ONLY') {
@@ -298,6 +303,7 @@ export function filterOrderWiseGroups(
 
     // Pipeline status filter (for Today's Orders view)
     if ((selectedView === "Today's Orders" || selectedView === 'All Orders') && pipelineFilter !== 'ALL') {
+      if (!isOrderOnline(group.primaryRow)) return false;
       if (pipelineFilter === 'PROCESSING' && !isOrderProcessing(group.primaryRow)) return false;
       if (pipelineFilter === 'HOLD' && !isOrderOnHold(group.primaryRow)) return false;
       if (pipelineFilter === 'SHIPPED_TODAY' && !isOrderShipped(group.primaryRow)) return false;
