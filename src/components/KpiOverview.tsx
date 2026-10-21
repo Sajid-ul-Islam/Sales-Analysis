@@ -89,14 +89,15 @@ export function KpiOverview({
   // Dynamic COD vs Online Paid metrics for Payment Settlement Ratio KPI card
   const paymentMetrics = useMemo(() => {
     if (!orders || orders.length === 0) {
+      const hasGross = s.grossOrders > 0;
       return {
         codOrders: Math.round(s.grossOrders * 0.76),
         onlineOrders: Math.round(s.grossOrders * 0.24),
-        totalOrders: s.grossOrders || 1,
-        codPct: 76,
-        onlinePct: 24,
-        ratioInt: 3,
-        ratioFormatted: '3 : 1',
+        totalOrders: s.grossOrders || 0,
+        codPct: hasGross ? 76 : 0,
+        onlinePct: hasGross ? 24 : 0,
+        ratioInt: hasGross ? 3 : 0,
+        ratioFormatted: hasGross ? '3 : 1' : '0 : 0',
         codRevenue: Math.round(s.grossRevenue * 0.76),
         onlineRevenue: Math.round(s.grossRevenue * 0.24),
       };
@@ -124,7 +125,7 @@ export function KpiOverview({
     });
 
     const uniqueOrders = Array.from(orderMap.values());
-    const totalOrders = uniqueOrders.length || 1;
+    const totalOrders = uniqueOrders.length;
 
     let codCount = 0;
     let onlineCount = 0;
@@ -143,10 +144,10 @@ export function KpiOverview({
       }
     });
 
-    const codPct = Math.round((codCount / totalOrders) * 100);
-    const onlinePct = 100 - codPct;
-    const ratioInt = Math.max(1, Math.round(codCount / (onlineCount || 1)));
-    const ratioFormatted = `${ratioInt} : 1`;
+    const codPct = totalOrders > 0 ? Math.round((codCount / totalOrders) * 100) : 0;
+    const onlinePct = totalOrders > 0 ? 100 - codPct : 0;
+    const ratioInt = onlineCount > 0 ? Math.round(codCount / onlineCount) : (codCount > 0 ? codCount : 0);
+    const ratioFormatted = totalOrders > 0 ? `${ratioInt} : 1` : '0 : 0';
 
     return {
       codOrders: codCount,
@@ -164,15 +165,15 @@ export function KpiOverview({
   // Safe percentage calculation
   const deliverySuccessRate = s.grossOrders > 0
     ? ((s.fullDeliveredOrders / s.grossOrders) * 100).toFixed(1)
-    : '70.0';
+    : '0.0';
 
   const returnPercentage = s.grossOrders > 0
     ? ((s.fullReturnedOrders / s.grossOrders) * 100).toFixed(1)
-    : '20.0';
+    : '0.0';
 
   const partialPercentage = s.grossOrders > 0
     ? ((s.partialOrders / s.grossOrders) * 100).toFixed(1)
-    : '10.0';
+    : '0.0';
 
   const exchangePercentage = s.grossOrders > 0
     ? (((s.totalExchangedOrders || 0) / s.grossOrders) * 100).toFixed(1)
@@ -435,9 +436,9 @@ export function KpiOverview({
           {(() => {
             const deliveredCount = s.fullDeliveredOrders || 0;
             const lossCount = Math.max(0, (s.grossOrders || 0) - deliveredCount);
-            const totalPipeline = (deliveredCount + lossCount) || s.grossOrders || 1;
-            const delivPct = Math.min(100, Math.max(0, Math.round((deliveredCount / totalPipeline) * 100)));
-            const lossPct = 100 - delivPct;
+            const totalPipeline = (deliveredCount + lossCount) || s.grossOrders || 0;
+            const delivPct = totalPipeline > 0 ? Math.min(100, Math.max(0, Math.round((deliveredCount / totalPipeline) * 100))) : 0;
+            const lossPct = totalPipeline > 0 ? 100 - delivPct : 0;
 
             return (
               <div className="my-2">
@@ -526,11 +527,11 @@ export function KpiOverview({
           </div>
 
           {(() => {
-            const paidCount = s.paidReturnsCount !== undefined ? s.paidReturnsCount : 85;
-            const unpaidCount = s.unpaidReturnsCount !== undefined ? s.unpaidReturnsCount : Math.max(0, s.fullReturnedOrders - paidCount);
-            const totalRetOrders = (paidCount + unpaidCount) || s.fullReturnedOrders || 1;
-            const paidPct = Math.round((paidCount / totalRetOrders) * 100);
-            const unpaidPct = 100 - paidPct;
+            const paidCount = s.paidReturnsCount ?? (orders.length > 0 ? (new Set(orders.filter(o => o.orderCategory === 'FULL_RETURN' && o.isPaidReturn).map(o => o.orderId)).size) : 0);
+            const unpaidCount = s.unpaidReturnsCount ?? Math.max(0, (s.fullReturnedOrders || 0) - paidCount);
+            const totalRetOrders = (paidCount + unpaidCount) || s.fullReturnedOrders || 0;
+            const paidPct = totalRetOrders > 0 ? Math.round((paidCount / totalRetOrders) * 100) : 0;
+            const unpaidPct = totalRetOrders > 0 ? 100 - paidPct : 0;
 
             const rtoQty = Math.round(s.regularReturnedQty || s.fullReturnedOrders || 0);
             const partialQty = Math.round(s.partialReturnedQty || s.partialOrders || 0);
@@ -639,9 +640,9 @@ export function KpiOverview({
           {(() => {
             const partialKept = Math.round(s.partialDeliveredQty || 0);
             const partialRet = Math.round(s.partialReturnedQty || s.partialOrders || 0);
-            const partialTotal = (partialKept + partialRet) || 1;
-            const keptPct = Math.round((partialKept / partialTotal) * 100);
-            const retPct = 100 - keptPct;
+            const partialTotal = (partialKept + partialRet) || 0;
+            const keptPct = partialTotal > 0 ? Math.round((partialKept / partialTotal) * 100) : 0;
+            const retPct = partialTotal > 0 ? 100 - keptPct : 0;
 
             return (
               <>
@@ -736,9 +737,9 @@ export function KpiOverview({
             const exchangePathaoCharge = Math.round(
               s.totalExchangeCourierExpense || (s.totalExchangedOrders ? s.totalExchangedOrders * 60 : 0)
             );
-            const totalExFlow = (exchangeCollected + exchangePathaoCharge) || 1;
-            const collectPct = Math.round((exchangeCollected / totalExFlow) * 100);
-            const chargePct = 100 - collectPct;
+            const totalExFlow = (exchangeCollected + exchangePathaoCharge) || 0;
+            const collectPct = totalExFlow > 0 ? Math.round((exchangeCollected / totalExFlow) * 100) : 0;
+            const chargePct = totalExFlow > 0 ? 100 - collectPct : 0;
             const netExchange = exchangeCollected - exchangePathaoCharge;
 
             return (
@@ -823,9 +824,9 @@ export function KpiOverview({
           {(() => {
             const deliveredRev = Math.round(s.netDeliveredRevenue);
             const leakageRev = Math.round(s.grossRevenue - s.netDeliveredRevenue);
-            const totalPipelineRev = Math.round(s.grossRevenue) || 1;
-            const realizationPct = Math.min(100, Math.max(0, Math.round((deliveredRev / totalPipelineRev) * 100)));
-            const leakagePct = 100 - realizationPct;
+            const totalPipelineRev = Math.round(s.grossRevenue) || 0;
+            const realizationPct = totalPipelineRev > 0 ? Math.min(100, Math.max(0, Math.round((deliveredRev / totalPipelineRev) * 100))) : 0;
+            const leakagePct = totalPipelineRev > 0 ? 100 - realizationPct : 0;
 
             return (
               <div className="my-3">
@@ -835,7 +836,7 @@ export function KpiOverview({
                       ৳ {deliveredRev.toLocaleString()}
                     </div>
                     <div className="text-xs font-semibold text-slate-500 mt-1 flex items-center gap-1 whitespace-nowrap">
-                      <span>Avg ৳{s.fullDeliveredOrders > 0 ? Math.round(deliveredRev / s.fullDeliveredOrders).toLocaleString() : '2,000'}</span>
+                      <span>Avg ৳{s.fullDeliveredOrders > 0 ? Math.round(deliveredRev / s.fullDeliveredOrders).toLocaleString() : '0'}</span>
                       <span className="text-[10px] text-slate-400">/ kept</span>
                     </div>
                   </div>
@@ -1058,17 +1059,18 @@ export function KpiOverview({
           </div>
 
           {(() => {
-            const totalTerritory = (s.outsideOrders + s.insideOrders) || s.grossOrders || 1;
-            const outsidePct = Math.round((s.outsideOrders / totalTerritory) * 100);
-            const insidePct = 100 - outsidePct;
-            const ratioInt = Math.round(s.outsideOrders / (s.insideOrders || 1));
+            const totalTerritory = (s.outsideOrders + s.insideOrders) || s.grossOrders || 0;
+            const outsidePct = totalTerritory > 0 ? Math.round((s.outsideOrders / totalTerritory) * 100) : 0;
+            const insidePct = totalTerritory > 0 ? 100 - outsidePct : 0;
+            const ratioInt = s.insideOrders > 0 ? Math.round(s.outsideOrders / s.insideOrders) : (s.outsideOrders > 0 ? s.outsideOrders : 0);
+            const ratioFormatted = totalTerritory > 0 ? `${ratioInt} : 1` : '0 : 0';
 
             return (
               <>
                 <div className="my-3 flex items-center justify-between gap-3">
                   <div>
                     <div className="text-2xl sm:text-3xl font-black text-navy-deep font-headline tracking-tight">
-                      {ratioInt} : 1
+                      {ratioFormatted}
                     </div>
                     <div className="text-xs font-semibold text-slate-500 mt-1">
                       Outside vs Inside

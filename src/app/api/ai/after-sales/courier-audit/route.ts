@@ -116,11 +116,13 @@ Audit the financial leakage and generate a formal dispute claim dossier.`;
     return NextResponse.json({
       success: true,
       audit: {
-        totalLeakageAmount: Math.round(totalDiff) || 18500,
-        unremittedCodCount: unremitted.length || 8,
-        ghostReturnCount: ghost.length || 5,
-        executiveAuditVerdict: `After-sales courier audit identified ${mismatches.length} discrepancies totaling ৳${Math.round(totalDiff || 18500).toLocaleString()} in potential revenue leakage across unsettled COD amounts and unverified return packages.`,
-        claimDossierText: `To: Pathao Merchant Operations & Relationship Team
+        totalLeakageAmount: Math.round(totalDiff),
+        unremittedCodCount: unremitted.length,
+        ghostReturnCount: ghost.length,
+        executiveAuditVerdict: mismatches.length > 0
+          ? `After-sales courier audit identified ${mismatches.length} discrepancies totaling ৳${Math.round(totalDiff).toLocaleString()} in potential revenue leakage across unsettled COD amounts and unverified return packages.`
+          : 'After-sales courier audit identified 0 discrepancies. All courier consignments match recorded Excel statuses and COD amounts perfectly.',
+        claimDossierText: mismatches.length > 0 ? `To: Pathao Merchant Operations & Relationship Team
 Subject: Formal Reconciliation Claim & COD Discrepancy Adjustment — DEEN Commerce
 
 Dear Pathao Merchant Operations Team,
@@ -128,8 +130,8 @@ Dear Pathao Merchant Operations Team,
 During our automated after-sales reconciliation audit for the current billing cycle, we identified financial discrepancies between dispatched merchant invoices and courier remitted settlements:
 
 Summary of Claim:
-- Total Discrepant Amount: ৳${Math.round(totalDiff || 18500).toLocaleString()}
-- Number of Impacted Consignments: ${mismatches.length || 13}
+- Total Discrepant Amount: ৳${Math.round(totalDiff).toLocaleString()}
+- Number of Impacted Consignments: ${mismatches.length}
 
 Sample Discrepant Orders Requiring Settlement Adjustment:
 ${claimLines}
@@ -138,12 +140,12 @@ Please investigate these consignments and adjust the outstanding balance in our 
 
 Sincerely,
 Operations & Finance Team
-DEEN Commerce`,
+DEEN Commerce` : 'No outstanding courier claims. Zero discrepancies identified.',
         highPriorityClaims: mismatches.slice(0, 4).map((m: CourierMismatchInput) => ({
           orderId: m.orderId,
           consignmentId: m.consignmentId || 'PATHAO-LOG',
           discrepancyType: m.mismatchType || 'COD_UNDER_COLLECTION',
-          financialLoss: m.codDifference || 950,
+          financialLoss: m.codDifference || 0,
           actionNeeded: 'Submit claim to Pathao merchant relationship manager.',
         })),
       },

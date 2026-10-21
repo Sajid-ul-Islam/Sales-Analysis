@@ -54,7 +54,7 @@ export function matchPartialItemsWithAudit(
   const units: { unitId: number; originalIdx: number; cost: number }[] = [];
   let uCounter = 0;
   items.forEach(it => {
-    const cleanQty = Math.max(1, Math.round(it.qty));
+    const cleanQty = Math.max(0, Math.round(it.qty));
     for (let q = 0; q < cleanQty; q++) {
       units.push({ unitId: uCounter++, originalIdx: it.idx, cost: it.cost });
     }

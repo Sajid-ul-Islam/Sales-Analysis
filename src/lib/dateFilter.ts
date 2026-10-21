@@ -607,19 +607,18 @@ export function computePeriodMetrics(
     const cat = (r.orderCategory || r.deliveryCategory || '').toString().toUpperCase();
     const status = (r.deliveryStatus || r.reconciledDeliveryStatus || r.status || '').toString().toLowerCase();
 
-    const isDelivered = cat === 'DELIVERED' || status.includes('delivered') || status.includes('received') || status.includes('kept');
-    const isReturned = cat === 'FULL_RETURN' || status.includes('return') || status.includes('rto') || status.includes('cancel');
-    const isPartial = cat === 'PARTIAL' || status.includes('partial');
     const isExchange = cat === 'EXCHANGE' || status.includes('exchange');
+    const isPartial = !isExchange && (cat === 'PARTIAL' || status.includes('partial'));
+    const isReturned = !isExchange && !isPartial && (cat === 'FULL_RETURN' || status.includes('return') || status.includes('rto') || status.includes('cancel'));
+    const isDelivered = cat === 'DELIVERED' || (!isExchange && !isPartial && !isReturned && (status.includes('delivered') || status.includes('received') || status.includes('kept')));
 
     if (!orderId || !seenOrderIds.has(orderId)) {
       if (orderId) seenOrderIds.add(orderId);
       totalOrders++;
       grossRevenue += amountNum;
 
-      if (isDelivered) deliveredOrders++;
+      if (isPartial) partialOrders++;
       else if (isReturned) returnedOrders++;
-      else if (isPartial) partialOrders++;
       else if (isExchange) exchangeOrders++;
       else deliveredOrders++;
     }

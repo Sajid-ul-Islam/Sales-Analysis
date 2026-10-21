@@ -513,30 +513,30 @@ export function buildLiveShippedOrdersWorkbook(
   const sortedOrders = [...commercialOrders].sort(compareOrdersByNumber);
 
   const exportData = sortedOrders.map((o) => {
-    const itemName = String(o['Item Name'] || '');
-    const sku = String(o.SKU || '');
+    const itemName = String(o['Item Name'] || o.itemName || o.name || '');
+    const sku = String(o.SKU || o.sku || '');
     const cat = getCategoryForSales(itemName);
     const subCat = getSubCategoryForSales(itemName, cat);
     const isSelects = classifyProductLine(itemName, sku, cat) === 'DEEN Selects';
 
     return {
       'Order ID': o['Order ID'] || o.orderId,
-      'Date': o['Order Date'],
+      'Date': o['Order Date'] || o.orderDate || o.date_created || '',
       'Customer Name': getExportCustomerName(o),
       'Phone': getExportPhoneNumber(o),
-      'City': o.City,
+      'City': o.City || o.city || 'Dhaka',
       'Item Name': itemName,
       'SKU': sku,
       'Category': cat,
       'Sub-Category': subCat,
       'Collection Line': isSelects ? 'DEEN Selects' : 'DEEN Regular',
-      'Quantity': Number(o.Quantity) || 1,
-      'Unit Cost (TK)': Number(o['Item Cost']) || 0,
-      'Order Amount (TK)': Number(o['Order Amount']) || 0,
+      'Quantity': Number(o.Quantity ?? o.quantity ?? o.qty) || 1,
+      'Unit Cost (TK)': Number(o['Item Cost'] ?? o.itemCost ?? o.price) || 0,
+      'Order Amount (TK)': Number(o['Order Amount'] ?? o.orderAmount ?? o.amount ?? o.total) || 0,
       'WooCommerce Status': String(o['Delivery Status'] || (o as Record<string, unknown>).status || 'shipped'),
       'Pathao Courier Status': String(o['Courier Status'] || o.courierStatus || 'Untracked'),
-      'Pathao Consignment ID': String(o['Consignment ID'] || o.consignmentId || 'N/A'),
-      'Collected Amount (TK)': Number(o.collectedAmount) || 0,
+      'Pathao Consignment ID': String(o['Consignment ID'] || o.consignmentId || o.tracking_number || 'N/A'),
+      'Collected Amount (TK)': Number(o.collectedAmount ?? o['Collected Amount']) || 0,
       'Courier Discrepancy': o.hasDiscrepancy ? `Yes (${o.discrepancyType})` : 'None',
     };
   });
@@ -555,21 +555,21 @@ export function buildLiveShippedOrdersWorkbook(
       const sortedExchanges = [...exchangePool].sort(compareOrdersByNumber);
       const exData = sortedExchanges.map((o) => {
         const info = extractExchangeInfo(o);
-        const itemName = String(o['Item Name'] || '');
-        const sku = String(o.SKU || '');
+        const itemName = String(o['Item Name'] || o.itemName || o.name || '');
+        const sku = String(o.SKU || o.sku || '');
         return {
           'Replacement Order ID': o['Order ID'] || o.orderId,
           'Original Order ID': info.referencedOrderId || 'N/A',
           'Exchange Tag': info.displayTag || 'Exchange',
-          'Date': o['Order Date'],
+          'Date': o['Order Date'] || o.orderDate || o.date_created || '',
           'Customer Name': getExportCustomerName(o),
           'Phone': getExportPhoneNumber(o),
-          'City': o.City,
+          'City': o.City || o.city || 'Dhaka',
           'Item Name': itemName,
           'SKU': sku,
-          'Quantity': Number(o.Quantity) || 1,
+          'Quantity': Number(o.Quantity ?? o.quantity ?? o.qty) || 1,
           'Courier Status': String(o['Courier Status'] || o.courierStatus || 'Untracked'),
-          'Pathao Consignment ID': String(o['Consignment ID'] || o.consignmentId || 'N/A'),
+          'Pathao Consignment ID': String(o['Consignment ID'] || o.consignmentId || o.tracking_number || 'N/A'),
           'Commercial Revenue Recognized': 0, // Invariant: zero revenue inflation
           'Operational Notes': 'Customer exchange replacement parcel created manually via staff admin (zero new revenue)',
         };

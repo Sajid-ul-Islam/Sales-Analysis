@@ -318,6 +318,10 @@ describe('DEEN Commerce Reconciliation Engine — Domain Invariant Tests', () =>
       expect(row.orderDeliveryStatus).toBe('Exchange');
       expect(row.itemDeliveryStatus).toBe('Exchange');
       expect(row.orderCategory).toBe('EXCHANGE');
+      // Invariant: Exchange orders must NOT inflate full delivered commercial orders
+      expect(result.summary.fullDeliveredOrders).toBe(0);
+      expect(result.summary.totalExchangedOrders).toBe(1);
+      expect(result.exchangedOrders.length).toBe(1);
     });
   });
 });

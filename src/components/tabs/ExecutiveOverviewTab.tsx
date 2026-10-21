@@ -92,6 +92,8 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
         .sort((a, b) => b.dispatched - a.dispatched);
     }
 
+    if (!s || s.grossOrders === 0) return [];
+
     const jeansDispatched = Math.round(s.grossOrders * 0.487);
     const jeansReturns = Math.round(s.fullReturnedOrders * 0.50);
     const jeansNet = Math.max(0, jeansDispatched - jeansReturns);
@@ -105,7 +107,7 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
         dispatched: jeansDispatched,
         returns: jeansReturns,
         net: jeansNet,
-        retention: jeansDispatched > 0 ? ((jeansNet / jeansDispatched) * 100).toFixed(1) : '80.0',
+        retention: jeansDispatched > 0 ? ((jeansNet / jeansDispatched) * 100).toFixed(1) : '0.0',
         revenue: jeansRev
       }
     ];

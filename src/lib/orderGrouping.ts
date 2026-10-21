@@ -89,18 +89,18 @@ export function groupOrdersByOrderId(rows: RawOrderRow[]): OrderWiseGroup[] {
 
     let group = groupMap.get(rawOid);
     if (!group) {
-      const baseOid = rawOid.replace(/[ \-_][cws]$/i, '').trim();
+      const baseOid = rawOid.replace(/[ \-_]?[cwsm]$/i, '').trim();
       const branch = detectFulfillmentBranch(row);
       const exInfo = extractExchangeInfo(row);
 
       group = {
         orderId: rawOid,
         baseOrderId: baseOid,
-        orderDate: String(row['Order Date'] || ''),
+        orderDate: String(row['Order Date'] || row.orderDate || row.date_created || ''),
         dateModified: String(row['Date Modified'] || row.dateModified || ''),
-        customerName: String(getExportCustomerName(row) || row['Customer Name'] || 'Customer'),
-        phone: String(getExportPhoneNumber(row) || row.Phone || ''),
-        city: String(row.City || 'Dhaka'),
+        customerName: String(getExportCustomerName(row) || row['Customer Name'] || row.customerName || 'Customer'),
+        phone: String(getExportPhoneNumber(row) || row.Phone || row.phone || ''),
+        city: String(row.City || row.city || 'Dhaka'),
         wcStatus: String(row['Delivery Status'] || (row as Record<string, unknown>).status || 'shipped'),
         courierStatus: String(row['Courier Status'] || row.courierStatus || 'Untracked'),
         consignmentId: '',
@@ -115,7 +115,7 @@ export function groupOrdersByOrderId(rows: RawOrderRow[]): OrderWiseGroup[] {
         branch,
         isExchange: Boolean(exInfo.isExchange || branch.branchCode === 'EXCHANGE'),
         exchangeInfo: exInfo,
-        orderNotes: String(row['Order Notes'] || ''),
+        orderNotes: String(row['Order Notes'] || row.orderNotes || row.customer_note || ''),
         primaryRow: row,
         rawRows: [],
       };
@@ -127,7 +127,7 @@ export function groupOrdersByOrderId(rows: RawOrderRow[]): OrderWiseGroup[] {
     group.rawRows.push(row);
 
     // Track consignment ID
-    const cid = String(row['Consignment ID'] || row.consignmentId || '').trim();
+    const cid = String(row['Consignment ID'] || row.consignmentId || row.tracking_number || '').trim();
     if (cid && !group.consignmentIds.includes(cid)) {
       group.consignmentIds.push(cid);
     }
@@ -140,13 +140,13 @@ export function groupOrdersByOrderId(rows: RawOrderRow[]): OrderWiseGroup[] {
     }
 
     // Line item details
-    const itemName = String(row['Item Name'] || 'Apparel Item');
-    const sku = String(row.SKU || '');
+    const itemName = String(row['Item Name'] || row.itemName || row.item_name || row.name || 'Apparel Item');
+    const sku = String(row.SKU || row.sku || '');
     const category = getCategoryForSales(itemName);
     const subCategory = getSubCategoryForSales(itemName, category);
-    const quantity = Math.max(1, Math.round(Number(row.Quantity) || 1));
-    const itemCost = Number(row['Item Cost']) || 0;
-    const rowAmt = Number(row['Order Amount']);
+    const quantity = Math.max(1, Math.round(Number(row.Quantity ?? row.quantity ?? row.qty) || 1));
+    const itemCost = Number(row['Item Cost'] ?? row.itemCost ?? row.price ?? row.item_cost) || 0;
+    const rowAmt = Number(row['Order Amount'] ?? row.orderAmount ?? row.amount ?? row.total);
     const amount = itemCost > 0 ? itemCost * quantity : (rowAmt > 0 ? rowAmt : 0);
     const isSelects = classifyProductLine(itemName, sku, category) === 'DEEN Selects';
 

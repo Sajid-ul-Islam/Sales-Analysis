@@ -172,4 +172,23 @@ describe('Pathao Customer Rating & Phone Intelligence Engine', () => {
       expect(wb.SheetNames).toContain('Shipped Orders (Order-Wise)');
     });
   });
+
+  describe('Paid Return & Status Precedence Invariants', () => {
+    it('classifies "Paid Return" as returned instead of delivered in live orders augmentation', async () => {
+      const testPhone = '01988887777';
+      const liveOrders = [
+        {
+          Phone: testPhone,
+          'Delivery Status': 'Paid Return',
+          'Order status': 'completed',
+        } as any,
+      ];
+
+      const res = await resolveCustomerRating(testPhone, { liveOrders });
+      expect(res.deliveredOrders).toBe(0);
+      expect(res.returnedOrders).toBe(1);
+      expect(res.totalOrders).toBe(1);
+      expect(res.ratingTier).toBe('RISKY');
+    });
+  });
 });

@@ -33,8 +33,58 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder: _onSelect
       return aggregateDivisionMetrics(orders);
     }
 
+    // If summary has no gross orders, return zeroed divisions and empty districts
+    if (!s || s.grossOrders === 0) {
+      const emptyDivisions = (bangladeshDivisionsData as Array<{
+        id: string;
+        name: string;
+        nameBn?: string;
+        color?: string;
+        centerX?: number;
+        centerY?: number;
+        d?: string;
+        districts: string[];
+      }>).map((d) => ({
+        id: d.id,
+        name: d.name as BangladeshDivision,
+        nameBn: d.nameBn || '',
+        color: d.color || '#0284c7',
+        centerX: d.centerX || 0,
+        centerY: d.centerY || 0,
+        svgPath: d.d || '',
+        dispatchedOrders: 0,
+        deliveredOrders: 0,
+        partialOrders: 0,
+        returnedOrders: 0,
+        exchangeOrders: 0,
+        netRevenue: 0,
+        grossRevenue: 0,
+        returnRate: 0,
+        orderShare: 0,
+        revenueShare: 0,
+        aov: 0,
+        topDistricts: []
+      }));
+
+      return {
+        divisions: emptyDivisions,
+        nationalTotal: {
+          dispatchedOrders: 0,
+          deliveredOrders: 0,
+          returnedOrders: 0,
+          partialOrders: 0,
+          exchangeOrders: 0,
+          netRevenue: 0,
+          grossRevenue: 0,
+          nationalReturnRate: 0
+        },
+        topNationwideDistricts: [],
+        allDistricts: []
+      };
+    }
+
     // High-fidelity fallback derived from summary when orders are empty
-    const outsideCount = Math.max(1, s.outsideOrders);
+    const outsideCount = Math.max(0, s.outsideOrders);
     const outsideRev = Math.max(0, s.outsideNetRevenue);
 
     const fallbackDivisions = (bangladeshDivisionsData as Array<{
@@ -108,8 +158,8 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder: _onSelect
         returnRate: Math.round(retRate * 10) / 10,
         orderShare: Math.round(orderShare * 10) / 10,
         revenueShare: Math.round(revenueShare * 10) / 10,
-        aov: deliveredOrders > 0 ? Math.round(rev / deliveredOrders) : 1850,
-        topDistricts: (d.districts || []).slice(0, 4).map((name: string) => ({ name, count: Math.round(disp / 4), revenue: Math.round(rev / 4) }))
+        aov: deliveredOrders > 0 ? Math.round(rev / deliveredOrders) : 0,
+        topDistricts: []
       };
     });
 
@@ -125,32 +175,17 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder: _onSelect
         grossRevenue: Math.round(s.grossRevenue),
         nationalReturnRate: Math.round(s.returnRate * 10) / 10
       },
-      topNationwideDistricts: [
-        { name: 'Chittagong', division: 'Chattogram', count: 184, revenue: 198000 },
-        { name: 'Cumilla', division: 'Chattogram', count: 142, revenue: 154000 },
-        { name: 'Sylhet', division: 'Sylhet', count: 98, revenue: 104000 },
-        { name: 'Bogura', division: 'Rajshahi', count: 72, revenue: 78000 },
-        { name: 'Gazipur', division: 'Dhaka', count: 68, revenue: 72000 },
-        { name: 'Narayanganj', division: 'Dhaka', count: 64, revenue: 69000 },
-        { name: 'Feni', division: 'Chattogram', count: 52, revenue: 56000 }
-      ],
-      allDistricts: [
-        { name: 'Dhaka Metro', division: 'Dhaka' as BangladeshDivision, dispatchedOrders: s.insideOrders || 253, deliveredOrders: Math.max(0, (s.insideOrders || 253) - (s.insideReturns || 32)), partialOrders: s.insidePartials || 12, returnedOrders: s.insideReturns || 20, exchangeOrders: 5, netRevenue: Math.round(s.insideNetRevenue || 340000), grossRevenue: Math.round((s.insideNetRevenue || 340000) * 1.2), returnRate: Math.round(insideReturnRate * 10) / 10, aov: 1344 },
-        { name: 'Chittagong', division: 'Chattogram' as BangladeshDivision, dispatchedOrders: 184, deliveredOrders: 151, partialOrders: 12, returnedOrders: 21, exchangeOrders: 4, netRevenue: 198000, grossRevenue: 242000, returnRate: 17.9, aov: 1311 },
-        { name: 'Cumilla', division: 'Chattogram' as BangladeshDivision, dispatchedOrders: 142, deliveredOrders: 118, partialOrders: 8, returnedOrders: 16, exchangeOrders: 3, netRevenue: 154000, grossRevenue: 188000, returnRate: 16.9, aov: 1305 },
-        { name: 'Sylhet', division: 'Sylhet' as BangladeshDivision, dispatchedOrders: 98, deliveredOrders: 79, partialOrders: 6, returnedOrders: 13, exchangeOrders: 2, netRevenue: 104000, grossRevenue: 128000, returnRate: 19.4, aov: 1316 },
-        { name: 'Bogura', division: 'Rajshahi' as BangladeshDivision, dispatchedOrders: 72, deliveredOrders: 60, partialOrders: 4, returnedOrders: 8, exchangeOrders: 1, netRevenue: 78000, grossRevenue: 95000, returnRate: 16.7, aov: 1300 },
-        { name: 'Gazipur', division: 'Dhaka' as BangladeshDivision, dispatchedOrders: 68, deliveredOrders: 57, partialOrders: 3, returnedOrders: 8, exchangeOrders: 2, netRevenue: 72000, grossRevenue: 89000, returnRate: 16.2, aov: 1263 },
-        { name: 'Narayanganj', division: 'Dhaka' as BangladeshDivision, dispatchedOrders: 64, deliveredOrders: 54, partialOrders: 3, returnedOrders: 7, exchangeOrders: 1, netRevenue: 69000, grossRevenue: 84000, returnRate: 15.6, aov: 1277 },
-        { name: 'Feni', division: 'Chattogram' as BangladeshDivision, dispatchedOrders: 52, deliveredOrders: 43, partialOrders: 3, returnedOrders: 6, exchangeOrders: 1, netRevenue: 56000, grossRevenue: 68000, returnRate: 17.3, aov: 1302 }
-      ]
+      topNationwideDistricts: [],
+      allDistricts: []
     };
   }, [orders, s, insideReturnRate]);
 
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
   const [districtSearch, setDistrictSearch] = useState<string>('');
 
-  const intRatio = Math.round(Number(s.outsideRatio) || (s.outsideOrders / Math.max(1, s.insideOrders))) || 1;
+  const intRatio = s.insideOrders > 0
+    ? Math.round(s.outsideOrders / s.insideOrders)
+    : (Number(s.outsideRatio) || (s.insideOrders === 0 && s.outsideOrders > 0 ? s.outsideOrders : 0));
 
   // Selected district metrics
   const activeDistrictMetric = useMemo(() => {
@@ -266,10 +301,12 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder: _onSelect
               <TrendingUp className="w-4 h-4 text-primary" />
             </div>
             <div className="text-3xl font-black text-slate-900 dark:text-white mb-1 font-headline">
-              {intRatio} : 1
+              {s.grossOrders === 0 ? '0 : 0' : `${intRatio} : 1`}
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              ~{intRatio} Outside orders per 1 Dhaka order ({s.outsideOrders.toLocaleString()} vs {s.insideOrders.toLocaleString()}).
+              {s.grossOrders === 0
+                ? 'No order territory data available.'
+                : `~${intRatio} Outside orders per 1 Dhaka order (${s.outsideOrders.toLocaleString()} vs ${s.insideOrders.toLocaleString()}).`}
             </p>
           </div>
 

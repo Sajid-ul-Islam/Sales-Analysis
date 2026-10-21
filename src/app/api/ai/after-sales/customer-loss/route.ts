@@ -126,9 +126,11 @@ Audit after-sales buyer loss and provide policy enforcement directives.`;
     return NextResponse.json({
       success: true,
       audit: {
-        totalReverseLogisticsWasted: Math.round(totalWastedFees) || 45000,
-        chronicReturnerCount: highRiskProfiles.length || 18,
-        executiveAuditSummary: `After-sales customer risk audit reveals that ${highRiskProfiles.length} chronic returners caused ৳${Math.round(totalWastedFees || 45000).toLocaleString()} in wasted reverse logistics fees. Restricting repeat refusers to advance bKash payment immediately saves ~12% in courier write-offs.`,
+        totalReverseLogisticsWasted: Math.round(totalWastedFees),
+        chronicReturnerCount: highRiskProfiles.length,
+        executiveAuditSummary: highRiskProfiles.length > 0
+          ? `After-sales customer risk audit reveals that ${highRiskProfiles.length} chronic returners caused ৳${Math.round(totalWastedFees).toLocaleString()} in wasted reverse logistics fees. Restricting repeat refusers to advance bKash payment immediately saves ~12% in courier write-offs.`
+          : 'After-sales customer risk audit identified 0 chronic returners. Customer delivery success is healthy with negligible reverse logistics waste.',
         topLossMakingBuyers: highRiskProfiles.slice(0, 5).map((p: HighRiskProfileItem) => {
           const loss = (p.returned * 150) + (p.returned * 25) - Math.round(p.spent * 0.35);
           return {
@@ -137,7 +139,7 @@ Audit after-sales buyer loss and provide policy enforcement directives.`;
             totalOrders: p.totalOrders,
             returnedOrders: p.returned,
             returnRate: p.returnRate,
-            netFinancialLoss: Math.max(250, loss),
+            netFinancialLoss: Math.max(0, loss),
             policyRecommendation: 'Flag in CRM: Enforce mandatory ৳150 advance delivery charge via bKash before dispatch.',
           };
         }),

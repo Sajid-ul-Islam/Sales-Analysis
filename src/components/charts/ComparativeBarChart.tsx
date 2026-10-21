@@ -135,8 +135,8 @@ export function ComparativeBarChart({
             <div className="relative z-10 pl-12 pt-6 overflow-x-auto min-w-0">
               <div className="flex items-end justify-between gap-3 sm:gap-5 min-w-[580px] pb-1">
                 {items.map((item) => {
-                  const primaryHeightPercent = Math.min(100, Math.max(4, (item.primaryValue / maxBarValue) * 100));
-                  const secondaryHeightPercent = Math.min(100, Math.max(4, (item.secondaryValue / maxBarValue) * 100));
+                  const primaryHeightPercent = item.primaryValue > 0 ? Math.min(100, Math.max(4, (item.primaryValue / maxBarValue) * 100)) : 0;
+                  const secondaryHeightPercent = item.secondaryValue > 0 ? Math.min(100, Math.max(4, (item.secondaryValue / maxBarValue) * 100)) : 0;
                   const isHovered = hoveredItemId === item.id;
 
                   return (
@@ -223,8 +223,8 @@ export function ComparativeBarChart({
         /* 2. HORIZONTAL BAR LIST VIEW */
         <div className="space-y-4">
           {items.map((item) => {
-            const primaryPercent = Math.min(100, Math.max(3, (item.primaryValue / maxBarValue) * 100));
-            const secondaryPercent = Math.min(100, Math.max(3, (item.secondaryValue / maxBarValue) * 100));
+            const primaryPercent = item.primaryValue > 0 ? Math.min(100, Math.max(3, (item.primaryValue / maxBarValue) * 100)) : 0;
+            const secondaryPercent = item.secondaryValue > 0 ? Math.min(100, Math.max(3, (item.secondaryValue / maxBarValue) * 100)) : 0;
             const roasRatio = item.primaryValue > 0 ? (item.secondaryValue / item.primaryValue).toFixed(1) : null;
 
             return (

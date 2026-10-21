@@ -48,7 +48,7 @@ export function matchPartialItemsAdvanced(
   let uCounter = 0;
   items.forEach(it => {
     const w = it.weightGrams || 700;
-    const cleanQty = Math.max(1, Math.round(it.qty));
+    const cleanQty = Math.max(0, Math.round(it.qty));
     for (let q = 0; q < cleanQty; q++) {
       units.push({ unitId: uCounter++, originalIdx: it.idx, cost: it.cost, weight: w });
     }

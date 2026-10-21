@@ -166,7 +166,7 @@ export function InteractiveDonutChart({
                     <div
                       className="h-full rounded-full transition-all duration-300"
                       style={{
-                        width: `${Math.min(100, Math.max(2, seg.sharePercent))}%`,
+                        width: `${seg.sharePercent > 0 ? Math.min(100, Math.max(2, seg.sharePercent)) : 0}%`,
                         backgroundColor: seg.color,
                       }}
                     />

@@ -303,7 +303,7 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
 
       if (statusFilter !== 'ALL') {
         const orderStatus = o.orderDeliveryStatus || o.deliveryStatus;
-        if (statusFilter === 'DELIVERED' && !orderStatus.toLowerCase().includes('delivered')) return false;
+        if (statusFilter === 'DELIVERED' && (!orderStatus.toLowerCase().includes('delivered') || orderStatus.toLowerCase().includes('partial') || orderStatus.toLowerCase().includes('return'))) return false;
         if (statusFilter === 'RETURNED' && !orderStatus.toLowerCase().includes('return')) return false;
         if (statusFilter === 'PARTIAL' && !orderStatus.toLowerCase().includes('partial')) return false;
         if (statusFilter === 'EXCHANGE' && !orderStatus.toLowerCase().includes('exchange') && !o.isExchange) return false;
@@ -581,7 +581,7 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
             <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
               <div
                 className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, Math.max(5, aggregateTotals.overallRetention))}%` }}
+                style={{ width: `${aggregateTotals.overallRetention > 0 ? Math.min(100, Math.max(5, aggregateTotals.overallRetention)) : 0}%` }}
               ></div>
             </div>
           </div>
@@ -637,7 +637,7 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
             <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
               <div
                 className="h-full bg-rose-500 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, Math.max(5, aggregateTotals.overallReturnRate))}%` }}
+                style={{ width: `${aggregateTotals.overallReturnRate > 0 ? Math.min(100, Math.max(5, aggregateTotals.overallReturnRate)) : 0}%` }}
               ></div>
             </div>
           </div>
@@ -694,7 +694,7 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
             <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
               <div
                 className="h-full bg-amber-500 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, Math.max(5, aggregateTotals.topPerformer?.retentionRate || 0))}%` }}
+                style={{ width: `${(aggregateTotals.topPerformer?.retentionRate || 0) > 0 ? Math.min(100, Math.max(5, aggregateTotals.topPerformer?.retentionRate || 0)) : 0}%` }}
               ></div>
             </div>
           </div>
@@ -745,7 +745,7 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
             <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
               <div
                 className="h-full bg-sky-500 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, Math.max(5, aggregateTotals.branchVolumeShare))}%` }}
+                style={{ width: `${aggregateTotals.branchVolumeShare > 0 ? Math.min(100, Math.max(5, aggregateTotals.branchVolumeShare)) : 0}%` }}
               ></div>
             </div>
           </div>
@@ -822,7 +822,7 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
                         <div className="flex-1 bg-slate-200/80 rounded-full h-2.5 overflow-hidden">
                           <div
                             className="bg-indigo-500 h-full rounded-full transition-all duration-500"
-                            style={{ width: `${Math.max(dispatchPct, 2)}%` }}
+                            style={{ width: `${dispatchPct > 0 ? Math.max(dispatchPct, 2) : 0}%` }}
                           ></div>
                         </div>
                         <span className="w-20 text-right font-bold text-slate-800 text-[11px] shrink-0">
@@ -836,7 +836,7 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
                         <div className="flex-1 bg-slate-200/80 rounded-full h-2.5 overflow-hidden">
                           <div
                             className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                            style={{ width: `${Math.max(deliveredPct, 2)}%` }}
+                            style={{ width: `${deliveredPct > 0 ? Math.max(deliveredPct, 2) : 0}%` }}
                           ></div>
                         </div>
                         <span className="w-20 text-right font-bold text-emerald-600 text-[11px] shrink-0">
@@ -850,7 +850,7 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
                         <div className="flex-1 bg-slate-200/80 rounded-full h-2.5 overflow-hidden">
                           <div
                             className="bg-rose-500 h-full rounded-full transition-all duration-500"
-                            style={{ width: `${Math.max(returnedPct, 2)}%` }}
+                            style={{ width: `${returnedPct > 0 ? Math.max(returnedPct, 2) : 0}%` }}
                           ></div>
                         </div>
                         <span className="w-20 text-right font-bold text-rose-600 text-[11px] shrink-0">
@@ -892,11 +892,11 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
                       </span>
                     </div>
                   </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${Math.max(slice.pct, 1)}%`, backgroundColor: slice.color }}
-                    ></div>
+                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${slice.pct > 0 ? Math.max(slice.pct, 1) : 0}%`, backgroundColor: slice.color }}
+                      ></div>
                   </div>
                 </div>
               ))}

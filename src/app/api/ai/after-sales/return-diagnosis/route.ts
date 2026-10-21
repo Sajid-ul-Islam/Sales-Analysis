@@ -96,16 +96,24 @@ Diagnose the after-sales return drivers and recommend factory/merchandising fixe
     }
 
     // Deterministic Heuristic Fallback if offline
+    const hasReturns = returnedItems.length > 0;
     return NextResponse.json({
       success: true,
       diagnosis: {
-        executiveSummary: `After-sales audit of ${returnedItems.length} returned line items indicates sizing inconsistency across bottoms and sweatshirt fits as the primary return driver, followed by linehaul courier delivery transit delays outside Dhaka.`,
-        primaryRootCause: 'SIZING_MISMATCH',
-        rootCauseBreakdown: {
+        executiveSummary: hasReturns
+          ? `After-sales audit of ${returnedItems.length} returned line items indicates sizing inconsistency across bottoms and sweatshirt fits as the primary return driver, followed by linehaul courier delivery transit delays outside Dhaka.`
+          : 'After-sales return audit found 0 returned line items in the dataset. Return rate is 0.0%.',
+        primaryRootCause: hasReturns ? 'SIZING_MISMATCH' : 'NONE',
+        rootCauseBreakdown: hasReturns ? {
           sizingMismatch: 52,
           courierDelay: 24,
           fabricQuality: 14,
           buyerRegret: 10,
+        } : {
+          sizingMismatch: 0,
+          courierDelay: 0,
+          fabricQuality: 0,
+          buyerRegret: 0,
         },
         topDefectSkus: sampleItems.slice(0, 3).map((it: { sku: string; name: string }) => ({
           sku: it.sku || 'DEEN-APPAREL',
@@ -113,10 +121,12 @@ Diagnose the after-sales return drivers and recommend factory/merchandising fixe
           diagnosis: 'Sizing drift: customer returns indicate waist or shoulder fitting runs 1 size smaller than standard Bangladesh fit.',
           recommendedAction: 'Update size chart recommendation table; mandate +0.5 inch grading tolerance at factory.',
         })),
-        factoryProductionDirectives: [
+        factoryProductionDirectives: hasReturns ? [
           'Audit grading table for denim bottom waists to align with true South Asian measurements.',
           'Instruct warehouse to inspect zipper and button hardware before poly-bag packing.',
           'Enforce strict QA inspection on French-Terry fleece shrinkage pre-washing.',
+        ] : [
+          'Continue enforcing standard warehouse and factory QA protocols.',
         ],
       },
       source: 'heuristic_fallback',

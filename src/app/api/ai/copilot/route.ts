@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
 - Realized Net Revenue: ৳${(summary?.netDeliveredRevenue || 0).toLocaleString()}
 - Inside Dhaka Orders: ${summary?.insideOrders?.toLocaleString() || 0} (Net: ৳${(summary?.insideNetRevenue || 0).toLocaleString()})
 - Outside Dhaka Orders: ${summary?.outsideOrders?.toLocaleString() || 0} (Net: ৳${(summary?.outsideNetRevenue || 0).toLocaleString()})
-- Territory Outside Ratio: ~${Math.round(Number(summary?.outsideRatio) || (summary?.outsideOrders / Math.max(1, summary?.insideOrders || 1))) || 1} : 1
+- Territory Outside Ratio: ${!summary || summary.grossOrders === 0 ? '0 : 0' : summary.insideOrders === 0 ? `${summary.outsideOrders || 0} : 0` : `~${Math.round(summary.outsideOrders / summary.insideOrders)} : 1`}
 - Exchanged Orders: ${summary?.totalExchangedOrders || 0} (COD collected: ৳${(summary?.totalExchangeCodCollected || 0).toLocaleString()})
 ${liveOpsContext}${dynamicFactsContext}${knowledgeContext}${activeModuleContext}${historyContext}
 User Executive Question:
@@ -188,7 +188,7 @@ Instructions:
 - **Gross Dispatched:** ${summary?.grossOrders?.toLocaleString() || 0} orders (৳${(summary?.grossRevenue || 0).toLocaleString()})
 - **Net Realized Sales:** ৳${(summary?.netDeliveredRevenue || 0).toLocaleString()} (${summary?.fullDeliveredOrders?.toLocaleString() || 0} orders)
 - **Return Rate:** ${(summary?.returnRate || 0).toFixed(1)}% (${summary?.fullReturnedOrders || 0} full returns, ${summary?.partialOrders || 0} partials)
-- **Territory Ratio:** ~${Math.round(Number(summary?.outsideRatio) || 1)} Outside orders per 1 Dhaka order.\n\n`;
+- **Territory Ratio:** ${!summary || summary.grossOrders === 0 ? '0 Outside orders' : `~${Math.round(Number(summary.outsideRatio) || (summary.insideOrders ? summary.outsideOrders / summary.insideOrders : summary.outsideOrders || 0))} Outside orders per 1 Dhaka order.`}\n\n`;
     }
 
     if (queryFacts) {

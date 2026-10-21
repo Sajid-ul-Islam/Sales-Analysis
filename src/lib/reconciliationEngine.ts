@@ -1414,6 +1414,8 @@ export function runReconciliationEngine(
       }
     } else if (ord.orderCategory === 'PARTIAL') {
       partialOrders++;
+    } else if (ord.orderCategory === 'EXCHANGE') {
+      // Exchange order - distinct operational category isolated from full delivered sales
     } else {
       fullDeliveredOrders++;
     }
@@ -1662,6 +1664,34 @@ export function runReconciliationEngine(
       itemDescription: itemDesc || undefined
     });
   }
+
+  // Also include any exchange orders discovered directly in sales ledger or WordPress telemetry
+  uniqueOrders.forEach(ord => {
+    if (ord.orderCategory === 'EXCHANGE' || ord.isExchange) {
+      const key = `${ord.orderId}__${ord.phone}`;
+      if (!seenExchangeKeys.has(key)) {
+        seenExchangeKeys.add(key);
+        exchangedOrders.push({
+          orderId: ord.orderId,
+          rawOrderId: ord.orderId,
+          consignmentId: '',
+          recipientName: ord.customerName,
+          phone: ord.phone,
+          address: ord.city,
+          deliveryStatus: ord.deliveryStatus || 'Exchange',
+          type: 'Exchange',
+          statusUpdatedOn: ord.orderDate ? ord.orderDate.toISOString() : '',
+          codAmount: 0,
+          courierCharge: 0,
+          discount: 0,
+          paymentStatus: 'Paid',
+          matchedInOrders: true,
+          quantity: ord.quantity || 1,
+          itemDescription: ord.itemName,
+        });
+      }
+    }
+  });
 
   const totalExchangedItemsQty = exchangedOrders.reduce((sum, o) => sum + (o.quantity || 1), 0);
 

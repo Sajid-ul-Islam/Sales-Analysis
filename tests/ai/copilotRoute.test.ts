@@ -219,4 +219,34 @@ describe('/api/ai/copilot Live Ops Integration', () => {
     expect(data.source).toBe('offline_knowledge_fallback');
     expect(data.answer).toContain("Today's Dispatched Volume");
   });
+
+  it('reports 0 outside orders truthfully when grossOrders is 0', async () => {
+    const emptySummary = {
+      grossOrders: 0,
+      fullDeliveredOrders: 0,
+      fullReturnedOrders: 0,
+      partialOrders: 0,
+      grossRevenue: 0,
+      netDeliveredRevenue: 0,
+      insideOrders: 0,
+      outsideOrders: 0,
+      outsideRatio: '0',
+    };
+
+    const req = new NextRequest('http://localhost:3000/api/ai/copilot', {
+      method: 'POST',
+      body: JSON.stringify({
+        query: 'What is the territory ratio?',
+        summary: emptySummary,
+        activeTab: 'tabTerritory',
+        tabLabel: 'Territory Matrix',
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.answer).toContain('0 Outside orders');
+    expect(data.answer).not.toContain('~1 Outside orders per 1 Dhaka order');
+  });
 });

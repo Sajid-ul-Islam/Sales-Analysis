@@ -83,10 +83,10 @@ export function getStoreHistoryIndex(): Map<string, PhoneStats> {
     stat.total++;
 
     const s = String(statusStr || '').toLowerCase();
-    if (s.includes('delivered') || s.includes('paid') || s.includes('completed') || s.includes('received')) {
-      stat.delivered++;
-    } else if (s.includes('return') || s.includes('cancel') || s.includes('failed') || s.includes('rto')) {
+    if (s.includes('return') || s.includes('cancel') || s.includes('failed') || s.includes('rto')) {
       stat.returned++;
+    } else if (s.includes('delivered') || s.includes('completed') || s.includes('received') || s.includes('paid')) {
+      stat.delivered++;
     } else {
       // If ambiguous in-transit/pending, assume positive trend if not marked return
       stat.delivered++;
@@ -332,11 +332,11 @@ export async function resolveCustomerRating(
       if (oNorm.suffix10 === suffix10) {
         if (!stats) stats = { delivered: 0, returned: 0, total: 0 };
         const status = String(o['Delivery Status'] || o['Order status'] || '').toLowerCase();
-        if (status.includes('delivered') || status.includes('shipped') || status.includes('completed')) {
-          stats.delivered++;
-          stats.total++;
-        } else if (status.includes('return')) {
+        if (status.includes('return') || status.includes('cancel') || status.includes('failed') || status.includes('rto')) {
           stats.returned++;
+          stats.total++;
+        } else if (status.includes('delivered') || status.includes('shipped') || status.includes('completed') || status.includes('received') || status.includes('paid')) {
+          stats.delivered++;
           stats.total++;
         }
       }

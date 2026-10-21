@@ -162,5 +162,47 @@ describe('Order-Wise Grouping & Filtering Engine', () => {
     const sheet = wb.Sheets['Shipped Orders (Order-Wise)'];
     expect(sheet).toBeDefined();
   });
+
+  describe('Branch Suffix & camelCase Normalization Invariants', () => {
+    it('decodes Mirpur Outlet branch suffix "m" and groups properly', () => {
+      const mirpurRows = [
+        {
+          orderId: '17263 m',
+          quantity: 2,
+          price: 1500,
+          customerName: 'Mirpur Shopper',
+          phone: '01712345678',
+          deliveryStatus: 'Delivered',
+        } as any,
+      ];
+
+      const groups = groupOrdersByOrderId(mirpurRows);
+      expect(groups).toHaveLength(1);
+      expect(groups[0].baseOrderId).toBe('17263');
+      expect(groups[0].branch.isBranchFulfillment).toBe(true);
+      expect(groups[0].branch.branchCode).toBe('MIRPUR');
+      expect(groups[0].totalAmount).toBe(3000); // 2 * 1500
+      expect(groups[0].totalQuantity).toBe(2);
+    });
+
+    it('correctly aggregates camelCase properties (qty, itemCost, orderAmount)', () => {
+      const camelRows = [
+        {
+          orderId: '5501',
+          qty: 3,
+          itemCost: 800,
+          total: 2400,
+          customerName: 'Sajidul Islam',
+          phone: '01812345678',
+          status: 'shipped',
+        } as any,
+      ];
+
+      const groups = groupOrdersByOrderId(camelRows);
+      expect(groups).toHaveLength(1);
+      expect(groups[0].totalQuantity).toBe(3);
+      expect(groups[0].totalAmount).toBe(2400);
+    });
+  });
 });
 

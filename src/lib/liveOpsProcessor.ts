@@ -901,9 +901,9 @@ export function processLiveOpsData(
 
   // Helper to compute order item amount
   const getOrderRowAmount = (o: RawOrderRow) => {
-    const qty = Number(o.Quantity) || 1;
-    const itemCost = Number(o['Item Cost']) || 0;
-    const rowAmt = Number(o['Order Amount']);
+    const qty = Number(o.Quantity ?? o.quantity ?? o.qty) || 1;
+    const itemCost = Number(o['Item Cost'] ?? o.itemCost ?? o.price ?? o.item_cost) || 0;
+    const rowAmt = Number(o['Order Amount'] ?? o.orderAmount ?? o.amount ?? o.total);
     return itemCost > 0 ? itemCost * qty : rowAmt > 0 ? rowAmt : 0;
   };
 
@@ -998,7 +998,7 @@ export function processLiveOpsData(
 
   const exchangeStats: ExchangeStats = {
     count: replacementOrders.length,
-    itemsCount: replacementOrders.reduce((sum, o) => sum + (Number(o.Quantity) || 1), 0),
+    itemsCount: replacementOrders.reduce((sum, o) => sum + (Number(o.Quantity ?? o.quantity ?? o.qty) || 1), 0),
     revenue: replacementOrders.reduce((sum, o) => sum + getOrderRowAmount(o), 0),
     orders: [...replacementOrders, ...originalExchangedOrders],
     replacementOrders,
@@ -1012,7 +1012,7 @@ export function processLiveOpsData(
 
   // 4. Compute 5 Core KPI Metrics & 7-Day Rolling History
   const getUniqueOrderIds = (list: RawOrderRow[]) => new Set(list.map((o) => String(o['Order ID'] || o.orderId || ''))).size;
-  const activeItemsCount = commercialActiveOrders.reduce((sum, o) => sum + (Number(o.Quantity) || 1), 0);
+  const activeItemsCount = commercialActiveOrders.reduce((sum, o) => sum + (Number(o.Quantity ?? o.quantity ?? o.qty) || 1), 0);
   const activeOrdersCount = getUniqueOrderIds(commercialActiveOrders);
   const activeRevenue = commercialActiveOrders.reduce((sum, o) => sum + getOrderRowAmount(o), 0);
   const activeBasket = activeOrdersCount > 0 ? Math.round(activeRevenue / activeOrdersCount) : 0;
@@ -1033,7 +1033,7 @@ export function processLiveOpsData(
     const dayOrders = source.filter((o) => isOrderShippedOnDate(o, dIso));
     const dayCommercialOrders = dayOrders.filter((o) => !isOrderExchange(o));
     const dayOrdersCount = getUniqueOrderIds(dayCommercialOrders);
-    const dayItemsCount = dayCommercialOrders.reduce((sum, o) => sum + (Number(o.Quantity) || 1), 0);
+    const dayItemsCount = dayCommercialOrders.reduce((sum, o) => sum + (Number(o.Quantity ?? o.quantity ?? o.qty) || 1), 0);
     const dayRev = dayCommercialOrders.reduce((sum, o) => sum + getOrderRowAmount(o), 0);
     const dayAov = dayOrdersCount > 0 ? Math.round(dayRev / dayOrdersCount) : 0;
 
@@ -1083,7 +1083,7 @@ export function processLiveOpsData(
   const sum7dOrders = dailyStats.reduce((acc, s) => acc + s.orderCount, 0);
   const sum7dRevenue = dailyStats.reduce((acc, s) => acc + s.revenue, 0);
 
-  const prevItemsCount = commercialPrevOrders.reduce((sum, o) => sum + (Number(o.Quantity) || 1), 0);
+  const prevItemsCount = commercialPrevOrders.reduce((sum, o) => sum + (Number(o.Quantity ?? o.quantity ?? o.qty) || 1), 0);
   const prevRevenue = commercialPrevOrders.reduce((sum, o) => sum + getOrderRowAmount(o), 0);
   const prevOrdersCount = getUniqueOrderIds(commercialPrevOrders);
   const prevBasket = prevOrdersCount > 0 ? Math.round(prevRevenue / prevOrdersCount) : 0;
@@ -1153,10 +1153,10 @@ export function processLiveOpsData(
 
   // 5. DEEN Selects vs DEEN Regular Statistics (Commercial Sales Only)
   const itemsForSelects = commercialActiveOrders.map((o) => ({
-    itemName: String(o['Item Name'] || ''),
-    sku: String(o.SKU || ''),
-    itemCost: Number(o['Item Cost']) || 0,
-    quantity: Number(o.Quantity) || 1,
+    itemName: String(o['Item Name'] || o.itemName || o.name || ''),
+    sku: String(o.SKU || o.sku || ''),
+    itemCost: Number(o['Item Cost'] ?? o.itemCost ?? o.price) || 0,
+    quantity: Number(o.Quantity ?? o.quantity ?? o.qty) || 1,
     amount: getOrderRowAmount(o),
   }));
   const selectsStats = computeSelectsStats(itemsForSelects);
@@ -1172,13 +1172,13 @@ export function processLiveOpsData(
   >();
 
   for (const o of commercialActiveOrders) {
-    const name = String(o['Item Name'] || 'Apparel');
-    const sku = String(o.SKU || '');
+    const name = String(o['Item Name'] || o.itemName || o.name || 'Apparel');
+    const sku = String(o.SKU || o.sku || '');
     const cat = getCategoryForSales(name);
     const subCat = getSubCategoryForSales(name, cat);
     const isSelects = classifyProductLine(name, sku, cat) === 'DEEN Selects';
 
-    const qty = Number(o.Quantity) || 1;
+    const qty = Number(o.Quantity ?? o.quantity ?? o.qty) || 1;
     const rev = getOrderRowAmount(o);
 
     // Update Category
@@ -1275,7 +1275,7 @@ export function processLiveOpsData(
     const key = sku ? `${sku}::${rawName}` : rawName;
     const cat = getCategoryForSales(rawName);
     const subCat = getSubCategoryForSales(rawName);
-    const qty = Number(o.Quantity) || 1;
+    const qty = Number(o.Quantity ?? o.quantity ?? o.qty) || 1;
     const rev = getOrderRowAmount(o);
     const oid = String(o['Order ID'] || o.orderId || '');
     const isSel = classifyProductLine(rawName, sku, cat) === 'DEEN Selects';

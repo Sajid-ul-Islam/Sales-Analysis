@@ -60,7 +60,7 @@ export function FunnelWaterfallChart({
       {/* Visual Stepped Pipeline */}
       <div className="space-y-2.5">
         {steps.map((step, idx) => {
-          const widthPercent = Math.max(8, Math.round((step.eventCount / topCount) * 100));
+          const widthPercent = topCount > 0 && step.eventCount > 0 ? Math.max(8, Math.round((step.eventCount / topCount) * 100)) : 0;
           const styling = STEP_GRADIENTS[step.eventName] || STEP_GRADIENTS.page_view;
           const icon = STEP_ICONS[step.eventName] || <CheckCircle2 className="w-4 h-4 text-slate-600" />;
 

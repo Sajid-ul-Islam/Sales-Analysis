@@ -490,7 +490,7 @@ export function BangladeshMapChart({
                         <div
                           className="h-full rounded-full transition-all duration-500"
                           style={{
-                            width: `${Math.max(4, ratio)}%`,
+                            width: `${ratio > 0 ? Math.max(4, ratio) : 0}%`,
                             backgroundColor:
                               activeMetric === 'returnRate'
                                 ? div.returnRate > 20 ? '#f43f5e' : '#10b981'

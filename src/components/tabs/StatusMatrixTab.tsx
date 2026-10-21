@@ -76,18 +76,18 @@ export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProp
       : []),
   ];
 
-  const insideTotal = s.insideOrders || 1;
-  const outsideTotal = s.outsideOrders || 1;
+  const insideTotal = s.insideOrders || 0;
+  const outsideTotal = s.outsideOrders || 0;
 
-  const insideDeliveredPct = Math.round((fullDeliveredInside / insideTotal) * 100);
-  const insidePartialPct = Math.round((partialInside / insideTotal) * 100);
-  const insidePaidReturnPct = Math.round((paidReturnInside / insideTotal) * 100);
-  const insideNotPaidPct = Math.max(0, 100 - insideDeliveredPct - insidePartialPct - insidePaidReturnPct);
+  const insideDeliveredPct = insideTotal > 0 ? Math.round((fullDeliveredInside / insideTotal) * 100) : 0;
+  const insidePartialPct = insideTotal > 0 ? Math.round((partialInside / insideTotal) * 100) : 0;
+  const insidePaidReturnPct = insideTotal > 0 ? Math.round((paidReturnInside / insideTotal) * 100) : 0;
+  const insideNotPaidPct = insideTotal > 0 ? Math.max(0, 100 - insideDeliveredPct - insidePartialPct - insidePaidReturnPct) : 0;
 
-  const outsideDeliveredPct = Math.round((fullDeliveredOutside / outsideTotal) * 100);
-  const outsidePartialPct = Math.round((partialOutside / outsideTotal) * 100);
-  const outsidePaidReturnPct = Math.round((paidReturnOutside / outsideTotal) * 100);
-  const outsideNotPaidPct = Math.max(0, 100 - outsideDeliveredPct - outsidePartialPct - outsidePaidReturnPct);
+  const outsideDeliveredPct = outsideTotal > 0 ? Math.round((fullDeliveredOutside / outsideTotal) * 100) : 0;
+  const outsidePartialPct = outsideTotal > 0 ? Math.round((partialOutside / outsideTotal) * 100) : 0;
+  const outsidePaidReturnPct = outsideTotal > 0 ? Math.round((paidReturnOutside / outsideTotal) * 100) : 0;
+  const outsideNotPaidPct = outsideTotal > 0 ? Math.max(0, 100 - outsideDeliveredPct - outsidePartialPct - outsidePaidReturnPct) : 0;
 
   // 2. Unit Economics & Courier Cost Logic
   const u = s.unitEconomics;

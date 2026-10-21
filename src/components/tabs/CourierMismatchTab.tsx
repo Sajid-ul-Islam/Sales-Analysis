@@ -38,7 +38,7 @@ export function CourierMismatchTab({
   const filteredList = useMemo(() => {
     const list = mismatches.filter((item) => {
       if (selectedFilter === 'CRITICAL' && item.severity !== 'CRITICAL') return false;
-      if (selectedFilter === 'WARNING' && item.severity !== 'WARNING') return false;
+      if (selectedFilter === 'WARNING' && (item.severity !== 'WARNING' || item.mismatchType === 'MISSING_IN_COURIER')) return false;
       if (selectedFilter === 'MATCH' && item.severity !== 'MATCH') return false;
       if (selectedFilter === 'MISSING' && item.mismatchType !== 'MISSING_IN_COURIER') return false;
 
