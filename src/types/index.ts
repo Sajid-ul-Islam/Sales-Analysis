@@ -42,6 +42,14 @@ export interface ReconciledOrderRow {
   wpMarkSource?: 'wc_status' | 'pathao_plugin' | 'custom_status_meta' | 'order_note' | 'webhook' | null;
   pathaoPluginStatus?: string;
   pathaoCollectedAmount?: number;
+  /** True when the WordPress/WooCommerce order status or Pathao plugin meta marks this order as returned */
+  isReturnFromWp?: boolean;
+  /** True when the WordPress/WooCommerce order status or Pathao plugin meta marks this as a partial delivery */
+  isPartialFromWp?: boolean;
+  /** True when the WordPress/WooCommerce order is a manual exchange/replacement (non-checkout) */
+  isExchangeFromWp?: boolean;
+  /** True when the return is paid (collected_amount > 0 or status notes indicate paid return) */
+  isPaidReturnFromWp?: boolean;
 }
 
 export interface ReturnedItemRow {

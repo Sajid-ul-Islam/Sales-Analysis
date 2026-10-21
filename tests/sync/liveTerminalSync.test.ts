@@ -8,8 +8,10 @@ import {
   syncLiveTerminalData,
   parseDateToEpoch,
   indexTrackingRecord,
+  indexWebhookRecord,
   CourierTrackingInfo,
 } from '@/lib/sync/liveTerminalSync';
+import type { PathaoWebhookRecord } from '@/lib/pathaoWebhookEngine';
 
 describe('Live Terminal Synchronization & Courier Reconciliation Engine', () => {
   describe('normalizeCourierStatus', () => {
@@ -84,6 +86,47 @@ describe('Live Terminal Synchronization & Courier Reconciliation Engine', () => 
 
     it('returns no discrepancy for legitimate in-transit shipments', () => {
       const disc = detectCourierDiscrepancy('shipped', 'In Transit', 1900, 0);
+      expect(disc.hasDiscrepancy).toBe(false);
+      expect(disc.type).toBe('NONE');
+    });
+
+    it('suppresses RETURNED_BUT_SHIPPED when WordPress has already marked the order as returned (isReturnFromWp)', () => {
+      // Without the flag this would fire RETURNED_BUT_SHIPPED
+      const withoutFlag = detectCourierDiscrepancy('shipped', 'Returned', 2500, 0);
+      expect(withoutFlag.type).toBe('RETURNED_BUT_SHIPPED');
+
+      // With isReturnFromWp: true — store has already acknowledged the return in WordPress
+      const withFlag = detectCourierDiscrepancy('shipped', 'Returned', 2500, 0, {
+        isReturnFromWp: true,
+      });
+      expect(withFlag.hasDiscrepancy).toBe(false);
+      expect(withFlag.type).toBe('NONE');
+    });
+
+    it('suppresses RETURNED_BUT_SHIPPED when WooCommerce status itself is "returned" (wc_status mark)', () => {
+      // wc status 'returned' is captured by the isWpReturn regex — no alert needed
+      const disc = detectCourierDiscrepancy('returned', 'Returned', 1800, 0);
+      expect(disc.hasDiscrepancy).toBe(false);
+      expect(disc.type).toBe('NONE');
+    });
+
+    it('suppresses RETURNED_BUT_SHIPPED when WooCommerce status is "refunded" (WordPress refund mark)', () => {
+      const disc = detectCourierDiscrepancy('refunded', 'Returned', 3200, 0);
+      expect(disc.hasDiscrepancy).toBe(false);
+      expect(disc.type).toBe('NONE');
+    });
+
+    it('suppresses RETURNED_BUT_SHIPPED when WooCommerce status is "rto" (Pathao RTO mark)', () => {
+      const disc = detectCourierDiscrepancy('rto', 'Returned', 2100, 0);
+      expect(disc.hasDiscrepancy).toBe(false);
+      expect(disc.type).toBe('NONE');
+    });
+
+    it('suppresses discrepancy when WordPress partial flag matches courier Partial status', () => {
+      // Partial from WP + Partial courier status = harmonious, no alert
+      const disc = detectCourierDiscrepancy('shipped', 'Partial', 2800, 1200, {
+        isPartialFromWp: true,
+      });
       expect(disc.hasDiscrepancy).toBe(false);
       expect(disc.type).toBe('NONE');
     });
@@ -346,6 +389,99 @@ describe('Live Terminal Synchronization & Courier Reconciliation Engine', () => 
       expect(result.orders.length).toBeGreaterThan(0);
       expect(result.stats.totalOrders).toBeGreaterThan(0);
       expect(result.stats.handedOverRate).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('indexWebhookRecord — real-time Pathao webhook ingestion into courierTrackingMap', () => {
+    const makeWebhook = (
+      overrides: Partial<PathaoWebhookRecord>
+    ): PathaoWebhookRecord => ({
+      consignmentId: 'RD-WH-1001',
+      merchantOrderId: '17500',
+      normalizedStatus: 'Delivered',
+      rawStatus: 'Delivered',
+      collectedAmount: 2400,
+      reason: '',
+      updatedAt: new Date().toISOString(),
+      receivedAt: new Date().toISOString(),
+      ...overrides,
+    });
+
+    it('indexes a Delivered webhook into courierTrackingMap by consignmentId key', () => {
+      const map: Record<string, CourierTrackingInfo> = {};
+      const webhook = makeWebhook({ normalizedStatus: 'Delivered', collectedAmount: 2400 });
+
+      indexWebhookRecord(webhook, map);
+
+      expect(map['rd-wh-1001']).toBeDefined();
+      expect(map['rd-wh-1001'].courierStatus).toBe('Delivered');
+      expect(map['rd-wh-1001'].collectedAmount).toBe(2400);
+    });
+
+    it('indexes a webhook into courierTrackingMap by order-ID key (oid_ prefix)', () => {
+      const map: Record<string, CourierTrackingInfo> = {};
+      indexWebhookRecord(makeWebhook({ merchantOrderId: '17500' }), map);
+
+      expect(map['oid_17500']).toBeDefined();
+      expect(map['oid_17500'].orderId).toBe('17500');
+    });
+
+    it('maps Returned normalizedStatus to Returned courierStatus', () => {
+      const map: Record<string, CourierTrackingInfo> = {};
+      indexWebhookRecord(
+        makeWebhook({ normalizedStatus: 'Returned', rawStatus: 'Returned To Merchant', collectedAmount: 0 }),
+        map
+      );
+
+      expect(map['rd-wh-1001'].courierStatus).toBe('Returned');
+      expect(map['rd-wh-1001'].collectedAmount).toBe(0);
+    });
+
+    it('maps Partial normalizedStatus to Partial courierStatus', () => {
+      const map: Record<string, CourierTrackingInfo> = {};
+      indexWebhookRecord(
+        makeWebhook({ normalizedStatus: 'Partial', rawStatus: 'Partial Delivered', collectedAmount: 1200 }),
+        map
+      );
+
+      expect(map['rd-wh-1001'].courierStatus).toBe('Partial');
+      expect(map['rd-wh-1001'].collectedAmount).toBe(1200);
+    });
+
+    it('maps In-Transit normalizedStatus to In Transit courierStatus', () => {
+      const map: Record<string, CourierTrackingInfo> = {};
+      indexWebhookRecord(
+        makeWebhook({ normalizedStatus: 'In-Transit', rawStatus: 'In Transit to Hub' }),
+        map
+      );
+
+      expect(map['rd-wh-1001'].courierStatus).toBe('In Transit');
+    });
+
+    it('writes both consignmentId and baseOrderId keys for branch-suffixed orders', () => {
+      const map: Record<string, CourierTrackingInfo> = {};
+      // Order '17500 m' — Mirpur branch — baseOrderId should strip suffix
+      indexWebhookRecord(
+        makeWebhook({ consignmentId: 'RD-BRANCH-99', merchantOrderId: '17500 m' }),
+        map
+      );
+
+      expect(map['rd-branch-99']).toBeDefined();          // consignmentId key
+      expect(map['oid_17500m']).toBeDefined();            // raw order-id key
+      expect(map['oid_17500']).toBeDefined();             // baseOrderId key (suffix stripped)
+      expect(map['oid_17500'].isBranchFulfillment).toBe(true);
+    });
+
+    it('skips consignmentId key gracefully when consignmentId is empty', () => {
+      const map: Record<string, CourierTrackingInfo> = {};
+      indexWebhookRecord(
+        makeWebhook({ consignmentId: '', merchantOrderId: '18000' }),
+        map
+      );
+
+      // No consignmentId key written, but oid_ key must exist
+      expect(map['oid_18000']).toBeDefined();
+      expect(Object.keys(map).filter(k => k === '')).toHaveLength(0);
     });
   });
 });
