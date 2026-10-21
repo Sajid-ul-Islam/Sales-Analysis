@@ -5,6 +5,7 @@ import { getSecretsWithOverrides } from '@/lib/secrets';
 import { createDataProvenance, DataProvenanceInfo } from '@/lib/dataAudit';
 import { buildTimelineIndex, extractCustomerBilling, classifyCustomer } from '@/lib/customerRegistry';
 import { fetchDatasetFromBlob, isBlobConfigured } from '@/lib/blobStorage';
+import { getLiveWebhookUpdates, PathaoWebhookRecord } from '@/lib/pathaoWebhookEngine';
 import baselineData from '@/data/baselineSample.json';
 
 export type StandardCourierStatus =
@@ -308,12 +309,16 @@ export function detectCourierDiscrepancy(
     paymentMethod?: string;
     isCod?: boolean;
     isPrepaid?: boolean;
+    isReturnFromWp?: boolean;
+    isPartialFromWp?: boolean;
   }
 ): { hasDiscrepancy: boolean; type: CourierDiscrepancyType; message?: string } {
   const normWc = String(wcStatus || '').toLowerCase().trim();
+  const isWpReturn = options?.isReturnFromWp || /^(returned|refunded|failed|cancelled|canceled|rto)$/i.test(normWc);
 
   // 1. Critical Discrepancy: WooCommerce considers the parcel shipped/completed, but Pathao returned it!
   if (
+    !isWpReturn &&
     (normWc === 'completed' || normWc === 'shipped' || normWc === 'delivered') &&
     courierStatus === 'Returned'
   ) {
@@ -512,6 +517,55 @@ export function indexTrackingRecord(
 }
 
 /**
+ * Indexes real-time Pathao Webhook telemetry updates into the courier tracking cache.
+ */
+export function indexWebhookRecord(
+  webhook: PathaoWebhookRecord,
+  courierTrackingMap: Record<string, CourierTrackingInfo>,
+  _phoneTrackingMap?: Map<string, CourierTrackingInfo[]>
+): void {
+  const consId = (webhook.consignmentId || '').trim();
+  const rawOid = cleanOrderId(webhook.merchantOrderId);
+  const baseOid = extractBaseOrderId(rawOid) || rawOid;
+  const branchInfo = detectFulfillmentBranch(webhook.merchantOrderId || rawOid);
+
+  let status: StandardCourierStatus = 'In Transit';
+  if (webhook.normalizedStatus === 'Delivered') status = 'Delivered';
+  else if (webhook.normalizedStatus === 'Returned') status = 'Returned';
+  else if (webhook.normalizedStatus === 'Partial') status = 'Partial';
+  else if (webhook.normalizedStatus === 'Untracked') status = 'Untracked';
+
+  const tracking: CourierTrackingInfo = {
+    consignmentId: consId,
+    orderId: rawOid,
+    baseOrderId: baseOid,
+    courierStatus: status,
+    rawStatus: webhook.rawStatus,
+    collectedAmount: webhook.collectedAmount,
+    deliveryFee: 0,
+    codFee: 0,
+    recipientName: '',
+    recipientPhone: '',
+    recipientCity: '',
+    updatedAt: webhook.updatedAt,
+    hasDiscrepancy: false,
+    discrepancyType: 'NONE',
+    fulfillmentBranch: branchInfo.branchName,
+    isBranchFulfillment: branchInfo.isBranchFulfillment,
+  };
+
+  if (consId) {
+    courierTrackingMap[consId.toLowerCase()] = tracking;
+  }
+  if (rawOid) {
+    courierTrackingMap[`oid_${rawOid}`] = tracking;
+  }
+  if (baseOid && baseOid !== rawOid) {
+    courierTrackingMap[`oid_${baseOid}`] = tracking;
+  }
+}
+
+/**
  * Primary synchronization orchestrator for the Live Operations Terminal.
  * Combines WooCommerce order data and Pathao courier consignment telemetry.
  */
@@ -692,6 +746,18 @@ export async function syncLiveTerminalData(options: {
     }
   }
 
+  // ── Step 3D: Ingest Real-Time Pathao Webhook Updates (Top Priority Live State) ──
+  try {
+    const liveWebhooks = getLiveWebhookUpdates();
+    if (liveWebhooks && liveWebhooks.size > 0) {
+      for (const webhookRecord of liveWebhooks.values()) {
+        indexWebhookRecord(webhookRecord, courierTrackingMap, phoneTrackingMap);
+      }
+    }
+  } catch (err) {
+    console.warn('[liveTerminalSync] Notice: Webhook updates ingestion skipped:', err);
+  }
+
   // ── Step 4: Enrich Orders & Compute Discrepancies ──
   const discrepancies: DiscrepancyAlert[] = [];
   let handedOverCount = 0;
@@ -791,6 +857,8 @@ export async function syncLiveTerminalData(options: {
 
     const discCheck = detectCourierDiscrepancy(wcStatus, courierStatus, orderAmount, collectedAmount, {
       paymentMethod,
+      isReturnFromWp: Boolean(row.isReturnFromWp || (row as Record<string, unknown>).wpDeliveryStatus === 'Paid Return' || (row as Record<string, unknown>).wpDeliveryStatus === 'Not Paid Return'),
+      isPartialFromWp: Boolean(row.isPartialFromWp || (row as Record<string, unknown>).wpDeliveryStatus === 'Partial'),
     });
 
     if (discCheck.hasDiscrepancy && !seenOrders.has(rawOid)) {

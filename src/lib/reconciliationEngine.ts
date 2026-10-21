@@ -16,6 +16,7 @@ import { classifyLocation } from './geo';
 import { OrderItemEntry } from './subsetSum';
 import { matchPartialItemsWithAudit, AuditedSubsetMatchResult } from './subsetSumAuditor';
 import { assertNoDoubleCounting } from './accounting/accountingContract';
+import { getLiveWebhookUpdates } from './pathaoWebhookEngine';
 
 export interface IngestionOptions {
   excludeAugust?: boolean;
@@ -171,6 +172,128 @@ function findCol(row: Record<string, unknown>, candidates: string[]): string {
     if (found && row[found] !== undefined && row[found] !== null) return String(row[found]);
   }
   return '';
+}
+
+/**
+ * Detects return, partial, and exchange marks on an order from WooCommerce status,
+ * custom order status meta, Pathao plugin fields, and real-time Pathao webhook updates.
+ */
+export function detectWordPressAndWebhookMarks(
+  items: RawOrderRow[],
+  cleanOid: string,
+  baseOid: string
+): {
+  isPartial: boolean;
+  isReturn: boolean;
+  isExchange: boolean;
+  isPaidReturn: boolean;
+  collectedAmount: number;
+  source: string;
+} {
+  // 1. Check live webhooks first (highest real-time priority)
+  try {
+    const webhookMap = getLiveWebhookUpdates();
+    if (webhookMap && webhookMap.size > 0) {
+      const webhook = webhookMap.get(cleanOid) || (baseOid ? webhookMap.get(baseOid) : undefined) ||
+        webhookMap.get(`order_${cleanOid}`) || (baseOid ? webhookMap.get(`order_${baseOid}`) : undefined);
+
+      if (webhook) {
+        if (webhook.normalizedStatus === 'Partial') {
+          return {
+            isPartial: true,
+            isReturn: false,
+            isExchange: false,
+            isPaidReturn: false,
+            collectedAmount: webhook.collectedAmount || 0,
+            source: 'webhook',
+          };
+        }
+        if (webhook.normalizedStatus === 'Returned') {
+          return {
+            isPartial: false,
+            isReturn: true,
+            isExchange: false,
+            isPaidReturn: webhook.collectedAmount > 0,
+            collectedAmount: webhook.collectedAmount || 0,
+            source: 'webhook',
+          };
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  // 2. Check line items for WordPress status marks and Pathao plugin meta
+  let isPartial = false;
+  let isReturn = false;
+  let isExchange = false;
+  let isPaidReturn = false;
+  let collectedAmount = 0;
+  let source = '';
+
+  for (const r of items) {
+    if (r.isPartialFromWp) isPartial = true;
+    if (r.isReturnFromWp) isReturn = true;
+    if (r.isExchangeFromWp) isExchange = true;
+    if (r.isPaidReturnFromWp) isPaidReturn = true;
+
+    const rCollected = parseFloat(String(r.pathaoCollectedAmount || r['Pathao Collected Amount'] || r['ptc_collected_amount'] || 0)) || 0;
+    if (rCollected > 0 && rCollected > collectedAmount) {
+      collectedAmount = rCollected;
+    }
+
+    if (r.wpMarkSource && !source) {
+      source = String(r.wpMarkSource);
+    }
+
+    // Also check raw string columns for files or unformatted rows
+    const statusCol = String(r['Delivery Status'] || r.status || r['Order Status'] || '').toLowerCase().trim();
+    const cleanStatus = statusCol.replace(/^wc-/, '');
+    const pathaoStatus = String(r['Pathao Status'] || r.pathaoStatus || '').toLowerCase().trim();
+    const substatus = String(r.Substatus || r.substatus || '').toLowerCase().trim();
+
+    if (cleanStatus.includes('partial') || pathaoStatus.includes('partial') || substatus.includes('partial')) {
+      isPartial = true;
+      if (!source) source = 'status_column';
+    }
+    if (
+      cleanStatus.includes('exchange') ||
+      pathaoStatus.includes('exchange') ||
+      substatus.includes('exchange') ||
+      cleanOid.toUpperCase().startsWith('D-') ||
+      cleanOid.toUpperCase().startsWith('DD-')
+    ) {
+      isExchange = true;
+      if (!source) source = 'status_column';
+    }
+    if (
+      /^(returned|return|refunded|failed|cancelled|canceled|rto)$/i.test(cleanStatus) ||
+      cleanStatus.includes('return') ||
+      pathaoStatus.includes('return') ||
+      pathaoStatus.includes('rto') ||
+      substatus.includes('return')
+    ) {
+      isReturn = true;
+      if (!source) source = 'status_column';
+      if (cleanStatus.includes('paid') || pathaoStatus.includes('paid return') || substatus.includes('paid')) {
+        isPaidReturn = true;
+      }
+    }
+  }
+
+  if (collectedAmount > 0 && isReturn) {
+    isPaidReturn = true;
+  }
+
+  return {
+    isPartial,
+    isReturn,
+    isExchange,
+    isPaidReturn,
+    collectedAmount,
+    source,
+  };
 }
 
 export function classifyProductCategory(itemName: string, sku: string): string {
@@ -788,10 +911,30 @@ export function runReconciliationEngine(
       } else if (exchEntries.length > 0) {
         orderDeliveryCategory = 'EXCHANGE';
       } else {
-        // Business Rule: Every parcel was delivered!
-        orderDeliveryCategory = 'DELIVERED';
+        // =========================================================================
+        // TIER 3: WORDPRESS / WOOCOMMERCE STATUS MARKS & PATHAO PLUGIN TELEMETRY
+        // =========================================================================
+        const wpMarks = detectWordPressAndWebhookMarks(group.items, cleanOid, baseOid);
+        if (wpMarks.isPartial) {
+          orderDeliveryCategory = 'PARTIAL';
+          if (wpMarks.collectedAmount > 0) {
+            pathaoCodForPartial = wpMarks.collectedAmount;
+          }
+        } else if (wpMarks.isReturn) {
+          orderDeliveryCategory = 'FULL_RETURN';
+          if (wpMarks.isPaidReturn) {
+            hasAnyPaidParcel = true;
+          }
+        } else if (wpMarks.isExchange) {
+          orderDeliveryCategory = 'EXCHANGE';
+        } else {
+          // Business Rule: Every parcel was delivered!
+          orderDeliveryCategory = 'DELIVERED';
+        }
       }
-      hasAnyPaidParcel = retEntries.some(e => e.isPaidReturn || String(e.status).toLowerCase().includes('paid'));
+      if (!hasAnyPaidParcel) {
+        hasAnyPaidParcel = retEntries.some(e => e.isPaidReturn || String(e.status).toLowerCase().includes('paid'));
+      }
     }
 
     // Solve for Kept vs Returned Items in Partial Orders using Knapsack Subset-Sum
@@ -802,6 +945,8 @@ export function runReconciliationEngine(
     if (orderDeliveryCategory === 'PARTIAL') {
       let effCod: number | null = null;
       if (isResolvedByPathao && pathaoCodForPartial !== null && pathaoCodForPartial > 0) {
+        effCod = pathaoCodForPartial;
+      } else if (pathaoCodForPartial !== null && pathaoCodForPartial > 0) {
         effCod = pathaoCodForPartial;
       } else if (partInfo && partInfo.cod !== null && partInfo.cod > 0) {
         effCod = partInfo.cod;
@@ -856,6 +1001,14 @@ export function runReconciliationEngine(
       const customerName = String(findCol(r, ['rawcustomername', 'fullname', 'firstname', 'customername', 'name', 'billingname', 'shippingname']) || 'Valued Customer').trim();
       const phone = group.phone || cleanPhoneNumber(findCol(r, ['rawphone', 'formattedphone', 'phone', 'contact']));
       const paymentMethod = String(findCol(r, ['paymentmethodtitle', 'paymentmethod', 'payment', 'paymenttitle', 'method', 'paymenttype']) || 'Cash on delivery').trim();
+      const rWpDeliveryStatus = typeof r.wpDeliveryStatus === 'string'
+        ? (r.wpDeliveryStatus as ReconciledOrderRow['wpDeliveryStatus'])
+        : undefined;
+      const rWpMarkSource = typeof r.wpMarkSource === 'string'
+        ? (r.wpMarkSource as ReconciledOrderRow['wpMarkSource'])
+        : undefined;
+      const rPathaoStatus = (r.pathaoPluginStatus || r['Pathao Status']) ? String(r.pathaoPluginStatus || r['Pathao Status']) : undefined;
+      const rPathaoCollectedAmount = (r.pathaoCollectedAmount || r['Pathao Collected Amount']) ? Number(r.pathaoCollectedAmount || r['Pathao Collected Amount']) : undefined;
 
       if (orderDeliveryCategory === 'FULL_RETURN') {
         const displayDeliveryStatus = hasAnyPaidParcel ? 'Paid Return (Full)' : 'Returned (Non-Paid Return)';
@@ -885,7 +1038,11 @@ export function runReconciliationEngine(
           fulfillmentLocation: branchInfo.branch,
           branchSuffix: branchInfo.suffix || undefined,
           isPaidReturn: hasAnyPaidParcel,
-          isExchange: false
+          isExchange: false,
+          wpDeliveryStatus: rWpDeliveryStatus,
+          wpMarkSource: rWpMarkSource,
+          pathaoPluginStatus: rPathaoStatus,
+          pathaoCollectedAmount: rPathaoCollectedAmount,
         });
       } else if (orderDeliveryCategory === 'PARTIAL') {
         const assignment = partialMatchResult?.itemAssignments.get(idx);
@@ -920,6 +1077,10 @@ export function runReconciliationEngine(
             branchSuffix: branchInfo.suffix || undefined,
             isPaidReturn: hasAnyPaidParcel,
             isExchange: false,
+            wpDeliveryStatus: rWpDeliveryStatus,
+            wpMarkSource: rWpMarkSource,
+            pathaoPluginStatus: rPathaoStatus,
+            pathaoCollectedAmount: rPathaoCollectedAmount,
             requiresManualReview: partialMatchResult?.requiresManualReview,
             decisionEvidence: partialMatchResult?.decisionEvidence
           });
@@ -953,6 +1114,10 @@ export function runReconciliationEngine(
             branchSuffix: branchInfo.suffix || undefined,
             isPaidReturn: hasAnyPaidParcel,
             isExchange: false,
+            wpDeliveryStatus: rWpDeliveryStatus,
+            wpMarkSource: rWpMarkSource,
+            pathaoPluginStatus: rPathaoStatus,
+            pathaoCollectedAmount: rPathaoCollectedAmount,
             requiresManualReview: partialMatchResult?.requiresManualReview,
             decisionEvidence: partialMatchResult?.decisionEvidence
           });
@@ -984,7 +1149,11 @@ export function runReconciliationEngine(
           fulfillmentLocation: branchInfo.branch,
           branchSuffix: branchInfo.suffix || undefined,
           isPaidReturn: hasAnyPaidParcel,
-          isExchange: true
+          isExchange: true,
+          wpDeliveryStatus: rWpDeliveryStatus,
+          wpMarkSource: rWpMarkSource,
+          pathaoPluginStatus: rPathaoStatus,
+          pathaoCollectedAmount: rPathaoCollectedAmount,
         });
       } else {
         // Delivered (Full)
@@ -1013,7 +1182,11 @@ export function runReconciliationEngine(
           fulfillmentLocation: branchInfo.branch,
           branchSuffix: branchInfo.suffix || undefined,
           isPaidReturn: hasAnyPaidParcel,
-          isExchange: false
+          isExchange: false,
+          wpDeliveryStatus: rWpDeliveryStatus,
+          wpMarkSource: rWpMarkSource,
+          pathaoPluginStatus: rPathaoStatus,
+          pathaoCollectedAmount: rPathaoCollectedAmount,
         });
       }
     });

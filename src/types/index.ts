@@ -38,6 +38,10 @@ export interface ReconciledOrderRow {
   decisionEvidence?: import('@/lib/subsetSumAuditor').DecisionEvidence; // Explainable evidence trail for the reconciliation outcome
   rawCustomerName?: string;
   rawPhone?: string;
+  wpDeliveryStatus?: 'Delivered' | 'Paid Return' | 'Not Paid Return' | 'Exchange' | 'Partial';
+  wpMarkSource?: 'wc_status' | 'pathao_plugin' | 'custom_status_meta' | 'order_note' | 'webhook' | null;
+  pathaoPluginStatus?: string;
+  pathaoCollectedAmount?: number;
 }
 
 export interface ReturnedItemRow {

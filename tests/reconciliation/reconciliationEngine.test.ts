@@ -183,4 +183,141 @@ describe('DEEN Commerce Reconciliation Engine — Domain Invariant Tests', () =>
       expect(row?.itemDeliveryStatus).toBe('Exchange');
     });
   });
+
+  describe('Rule 7: WordPress / WooCommerce Status Marks & Pathao Plugin Telemetry (No Uploaded Manifests)', () => {
+    it('reconciles WordPress return mark into FULL_RETURN without requiring uploaded Excel returns', () => {
+      const wpReturnSalesOrders = [
+        {
+          'Order ID': '30001',
+          'Order Date': '2026-10-15',
+          'Customer Name': 'Rahim Uddin',
+          'Phone': '01700112233',
+          'City': 'Dhaka',
+          'SKU': 'JEANS-301',
+          'Item Name': 'DEEN Slim Jeans',
+          'Quantity': 1,
+          'Item Cost': 2100,
+          'Order Amount': 2100,
+          'Delivery Status': 'returned',
+          'status': 'returned',
+          'isReturnFromWp': true,
+          'wpDeliveryStatus': 'Not Paid Return',
+        },
+      ];
+
+      const result = runReconciliationEngine(
+        wpReturnSalesOrders,
+        [],
+        [],
+        { excludeAugust: false, excludePOS: false },
+        [],
+        []
+      );
+
+      expect(result.reconciledOrders.length).toBe(1);
+      const row = result.reconciledOrders[0];
+      expect(row.orderDeliveryStatus).toBe('Not Paid Return');
+      expect(row.itemDeliveryStatus).toBe('Returned');
+      expect(row.orderCategory).toBe('FULL_RETURN');
+    });
+
+    it('reconciles WordPress partial mark into PARTIAL with knapsack item allocation without uploaded manifest', () => {
+      const wpPartialSalesOrders = [
+        {
+          'Order ID': '30002',
+          'Order Date': '2026-10-16',
+          'Customer Name': 'Karim Ullah',
+          'Phone': '01800112244',
+          'City': 'Chittagong',
+          'SKU': 'SHIRT-OX-01',
+          'Item Name': 'DEEN Oxford Shirt',
+          'Quantity': 1,
+          'Item Cost': 1200,
+          'Order Amount': 3200,
+          'Delivery Status': 'partial',
+          'status': 'partial',
+          'isPartialFromWp': true,
+          'pathaoCollectedAmount': 1200,
+          'wpDeliveryStatus': 'Partial',
+        },
+        {
+          'Order ID': '30002',
+          'Order Date': '2026-10-16',
+          'Customer Name': 'Karim Ullah',
+          'Phone': '01800112244',
+          'City': 'Chittagong',
+          'SKU': 'JEANS-REG-01',
+          'Item Name': 'DEEN Regular Jeans',
+          'Quantity': 1,
+          'Item Cost': 2000,
+          'Order Amount': 3200,
+          'Delivery Status': 'partial',
+          'status': 'partial',
+          'isPartialFromWp': true,
+          'pathaoCollectedAmount': 1200,
+          'wpDeliveryStatus': 'Partial',
+        },
+      ];
+
+      const result = runReconciliationEngine(
+        wpPartialSalesOrders,
+        [],
+        [],
+        { excludeAugust: false, excludePOS: false },
+        [],
+        []
+      );
+
+      const rows = result.reconciledOrders.filter(r => r.orderId === '30002');
+      expect(rows.length).toBe(2);
+      rows.forEach(r => {
+        expect(r.orderDeliveryStatus).toBe('Partial');
+        expect(r.orderCategory).toBe('PARTIAL');
+        expect(Number.isInteger(r.quantity)).toBe(true);
+      });
+
+      const kept = rows.find(r => r.itemDeliveryStatus === 'Delivered');
+      const returned = rows.find(r => r.itemDeliveryStatus === 'Returned');
+      expect(kept).toBeDefined();
+      expect(returned).toBeDefined();
+      expect(kept?.sku).toBe('SHIRT-OX-01');
+      expect(returned?.sku).toBe('JEANS-REG-01');
+    });
+
+    it('reconciles WordPress exchange mark into EXCHANGE', () => {
+      const wpExchangeSalesOrders = [
+        {
+          'Order ID': '30003',
+          'Order Date': '2026-10-17',
+          'Customer Name': 'Anisur Rahman',
+          'Phone': '01900112255',
+          'City': 'Dhaka',
+          'SKU': 'POLO-01',
+          'Item Name': 'DEEN Polo T-Shirt',
+          'Quantity': 1,
+          'Item Cost': 950,
+          'Order Amount': 950,
+          'Delivery Status': 'exchange',
+          'status': 'exchange',
+          'isExchangeFromWp': true,
+          'wpDeliveryStatus': 'Exchange',
+        },
+      ];
+
+      const result = runReconciliationEngine(
+        wpExchangeSalesOrders,
+        [],
+        [],
+        { excludeAugust: false, excludePOS: false },
+        [],
+        []
+      );
+
+      expect(result.reconciledOrders.length).toBe(1);
+      const row = result.reconciledOrders[0];
+      expect(row.orderDeliveryStatus).toBe('Exchange');
+      expect(row.itemDeliveryStatus).toBe('Exchange');
+      expect(row.orderCategory).toBe('EXCHANGE');
+    });
+  });
 });

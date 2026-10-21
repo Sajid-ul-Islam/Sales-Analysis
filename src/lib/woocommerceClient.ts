@@ -596,16 +596,20 @@ export interface PathaoPluginOrderInfo {
   consignmentId: string;
   status: string;
   deliveryFee: number;
+  collectedAmount: number;
+  reason: string;
 }
 
 /**
  * Extracts complete courier information stored by the official Pathao Courier WooCommerce plugin
- * (ptc_consignment_id, ptc_status, ptc_delivery_fee, etc.).
+ * (ptc_consignment_id, ptc_status, ptc_delivery_fee, ptc_collected_amount, etc.).
  */
 export function extractPathaoPluginOrderInfo(order: WcOrder, meta: WcMetaItem[]): PathaoPluginOrderInfo {
   const consignmentId = extractConsignmentTracking(order, meta);
   let status = '';
   let deliveryFee = 0;
+  let collectedAmount = 0;
+  let reason = '';
 
   for (const m of meta) {
     const k = String(m.key || '').toLowerCase();
@@ -621,12 +625,171 @@ export function extractPathaoPluginOrderInfo(order: WcOrder, meta: WcMetaItem[])
         deliveryFee = v;
       }
     }
+    if (k === 'ptc_collected_amount' || k === '_ptc_collected_amount' || k === 'pathao_collected_amount' || k === '_pathao_collected_amount' || k === 'collected_amount') {
+      const v = parseFloat(String(m.value || '0'));
+      if (!isNaN(v) && v > 0) {
+        collectedAmount = v;
+      }
+    }
+    if (k === 'ptc_reason' || k === '_ptc_reason' || k === 'pathao_reason' || k === '_pathao_reason') {
+      const v = String(m.value || '').trim();
+      if (v && v !== '-' && v !== 'null') {
+        reason = v;
+      }
+    }
   }
 
   return {
     consignmentId,
     status,
     deliveryFee,
+    collectedAmount,
+    reason,
+  };
+}
+
+export interface WordPressStatusMarks {
+  wpDeliveryStatus: 'Delivered' | 'Paid Return' | 'Not Paid Return' | 'Exchange' | 'Partial' | null;
+  isReturnFromWp: boolean;
+  isPartialFromWp: boolean;
+  isExchangeFromWp: boolean;
+  isPaidReturnFromWp: boolean;
+  wpMarkSource: 'wc_status' | 'pathao_plugin' | 'custom_status_meta' | 'order_note' | null;
+  wpMarkReason: string;
+  pathaoPluginStatus: string;
+  pathaoConsignmentId: string;
+  pathaoDeliveryFee: number;
+  pathaoCollectedAmount: number;
+}
+
+/**
+ * Detects return, partial, and exchange marks created inside WordPress / WooCommerce.
+ * Inspects native WC order status, official Pathao Courier plugin meta (ptc_status, ptc_collected_amount),
+ * custom status plugins (ywcos_custom_status, substatus, etc.), and staff order notes.
+ */
+export function detectWordPressStatusMarks(order: WcOrder, meta: WcMetaItem[] = []): WordPressStatusMarks {
+  const pathaoInfo = extractPathaoPluginOrderInfo(order, meta);
+  const rawStatus = String(order.status || '').toLowerCase().trim();
+  const cleanStatus = rawStatus.replace(/^wc-/, '');
+  const notesText = `${order.customer_note || ''} ${order.order_notes || ''}`.toLowerCase();
+
+  // 1. Check custom status metadata
+  let customStatusMeta = '';
+  for (const m of meta) {
+    const k = String(m.key || '').toLowerCase();
+    const v = String(m.value || '').trim();
+    if (/ywcos_custom_status|custom_order_status|_custom_order_status|substatus|_substatus|sub_status|order_status_label|_return_status|return_status|_partial_status|partial_status|_exchange_status|exchange_status/i.test(k) && v) {
+      customStatusMeta = v.toLowerCase();
+      break;
+    }
+  }
+
+  const pStatus = (pathaoInfo.status || '').toLowerCase();
+
+  // Pattern tests
+  const isWcReturn = /^(returned|return|refunded|failed|cancelled|canceled|rto|return-requested|return_requested)$/i.test(cleanStatus) ||
+    cleanStatus.includes('return') || cleanStatus.includes('rto');
+  const isPtcReturn = pStatus.includes('return') || pStatus.includes('rto') || pStatus.includes('pickup cancel') || pStatus.includes('pickup failed') || pStatus.includes('lost') || pStatus.includes('damaged');
+  const isMetaReturn = /return|returned|rto|rejected/i.test(customStatusMeta);
+  const isNoteReturn = /\b(return|returned|rto|customer rejected)\b/i.test(notesText);
+
+  const isWcPartial = /^(partial|partially-refunded|partially_refunded|partially-delivered|partially_delivered|partial-return|partial_return)$/i.test(cleanStatus) ||
+    cleanStatus.includes('partial');
+  const isPtcPartial = pStatus.includes('partial');
+  const isMetaPartial = /partial/i.test(customStatusMeta);
+  const isNotePartial = /\b(partial delivery|partial return|partially delivered|kept item)\b/i.test(notesText);
+
+  const isWcExchange = /^(exchange|exchanged|replacement)$/i.test(cleanStatus) || cleanStatus.includes('exchange');
+  const isPtcExchange = pStatus.includes('exchange');
+  const isMetaExchange = /exchange|replacement/i.test(customStatusMeta);
+  const isNoteExchange = /\b(exchange|exchanged|replacement)\b/i.test(notesText);
+
+  let isReturn = false;
+  let isPartial = false;
+  let isExchange = false;
+  let wpMarkSource: WordPressStatusMarks['wpMarkSource'] = null;
+  let wpMarkReason = '';
+
+  // Order of evaluation:
+  // Partial takes priority if explicitly partial (since partial contains both kept and returned items)
+  if (isWcPartial || isPtcPartial || isMetaPartial || isNotePartial) {
+    isPartial = true;
+    if (isPtcPartial) {
+      wpMarkSource = 'pathao_plugin';
+      wpMarkReason = `Pathao Courier plugin marked: "${pathaoInfo.status}"`;
+    } else if (isWcPartial) {
+      wpMarkSource = 'wc_status';
+      wpMarkReason = `WooCommerce order status marked: "${order.status}"`;
+    } else if (isMetaPartial) {
+      wpMarkSource = 'custom_status_meta';
+      wpMarkReason = `WordPress custom meta marked: "${customStatusMeta}"`;
+    } else {
+      wpMarkSource = 'order_note';
+      wpMarkReason = 'Order notes indicate partial delivery';
+    }
+  } else if (isWcExchange || isPtcExchange || isMetaExchange || isNoteExchange) {
+    isExchange = true;
+    if (isWcExchange) {
+      wpMarkSource = 'wc_status';
+      wpMarkReason = `WooCommerce order status marked: "${order.status}"`;
+    } else if (isPtcExchange) {
+      wpMarkSource = 'pathao_plugin';
+      wpMarkReason = `Pathao Courier plugin marked: "${pathaoInfo.status}"`;
+    } else if (isMetaExchange) {
+      wpMarkSource = 'custom_status_meta';
+      wpMarkReason = `WordPress custom meta marked: "${customStatusMeta}"`;
+    } else {
+      wpMarkSource = 'order_note';
+      wpMarkReason = 'Order notes indicate exchange replacement';
+    }
+  } else if (isWcReturn || isPtcReturn || isMetaReturn || isNoteReturn) {
+    isReturn = true;
+    if (isPtcReturn) {
+      wpMarkSource = 'pathao_plugin';
+      wpMarkReason = `Pathao Courier plugin marked: "${pathaoInfo.status}"`;
+    } else if (isWcReturn) {
+      wpMarkSource = 'wc_status';
+      wpMarkReason = `WooCommerce order status marked: "${order.status}"`;
+    } else if (isMetaReturn) {
+      wpMarkSource = 'custom_status_meta';
+      wpMarkReason = `WordPress custom meta marked: "${customStatusMeta}"`;
+    } else {
+      wpMarkSource = 'order_note';
+      wpMarkReason = 'Order notes indicate customer return';
+    }
+  }
+
+  // Detect paid return
+  const isPaidReturn = isReturn && (
+    pathaoInfo.collectedAmount > 0 ||
+    pStatus.includes('paid return') ||
+    cleanStatus.includes('paid') ||
+    notesText.includes('paid return')
+  );
+
+  let wpDeliveryStatus: WordPressStatusMarks['wpDeliveryStatus'] = null;
+  if (isPartial) {
+    wpDeliveryStatus = 'Partial';
+  } else if (isExchange) {
+    wpDeliveryStatus = 'Exchange';
+  } else if (isReturn) {
+    wpDeliveryStatus = isPaidReturn ? 'Paid Return' : 'Not Paid Return';
+  } else if (cleanStatus === 'completed' || cleanStatus === 'delivered' || pStatus === 'delivered') {
+    wpDeliveryStatus = 'Delivered';
+  }
+
+  return {
+    wpDeliveryStatus,
+    isReturnFromWp: isReturn,
+    isPartialFromWp: isPartial,
+    isExchangeFromWp: isExchange,
+    isPaidReturnFromWp: isPaidReturn,
+    wpMarkSource,
+    wpMarkReason,
+    pathaoPluginStatus: pathaoInfo.status,
+    pathaoConsignmentId: pathaoInfo.consignmentId,
+    pathaoDeliveryFee: pathaoInfo.deliveryFee,
+    pathaoCollectedAmount: pathaoInfo.collectedAmount,
   };
 }
 
@@ -838,6 +1001,7 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
     const meta = order.meta_data || [];
     const branchInfo = detectBranchFromOrder(order, meta, orderId);
     const pathaoInfo = extractPathaoPluginOrderInfo(order, meta);
+    const wpMarks = detectWordPressStatusMarks(order, meta);
     const trackingId = pathaoInfo.consignmentId || extractConsignmentTracking(order, meta);
     const shippingFee = (order.shipping_lines && order.shipping_lines[0]) ? parseFloat(String(order.shipping_lines[0].total || '0')) || 0 : 0;
     const discountTotal = typeof order.discount_total === 'number' ? order.discount_total : parseFloat(String(order.discount_total || '0')) || 0;
@@ -888,9 +1052,15 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
       paymentMethodLower.includes('no checkout') ||
       paymentMethodLower.includes('no-checkout');
 
-    const isOrderExchangeRow = branchInfo.branchCode === 'EXCHANGE' || /exchange/i.test(substatus) || hasNoCheckoutNotice;
-    if (!substatus && (hasNoCheckoutNotice || branchInfo.branchCode === 'EXCHANGE')) {
-      substatus = hasNoCheckoutNotice ? 'Exchange (No Checkout)' : 'Exchange Replacement';
+    const isOrderExchangeRow = branchInfo.branchCode === 'EXCHANGE' || /exchange/i.test(substatus) || hasNoCheckoutNotice || wpMarks.isExchangeFromWp;
+    if (!substatus) {
+      if (hasNoCheckoutNotice || branchInfo.branchCode === 'EXCHANGE' || wpMarks.isExchangeFromWp) {
+        substatus = hasNoCheckoutNotice ? 'Exchange (No Checkout)' : 'Exchange Replacement';
+      } else if (wpMarks.isPartialFromWp) {
+        substatus = 'Partial Delivery';
+      } else if (wpMarks.isReturnFromWp) {
+        substatus = wpMarks.isPaidReturnFromWp ? 'Paid Return' : 'Return';
+      }
     }
     const orderCreatedVia = effectiveCreatedVia || (branchInfo.isPos ? 'pos' : (hasNoCheckoutNotice ? 'admin' : 'checkout'));
 
@@ -977,6 +1147,15 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
         'pathaoStatus': pathaoInfo.status,
         'Pathao Delivery Fee': pathaoInfo.deliveryFee,
         'pathaoDeliveryFee': pathaoInfo.deliveryFee,
+        'Pathao Collected Amount': wpMarks.pathaoCollectedAmount,
+        'pathaoCollectedAmount': wpMarks.pathaoCollectedAmount,
+        'wpDeliveryStatus': wpMarks.wpDeliveryStatus,
+        'wpMarkSource': wpMarks.wpMarkSource,
+        'wpMarkReason': wpMarks.wpMarkReason,
+        'isReturnFromWp': wpMarks.isReturnFromWp,
+        'isPartialFromWp': wpMarks.isPartialFromWp,
+        'isExchangeFromWp': wpMarks.isExchangeFromWp,
+        'isPaidReturnFromWp': wpMarks.isPaidReturnFromWp,
         isPos: branchInfo.isPos,
         outletId: branchInfo.outletId,
         isBranchFulfillment: branchInfo.branchCode !== 'ONLINE',
@@ -1073,6 +1252,15 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
           'pathaoStatus': pathaoInfo.status,
           'Pathao Delivery Fee': pathaoInfo.deliveryFee,
           'pathaoDeliveryFee': pathaoInfo.deliveryFee,
+          'Pathao Collected Amount': wpMarks.pathaoCollectedAmount,
+          'pathaoCollectedAmount': wpMarks.pathaoCollectedAmount,
+          'wpDeliveryStatus': wpMarks.wpDeliveryStatus,
+          'wpMarkSource': wpMarks.wpMarkSource,
+          'wpMarkReason': wpMarks.wpMarkReason,
+          'isReturnFromWp': wpMarks.isReturnFromWp,
+          'isPartialFromWp': wpMarks.isPartialFromWp,
+          'isExchangeFromWp': wpMarks.isExchangeFromWp,
+          'isPaidReturnFromWp': wpMarks.isPaidReturnFromWp,
           isPos: branchInfo.isPos,
           outletId: branchInfo.outletId,
           isBranchFulfillment: branchInfo.branchCode !== 'ONLINE',

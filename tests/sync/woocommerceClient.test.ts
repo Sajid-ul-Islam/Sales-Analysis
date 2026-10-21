@@ -8,6 +8,7 @@ import {
   extractPathaoPluginOrderInfo,
   extractVariationAttributes,
   formatWooCommerceToOrderRows,
+  detectWordPressStatusMarks,
 } from '@/lib/woocommerceClient';
 
 describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
@@ -364,6 +365,123 @@ describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
       expect(row.pathaoStatus).toBe('In_Transit');
       expect(row['Pathao Delivery Fee']).toBe(90);
       expect(row.pathaoDeliveryFee).toBe(90);
+    });
+
+    it('populates WordPress return marks and Pathao collected amount in order rows', () => {
+      const mockReturnOrder = {
+        id: 18400,
+        number: '18400',
+        date_created: '2026-10-20T12:00:00',
+        total: '3450',
+        status: 'returned',
+        meta_data: [
+          { key: 'ptc_status', value: 'Returned' },
+          { key: 'ptc_collected_amount', value: '150' },
+        ],
+        line_items: [
+          {
+            id: 202,
+            name: 'DEEN Cargo Denim Pants',
+            sku: 'CARGO-01',
+            quantity: 1,
+            total: '3450',
+          },
+        ],
+      };
+
+      const rows = formatWooCommerceToOrderRows([mockReturnOrder]);
+      expect(rows.length).toBe(1);
+      const row = rows[0];
+      expect(row.isReturnFromWp).toBe(true);
+      expect(row.isPaidReturnFromWp).toBe(true);
+      expect(row.wpDeliveryStatus).toBe('Paid Return');
+      expect(row.pathaoCollectedAmount).toBe(150);
+      expect(row.wpMarkSource).toBe('pathao_plugin');
+    });
+
+    it('populates WordPress partial marks and knapsack hints in order rows', () => {
+      const mockPartialOrder = {
+        id: 18401,
+        number: '18401',
+        date_created: '2026-10-20T14:00:00',
+        total: '4500',
+        status: 'processing',
+        meta_data: [
+          { key: 'ptc_status', value: 'Partial Delivery' },
+          { key: 'ptc_collected_amount', value: '2500' },
+        ],
+        line_items: [
+          {
+            id: 203,
+            name: 'DEEN Jacket',
+            sku: 'JKT-01',
+            quantity: 1,
+            total: '2500',
+          },
+          {
+            id: 204,
+            name: 'DEEN Shirt',
+            sku: 'SHT-01',
+            quantity: 1,
+            total: '2000',
+          },
+        ],
+      };
+
+      const rows = formatWooCommerceToOrderRows([mockPartialOrder]);
+      expect(rows.length).toBe(2);
+      rows.forEach(r => {
+        expect(r.isPartialFromWp).toBe(true);
+        expect(r.wpDeliveryStatus).toBe('Partial');
+        expect(r.pathaoCollectedAmount).toBe(2500);
+      });
+    });
+  });
+
+  describe('detectWordPressStatusMarks', () => {
+    it('detects return status from core WooCommerce statuses (returned, refunded, rto, failed)', () => {
+      expect(detectWordPressStatusMarks({ status: 'returned' }).isReturnFromWp).toBe(true);
+      expect(detectWordPressStatusMarks({ status: 'wc-returned' }).isReturnFromWp).toBe(true);
+      expect(detectWordPressStatusMarks({ status: 'refunded' }).isReturnFromWp).toBe(true);
+      expect(detectWordPressStatusMarks({ status: 'failed' }).isReturnFromWp).toBe(true);
+      expect(detectWordPressStatusMarks({ status: 'cancelled' }).isReturnFromWp).toBe(true);
+      expect(detectWordPressStatusMarks({ status: 'rto' }).isReturnFromWp).toBe(true);
+    });
+
+    it('detects partial delivery from WooCommerce status and Pathao plugin meta', () => {
+      const res1 = detectWordPressStatusMarks({ status: 'partial' });
+      expect(res1.isPartialFromWp).toBe(true);
+      expect(res1.wpDeliveryStatus).toBe('Partial');
+
+      const res2 = detectWordPressStatusMarks(
+        { status: 'processing' },
+        [{ key: 'ptc_status', value: 'Partial Delivery' }, { key: 'ptc_collected_amount', value: '1450' }]
+      );
+      expect(res2.isPartialFromWp).toBe(true);
+      expect(res2.wpDeliveryStatus).toBe('Partial');
+      expect(res2.pathaoCollectedAmount).toBe(1450);
+      expect(res2.wpMarkSource).toBe('pathao_plugin');
+    });
+
+    it('detects exchange from WooCommerce status and custom status plugins', () => {
+      const res1 = detectWordPressStatusMarks({ status: 'exchange' });
+      expect(res1.isExchangeFromWp).toBe(true);
+      expect(res1.wpDeliveryStatus).toBe('Exchange');
+
+      const res2 = detectWordPressStatusMarks(
+        { status: 'processing' },
+        [{ key: 'ywcos_custom_status', value: 'Exchange Replacement' }]
+      );
+      expect(res2.isExchangeFromWp).toBe(true);
+      expect(res2.wpDeliveryStatus).toBe('Exchange');
+    });
+
+    it('detects return and partial from staff order notes', () => {
+      const resReturn = detectWordPressStatusMarks({ status: 'processing', customer_note: 'Customer rejected parcel at doorstep, return to hub' });
+      expect(resReturn.isReturnFromWp).toBe(true);
+
+      const resPartial = detectWordPressStatusMarks({ status: 'processing', customer_note: 'Customer accepted 1 shirt, partial return for 1 jeans' });
+      expect(resPartial.isPartialFromWp).toBe(true);
     });
   });
 });
