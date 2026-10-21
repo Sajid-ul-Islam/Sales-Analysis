@@ -171,7 +171,7 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
       )}
 
       {/* Search and Filters Bar */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+      <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-4 border border-slate-200 dark:border-deepBlack-border shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
         <div className="flex items-center gap-3 w-full md:w-auto flex-1">
           <div className="relative flex-1 max-w-md">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -183,7 +183,7 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors"
+              className="w-full bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-xl pl-10 pr-4 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-deepBlack-canvas transition-colors"
             />
           </div>
 
@@ -202,7 +202,7 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                   hasActiveFilter
                     ? 'bg-primary text-white border border-primary shadow-xs hover:bg-primary-hover'
-                    : 'bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed hover:bg-slate-200/60'
+                    : 'bg-slate-100 dark:bg-deepBlack-sidebar text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-deepBlack-border cursor-not-allowed hover:bg-slate-200/60 dark:hover:bg-deepBlack-hover'
                 }`}
                 title={hasActiveFilter ? 'Clear all filters (resets search, status, territory, and page to 1)' : 'No active filter to clear'}
               >
@@ -217,7 +217,7 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                   setStatusFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-primary focus:bg-white"
+                className="bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-deepBlack-canvas"
               >
                 <option value="ALL">All Statuses</option>
                 <option value="DELIVERED">Delivered Only</option>
@@ -234,7 +234,7 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                   setBranchFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-primary focus:bg-white"
+                className="bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-deepBlack-canvas"
               >
                 <option value="ALL">All Outlets / Branches</option>
                 <option value="Online Store (Central Warehouse)">Online Store (Central Warehouse)</option>
@@ -250,7 +250,7 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                   setTerritoryFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-primary focus:bg-white"
+                className="bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-deepBlack-canvas"
               >
                 <option value="ALL">All Territories</option>
                 <option value="Inside Dhaka">Inside Dhaka</option>
@@ -264,7 +264,7 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                     setAiTagFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="bg-orange-50/70 border border-orange-200 rounded-xl px-3 py-2 text-xs font-bold text-primary focus:outline-none focus:border-primary"
+                  className="bg-orange-50/70 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/40 rounded-xl px-3 py-2 text-xs font-bold text-primary focus:outline-none focus:border-primary"
                 >
                   <option value="ALL">All AI Tags ({orders.filter((o) => Boolean(o.aiAuditTag)).length})</option>
                   {availableAiTags.map((tag, tIdx) => (
@@ -276,9 +276,9 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end text-xs text-slate-500">
+        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end text-xs text-slate-500 dark:text-slate-400">
           <span>
-            Showing <strong className="text-slate-900">{filteredOrders.length.toLocaleString()}</strong> records
+            Showing <strong className="text-slate-900 dark:text-white">{filteredOrders.length.toLocaleString()}</strong> records
           </span>
 
           <select
@@ -287,7 +287,7 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
               setPageSize(Number(e.target.value));
               setCurrentPage(1);
             }}
-            className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-primary focus:bg-white"
+            className="bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-xl px-2.5 py-1.5 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-deepBlack-canvas"
           >
             <option value="25">25 / page</option>
             <option value="50">50 / page</option>
@@ -297,21 +297,21 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
       </div>
 
       {/* Orders Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border shadow-sm overflow-hidden">
         {/* Mobile Swipe Hint */}
-        <div className="md:hidden flex items-center justify-between px-3 py-1.5 text-[11px] text-slate-400 bg-slate-50/60 border-b border-slate-100">
+        <div className="md:hidden flex items-center justify-between px-3 py-1.5 text-[11px] text-slate-400 dark:text-slate-500 bg-slate-50/60 dark:bg-deepBlack-sidebar/60 border-b border-slate-100 dark:border-deepBlack-border">
           <span className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-primary/70 animate-pulse" />
             <span>Swipe horizontally to view all columns</span>
           </span>
-          <span className="font-mono text-[10px] text-slate-400">Order ID pinned</span>
+          <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">Order ID pinned</span>
         </div>
 
         <div className="overflow-x-auto min-w-0">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
+            <thead className="bg-slate-50 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-deepBlack-border">
               <tr>
-                <th className="py-3 px-3.5 bg-slate-50 sticky left-0 z-20 min-w-[140px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order ID</th>
+                <th className="py-3 px-3.5 bg-slate-50 dark:bg-deepBlack-sidebar sticky left-0 z-20 min-w-[140px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order ID</th>
                 <th className="py-3 px-3.5">Line Type</th>
                 <th className="py-3 px-3.5">Order Status</th>
                 <th className="py-3 px-3.5">Item Status</th>
@@ -323,10 +323,10 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                 <th className="py-3 px-3.5 text-right">Net Revenue (৳)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+            <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border font-medium text-slate-700 dark:text-slate-200">
               {paginatedOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-slate-400">
+                  <td colSpan={10} className="py-12 text-center text-slate-400 dark:text-slate-500">
                     No matching order records found for the active filter.
                   </td>
                 </tr>
@@ -363,10 +363,10 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                         setSelectedOrderId(o.orderId);
                         setIsModalOpen(true);
                       }}
-                      className="hover:bg-orange-50/40 cursor-pointer transition-colors group"
+                      className="hover:bg-orange-50/40 dark:hover:bg-deepBlack-hover cursor-pointer transition-colors group"
                       title="Click to view full order drill-down & item outcomes"
                     >
-                      <td className="py-3 px-3.5 font-bold text-slate-900 whitespace-nowrap sticky left-0 bg-white group-hover:bg-[#FFF7ED] z-10 min-w-[140px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
+                      <td className="py-3 px-3.5 font-bold text-slate-900 dark:text-white whitespace-nowrap sticky left-0 bg-white dark:bg-deepBlack-card group-hover:bg-[#FFF7ED] dark:group-hover:bg-deepBlack-hover z-10 min-w-[140px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="group-hover:text-primary transition-colors flex items-center gap-1">
                             {o.orderId}
@@ -399,11 +399,11 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
 
                       <td className="py-3 px-3.5 whitespace-nowrap">
                         {o.lineStatus.includes('Primary') ? (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-deepBlack-sidebar text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-deepBlack-border">
                             Primary
                           </span>
                         ) : (
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200/60">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-50 dark:bg-deepBlack-sidebar text-slate-500 dark:text-slate-400 border border-slate-200/60 dark:border-deepBlack-border">
                             Line Item
                           </span>
                         )}
@@ -425,29 +425,29 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                       </td>
 
                       <td className="py-3 px-3.5">
-                        <div className="font-semibold text-slate-900 truncate max-w-[140px]">{getExportCustomerName(o) || o.customerName || 'Customer'}</div>
-                        <div className="text-[11px] text-slate-500 font-mono">{getExportPhoneNumber(o) || o.phone || 'N/A'}</div>
+                        <div className="font-semibold text-slate-900 dark:text-white truncate max-w-[140px]">{getExportCustomerName(o) || o.customerName || 'Customer'}</div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{getExportPhoneNumber(o) || o.phone || 'N/A'}</div>
                       </td>
 
                       <td className="py-3 px-3.5 whitespace-nowrap">
                         <span className={`text-[11px] font-semibold ${
-                          o.districtArea === 'Inside Dhaka' ? 'text-blue-600' : 'text-amber-600'
+                          o.districtArea === 'Inside Dhaka' ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'
                         }`}>
                           {o.districtArea}
                         </span>
-                        {o.city && <span className="text-[10px] text-slate-400 block truncate max-w-[110px]">{o.city}</span>}
+                        {o.city && <span className="text-[10px] text-slate-400 dark:text-slate-500 block truncate max-w-[110px]">{o.city}</span>}
                       </td>
 
                       <td className="py-3 px-3.5 max-w-[220px]">
                         <span className="text-[11px] font-bold text-primary block truncate">{o.sku || 'N/A'}</span>
-                        <span className="text-[11px] text-slate-600 block truncate">{o.itemName}</span>
+                        <span className="text-[11px] text-slate-600 dark:text-slate-300 block truncate">{o.itemName}</span>
                       </td>
 
-                      <td className="py-3 px-3.5 text-center font-bold text-slate-900">
+                      <td className="py-3 px-3.5 text-center font-bold text-slate-900 dark:text-white">
                         {o.quantity}
                       </td>
 
-                      <td className="py-3 px-3.5 text-right font-medium text-slate-500 whitespace-nowrap">
+                      <td className="py-3 px-3.5 text-right font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">
                         {o.orderAmount > 0 ? `৳ ${Math.round(o.orderAmount).toLocaleString()}` : '-'}
                       </td>
 
@@ -455,7 +455,7 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                         {o.netRevenueImpact > 0 ? (
                           <span className="text-emerald-600">৳ {Math.round(o.netRevenueImpact).toLocaleString()}</span>
                         ) : (
-                          <span className="text-slate-400">৳ 0</span>
+                          <span className="text-slate-400 dark:text-slate-500">৳ 0</span>
                         )}
                       </td>
                     </tr>
@@ -467,28 +467,28 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
         </div>
 
         {/* Pagination Bar */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between text-xs">
-          <div className="text-slate-500">
-            Page <strong className="text-slate-900">{currentPage}</strong> of <strong className="text-slate-900">{totalPages}</strong>
+        <div className="p-4 border-t border-slate-100 dark:border-deepBlack-border bg-slate-50/70 dark:bg-deepBlack-sidebar/70 flex items-center justify-between text-xs">
+          <div className="text-slate-500 dark:text-slate-400">
+            Page <strong className="text-slate-900 dark:text-white">{currentPage}</strong> of <strong className="text-slate-900 dark:text-white">{totalPages}</strong>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 rounded-lg bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-deepBlack-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
 
-            <span className="text-slate-700 font-semibold px-2">
+            <span className="text-slate-700 dark:text-slate-300 font-semibold px-2">
               {currentPage} / {totalPages}
             </span>
 
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 rounded-lg bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-deepBlack-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

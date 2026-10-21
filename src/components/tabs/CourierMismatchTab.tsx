@@ -274,7 +274,7 @@ export function CourierMismatchTab({
             className={`px-3 py-1 rounded-lg text-xs font-headline transition-all ${
               selectedFilter === 'ALL'
                 ? 'bg-primary text-white font-bold shadow-2xs'
-                : 'text-slate-600 hover:bg-slate-50'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-deepBlack-hover'
             }`}
           >
             All Audited ({totalAudited})
@@ -284,7 +284,7 @@ export function CourierMismatchTab({
             className={`px-3 py-1 rounded-lg text-xs font-headline transition-all ${
               selectedFilter === 'CRITICAL'
                 ? 'bg-rose-600 text-white font-bold shadow-2xs'
-                : 'text-rose-600 hover:bg-rose-50'
+                : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'
             }`}
           >
             Critical Mismatches ({criticalCount})
@@ -294,7 +294,7 @@ export function CourierMismatchTab({
             className={`px-3 py-1 rounded-lg text-xs font-headline transition-all ${
               selectedFilter === 'MISSING'
                 ? 'bg-amber-600 text-white font-bold shadow-2xs'
-                : 'text-amber-600 hover:bg-amber-50'
+                : 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40'
             }`}
           >
             Missing in Pathao ({missingCount})
@@ -304,7 +304,7 @@ export function CourierMismatchTab({
             className={`px-3 py-1 rounded-lg text-xs font-headline transition-all ${
               selectedFilter === 'MATCH'
                 ? 'bg-emerald-600 text-white font-bold shadow-2xs'
-                : 'text-emerald-600 hover:bg-emerald-50'
+                : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
             }`}
           >
             Reconciled ({reconciledCount})
@@ -319,27 +319,27 @@ export function CourierMismatchTab({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search Order ID, Consignment, Phone..."
-            className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white focus:border-primary text-slate-800 placeholder-slate-400 transition-all"
+            className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white dark:focus:bg-deepBlack-canvas focus:border-primary text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
           />
         </div>
       </div>
 
       {/* Mismatches Audit Ledger Table */}
-      <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 overflow-hidden flex flex-col">
+      <div className="bg-white dark:bg-deepBlack-card rounded-xl shadow-xs border border-slate-200/80 dark:border-deepBlack-border overflow-hidden flex flex-col">
         {/* Mobile Swipe Hint */}
-        <div className="md:hidden flex items-center justify-between px-3 py-1.5 text-[11px] text-slate-400 bg-slate-50/60 border-b border-slate-100">
+        <div className="md:hidden flex items-center justify-between px-3 py-1.5 text-[11px] text-slate-400 dark:text-slate-500 bg-slate-50/60 dark:bg-deepBlack-sidebar/60 border-b border-slate-100 dark:border-deepBlack-border">
           <span className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-primary/70 animate-pulse" />
             <span>Swipe horizontally to view discrepancy details</span>
           </span>
-          <span className="font-mono text-[10px] text-slate-400">Order & Track pinned</span>
+          <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">Order & Track pinned</span>
         </div>
 
         <div className="overflow-x-auto min-w-0">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200/80">
-                <th className="py-3 px-4 uppercase tracking-wider bg-slate-50 sticky left-0 z-20 min-w-[140px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order & Tracking</th>
+              <tr className="bg-slate-50 dark:bg-deepBlack-sidebar text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200/80 dark:border-deepBlack-border">
+                <th className="py-3 px-4 uppercase tracking-wider bg-slate-50 dark:bg-deepBlack-sidebar sticky left-0 z-20 min-w-[140px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order & Tracking</th>
                 <th className="py-3 px-4 uppercase tracking-wider">Customer Info</th>
                 <th className="py-3 px-3 uppercase tracking-wider">Excel Status</th>
                 <th className="py-3 px-3 uppercase tracking-wider">Pathao Courier Status</th>
@@ -348,15 +348,15 @@ export function CourierMismatchTab({
                 <th className="py-3 px-4 uppercase tracking-wider">Recommended Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-800 font-medium">
+            <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border text-slate-800 dark:text-slate-200 font-medium">
               {filteredList.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <td colSpan={7} className="py-12 text-center text-slate-400 dark:text-slate-500">
                     <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-50" />
-                    <span className="font-headline font-bold text-slate-700 block text-sm">
+                    <span className="font-headline font-bold text-slate-700 dark:text-slate-300 block text-sm">
                       No Mismatches Found
                     </span>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
                       All records match the selected filter criteria.
                     </span>
                   </td>
@@ -365,25 +365,25 @@ export function CourierMismatchTab({
                 filteredList.map((item, idx) => (
                   <tr
                     key={idx}
-                    className={`hover:bg-slate-50/70 transition-colors group ${
+                    className={`hover:bg-slate-50/70 dark:hover:bg-deepBlack-hover transition-colors group ${
                       item.severity === 'CRITICAL'
-                        ? 'bg-rose-50/15'
+                        ? 'bg-rose-50/15 dark:bg-rose-950/20'
                         : item.severity === 'WARNING'
-                        ? 'bg-amber-50/10'
+                        ? 'bg-amber-50/10 dark:bg-amber-950/20'
                         : ''
                     }`}
                   >
                     {/* Order ID & Consignment */}
                     <td className={`py-3 px-4 sticky left-0 z-10 min-w-[140px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] ${
                       item.severity === 'CRITICAL'
-                        ? 'bg-[#FFF1F2] group-hover:bg-[#FFE4E6]'
+                        ? 'bg-[#FFF1F2] dark:bg-[#1f0a0d] group-hover:bg-[#FFE4E6] dark:group-hover:bg-[#2c1015]'
                         : item.severity === 'WARNING'
-                        ? 'bg-[#FFFBEB] group-hover:bg-[#FEF3C7]'
-                        : 'bg-white group-hover:bg-slate-50'
+                        ? 'bg-[#FFFBEB] dark:bg-[#1c1404] group-hover:bg-[#FEF3C7] dark:group-hover:bg-[#2a1e06]'
+                        : 'bg-white dark:bg-deepBlack-card group-hover:bg-slate-50 dark:group-hover:bg-deepBlack-hover'
                     }`}>
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-headline font-bold text-slate-900">
+                          <span className="font-headline font-bold text-slate-900 dark:text-white">
                             #{item.orderId}
                           </span>
                           {(item.severity === 'CRITICAL' || item.severity === 'WARNING' || item.requiresManualReview) && (
@@ -396,11 +396,11 @@ export function CourierMismatchTab({
                           )}
                         </div>
                         {item.consignmentId ? (
-                          <span className="text-[10px] font-mono text-slate-400">
+                          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
                             Cons: {item.consignmentId}
                           </span>
                         ) : (
-                          <span className="text-[10px] font-mono text-amber-600">
+                          <span className="text-[10px] font-mono text-amber-600 dark:text-amber-400">
                             No Courier ID
                           </span>
                         )}
@@ -410,10 +410,10 @@ export function CourierMismatchTab({
                     {/* Customer Info */}
                     <td className="py-3 px-4">
                       <div className="flex flex-col">
-                        <span className="font-bold text-slate-900 truncate max-w-[140px]">
+                        <span className="font-bold text-slate-900 dark:text-white truncate max-w-[140px]">
                           {getExportCustomerName(item) || item.customerName}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
                           {getExportPhoneNumber(item) || item.phone || 'N/A'}
                         </span>
                       </div>
@@ -423,12 +423,12 @@ export function CourierMismatchTab({
                     <td className="py-3 px-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
                         item.excelStatus === 'Returned'
-                          ? 'bg-rose-50 text-rose-600 border border-rose-200/50'
+                          ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/50 dark:border-rose-900/50'
                           : item.excelStatus === 'Partial'
-                          ? 'bg-amber-50 text-amber-700 border border-amber-200/50'
+                          ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/50 dark:border-amber-900/50'
                           : item.excelStatus === 'Exchange'
-                          ? 'bg-orange-50 text-primary border border-orange-200/50'
-                          : 'bg-slate-100 text-slate-700'
+                          ? 'bg-orange-50 dark:bg-orange-950/40 text-primary border border-orange-200/50 dark:border-orange-900/50'
+                          : 'bg-slate-100 dark:bg-deepBlack-sidebar text-slate-700 dark:text-slate-300'
                       }`}>
                         {item.excelStatus}
                       </span>
@@ -438,12 +438,12 @@ export function CourierMismatchTab({
                     <td className="py-3 px-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
                         item.pathaoStatus.toLowerCase().includes('delivered')
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40'
                           : item.pathaoStatus.toLowerCase().includes('return') || item.pathaoStatus.toLowerCase().includes('rts')
-                          ? 'bg-rose-50 text-rose-600 border border-rose-200/60'
+                          ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-900/50'
                           : item.pathaoStatus.toLowerCase().includes('partial')
-                          ? 'bg-amber-50 text-amber-700 border border-amber-200/60'
-                          : 'bg-slate-100 text-slate-500 border border-slate-200'
+                          ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-900/50'
+                          : 'bg-slate-100 dark:bg-deepBlack-sidebar text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-deepBlack-border'
                       }`}>
                         {item.pathaoStatus}
                       </span>
@@ -452,11 +452,11 @@ export function CourierMismatchTab({
                     {/* COD Remittance */}
                     <td className="py-3 px-3 text-right">
                       <div className="flex flex-col items-end">
-                        <span className="font-headline font-bold text-slate-900">
+                        <span className="font-headline font-bold text-slate-900 dark:text-white">
                           ৳ {item.pathaoCollectedCod.toLocaleString()}
                         </span>
                         {item.expectedCod !== item.pathaoCollectedCod && (
-                          <span className="text-[9px] text-slate-400">
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500">
                             Exp: ৳{item.expectedCod.toLocaleString()}
                           </span>
                         )}
@@ -466,25 +466,25 @@ export function CourierMismatchTab({
                     {/* Severity Verdict */}
                     <td className="py-3 px-3">
                       {item.severity === 'CRITICAL' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-300">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
                           <XCircle className="w-3 h-3" />
                           <span>Status Mismatch</span>
                         </span>
                       )}
                       {item.severity === 'WARNING' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
                           <AlertTriangle className="w-3 h-3" />
                           <span>{item.mismatchType === 'MISSING_IN_COURIER' ? 'Missing in Pathao' : 'Warning'}</span>
                         </span>
                       )}
                       {item.severity === 'MATCH' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
                           <CheckCircle2 className="w-3 h-3" />
                           <span>Reconciled</span>
                         </span>
                       )}
                       {item.severity === 'INFO' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-deepBlack-sidebar text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-deepBlack-border">
                           <span>Reconciled</span>
                         </span>
                       )}
@@ -492,7 +492,7 @@ export function CourierMismatchTab({
 
                     {/* Recommended Action */}
                     <td className="py-3 px-4">
-                      <p className="text-[11px] text-slate-700 font-medium">
+                      <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium">
                         {item.description}
                       </p>
                       <span className="text-[10px] text-primary font-bold block mt-0.5">

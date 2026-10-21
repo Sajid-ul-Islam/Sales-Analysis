@@ -67,33 +67,33 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
         {/* Card 1: Total Returned Quantity (Combined) */}
         <div
           onClick={() => setTypeFilter('ALL')}
-          className={`bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
             typeFilter === 'ALL'
-              ? 'border-rose-500 ring-2 ring-rose-500/20 shadow-sm bg-rose-50/20'
-              : 'border-slate-200/90 shadow-xs hover:border-rose-300'
+              ? 'border-rose-500 ring-2 ring-rose-500/20 shadow-sm bg-rose-50/20 dark:bg-rose-950/20'
+              : 'border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-rose-300'
           }`}
           title="Click to view all returned units"
         >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-black text-rose-800 uppercase tracking-wider">Total Returned Quantity</span>
+            <span className="text-[10px] font-black text-rose-800 dark:text-rose-400 uppercase tracking-wider">Total Returned Quantity</span>
             <div className="flex items-center gap-1.5">
-              <div className="w-9 h-9 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 shadow-2xs group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-950/50 flex items-center justify-center text-rose-600 dark:text-rose-400 shadow-2xs group-hover:scale-105 transition-transform">
                 <RotateCcw className="w-4.5 h-4.5" />
               </div>
               <ArrowUpRight className={`w-4 h-4 transition-all ${typeFilter === 'ALL' ? 'text-rose-600' : 'text-slate-300 group-hover:text-rose-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
           <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-slate-900 font-headline tracking-tight">
-              {Math.round(totalUnits).toLocaleString()} <span className="text-sm font-bold text-rose-600">units</span>
+            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-slate-900 dark:text-white font-headline tracking-tight">
+              {Math.round(totalUnits).toLocaleString()} <span className="text-sm font-bold text-rose-600 dark:text-rose-400">units</span>
             </div>
-            <span className="text-xs text-slate-600 font-medium block mt-1">
-              <strong className="text-slate-800">{Math.round(fullUnits).toLocaleString()}</strong> Regular + <strong className="text-amber-700">{Math.round(partialUnits).toLocaleString()}</strong> Partial Qty
+            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium block mt-1">
+              <strong className="text-slate-800 dark:text-slate-200">{Math.round(fullUnits).toLocaleString()}</strong> Regular + <strong className="text-amber-700 dark:text-amber-400">{Math.round(partialUnits).toLocaleString()}</strong> Partial Qty
             </span>
           </div>
-          <div className="text-[11px] text-rose-700 font-semibold pt-3 border-t border-rose-100 flex items-center justify-between">
+          <div className="text-[11px] text-rose-700 dark:text-rose-400 font-semibold pt-3 border-t border-rose-100 dark:border-rose-900/40 flex items-center justify-between">
             <span>Combined Total Qty</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeFilter === 'ALL' ? 'bg-rose-200 text-rose-800' : 'bg-rose-100 text-rose-700'}`}>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeFilter === 'ALL' ? 'bg-rose-200 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200' : 'bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300'}`}>
               {typeFilter === 'ALL' ? 'Active' : 'All Qty'}
             </span>
           </div>
@@ -103,33 +103,33 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
         {/* Card 2: Total Returned Orders */}
         <div
           onClick={() => setTypeFilter('FULL')}
-          className={`bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
             typeFilter === 'FULL'
-              ? 'border-indigo-600 ring-2 ring-indigo-600/20 shadow-sm'
-              : 'border-slate-200/90 shadow-xs hover:border-indigo-300'
+              ? 'border-indigo-600 ring-2 ring-indigo-600/20 shadow-sm dark:bg-indigo-950/20'
+              : 'border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-indigo-300'
           }`}
           title="Click to filter by 100% Returned-to-Origin (RTO) orders"
         >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Returned Orders</span>
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Returned Orders</span>
             <div className="flex items-center gap-1.5">
-              <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-2xs group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-2xs group-hover:scale-105 transition-transform">
                 <Layers className="w-4.5 h-4.5" />
               </div>
               <ArrowUpRight className={`w-4 h-4 transition-all ${typeFilter === 'FULL' ? 'text-indigo-600' : 'text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
           <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-slate-900 font-headline tracking-tight">
-              {fullOrdersCount.toLocaleString()} <span className="text-sm font-semibold text-slate-500">orders</span>
+            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-slate-900 dark:text-white font-headline tracking-tight">
+              {fullOrdersCount.toLocaleString()} <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">orders</span>
             </div>
-            <span className="text-xs text-slate-500 block mt-1 font-medium">
+            <span className="text-xs text-slate-500 dark:text-slate-400 block mt-1 font-medium">
               {fullCount.toLocaleString()} Line Items ({Math.round(fullUnits).toLocaleString()} Qty)
             </span>
           </div>
-          <div className="text-[11px] text-slate-400 pt-3 border-t border-slate-100 flex items-center justify-between">
+          <div className="text-[11px] text-slate-400 dark:text-slate-500 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between">
             <span>100% RTO Parcels</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeFilter === 'FULL' ? 'bg-indigo-100 text-indigo-800' : 'text-slate-400'}`}>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeFilter === 'FULL' ? 'bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200' : 'text-slate-400 dark:text-slate-500'}`}>
               {typeFilter === 'FULL' ? 'Active Filter' : 'Full RTO'}
             </span>
           </div>
@@ -139,33 +139,33 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
         {/* Card 3: Total Partial Products */}
         <div
           onClick={() => setTypeFilter('PARTIAL')}
-          className={`bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
             typeFilter === 'PARTIAL'
-              ? 'border-amber-500 ring-2 ring-amber-500/20 shadow-sm bg-amber-50/20'
-              : 'border-slate-200/90 shadow-xs hover:border-amber-300'
+              ? 'border-amber-500 ring-2 ring-amber-500/20 shadow-sm bg-amber-50/20 dark:bg-amber-950/20'
+              : 'border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-amber-300'
           }`}
           title="Click to filter by Rejected Items from Partial Deliveries"
         >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Total Partial Products</span>
+            <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">Total Partial Products</span>
             <div className="flex items-center gap-1.5">
-              <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-2xs group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-2xs group-hover:scale-105 transition-transform">
                 <Split className="w-4.5 h-4.5" />
               </div>
               <ArrowUpRight className={`w-4 h-4 transition-all ${typeFilter === 'PARTIAL' ? 'text-amber-600' : 'text-slate-300 group-hover:text-amber-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
           <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-amber-600 font-headline tracking-tight">
-              {partialCount.toLocaleString()} <span className="text-sm font-bold text-amber-700">products</span>
+            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-amber-600 dark:text-amber-400 font-headline tracking-tight">
+              {partialCount.toLocaleString()} <span className="text-sm font-bold text-amber-700 dark:text-amber-300">products</span>
             </div>
-            <span className="text-xs text-slate-600 block mt-1 font-medium">
+            <span className="text-xs text-slate-600 dark:text-slate-400 block mt-1 font-medium">
               Across {partialOrdersCount.toLocaleString()} Orders ({Math.round(partialUnits).toLocaleString()} Qty rejected)
             </span>
           </div>
-          <div className="text-[11px] text-amber-700 pt-3 border-t border-amber-100 flex items-center justify-between font-semibold">
+          <div className="text-[11px] text-amber-700 dark:text-amber-400 pt-3 border-t border-amber-100 dark:border-amber-900/40 flex items-center justify-between font-semibold">
             <span>Rejected Item Splits</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeFilter === 'PARTIAL' ? 'bg-amber-200 text-amber-800' : 'bg-amber-100 text-amber-700'}`}>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeFilter === 'PARTIAL' ? 'bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200' : 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300'}`}>
               {typeFilter === 'PARTIAL' ? 'Active Filter' : 'Partials'}
             </span>
           </div>
@@ -175,25 +175,25 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
         {/* Card 4: Returned Merchandise Value */}
         <div
           onClick={() => setTypeFilter('ALL')}
-          className="bg-white rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 shadow-xs hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all flex flex-col justify-between cursor-pointer relative overflow-hidden group"
+          className="bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all flex flex-col justify-between cursor-pointer relative overflow-hidden group"
           title="Total displaced merchandise value"
         >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Returned Inventory Value</span>
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Returned Inventory Value</span>
             <div className="flex items-center gap-1.5">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-2xs group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-2xs group-hover:scale-105 transition-transform">
                 <Tag className="w-4.5 h-4.5" />
               </div>
               <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
           </div>
           <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-slate-900 font-headline tracking-tight">৳ {Math.round(totalValue).toLocaleString()}</div>
-            <span className="text-xs text-slate-500 block mt-1">Displaced Retail Inventory Value</span>
+            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-slate-900 dark:text-white font-headline tracking-tight">৳ {Math.round(totalValue).toLocaleString()}</div>
+            <span className="text-xs text-slate-500 dark:text-slate-400 block mt-1">Displaced Retail Inventory Value</span>
           </div>
-          <div className="text-[11px] text-slate-400 pt-3 border-t border-slate-100 flex items-center justify-between">
+          <div className="text-[11px] text-slate-400 dark:text-slate-500 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between">
             <span>Unrealized Gross Revenue</span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-300">
               Merchandise
             </span>
           </div>
@@ -205,7 +205,7 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
       <AIReturnDiagnosisCard returnedItems={returnedItems} />
 
       {/* Search and Filters Bar */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+      <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-4 border border-slate-200 dark:border-deepBlack-border shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
         <div className="flex items-center gap-3 w-full md:w-auto flex-1">
           <div className="relative flex-1 max-w-md">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -214,7 +214,7 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
               placeholder="Search by Order ID, Phone, SKU, Item..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
+              className="w-full bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-xl pl-10 pr-4 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-deepBlack-canvas transition-all"
             />
           </div>
 
@@ -222,7 +222,7 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value as 'ALL' | 'FULL' | 'PAID' | 'NON_PAID' | 'PARTIAL')}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
+              className="bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-deepBlack-canvas transition-all"
             >
               <option value="ALL">All Return Types</option>
               <option value="PAID">Paid Returns (Full)</option>
@@ -234,7 +234,7 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
             <select
               value={territoryFilter}
               onChange={(e) => setTerritoryFilter(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
+              className="bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-deepBlack-canvas transition-all"
             >
               <option value="ALL">All Territories</option>
               <option value="Inside Dhaka">Inside Dhaka</option>
@@ -243,27 +243,27 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
           </div>
         </div>
 
-        <span className="text-xs text-slate-500">
-          Showing <strong className="text-slate-900">{filteredItems.length.toLocaleString()}</strong> returned items
+        <span className="text-xs text-slate-500 dark:text-slate-400">
+          Showing <strong className="text-slate-900 dark:text-white">{filteredItems.length.toLocaleString()}</strong> returned items
         </span>
       </div>
 
       {/* Detailed Item Returns Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border shadow-sm overflow-hidden">
         {/* Mobile Swipe Hint */}
-        <div className="md:hidden flex items-center justify-between px-3 py-1.5 text-[11px] text-slate-400 bg-slate-50/60 border-b border-slate-100">
+        <div className="md:hidden flex items-center justify-between px-3 py-1.5 text-[11px] text-slate-400 dark:text-slate-500 bg-slate-50/60 dark:bg-deepBlack-sidebar/60 border-b border-slate-100 dark:border-deepBlack-border">
           <span className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-primary/70 animate-pulse" />
             <span>Swipe horizontally to view financial losses</span>
           </span>
-          <span className="font-mono text-[10px] text-slate-400">Order ID pinned</span>
+          <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">Order ID pinned</span>
         </div>
 
         <div className="overflow-x-auto min-w-0">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
+            <thead className="bg-slate-50 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-deepBlack-border">
               <tr>
-                <th className="py-3 px-3.5 bg-slate-50 sticky left-0 z-20 min-w-[120px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order ID</th>
+                <th className="py-3 px-3.5 bg-slate-50 dark:bg-deepBlack-sidebar sticky left-0 z-20 min-w-[120px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">Order ID</th>
                 <th className="py-3 px-3.5">Return Classification</th>
                 <th className="py-3 px-3.5">Customer & Contact</th>
                 <th className="py-3 px-3.5">Territory</th>
@@ -273,10 +273,10 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
                 <th className="py-3 px-3.5 text-right">Returned Value (৳)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+            <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border font-medium text-slate-700 dark:text-slate-200">
               {filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                  <td colSpan={8} className="py-12 text-center text-slate-400 dark:text-slate-500">
                     No returned item records found.
                   </td>
                 </tr>
@@ -285,24 +285,24 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
                   const isPartial = item.returnSource.includes('Partial Order');
 
                   return (
-                    <tr key={`${item.orderId}-${item.sku}-${idx}`} className="hover:bg-slate-50 transition-colors group">
-                      <td className="py-3.5 px-3.5 font-bold text-slate-900 whitespace-nowrap sticky left-0 bg-white group-hover:bg-slate-50 z-10 min-w-[120px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
+                    <tr key={`${item.orderId}-${item.sku}-${idx}`} className="hover:bg-slate-50 dark:hover:bg-deepBlack-hover transition-colors group">
+                      <td className="py-3.5 px-3.5 font-bold text-slate-900 dark:text-white whitespace-nowrap sticky left-0 bg-white dark:bg-deepBlack-card group-hover:bg-slate-50 dark:group-hover:bg-deepBlack-hover z-10 min-w-[120px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
                         {item.orderId}
                       </td>
 
                       <td className="py-3.5 px-3.5 whitespace-nowrap">
                         {isPartial ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50">
                             <Split className="w-3 h-3" />
                             Partial Rejected
                           </span>
                         ) : item.returnSource.includes('Paid Return') ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-900/50">
                             <RotateCcw className="w-3 h-3" />
                             Paid Return
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/50">
                             <RotateCcw className="w-3 h-3" />
                             Non-Paid Return
                           </span>
@@ -310,13 +310,13 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
                       </td>
 
                       <td className="py-3.5 px-3.5">
-                        <div className="font-semibold text-slate-900 truncate max-w-[130px]">{getExportCustomerName(item) || item.customerName || 'Customer'}</div>
-                        <div className="text-[11px] text-slate-500 font-mono">{getExportPhoneNumber(item) || item.phone || 'N/A'}</div>
+                        <div className="font-semibold text-slate-900 dark:text-white truncate max-w-[130px]">{getExportCustomerName(item) || item.customerName || 'Customer'}</div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{getExportPhoneNumber(item) || item.phone || 'N/A'}</div>
                       </td>
 
                       <td className="py-3.5 px-3.5 whitespace-nowrap">
                         <span className={`text-[11px] font-semibold ${
-                          item.districtArea === 'Inside Dhaka' ? 'text-blue-600' : 'text-amber-600'
+                          item.districtArea === 'Inside Dhaka' ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'
                         }`}>
                           {item.districtArea}
                         </span>
@@ -324,14 +324,14 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
 
                       <td className="py-3.5 px-3.5 max-w-[220px]">
                         <span className="text-[11px] font-bold text-primary block truncate">{item.sku || 'N/A'}</span>
-                        <span className="text-[11px] text-slate-600 block truncate">{item.itemName}</span>
+                        <span className="text-[11px] text-slate-600 dark:text-slate-300 block truncate">{item.itemName}</span>
                       </td>
 
                       <td className="py-3.5 px-3.5 text-center font-bold text-rose-600">
                         {item.quantity}
                       </td>
 
-                      <td className="py-3.5 px-3.5 text-right font-medium text-slate-500 whitespace-nowrap">
+                      <td className="py-3.5 px-3.5 text-right font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">
                         ৳ {Math.round(item.itemCost).toLocaleString()}
                       </td>
 

@@ -206,18 +206,18 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
     <div className="space-y-6">
       {/* Full Width Performance Table Section */}
       <div className="w-full flex flex-col gap-6">
-        <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 overflow-hidden flex flex-col">
+        <div className="bg-white dark:bg-deepBlack-card rounded-xl shadow-xs border border-slate-200/80 dark:border-deepBlack-border overflow-hidden flex flex-col">
           {/* Header Toolbar: Category Wise / Item Wise Switcher & Export Option */}
-          <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100">
+          <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-deepBlack-border">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center text-primary font-bold shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center text-primary font-bold shrink-0">
                 {viewMode === 'CATEGORY' ? '👖' : '👔'}
               </div>
               <div>
-                <h2 className="font-headline text-base font-bold text-navy-deep">
+                <h2 className="font-headline text-base font-bold text-navy-deep dark:text-white">
                   {viewMode === 'CATEGORY' ? 'Category Wise Performance' : 'Item Wise Performance (Master SKU)'}
                 </h2>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   {viewMode === 'CATEGORY'
                     ? 'Smart category sales realization, retention rates, and net delivered volume'
                     : `Master product style realization across ${masterSkuItems.length} unique styles (sizes consolidated)`}
@@ -228,14 +228,14 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
             {/* Action Controls: Switcher & Export Option */}
             <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
               {/* View Filter Pill Switcher */}
-              <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200 shrink-0">
+              <div className="flex items-center p-1 bg-slate-100 dark:bg-deepBlack-sidebar rounded-xl border border-slate-200 dark:border-deepBlack-border shrink-0">
                 <button
                   type="button"
                   onClick={() => setViewMode('CATEGORY')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                     viewMode === 'CATEGORY'
-                      ? 'bg-white text-navy-deep shadow-2xs border border-slate-200/90'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-white dark:bg-deepBlack-card text-navy-deep dark:text-white shadow-2xs border border-slate-200/90 dark:border-deepBlack-border'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   <Layers className={`w-3.5 h-3.5 ${viewMode === 'CATEGORY' ? 'text-primary' : 'text-slate-400'}`} />
@@ -246,8 +246,8 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
                   onClick={() => setViewMode('ITEM')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                     viewMode === 'ITEM'
-                      ? 'bg-white text-navy-deep shadow-2xs border border-slate-200/90'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-white dark:bg-deepBlack-card text-navy-deep dark:text-white shadow-2xs border border-slate-200/90 dark:border-deepBlack-border'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   <Shirt className={`w-3.5 h-3.5 ${viewMode === 'ITEM' ? 'text-primary' : 'text-slate-400'}`} />
@@ -259,7 +259,7 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
               <button
                 type="button"
                 onClick={() => exportPerformanceReport(categories, masterSkuItems, viewMode)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-2xs active:scale-95 bg-white text-emerald-700 hover:bg-emerald-50 border-emerald-200/80 hover:border-emerald-300"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-2xs active:scale-95 bg-white dark:bg-deepBlack-card text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border-emerald-200/80 dark:border-emerald-800/60 hover:border-emerald-300 dark:hover:border-emerald-700"
                 title={viewMode === 'CATEGORY' ? "Export Category Wise Performance to Excel (.xlsx)" : "Export Item Wise (Master SKU) Performance to Excel (.xlsx)"}
               >
                 <Download className="w-3.5 h-3.5 text-emerald-600" />
@@ -270,7 +270,7 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
 
             {/* Sub-toolbar when Item Wise is selected */}
             {viewMode === 'ITEM' && (
-              <div className="p-3 bg-slate-50/70 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="p-3 bg-slate-50/70 dark:bg-deepBlack-sidebar/50 border-b border-slate-100 dark:border-deepBlack-border flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div className="relative w-full sm:w-72">
                   <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
@@ -281,7 +281,7 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
                       setCurrentPage(1);
                     }}
                     placeholder="Search master SKU or product name..."
-                    className="w-full pl-8 pr-3 py-1.5 bg-white text-xs border border-slate-200 rounded-lg placeholder-slate-400 focus:outline-none focus:border-primary text-slate-800"
+                    className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-deepBlack-card text-xs border border-slate-200 dark:border-deepBlack-border rounded-lg placeholder-slate-400 focus:outline-none focus:border-primary text-slate-800 dark:text-white"
                   />
                 </div>
 
@@ -294,7 +294,7 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
                         setSelectedCategoryFilter(e.target.value);
                         setCurrentPage(1);
                       }}
-                      className="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 font-semibold focus:outline-none focus:border-primary"
+                      className="text-xs bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-slate-200 font-semibold focus:outline-none focus:border-primary"
                     >
                       <option value="ALL">All Categories ({masterSkuItems.length} Master SKUs)</option>
                       <option value="Jeans">Jeans</option>
@@ -309,7 +309,7 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
                   </div>
 
                   {/* Rows Per Page */}
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500 font-semibold">
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-semibold">
                     <span className="hidden md:inline">Show:</span>
                     <select
                       value={pageSize}
@@ -317,7 +317,7 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
                         setPageSize(Number(e.target.value));
                         setCurrentPage(1);
                       }}
-                      className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700 font-semibold focus:outline-none focus:border-primary"
+                      className="text-xs bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border rounded-lg px-2 py-1.5 text-slate-700 dark:text-slate-200 font-semibold focus:outline-none focus:border-primary"
                     >
                       <option value="15">15</option>
                       <option value="20">20</option>
@@ -332,7 +332,7 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
 
             {/* Visual Category Retention Comparison Perpendicular Bar Chart */}
             {viewMode === 'CATEGORY' && categories.length > 0 && (
-              <div className="p-5 border-b border-slate-100">
+              <div className="p-5 border-b border-slate-100 dark:border-deepBlack-border">
                 <ComparativeBarChart
                   items={categories.slice(0, 8).map((c) => ({
                     id: c.name,
@@ -358,7 +358,7 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200/80">
+                    <tr className="bg-slate-50 dark:bg-deepBlack-sidebar text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200/80 dark:border-deepBlack-border">
                       <th className="py-3 px-5 uppercase tracking-wider">Category</th>
                       <th className="py-3 px-4 uppercase tracking-wider text-right">Dispatched</th>
                       <th className="py-3 px-4 uppercase tracking-wider text-right">Returned</th>
@@ -367,33 +367,33 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
                       <th className="py-3 px-5 uppercase tracking-wider text-right">Delivered Rev</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-800">
+                  <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border text-slate-800 dark:text-slate-200">
                     {categories.map((c, i) => (
-                      <tr key={i} className="hover:bg-slate-50/70 transition-colors">
+                      <tr key={i} className="hover:bg-slate-50/70 dark:hover:bg-deepBlack-hover transition-colors">
                         <td className="py-3.5 px-5">
                           <div className="flex items-center gap-2.5">
                             <span className="text-base shrink-0">{c.icon}</span>
                             <div>
-                              <span className="font-headline font-bold text-slate-900 block">{c.name}</span>
+                              <span className="font-headline font-bold text-slate-900 dark:text-white block">{c.name}</span>
                               <span className="text-[10px] text-slate-400">{c.sub}</span>
                             </div>
                           </div>
                         </td>
-                        <td className="py-3.5 px-4 text-right font-headline font-semibold text-slate-800">
+                        <td className="py-3.5 px-4 text-right font-headline font-semibold text-slate-800 dark:text-slate-200">
                           {c.dispatched.toLocaleString()}
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200/50">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/50 dark:border-rose-900/40">
                             {c.returns.toLocaleString()}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 text-right font-headline font-bold text-emerald-600">
+                        <td className="py-3.5 px-4 text-right font-headline font-bold text-emerald-600 dark:text-emerald-400">
                           {c.net.toLocaleString()}
                         </td>
                         <td className="py-3.5 px-4 text-right">
                           <div className="flex flex-col items-end gap-1">
-                            <span className="text-[11px] font-bold text-emerald-600">{c.retention}%</span>
-                            <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">{c.retention}%</span>
+                            <div className="w-16 h-1.5 bg-slate-100 dark:bg-deepBlack-sidebar rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-emerald-500 rounded-full"
                                 style={{ width: `${Math.min(100, parseFloat(c.retention))}%` }}
@@ -401,19 +401,19 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
                             </div>
                           </div>
                         </td>
-                        <td className="py-3.5 px-5 text-right font-headline font-bold text-slate-900">
+                        <td className="py-3.5 px-5 text-right font-headline font-bold text-slate-900 dark:text-white">
                           ৳ {c.revenue.toLocaleString()}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-slate-50/90 font-headline font-bold text-slate-900 border-t border-slate-200">
+                    <tr className="bg-slate-50/90 dark:bg-deepBlack-sidebar font-headline font-bold text-slate-900 dark:text-white border-t border-slate-200 dark:border-deepBlack-border">
                       <td className="py-3 px-5">Total Realized</td>
                       <td className="py-3 px-4 text-right">{s.grossOrders.toLocaleString()}</td>
-                      <td className="py-3 px-4 text-right text-rose-600">{s.fullReturnedOrders.toLocaleString()}</td>
-                      <td className="py-3 px-4 text-right text-emerald-600">{s.fullDeliveredOrders.toLocaleString()}</td>
-                      <td className="py-3 px-4 text-right text-emerald-600">{deliveryRate}%</td>
+                      <td className="py-3 px-4 text-right text-rose-600 dark:text-rose-400">{s.fullReturnedOrders.toLocaleString()}</td>
+                      <td className="py-3 px-4 text-right text-emerald-600 dark:text-emerald-400">{s.fullDeliveredOrders.toLocaleString()}</td>
+                      <td className="py-3 px-4 text-right text-emerald-600 dark:text-emerald-400">{deliveryRate}%</td>
                       <td className="py-3 px-5 text-right font-extrabold text-primary">
                         ৳ {Math.round(s.netDeliveredRevenue).toLocaleString()}
                       </td>
@@ -428,7 +428,7 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
               <>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50/90 text-slate-500 font-semibold border-b border-slate-200/80 sticky top-0 z-10 shadow-2xs">
+                    <thead className="bg-slate-50/90 dark:bg-deepBlack-sidebar text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200/80 dark:border-deepBlack-border sticky top-0 z-10 shadow-2xs">
                       <tr>
                         <th className="py-3 px-4 uppercase tracking-wider">Item Name / Master SKU</th>
                         <th className="py-3 px-3 uppercase tracking-wider">Category</th>
@@ -440,7 +440,7 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
                         <th className="py-3 px-4 uppercase tracking-wider text-right">Return Loss</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-800">
+                    <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border text-slate-800 dark:text-slate-200">
                       {paginatedItems.length === 0 ? (
                         <tr>
                           <td colSpan={8} className="py-12 text-center text-slate-400 font-semibold">
@@ -451,14 +451,14 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
                         paginatedItems.map((item, idx) => {
                           const retPct = item.grossQty > 0 ? ((item.deliveredQty / item.grossQty) * 100).toFixed(1) : '0.0';
                           return (
-                            <tr key={item.masterSku || idx} className="hover:bg-slate-50/70 transition-colors">
+                            <tr key={item.masterSku || idx} className="hover:bg-slate-50/70 dark:hover:bg-deepBlack-hover transition-colors">
                               {/* 1. Item Name with Master SKU underneath */}
                               <td className="py-3 px-4 max-w-sm">
-                                <span className="font-headline font-bold text-slate-900 block truncate" title={item.mainName}>
+                                <span className="font-headline font-bold text-slate-900 dark:text-white block truncate" title={item.mainName}>
                                   {item.mainName}
                                 </span>
                                 <div className="flex items-center gap-1.5 mt-1">
-                                  <span className="font-mono text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/80 shadow-2xs">
+                                  <span className="font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-deepBlack-sidebar px-2 py-0.5 rounded border border-slate-200/80 dark:border-deepBlack-border shadow-2xs">
                                     {item.masterSku}
                                   </span>
                                 </div>
@@ -466,33 +466,33 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
 
                               {/* 2. Category Tag */}
                               <td className="py-3 px-3 whitespace-nowrap">
-                                <span className="text-[10px] font-semibold text-slate-600 px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200/60">
+                                <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-deepBlack-sidebar border border-slate-200/60 dark:border-deepBlack-border">
                                   {item.category}
                                 </span>
                               </td>
 
                               {/* 4. Dispatched */}
-                              <td className="py-3 px-3 text-right font-headline font-bold text-slate-900">
+                              <td className="py-3 px-3 text-right font-headline font-bold text-slate-900 dark:text-white">
                                 {item.grossQty.toLocaleString()}
                               </td>
 
                               {/* 5. Returned */}
                               <td className="py-3 px-3 text-right">
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200/50">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/50 dark:border-rose-900/40">
                                   {item.returnedQty}
                                 </span>
                               </td>
 
                               {/* 6. Net Units */}
-                              <td className="py-3 px-3 text-right font-headline font-bold text-emerald-600">
+                              <td className="py-3 px-3 text-right font-headline font-bold text-emerald-600 dark:text-emerald-400">
                                 {item.deliveredQty}
                               </td>
 
                               {/* 7. Retention Rate */}
                               <td className="py-3 px-4 text-right">
                                 <div className="flex flex-col items-end gap-1">
-                                  <span className="text-[11px] font-bold text-emerald-600">{retPct}%</span>
-                                  <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                  <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">{retPct}%</span>
+                                  <div className="w-16 h-1.5 bg-slate-100 dark:bg-deepBlack-sidebar rounded-full overflow-hidden">
                                     <div
                                       className="h-full bg-emerald-500 rounded-full"
                                       style={{ width: `${Math.min(100, parseFloat(retPct))}%` }}
@@ -502,12 +502,12 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
                               </td>
 
                               {/* 8. Delivered Revenue */}
-                              <td className="py-3 px-4 text-right font-headline font-black text-slate-900">
+                              <td className="py-3 px-4 text-right font-headline font-black text-slate-900 dark:text-white">
                                 ৳ {Math.round(item.deliveredRevenue).toLocaleString()}
                               </td>
 
                               {/* 9. Return Loss */}
-                              <td className="py-3 px-4 text-right font-headline font-semibold text-rose-600">
+                              <td className="py-3 px-4 text-right font-headline font-semibold text-rose-600 dark:text-rose-400">
                                 ৳ {Math.round(item.returnLoss).toLocaleString()}
                               </td>
                             </tr>
@@ -519,11 +519,11 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
                 </div>
 
                 {/* Table Footer with Pagination */}
-                <div className="p-3 bg-slate-50/80 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+                <div className="p-3 bg-slate-50/80 dark:bg-deepBlack-sidebar/50 border-t border-slate-200 dark:border-deepBlack-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-300">
                   <div className="font-medium">
-                    Showing <span className="font-bold text-slate-900">{filteredMasterItems.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</span> to{' '}
-                    <span className="font-bold text-slate-900">{Math.min(currentPage * pageSize, filteredMasterItems.length)}</span> of{' '}
-                    <span className="font-bold text-slate-900">{filteredMasterItems.length}</span> Master Product Styles
+                    Showing <span className="font-bold text-slate-900 dark:text-white">{filteredMasterItems.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</span> to{' '}
+                    <span className="font-bold text-slate-900 dark:text-white">{Math.min(currentPage * pageSize, filteredMasterItems.length)}</span> of{' '}
+                    <span className="font-bold text-slate-900 dark:text-white">{filteredMasterItems.length}</span> Master Product Styles
                   </div>
 
                   {totalPages > 1 && (
@@ -532,19 +532,19 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
                         type="button"
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
-                        className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold hover:bg-slate-100 disabled:opacity-40 transition-colors flex items-center gap-1"
+                        className="px-2.5 py-1 rounded-lg bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border text-slate-700 dark:text-slate-200 font-bold hover:bg-slate-100 dark:hover:bg-deepBlack-hover disabled:opacity-40 transition-colors flex items-center gap-1"
                       >
                         <ChevronLeft className="w-3.5 h-3.5" />
                         <span>Prev</span>
                       </button>
-                      <span className="px-2 font-bold text-slate-800">
+                      <span className="px-2 font-bold text-slate-800 dark:text-white">
                         {currentPage} / {totalPages}
                       </span>
                       <button
                         type="button"
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
-                        className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold hover:bg-slate-100 disabled:opacity-40 transition-colors flex items-center gap-1"
+                        className="px-2.5 py-1 rounded-lg bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border text-slate-700 dark:text-slate-200 font-bold hover:bg-slate-100 dark:hover:bg-deepBlack-hover disabled:opacity-40 transition-colors flex items-center gap-1"
                       >
                         <span>Next</span>
                         <ChevronRight className="w-3.5 h-3.5" />
@@ -560,14 +560,14 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
         {/* Supporting Widgets (Placed below table in clean 2-column grid) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Card: Operational Health & Fulfillment Rates */}
-          <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5 sm:p-5.5 xl:p-6 flex flex-col gap-4">
-            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+          <div className="bg-white dark:bg-deepBlack-card rounded-2xl shadow-xs border border-slate-200/80 dark:border-deepBlack-border p-5 sm:p-5.5 xl:p-6 flex flex-col gap-4">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-deepBlack-border">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shadow-2xs">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shadow-2xs">
                   <TrendingUp className="w-4.5 h-4.5" />
                 </div>
                 <div>
-                  <h3 className="font-headline text-sm sm:text-base font-bold text-navy-deep">
+                  <h3 className="font-headline text-sm sm:text-base font-bold text-navy-deep dark:text-white">
                     Fulfillment Health
                   </h3>
                   <p className="text-xs text-slate-400">Order completion and return benchmarks</p>
@@ -577,53 +577,53 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
 
             <div className="grid grid-cols-2 gap-3 sm:gap-3.5">
               {/* Delivery Rate */}
-              <div className="p-3.5 sm:p-4 rounded-xl bg-emerald-50/60 border border-emerald-200/70 flex flex-col gap-1.5 shadow-2xs">
-                <span className="text-[10px] text-emerald-700 font-bold uppercase tracking-wider">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/40 flex flex-col gap-1.5 shadow-2xs">
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider">
                   Net Delivery
                 </span>
-                <span className="font-headline text-xl sm:text-2xl font-black text-emerald-700">
+                <span className="font-headline text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-400">
                   {deliveryRate}%
                 </span>
-                <span className="text-xs text-slate-500 font-medium">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                   {s.fullDeliveredOrders.toLocaleString()} orders
                 </span>
               </div>
 
               {/* Full Return Rate */}
-              <div className="p-3.5 sm:p-4 rounded-xl bg-rose-50/60 border border-rose-200/70 flex flex-col gap-1.5 shadow-2xs">
-                <span className="text-[10px] text-rose-700 font-bold uppercase tracking-wider">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200/70 dark:border-rose-800/40 flex flex-col gap-1.5 shadow-2xs">
+                <span className="text-[10px] text-rose-700 dark:text-rose-400 font-bold uppercase tracking-wider">
                   Full Returns
                 </span>
-                <span className="font-headline text-xl sm:text-2xl font-black text-rose-600">
+                <span className="font-headline text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400">
                   {returnRate}%
                 </span>
-                <span className="text-xs text-slate-500 font-medium">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                   {s.fullReturnedOrders.toLocaleString()} orders
                 </span>
               </div>
 
               {/* Exchange Rate */}
-              <div className="p-3.5 sm:p-4 rounded-xl bg-purple-50/60 border border-purple-200/70 flex flex-col gap-1.5 shadow-2xs">
-                <span className="text-[10px] text-purple-700 font-bold uppercase tracking-wider">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200/70 dark:border-purple-800/40 flex flex-col gap-1.5 shadow-2xs">
+                <span className="text-[10px] text-purple-700 dark:text-purple-400 font-bold uppercase tracking-wider">
                   Exchanges
                 </span>
-                <span className="font-headline text-xl sm:text-2xl font-black text-purple-700">
+                <span className="font-headline text-xl sm:text-2xl font-black text-purple-700 dark:text-purple-400">
                   {exchangeRate}%
                 </span>
-                <span className="text-xs text-slate-500 font-medium">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                   {(s.totalExchangedOrders || 0).toLocaleString()} swaps
                 </span>
               </div>
 
               {/* Partial Rate */}
-              <div className="p-3.5 sm:p-4 rounded-xl bg-amber-50/60 border border-amber-200/70 flex flex-col gap-1.5 shadow-2xs">
-                <span className="text-[10px] text-amber-700 font-bold uppercase tracking-wider">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/40 flex flex-col gap-1.5 shadow-2xs">
+                <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold uppercase tracking-wider">
                   Partial Orders
                 </span>
-                <span className="font-headline text-xl sm:text-2xl font-black text-amber-600">
+                <span className="font-headline text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400">
                   {partialRate}%
                 </span>
-                <span className="text-xs text-slate-500 font-medium">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                   {s.partialOrders.toLocaleString()} split
                 </span>
               </div>
@@ -632,14 +632,14 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
 
           {/* Card: Top Selling Master SKUs Highlights */}
           {topMasterSkus.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5 sm:p-5.5 xl:p-6 flex flex-col gap-3.5">
-              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+            <div className="bg-white dark:bg-deepBlack-card rounded-2xl shadow-xs border border-slate-200/80 dark:border-deepBlack-border p-5 sm:p-5.5 xl:p-6 flex flex-col gap-3.5">
+              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-deepBlack-border">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-orange-50 text-primary flex items-center justify-center font-bold shadow-2xs">
+                  <div className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-primary flex items-center justify-center font-bold shadow-2xs">
                     <PackageCheck className="w-4.5 h-4.5" />
                   </div>
                   <div>
-                    <h3 className="font-headline text-sm sm:text-base font-bold text-navy-deep">
+                    <h3 className="font-headline text-sm sm:text-base font-bold text-navy-deep dark:text-white">
                       Top Realized Master Styles
                     </h3>
                     <p className="text-xs text-slate-400">By net realized revenue</p>
@@ -652,28 +652,28 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
                 {topMasterSkus.map((sku, idx) => (
                   <div
                     key={sku.masterSku || idx}
-                    className="p-3 rounded-xl bg-slate-50/80 border border-slate-100 hover:border-slate-200 flex items-center justify-between transition-colors shadow-2xs"
+                    className="p-3 rounded-xl bg-slate-50/80 dark:bg-deepBlack-sidebar/50 border border-slate-100 dark:border-deepBlack-border hover:border-slate-200 dark:hover:border-slate-700 flex items-center justify-between transition-colors shadow-2xs"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
+                      <span className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center shrink-0">
                         {idx + 1}
                       </span>
                       <div className="min-w-0">
-                        <span className="font-headline text-xs font-bold text-slate-900 block truncate" title={sku.mainName}>
+                        <span className="font-headline text-xs font-bold text-slate-900 dark:text-white block truncate" title={sku.mainName}>
                           {sku.mainName}
                         </span>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="font-mono text-[10px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/80 shrink-0">
+                          <span className="font-mono text-[10px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-deepBlack-card px-1.5 py-0.5 rounded border border-slate-200/80 dark:border-deepBlack-border shrink-0">
                             {sku.masterSku}
                           </span>
-                          <span className="text-[10px] text-emerald-600 font-semibold truncate">
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold truncate">
                             • {sku.deliveredQty} net ({sku.grossQty} sent)
                           </span>
                         </div>
                       </div>
                     </div>
                     <div className="text-right shrink-0 pl-2">
-                      <span className="font-headline text-xs font-bold text-navy-deep block">
+                      <span className="font-headline text-xs font-bold text-navy-deep dark:text-white block">
                         ৳ {Math.round(sku.deliveredRevenue).toLocaleString()}
                       </span>
                       <span className="text-[10px] font-bold text-slate-400">

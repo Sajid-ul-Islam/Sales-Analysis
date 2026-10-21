@@ -354,7 +354,7 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shrink-0 ${
               selectedCategory === 'ALL'
                 ? 'bg-primary text-white shadow-2xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                : 'bg-slate-100 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-deepBlack-hover'
             }`}
           >
             All Categories ({skuList.length})
@@ -368,7 +368,7 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shrink-0 ${
                   selectedCategory === cat
                     ? 'bg-primary text-white shadow-2xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-100 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-deepBlack-hover'
                 }`}
               >
                 {cat} ({count})
@@ -378,7 +378,7 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
         </div>
 
         {/* Search, Filter & Sort Controls */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-deepBlack-border">
           <div className="flex items-center gap-3 w-full sm:w-auto flex-1 max-w-lg">
             <div className="relative w-full">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -387,11 +387,11 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
                 placeholder="Search SKU code (101-0100), product name, wash, fit..."
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3.5 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors"
+                className="w-full bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-lg pl-8 pr-3.5 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-deepBlack-canvas transition-colors"
               />
             </div>
 
-            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-700 select-none shrink-0">
+            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-300 select-none shrink-0">
               <input
                 type="checkbox"
                 checked={filterHighReturnOnly}
@@ -403,11 +403,11 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <span className="text-[11px] text-slate-500 font-medium">Sort By:</span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Sort By:</span>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'returnRate' | 'deliveredRevenue' | 'returnedQty' | 'totalLoss' | 'grossQty')}
-              className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 font-medium focus:outline-none focus:border-primary focus:bg-white"
+              className="bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-lg px-2.5 py-1.5 text-xs text-slate-700 dark:text-slate-200 font-medium focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-deepBlack-canvas"
             >
               <option value="returnedQty">Highest Returned Units</option>
               <option value="returnRate">Highest Return Rate %</option>
@@ -420,21 +420,21 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
       </div>
 
       {/* SKU Performance Table */}
-      <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="bg-white dark:bg-deepBlack-card rounded-xl border border-slate-200/80 dark:border-deepBlack-border shadow-xs overflow-hidden">
         {/* Mobile Swipe Hint */}
-        <div className="md:hidden flex items-center justify-between px-3 py-1.5 text-[11px] text-slate-400 bg-slate-50/60 border-b border-slate-100">
+        <div className="md:hidden flex items-center justify-between px-3 py-1.5 text-[11px] text-slate-400 dark:text-slate-500 bg-slate-50/60 dark:bg-deepBlack-sidebar/60 border-b border-slate-100 dark:border-deepBlack-border">
           <span className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-primary/70 animate-pulse" />
             <span>Swipe horizontally to inspect unit economics</span>
           </span>
-          <span className="font-mono text-[10px] text-slate-400">SKU pinned</span>
+          <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">SKU pinned</span>
         </div>
 
         <div className="overflow-x-auto min-w-0 max-h-[600px] overflow-y-auto">
           <table className="w-full text-left text-xs border-collapse">
-            <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px] font-bold sticky top-0 z-10 border-b border-slate-200">
+            <thead className="bg-slate-50 dark:bg-deepBlack-sidebar text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[10px] font-bold sticky top-0 z-10 border-b border-slate-200 dark:border-deepBlack-border">
               <tr>
-                <th className="py-3 px-4 bg-slate-50 sticky top-0 left-0 z-20 min-w-[130px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">SKU Code</th>
+                <th className="py-3 px-4 bg-slate-50 dark:bg-deepBlack-sidebar sticky top-0 left-0 z-20 min-w-[130px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">SKU Code</th>
                 <th className="py-3 px-3">Product Description</th>
                 <th className="py-3 px-3">Category</th>
                 <th className="py-3 px-3 text-right">Unit Price</th>
@@ -446,23 +446,23 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
                 <th className="py-3 px-4 text-right">Return Loss</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+            <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border font-medium text-slate-700 dark:text-slate-200">
               {paginatedSkus.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-slate-400">
-                    <Shirt className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-                    <p className="font-medium text-slate-600">No SKU items match your search or filter</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">Try clearing the category filter or searching by code.</p>
+                  <td colSpan={10} className="py-12 text-center text-slate-400 dark:text-slate-500">
+                    <Shirt className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+                    <p className="font-medium text-slate-600 dark:text-slate-300">No SKU items match your search or filter</p>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Try clearing the category filter or searching by code.</p>
                   </td>
                 </tr>
               ) : (
                 paginatedSkus.map((s, idx) => {
                   const rateColor =
                     s.returnRate > 25
-                       ? 'bg-rose-50 text-rose-700 border-rose-200/60'
+                       ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200/60 dark:border-rose-900/50'
                       : s.returnRate > 15
-                      ? 'bg-amber-50 text-amber-700 border-amber-200/60'
-                      : 'bg-emerald-50 text-emerald-700 border-emerald-200/60';
+                      ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200/60 dark:border-amber-900/50'
+                      : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-900/50';
 
                   return (
                     <tr
@@ -472,11 +472,11 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
                         setSelectedSkuData(s);
                         setIsSkuModalOpen(true);
                       }}
-                      className="hover:bg-orange-50/40 cursor-pointer transition-colors group"
+                      className="hover:bg-orange-50/40 dark:hover:bg-deepBlack-hover cursor-pointer transition-colors group"
                       title="Click to view all orders and delivery history for this SKU"
                     >
                       {/* SKU Code */}
-                      <td className="py-3 px-4 font-mono font-bold text-slate-900 whitespace-nowrap sticky left-0 bg-white group-hover:bg-[#FFF7ED] z-10 min-w-[130px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
+                      <td className="py-3 px-4 font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap sticky left-0 bg-white dark:bg-deepBlack-card group-hover:bg-[#FFF7ED] dark:group-hover:bg-deepBlack-hover z-10 min-w-[130px] shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
                         <span className="text-primary font-bold group-hover:underline flex items-center gap-1.5">
                           {s.sku}
                           <Eye className="w-3 h-3 text-slate-400 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -485,25 +485,25 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
 
                       {/* Product Description */}
                       <td className="py-3 px-3 max-w-[260px]">
-                        <span className="text-slate-800 font-semibold block truncate" title={s.itemName}>
+                        <span className="text-slate-800 dark:text-slate-200 font-semibold block truncate" title={s.itemName}>
                           {s.itemName || 'DEEN Denim Apparel'}
                         </span>
                       </td>
 
                       {/* Category Badge */}
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200/50">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-deepBlack-sidebar text-slate-700 dark:text-slate-300 border border-slate-200/50 dark:border-deepBlack-border">
                           {s.category || 'Apparel'}
                         </span>
                       </td>
 
                       {/* Unit Price */}
-                      <td className="py-3 px-3 text-right font-mono text-slate-700">
+                      <td className="py-3 px-3 text-right font-mono text-slate-700 dark:text-slate-300">
                         ৳ {s.unitPrice ? s.unitPrice.toLocaleString() : '—'}
                       </td>
 
                       {/* Gross Dispatched */}
-                      <td className="py-3 px-3 text-center font-bold text-slate-900">
+                      <td className="py-3 px-3 text-center font-bold text-slate-900 dark:text-white">
                         {s.grossQty}
                       </td>
 
@@ -542,16 +542,16 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
         </div>
 
         {/* Table Footer with Pagination */}
-        <div className="bg-slate-50/60 px-4 py-3 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+        <div className="bg-slate-50/60 dark:bg-deepBlack-sidebar/60 px-4 py-3 border-t border-slate-200/80 dark:border-deepBlack-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-2">
             <span>
               Showing {Math.min((currentPage - 1) * pageSize + 1, filteredSkus.length)} - {Math.min(currentPage * pageSize, filteredSkus.length)} of {filteredSkus.length} styles
             </span>
-            <span className="text-slate-300">•</span>
+            <span className="text-slate-300 dark:text-slate-600">•</span>
             <select
               value={pageSize}
               onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
-              className="bg-white border border-slate-200 rounded px-1.5 py-0.5 text-xs text-slate-600"
+              className="bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border rounded px-1.5 py-0.5 text-xs text-slate-600 dark:text-slate-300"
             >
               <option value={15}>15 per page</option>
               <option value={25}>25 per page</option>
@@ -565,17 +565,17 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="px-2.5 py-1 rounded bg-white border border-slate-200 text-slate-700 disabled:opacity-40 text-xs font-semibold hover:bg-slate-50"
+                className="px-2.5 py-1 rounded bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border text-slate-700 dark:text-slate-300 disabled:opacity-40 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-deepBlack-hover"
               >
                 Previous
               </button>
-              <span className="px-2 font-bold text-slate-700">
+              <span className="px-2 font-bold text-slate-700 dark:text-slate-300">
                 Page {currentPage} of {totalPages}
               </span>
               <button
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
-                className="px-2.5 py-1 rounded bg-white border border-slate-200 text-slate-700 disabled:opacity-40 text-xs font-semibold hover:bg-slate-50"
+                className="px-2.5 py-1 rounded bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border text-slate-700 dark:text-slate-300 disabled:opacity-40 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-deepBlack-hover"
               >
                 Next
               </button>
