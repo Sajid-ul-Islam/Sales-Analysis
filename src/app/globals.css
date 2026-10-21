@@ -229,6 +229,10 @@ body.dark-canvas {
   color: #F9FAFB;
 }
 
+.dark .text-slate-200 {
+  color: #E2E8F0;
+}
+
 .dark .text-slate-700,
 .dark .text-gray-700 {
   color: #E5E7EB;
@@ -383,7 +387,9 @@ body.dark-canvas {
 .dark svg circle[stroke="#F1F5F9"] {
   stroke: #1F1F1F;
 }
-.dark .text-slate-200 {
+.dark svg .text-slate-200,
+.dark svg circle.text-slate-200,
+.dark svg path.text-slate-200 {
   color: #222222;
 }
 
