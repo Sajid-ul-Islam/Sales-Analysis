@@ -9,7 +9,7 @@ import { RawOrderRow } from '@/types';
 import { classifyProductLine, computeSelectsStats, SelectsStats } from './selectsAnalytics';
 import { getCategoryForSales, getSubCategoryForSales, getShortCategoryLabel, getShortSubCategoryLabel, CATEGORY_COLOR_MAP } from './liveCategoryEngine';
 import { computeCustomerMix } from './customerRegistry';
-import { isOnlinePaymentMethod } from './woocommerceClient';
+import { isEcomPaymentMethod } from './woocommerceClient';
 import { detectFulfillmentBranch } from './sync/liveTerminalSync';
 import {
   getDhakaIsoDate,
@@ -386,6 +386,11 @@ export function isOrderExchange(order: RawOrderRow): boolean {
 
   const o = order as Record<string, unknown>;
 
+  // Explicit ecom payment method (outlet dispatch for ecom order) is never an exchange
+  const paymentMethod = String(order['Payment Method'] || o.paymentMethod || o.payment_method || '').toLowerCase().trim();
+  const paymentTitle = String(o.payment_method_title || o.paymentMethodTitle || '').toLowerCase().trim();
+  if (isEcomPaymentMethod(paymentMethod, paymentTitle)) return false;
+
   // 1. Order ID or Consignment Prefix (D-17839, DD-17839, ex-17839)
   const orderId = String(order['Order ID'] || order.orderId || order.id || o.orderNumber || '').trim();
   const consignmentId = String(order['Consignment ID'] || o.consignmentId || o.tracking_number || '').trim();
@@ -427,7 +432,6 @@ export function isOrderExchange(order: RawOrderRow): boolean {
     return true;
   }
 
-  const paymentMethod = String(order['Payment Method'] || o.paymentMethod || o.payment_method || '').toLowerCase();
   if (
     paymentMethod.includes('no-checkout') ||
     paymentMethod.includes('no_checkout') ||
@@ -674,24 +678,26 @@ export function isTodayOrdersEligible(
   order: RawOrderRow,
   targetDateIso: string,
   options?: {
-    channelFilter?: 'ALL' | 'ONLINE' | 'POS';
+    channelFilter?: 'ALL' | 'ONLINE' | 'POS' | 'ECOMMERCE' | 'OUTLET';
     posBranchFilter?: 'ALL' | 'MIRPUR' | 'WARI' | 'CUMILLA' | 'SYLHET';
     onlineOnly?: boolean;
   }
 ): boolean {
-  const channel = options?.channelFilter || (options?.onlineOnly === false ? 'ALL' : 'ONLINE');
-  if (channel === 'ONLINE' && !isOrderOnline(order)) return false;
-  if (channel === 'POS') {
-    if (isOrderOnline(order)) return false;
-    if (options?.posBranchFilter && options.posBranchFilter !== 'ALL') {
-      const branch = detectFulfillmentBranch(order);
-      if (branch.branchCode !== options.posBranchFilter) return false;
-    }
+  const rawChannel = options?.channelFilter || (options?.onlineOnly === false ? 'ALL' : 'ONLINE');
+  const isEcom = rawChannel === 'ONLINE' || rawChannel === 'ECOMMERCE';
+  const isOut = rawChannel === 'POS' || rawChannel === 'OUTLET';
+
+  if (isEcom && !isOrderOnline(order)) return false;
+  if (isOut && !isOrderOutlet(order)) return false;
+  if (isOut && options?.posBranchFilter && options.posBranchFilter !== 'ALL') {
+    const branch = detectFulfillmentBranch(order);
+    if (branch.branchCode !== options.posBranchFilter) return false;
   }
+  if (!isEcom && !isOut && !isOrderOnline(order) && !isOrderOutlet(order)) return false;
   if (isOrderExchange(order)) return false;
 
   // Outlet store orders (physical in-store sales on targetDateIso)
-  if (!isOrderOnline(order)) {
+  if (isOrderOutlet(order)) {
     const oDate = parseOrderDate(order);
     const mDate = getStatusModificationDate(order);
     const oDateIso = oDate ? formatDateToIsoDay(oDate) : '';
@@ -721,19 +727,78 @@ export const isAllOrdersEligible = isTodayOrdersEligible;
 
 /**
  * Identifies physical in-store POS retail orders (offline walk-in register sales).
+ * Strictly excludes online orders AND outlet ecom dispatch records (payment_method: 'ecom' / 'sip_ecom').
  */
 export function isOrderPos(order: RawOrderRow): boolean {
-  return !isOrderOnline(order);
+  const o = order as Record<string, unknown>;
+
+  // User Rule: Outlet records with payment_method 'ecom' or 'sip_ecom' must be excluded from outlet orders
+  const paymentMethod = String(order['Payment Method'] || o.paymentMethod || o.payment_method || '').toLowerCase().trim();
+  const paymentTitle = String(o.payment_method_title || o.paymentMethodTitle || '').toLowerCase().trim();
+  if (isEcomPaymentMethod(paymentMethod, paymentTitle)) {
+    return false;
+  }
+
+  // If it's a genuine online ecommerce order, it is not POS
+  if (isOrderOnline(order)) {
+    return false;
+  }
+
+  // Explicit POS markers
+  if (o.isPos === true) return true;
+  const src = String(order['Order Source'] || o.orderSource || '').toLowerCase().trim();
+  if (src === 'pos') return true;
+
+  const createdVia = String(o.created_via || o['Created Via'] || o.createdVia || '').toLowerCase().trim();
+  if (createdVia.includes('pos')) return true;
+
+  const loc = String(o.fulfillmentLocation || o.fulfillmentBranch || o.outletName || o.storeName || '').toLowerCase().trim();
+  if (loc.includes('pos') || loc.includes('register')) return true;
+
+  const outletId = String(o.outletId || o['Outlet ID'] || o._sip_outlet_id || o._pos_outlet_id || '').trim();
+  const cashierId = String(o.cashierId || o.cashier_id || o._sip_cashier_id || '').trim();
+  const isPosCashier = cashierId === '1508' || cashierId === '3' || cashierId === '572' || cashierId === '35' || cashierId === '69';
+  const hasPosOutlet = Boolean(outletId && outletId !== '0');
+  if (hasPosOutlet || isPosCashier) return true;
+
+  // Suffix checks on order ID: m, c, w, s are branch outlet registers
+  const oid = String(order['Order ID'] || o.orderId || '').trim();
+  if (/[-_\s]?[mcws]$/i.test(oid) || /\b\d+\s*[mcws]\b/i.test(oid)) return true;
+
+  if (
+    loc.includes('outlet') ||
+    loc.includes('cumilla') ||
+    loc.includes('comilla') ||
+    loc.includes('wari') ||
+    loc.includes('sylhet') ||
+    loc.includes('mirpur')
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 export const isOrderOutlet = isOrderPos;
+export const isOrderEcommerce = isOrderOnline;
 
 /**
- * Identifies genuine Online Store Checkout orders (fulfilled from Central Warehouse or web checkout courier dispatch).
- * Strictly excludes physical in-store retail outlet walk-in counter sales.
+ * Identifies genuine Online Store Checkout orders (placed via web checkout or central warehouse).
+ * User Rule: "explicit ecommerce payment method: payment_method is 'ecom' or 'sip_ecom' (indicating an ecommerce
+ * order dispatched from a branch outlet): it is to exclude from outlet orders, not include in ecom orders,
+ * because it is already in ecom order, because ecom warehouse has stock issue, so that it was dispatched from outlet,
+ * the order is already counted sold in ecom, don't add that just to keep those exclude from outlet, but don't include in ecom orders"
  */
 export function isOrderOnline(order: RawOrderRow): boolean {
   const o = order as Record<string, unknown>;
+
+  // Priority Step 0: Check for explicit ecom payment method
+  // User Rule: Exclude outlet ecom dispatches (sip_ecom/ecom) from ecom orders (already counted under original web checkout)
+  const paymentMethod = String(order['Payment Method'] || o.paymentMethod || o.payment_method || '').toLowerCase().trim();
+  const paymentTitle = String(o.payment_method_title || o.paymentMethodTitle || '').toLowerCase().trim();
+  if (isEcomPaymentMethod(paymentMethod, paymentTitle)) {
+    return false;
+  }
 
   // 1. Explicit POS / Outlet retail markers
   if (o.isPos === true) return false;
@@ -756,31 +821,27 @@ export function isOrderOnline(order: RawOrderRow): boolean {
     return true;
   }
 
-  // 3. Genuine Web Checkout or Courier Dispatch (e.g. branch fulfillment for online customer)
+  // 3. Genuine Courier Dispatch (e.g. branch fulfillment booked with courier)
   const consId = String(order['Consignment ID'] || o.consignmentId || o.consignment_id || o.tracking_number || '').trim();
   const hasCourier = Boolean(consId && consId !== '-' && consId !== 'null');
-  const isWebCheckout = createdVia === 'checkout' || createdVia === 'store-api';
-
-  if (isWebCheckout || hasCourier) {
+  if (hasCourier) {
     return true;
   }
 
-  // If order was created on a physical outlet register (outletId or cashierId) without web checkout or courier,
-  // it is strictly a physical retail outlet order (even if customer paid via bKash QR at counter).
+  // If order was created on a physical outlet register (outletId or cashierId) without courier tracking,
+  // it is strictly a physical retail outlet order (even if customer paid via bKash QR or card at counter).
   if (hasPosOutlet || isPosCashier) {
     return false;
   }
 
-  // 4. Online payment indicators for branch fulfillment orders (w, s, c, m)
-  const paymentMethod = String(order['Payment Method'] || o.paymentMethod || o.payment_method || '').toLowerCase().trim();
-  const paymentTitle = String(o.payment_method_title || o.paymentMethodTitle || '').toLowerCase().trim();
-  const isOnlinePayment = isOnlinePaymentMethod(paymentMethod, paymentTitle);
-
-  if (isOnlinePayment) {
+  // 4. Web checkout orders (created_via: checkout / store-api)
+  // User Rule: "It was placed via web checkout (created_via: checkout) => it should be only one rule for ecom order"
+  const isWebCheckout = createdVia === 'checkout' || createdVia === 'store-api';
+  if (isWebCheckout) {
     return true;
   }
 
-  // 5. Outlet / Branch indicators without web checkout, courier, or online payment are physical retail outlet orders
+  // 5. Outlet / Branch indicators without web checkout, courier, or ecom payment are physical retail outlet orders
   if (
     loc.includes('outlet') ||
     loc.includes('cumilla') ||
@@ -891,7 +952,7 @@ export function processLiveOpsData(
   options: {
     view?: 'Today Shipped' | "Today's Orders" | 'Today Orders' | 'All Orders' | 'Last Day Shipped' | 'Queue';
     onlineOnly?: boolean;
-    channelFilter?: 'ALL' | 'ONLINE' | 'POS';
+    channelFilter?: 'ALL' | 'ONLINE' | 'POS' | 'ECOMMERCE' | 'OUTLET';
     posBranchFilter?: 'ALL' | 'MIRPUR' | 'WARI' | 'CUMILLA' | 'SYLHET';
     customDate?: string;
     anchorDate?: string;
@@ -899,7 +960,11 @@ export function processLiveOpsData(
   } = {}
 ): LiveOpsReport {
   const view = options.view || 'Today Shipped';
-  const channelFilter = options.channelFilter || (options.onlineOnly === false ? 'ALL' : 'ONLINE');
+  const rawChannel = options.channelFilter || (options.onlineOnly === false ? 'ALL' : 'ONLINE');
+  const channelFilter: 'ALL' | 'ONLINE' | 'POS' =
+    rawChannel === 'ECOMMERCE' ? 'ONLINE' :
+    rawChannel === 'OUTLET' ? 'POS' :
+    rawChannel;
   const posBranchFilter = options.posBranchFilter || 'ALL';
 
   // 1. Filter out POS if onlineOnly / channelFilter is active, and filter by posBranchFilter if set
@@ -907,7 +972,7 @@ export function processLiveOpsData(
   if (channelFilter === 'ONLINE') {
     source = source.filter(isOrderOnline);
   } else if (channelFilter === 'POS') {
-    source = source.filter((o) => !isOrderOnline(o));
+    source = source.filter(isOrderOutlet);
     if (posBranchFilter !== 'ALL') {
       source = source.filter((o) => detectFulfillmentBranch(o).branchCode === posBranchFilter);
     }
@@ -975,12 +1040,12 @@ export function processLiveOpsData(
     allViewOrders = orders.filter((o) => isTodayOrdersEligible(o, refDateIso, { channelFilter: 'ALL' }));
   } else {
     // In default Shipped view: all outlet retail sales + all shipped online checkout orders
-    allViewOrders = orders.filter((o) => (!isOrderOnline(o) ? isPosOrderOnDate(o, refDateIso) : isOrderShippedOnDate(o, refDateIso)));
+    allViewOrders = orders.filter((o) => (isOrderOutlet(o) ? isPosOrderOnDate(o, refDateIso) : isOrderOnline(o) ? isOrderShippedOnDate(o, refDateIso) : false));
   }
 
   const onlineViewOrders = allViewOrders.filter(isOrderOnline);
   // Outlet orders are physical in-store retail sales on reference date
-  const posViewOrders = orders.filter((o) => !isOrderOnline(o) && isPosOrderOnDate(o, refDateIso));
+  const posViewOrders = orders.filter((o) => isOrderOutlet(o) && isPosOrderOnDate(o, refDateIso));
 
   const countUniqueOrderIds = (list: RawOrderRow[]) =>
     new Set(list.map((o) => String(o['Order ID'] || o.orderId || '')).filter(Boolean)).size;
@@ -1016,13 +1081,13 @@ export function processLiveOpsData(
   if (channelFilter === 'POS') {
     activeOrders = source.filter(
       (o) =>
-        !isOrderOnline(o) &&
+        isOrderOutlet(o) &&
         isPosOrderOnDate(o, refDateIso) &&
         (posBranchFilter === 'ALL' || detectFulfillmentBranch(o).branchCode === posBranchFilter)
     );
     prevOrders = source.filter(
       (o) =>
-        !isOrderOnline(o) &&
+        isOrderOutlet(o) &&
         isPosOrderOnDate(o, prevDateIso) &&
         (posBranchFilter === 'ALL' || detectFulfillmentBranch(o).branchCode === posBranchFilter)
     );
@@ -1030,9 +1095,9 @@ export function processLiveOpsData(
     activeOrders = source.filter(isOrderInQueue);
     prevOrders = [];
   } else if (view === 'Last Day Shipped') {
-    activeOrders = source.filter((o) => isOrderShippedOnDate(o, prevDateIso));
+    activeOrders = source.filter((o) => isOrderOnline(o) && isOrderShippedOnDate(o, prevDateIso));
     // Comparison for last day is ref day
-    prevOrders = source.filter((o) => isOrderShippedOnDate(o, refDateIso));
+    prevOrders = source.filter((o) => isOrderOnline(o) && isOrderShippedOnDate(o, refDateIso));
   } else if (view === "Today's Orders" || view === 'Today Orders' || view === 'All Orders') {
     // User Rule: Today's Orders = those orders shipped today, and those orders whose status is Processing
     activeOrders = source.filter((o) => isTodayOrdersEligible(o, refDateIso, { channelFilter, posBranchFilter }));
@@ -1050,12 +1115,12 @@ export function processLiveOpsData(
   } else {
     // Default: 'Today Shipped'
     if (channelFilter === 'ALL') {
-      // User Rule: In "All Orders", all outlet orders + all shipped checkout/online/ecom orders
-      activeOrders = source.filter((o) => (!isOrderOnline(o) ? isPosOrderOnDate(o, refDateIso) : isOrderShippedOnDate(o, refDateIso)));
-      prevOrders = source.filter((o) => (!isOrderOnline(o) ? isPosOrderOnDate(o, prevDateIso) : isOrderShippedOnDate(o, prevDateIso)));
+      // User Rule: In "Both", all genuine outlet orders + all shipped checkout/online orders (excluding outlet ecom dispatches)
+      activeOrders = source.filter((o) => (isOrderOutlet(o) ? isPosOrderOnDate(o, refDateIso) : isOrderOnline(o) ? isOrderShippedOnDate(o, refDateIso) : false));
+      prevOrders = source.filter((o) => (isOrderOutlet(o) ? isPosOrderOnDate(o, prevDateIso) : isOrderOnline(o) ? isOrderShippedOnDate(o, prevDateIso) : false));
     } else {
-      activeOrders = source.filter((o) => isOrderShippedOnDate(o, refDateIso));
-      prevOrders = source.filter((o) => isOrderShippedOnDate(o, prevDateIso));
+      activeOrders = source.filter((o) => isOrderOnline(o) && isOrderShippedOnDate(o, refDateIso));
+      prevOrders = source.filter((o) => isOrderOnline(o) && isOrderShippedOnDate(o, prevDateIso));
     }
   }
 

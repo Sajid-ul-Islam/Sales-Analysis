@@ -248,6 +248,23 @@ export function classifyPayment(paymentMethodTitle?: string, paymentMethodKey?: 
 }
 
 /**
+ * Detects whether an order's payment method represents an Ecommerce payment method.
+ * DEEN Rule: If an order has an ecom payment method (ecom, sip_ecom, ecommerce, e-commerce),
+ * it is strictly an Ecommerce order (even if fulfilled or created at a physical branch outlet).
+ * Those orders are already counted with Ecommerce orders and MUST be excluded from Outlet.
+ */
+export function isEcomPaymentMethod(paymentMethod?: unknown, paymentTitle?: unknown): boolean {
+  const text = `${String(paymentMethod || '')} ${String(paymentTitle || '')}`.toLowerCase().trim();
+  if (!text) return false;
+  return (
+    text.includes('ecom') ||
+    text.includes('sip_ecom') ||
+    text.includes('ecommerce') ||
+    text.includes('e-commerce')
+  );
+}
+
+/**
  * Detects whether a payment method represents an online / digital payment or ecom payment.
  * DEEN Rule: If an order has an online marked payment method (bKash, Nagad, Card, SSLCommerz, ecom, sip_ecom, prepaid, etc.),
  * or was placed via web checkout / courier COD, it is NEVER counted as an in-store POS retail order.
@@ -340,14 +357,21 @@ export function detectBranchFromOrder(order: WcOrder, meta: WcMetaItem[], orderI
     };
   }
 
-  // 2. Identify Online order indicators (Payment method online marked, web checkout, or courier consignment)
-  const isOnlinePayment = isOnlinePaymentMethod(order?.payment_method, order?.payment_method_title);
+  // 2. Identify Online order indicators for branch orders
+  // DEEN Invariant: At an outlet branch, walk-in customers pay at the register with Cash, Card (City Bank/UCB POS terminal),
+  // or mobile payment QR (bKash/Nagad). Those are strictly offline in-store walk-in POS sales.
+  // An outlet order is ONLY an Ecommerce dispatch if:
+  // - It has an explicit ecom payment method (ecom, sip_ecom, ecommerce, e-commerce)
+  // - OR it was placed via genuine web checkout (checkout / store-api)
+  // Strict user rule: An order is an online ecommerce order ONLY if it was placed via web checkout
+  // (created_via: checkout), has an explicit ecom payment method (sip_ecom/ecom),
+  // or has courier tracking. In-store counter payments (bKash QR, Card terminal) are POS retail sales.
+  const isEcomPayment = isEcomPaymentMethod(order?.payment_method, order?.payment_method_title);
   const isWebCheckout = effectiveCreatedVia === 'checkout' || effectiveCreatedVia === 'store-api';
   const hasCourierTracking = Boolean(order?.shipping_lines && order.shipping_lines.length > 0) ||
     meta.some((m: WcMetaItem) => /pathao|consignment|tracking|ptc_/i.test(m.key || ''));
 
-  // If order is paid online, placed via web checkout, or booked with courier, it is an ONLINE order dispatched from outlet
-  const isOnlineDispatch = isOnlinePayment || isWebCheckout || hasCourierTracking;
+  const isOnlineDispatch = isEcomPayment || isWebCheckout || hasCourierTracking;
 
   // 3. Cumilla Branch: 17263 c or POS Outlet ID 2
   if (outletId === '2' || /[-_]?c$/i.test(cleanId) || /\s+c$/i.test(String(orderId).trim())) {
@@ -1093,7 +1117,9 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
         substatus = wpMarks.isPaidReturnFromWp ? 'Paid Return' : 'Return';
       }
     }
-    const orderCreatedVia = effectiveCreatedVia || (branchInfo.isPos ? 'pos' : (hasNoCheckoutNotice ? 'admin' : 'checkout'));
+    const isEcomPayment = isEcomPaymentMethod(order.payment_method, order.payment_method_title);
+    const isOutletOrder = branchInfo.isPos || (Boolean(branchInfo.outletId) && !trackingId && !isEcomPayment);
+    const orderCreatedVia = effectiveCreatedVia || (isOutletOrder ? 'pos' : (hasNoCheckoutNotice ? 'admin' : (isEcomPayment ? 'pos-ecom' : 'checkout')));
 
     const lineItems = order.line_items || [];
     if (lineItems.length === 0) {

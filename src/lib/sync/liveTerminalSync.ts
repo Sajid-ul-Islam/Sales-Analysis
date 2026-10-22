@@ -1,5 +1,5 @@
 import { RawOrderRow, DatasetSnapshot } from '@/types';
-import { fetchWooCommerceOrders, formatWooCommerceToOrderRows, testWooCommerceConnection, WcCredentials, cleanCustomerPhone, isOnlinePaymentMethod } from '@/lib/woocommerceClient';
+import { fetchWooCommerceOrders, formatWooCommerceToOrderRows, testWooCommerceConnection, WcCredentials, cleanCustomerPhone, isOnlinePaymentMethod, isEcomPaymentMethod } from '@/lib/woocommerceClient';
 import { batchFetchPathaoOrders, batchFetchPathaoOrdersByOrderIds, fetchRecentPathaoOrders, getPathaoToken, PathaoCredentials, PathaoOrderDetail } from '@/lib/pathaoClient';
 import { getSecretsWithOverrides } from '@/lib/secrets';
 import { createDataProvenance, DataProvenanceInfo } from '@/lib/dataAudit';
@@ -968,13 +968,13 @@ export async function syncLiveTerminalData(options: {
       branchCode: branchInfo.branchCode,
       isBranchFulfillment: branchInfo.branchCode !== 'ONLINE' && !Boolean(
         row.isPos === true &&
-        !isOnlinePaymentMethod(paymentMethod, (row as Record<string, unknown>).payment_method_title) &&
+        !isEcomPaymentMethod(paymentMethod, (row as Record<string, unknown>).payment_method_title) &&
         !effectiveConsId &&
         String(row['Created Via'] || (row as Record<string, unknown>).created_via || '').toLowerCase().trim() !== 'checkout'
       ),
       isPos: Boolean(
         row.isPos === true &&
-        !isOnlinePaymentMethod(paymentMethod, (row as Record<string, unknown>).payment_method_title) &&
+        !isEcomPaymentMethod(paymentMethod, (row as Record<string, unknown>).payment_method_title) &&
         !effectiveConsId &&
         String(row['Created Via'] || (row as Record<string, unknown>).created_via || '').toLowerCase().trim() !== 'checkout'
       ),

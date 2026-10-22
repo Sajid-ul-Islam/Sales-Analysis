@@ -18,6 +18,7 @@ import {
   getPreviousWorkingDay,
   parseOrderDateValue,
   isOrderOnline,
+  isOrderPos,
   processLiveOpsData,
 } from '@/lib/liveOpsProcessor';
 
@@ -141,10 +142,17 @@ describe('Timezone Invariance: Strictly Pinned to Asia/Dhaka (UTC+6)', () => {
       expect(isOrderOnline({ orderId: '17263 s', fulfillmentLocation: 'Sylhet Branch' })).toBe(false);
       expect(isOrderOnline({ orderId: '17263', outletId: '7', fulfillmentLocation: 'Sylhet Branch' })).toBe(false);
 
-      // Online orders dispatched from retail branch outlets (with courier tracking, online payment, or web checkout) evaluate to true
+      // Genuine web checkout orders (or branch courier dispatch) evaluate to true
       expect(isOrderOnline({ orderId: '17263 c', fulfillmentLocation: 'Cumilla Branch', consignmentId: 'RD12345678' })).toBe(true);
-      expect(isOrderOnline({ orderId: '17263 w', fulfillmentLocation: 'Wari Branch', paymentMethod: 'bKash' })).toBe(true);
       expect(isOrderOnline({ orderId: '17263 s', fulfillmentLocation: 'Sylhet Branch', created_via: 'checkout' })).toBe(true);
+
+      // Outlet ecom dispatches (sip_ecom) are excluded from ecom (already counted sold) and excluded from outlet
+      expect(isOrderOnline({ orderId: '17263 w', fulfillmentLocation: 'Wari Branch', paymentMethod: 'sip_ecom' })).toBe(false);
+      expect(isOrderPos({ orderId: '17263 w', fulfillmentLocation: 'Wari Branch', paymentMethod: 'sip_ecom' })).toBe(false);
+
+      // In-store POS register walk-ins paying with bKash QR or Card at branch without web checkout evaluate to false for online, true for pos
+      expect(isOrderOnline({ orderId: '17263 w', fulfillmentLocation: 'Wari Branch', paymentMethod: 'bKash' })).toBe(false);
+      expect(isOrderPos({ orderId: '17263 w', fulfillmentLocation: 'Wari Branch', paymentMethod: 'bKash' })).toBe(true);
     });
 
     it('filters out Friday from 7-day dispatch history when central warehouse is closed (0 dispatches)', () => {

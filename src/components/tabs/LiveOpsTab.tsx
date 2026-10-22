@@ -290,8 +290,12 @@ export function LiveOpsTab({
     if (urlLedger === 'ORDER_WISE' || urlLedger === 'orderwise') setLedgerViewMode('ORDER_WISE');
     if (urlLedger === 'ITEM_WISE' || urlLedger === 'itemwise') setLedgerViewMode('ITEM_WISE');
     const urlChannel = (p.get('channel') || p.get('channelFilter') || '').toUpperCase();
-    if (urlChannel === 'POS' || urlChannel === 'ONLINE' || urlChannel === 'ALL') {
-      setChannelFilter(urlChannel as 'ALL' | 'ONLINE' | 'POS');
+    if (urlChannel === 'ECOMMERCE' || urlChannel === 'ECOM' || urlChannel === 'ONLINE') {
+      setChannelFilter('ONLINE');
+    } else if (urlChannel === 'OUTLET' || urlChannel === 'POS') {
+      setChannelFilter('POS');
+    } else if (urlChannel === 'BOTH' || urlChannel === 'ALL' || urlChannel === 'ALL_CHANNELS' || urlChannel === 'ECOMMERCE_OUTLET') {
+      setChannelFilter('ALL');
     }
     const urlBranch = (p.get('branch') || p.get('posBranch') || '').toUpperCase();
     if (urlBranch === 'MIRPUR' || urlBranch === 'WARI' || urlBranch === 'CUMILLA' || urlBranch === 'SYLHET') {
@@ -521,12 +525,13 @@ export function LiveOpsTab({
       // Rule: Channel Filter (ONLINE vs POS vs ALL)
       if (channelFilter === 'ONLINE' && !isOrderOnline(o)) return false;
       if (channelFilter === 'POS') {
-        if (isOrderOnline(o)) return false;
+        if (!isOrderPos(o)) return false;
         if (posBranchFilter !== 'ALL') {
           const branch = detectFulfillmentBranch(o);
           if (branch.branchCode !== posBranchFilter) return false;
         }
       }
+      if (channelFilter === 'ALL' && !isOrderOnline(o) && !isOrderPos(o)) return false;
 
       // Rule: Exclude exchange replacements (and non-checkout orders) from standard commercial view unless 'EXCHANGES_ONLY' is selected
       if (courierFilter === 'EXCHANGES_ONLY') {
@@ -720,9 +725,9 @@ export function LiveOpsTab({
     const set = new Set<string>();
     for (const o of report.activeOrders) {
       const matchChannel =
-        channelFilter === 'ALL' ||
+        (channelFilter === 'ALL' && (isOrderOnline(o) || isOrderPos(o))) ||
         (channelFilter === 'ONLINE' && isOrderOnline(o)) ||
-        (channelFilter === 'POS' && !isOrderOnline(o));
+        (channelFilter === 'POS' && isOrderPos(o));
 
       const matchBranch =
         channelFilter !== 'POS' ||
@@ -927,10 +932,10 @@ export function LiveOpsTab({
                     ? 'bg-white dark:bg-[#1E1E1E] text-blue-700 dark:text-blue-400 shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
-                title="Web checkout dispatches and outlet courier fulfillment"
+                title="Ecommerce web checkout orders & branch courier dispatches"
               >
                 <span className={`w-2 h-2 rounded-full ${channelFilter === 'ONLINE' ? 'bg-blue-600 dark:bg-blue-400' : 'bg-slate-300 dark:bg-slate-600'}`} />
-                <span>Online Checkout</span>
+                <span>🛒 Ecommerce</span>
                 {report.channelStats && (
                   <span className={`ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
                     channelFilter === 'ONLINE'
@@ -955,7 +960,7 @@ export function LiveOpsTab({
                 title="Physical in-store walk-in outlet sales"
               >
                 <span className={`w-2 h-2 rounded-full ${channelFilter === 'POS' ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-slate-300 dark:bg-slate-600'}`} />
-                <span>Outlet</span>
+                <span>🏬 Outlet</span>
                 {report.channelStats && (
                   <span className={`ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
                     channelFilter === 'POS'
@@ -977,10 +982,10 @@ export function LiveOpsTab({
                     ? 'bg-white dark:bg-[#1E1E1E] text-slate-900 dark:text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
-                title="All sales channels combined"
+                title="Both Ecommerce and Outlet sales combined"
               >
                 <span className={`w-2 h-2 rounded-full ${channelFilter === 'ALL' ? 'bg-slate-800 dark:bg-slate-200' : 'bg-slate-300 dark:bg-slate-600'}`} />
-                <span>All</span>
+                <span>🌐 Both</span>
                 {report.channelStats && (
                   <span className={`ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
                     channelFilter === 'ALL'
@@ -1015,33 +1020,35 @@ export function LiveOpsTab({
 
         {/* Row 2: Operational Context & Segmented View Switcher */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {/* Discrete Context Chips */}
-          <div className="flex items-center gap-2 flex-wrap text-xs">
-            {/* Reference Snapshot Date */}
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-[#141414] text-slate-700 dark:text-slate-300 font-semibold border border-slate-200/60 dark:border-[#222222]">
-              <span>🗓️</span>
-              <span>{channelFilter === 'POS' ? 'Outlet Sales Date: ' : 'Operational snapshot: '}<strong className="text-slate-900 dark:text-white font-bold">{report.refDayName} ({report.referenceDate})</strong></span>
-            </span>
-
-            {/* 7-Day Baseline Pill */}
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-[#141414] text-slate-700 dark:text-slate-300 font-medium border border-slate-200/60 dark:border-[#222222]">
-              <span className="font-bold text-slate-900 dark:text-white">Baseline:</span>
-              <span>7-Day Daily Avg ({report.avg7dMetrics.items} pkgs/day, ৳{report.avg7dMetrics.revenue.toLocaleString()})</span>
-            </span>
-
-            {/* Sync Time */}
-            {lastSyncTime && (
-              <span className="text-[11px] text-slate-400 dark:text-slate-500 pl-1">
-                Synced at {lastSyncTime}
+          {/* Discrete Context Chips (Hidden in Outlet mode where retail sales are in-store without courier dispatches) */}
+          {channelFilter !== 'POS' && (
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              {/* Reference Snapshot Date */}
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-[#141414] text-slate-700 dark:text-slate-300 font-semibold border border-slate-200/60 dark:border-[#222222]">
+                <span>🗓️</span>
+                <span>Operational snapshot: <strong className="text-slate-900 dark:text-white font-bold">{report.refDayName} ({report.referenceDate})</strong></span>
               </span>
-            )}
 
-            {report.isFallbackDate && (
-              <span className="text-amber-600 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-lg border border-amber-200/80 dark:border-amber-800/60 text-[11px]">
-                (Displaying latest recorded dispatches)
+              {/* 7-Day Baseline Pill */}
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-[#141414] text-slate-700 dark:text-slate-300 font-medium border border-slate-200/60 dark:border-[#222222]">
+                <span className="font-bold text-slate-900 dark:text-white">Baseline:</span>
+                <span>7-Day Daily Avg ({report.avg7dMetrics.items} pkgs/day, ৳{report.avg7dMetrics.revenue.toLocaleString()})</span>
               </span>
-            )}
-          </div>
+
+              {/* Sync Time */}
+              {lastSyncTime && (
+                <span className="text-[11px] text-slate-400 dark:text-slate-500 pl-1">
+                  Synced at {lastSyncTime}
+                </span>
+              )}
+
+              {report.isFallbackDate && (
+                <span className="text-amber-600 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-lg border border-amber-200/80 dark:border-amber-800/60 text-[11px]">
+                  (Displaying latest recorded dispatches)
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Segmented View Mode Switcher OR Outlet Retail Branch Switcher */}
           {channelFilter === 'POS' ? (
@@ -2691,9 +2698,9 @@ export function LiveOpsTab({
             Order Channel:
           </span>
           {[
-            { id: 'ONLINE' as const, label: '🌐 Online Checkout', count: report.channelStats?.onlineCount },
+            { id: 'ONLINE' as const, label: '🛒 Ecommerce', count: report.channelStats?.onlineCount },
             { id: 'POS' as const, label: '🏬 Outlet', count: report.channelStats?.posCount },
-            { id: 'ALL' as const, label: '📦 All', count: report.channelStats?.totalCount },
+            { id: 'ALL' as const, label: '🌐 Both', count: report.channelStats?.totalCount },
           ].map((pill) => (
             <button
               key={pill.id}

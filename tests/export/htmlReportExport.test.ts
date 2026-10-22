@@ -314,6 +314,8 @@ describe('HTML Report Exporter (htmlReportExport)', () => {
         },
         isPos: false,
         isOnline: true,
+        isEcommerce: true,
+        isOutlet: false,
         orderSource: 'Online Checkout',
         primaryRow: report.activeOrders[0],
         rawRows: report.activeOrders,

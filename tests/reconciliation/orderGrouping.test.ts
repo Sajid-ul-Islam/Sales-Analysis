@@ -355,6 +355,71 @@ describe('Order-Wise Grouping & Filtering Engine', () => {
       const allChannels = filterOrderWiseGroups(groups, { channelFilter: 'ALL' });
       expect(allChannels).toHaveLength(5);
     });
+
+    it('excludes outlet orders whose payment method is ecom from OUTLET filter and includes them in ECOMMERCE filter without duplication in Ecommerce + Outlet', () => {
+      const mixedRows: Partial<RawOrderRow>[] = [
+        // 1. Genuine online checkout order
+        {
+          orderId: '2001',
+          'Order ID': '2001',
+          'Item Name': 'Ecommerce Regular Tee',
+          'Payment Method': 'cod',
+          Quantity: 1,
+          'Order Amount': 1200,
+        },
+        // 2. Genuine outlet in-store order (cash / register)
+        {
+          orderId: '2002 m',
+          'Order ID': '2002 m',
+          'Item Name': 'Mirpur Outlet Walk-in Pants',
+          outletId: '1',
+          'Payment Method': 'cash',
+          Quantity: 1,
+          'Order Amount': 2200,
+        },
+        // 3. Outlet order whose payment method is ecom (dispatched from outlet for ecom order)
+        {
+          orderId: '2003 m',
+          'Order ID': '2003 m',
+          'Item Name': 'Mirpur Outlet Ecom Dispatch Polo',
+          outletId: '1',
+          'Payment Method': 'ecom',
+          Quantity: 1,
+          'Order Amount': 1800,
+        },
+      ];
+
+      const groups = groupOrdersByOrderId(mixedRows as RawOrderRow[]);
+      expect(groups).toHaveLength(3);
+
+      const order2001 = groups.find((g) => g.orderId === '2001');
+      const order2002 = groups.find((g) => g.orderId === '2002 m');
+      const order2003 = groups.find((g) => g.orderId === '2003 m');
+
+      expect(order2001?.isEcommerce).toBe(true);
+      expect(order2001?.isOutlet).toBe(false);
+
+      expect(order2002?.isEcommerce).toBe(false);
+      expect(order2002?.isOutlet).toBe(true);
+
+      // Order 2003 m has paymentMethod: 'ecom' -> must be isEcommerce: false, isOutlet: false
+      // User rule: Outlet ecom dispatches are excluded from outlet (not a walk-in sale) and not included in ecom (already counted sold)
+      expect(order2003?.isEcommerce).toBe(false);
+      expect(order2003?.isOutlet).toBe(false);
+
+      // ECOMMERCE filter must ONLY include genuine web checkout order 2001 (excluding outlet ecom dispatch 2003 m)
+      const ecomOrders = filterOrderWiseGroups(groups, { channelFilter: 'ECOMMERCE' });
+      expect(ecomOrders.map((g) => g.orderId)).toEqual(['2001']);
+
+      // OUTLET filter must EXCLUDE 2003 m (ecom payment method) and ONLY contain genuine outlet order 2002 m
+      const outletOrders = filterOrderWiseGroups(groups, { channelFilter: 'OUTLET' });
+      expect(outletOrders.map((g) => g.orderId)).toEqual(['2002 m']);
+
+      // Ecommerce + Outlet (ALL / Both) contains genuine ecom + genuine outlet (2001, 2002 m), excluding 2003 m
+      const allOrders = filterOrderWiseGroups(groups, { channelFilter: 'ALL' });
+      expect(allOrders).toHaveLength(2);
+      expect(allOrders.map((g) => g.orderId)).toEqual(['2001', '2002 m']);
+    });
   });
 });
 

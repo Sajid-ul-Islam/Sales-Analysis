@@ -10,6 +10,7 @@ import { getCategoryForSales, getSubCategoryForSales, getShortSubCategoryLabel }
 import { classifyProductLine } from './selectsAnalytics';
 import {
   isOrderOnline,
+  isOrderOutlet,
   isOrderProcessing,
   isOrderOnHold,
   isOrderShipped,
@@ -64,6 +65,8 @@ export interface OrderWiseGroup {
   exchangeInfo: ExchangeInfo;
   isPos: boolean;
   isOnline: boolean;
+  isEcommerce?: boolean;
+  isOutlet?: boolean;
   orderSource?: string;
   orderNotes?: string;
   primaryRow: RawOrderRow;
@@ -76,7 +79,7 @@ export interface GroupOrdersFilterOptions {
   courierFilter?: string;
   pipelineFilter?: string;
   selectedView?: string;
-  channelFilter?: 'ALL' | 'ONLINE' | 'POS';
+  channelFilter?: 'ALL' | 'ONLINE' | 'POS' | 'ECOMMERCE' | 'OUTLET';
   posBranchFilter?: 'ALL' | 'MIRPUR' | 'WARI' | 'CUMILLA' | 'SYLHET';
 }
 
@@ -98,13 +101,16 @@ export function groupOrdersByOrderId(rows: RawOrderRow[]): OrderWiseGroup[] {
       const branch = detectFulfillmentBranch(row);
       const exInfo = extractExchangeInfo(row);
       const isOnline = isOrderOnline(row);
+      const isOutlet = isOrderOutlet(row);
 
       group = {
         orderId: rawOid,
         baseOrderId: baseOid,
-        isPos: !isOnline,
+        isPos: isOutlet,
         isOnline: isOnline,
-        orderSource: String(row['Order Source'] || (row as Record<string, unknown>).orderSource || (isOnline ? 'Online' : 'POS')),
+        isEcommerce: isOnline,
+        isOutlet: isOutlet,
+        orderSource: String(row['Order Source'] || (row as Record<string, unknown>).orderSource || (isOnline ? 'Online' : isOutlet ? 'POS' : 'Outlet Ecom Dispatch')),
         orderDate: String(row['Order Date'] || row.orderDate || row.date_created || ''),
         dateModified: String(row['Date Modified'] || row.dateModified || ''),
         customerName: String(getExportCustomerName(row) || row['Customer Name'] || row.customerName || 'Customer'),
@@ -236,12 +242,14 @@ export function filterOrderWiseGroups(
   const query = searchQuery.toLowerCase().trim();
 
   return groups.filter((group) => {
-    // Channel filter: Online Checkout vs POS Retail vs All
-    if (channelFilter === 'ONLINE' && !isOrderOnline(group.primaryRow)) return false;
-    if (channelFilter === 'POS') {
-      if (isOrderOnline(group.primaryRow)) return false;
-      if (posBranchFilter !== 'ALL' && group.branch.branchCode !== posBranchFilter) return false;
-    }
+    // Channel filter: Ecommerce vs Outlet vs All (Ecommerce + Outlet / Both)
+    const isEcom = channelFilter === 'ONLINE' || channelFilter === 'ECOMMERCE';
+    const isOut = channelFilter === 'POS' || channelFilter === 'OUTLET';
+
+    if (isEcom && !group.isEcommerce) return false;
+    if (isOut && !group.isOutlet) return false;
+    if (isOut && posBranchFilter !== 'ALL' && group.branch.branchCode !== posBranchFilter) return false;
+    if (!isEcom && !isOut && !group.isEcommerce && !group.isOutlet) return false;
 
     // Exchange view isolation
     if (courierFilter === 'EXCHANGES_ONLY') {

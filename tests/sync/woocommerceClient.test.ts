@@ -125,12 +125,20 @@ describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
       expect(res.isPos).toBe(true);
     });
 
-    it('identifies Online Branch Dispatch when metadata outlet ID has online payment (bKash/SSL)', () => {
+    it('identifies Online Branch Dispatch when metadata outlet ID has ecom payment method (sip_ecom)', () => {
       const meta = [{ key: '_sip_outlet_id', value: '2' }];
-      const res = detectBranchFromOrder({ payment_method: 'bkash', payment_method_title: 'bKash' }, meta, '17263');
+      const res = detectBranchFromOrder({ payment_method: 'sip_ecom', payment_method_title: 'Ecommerce Outlet Fulfillment' }, meta, '17263');
       expect(res.branchCode).toBe('CUMILLA');
       expect(res.fulfillmentBranch).toBe('Cumilla Branch');
       expect(res.isPos).toBe(false);
+    });
+
+    it('identifies in-store POS walk-in sale when customer pays with bKash QR or Card at outlet register', () => {
+      const meta = [{ key: '_sip_outlet_id', value: '2' }];
+      const res = detectBranchFromOrder({ payment_method: 'bkash', payment_method_title: 'bKash QR' }, meta, '17263');
+      expect(res.branchCode).toBe('CUMILLA');
+      expect(res.fulfillmentBranch).toBe('Cumilla Branch POS');
+      expect(res.isPos).toBe(true);
     });
 
     it('identifies Online Branch Dispatch when metadata outlet ID was created via web checkout', () => {

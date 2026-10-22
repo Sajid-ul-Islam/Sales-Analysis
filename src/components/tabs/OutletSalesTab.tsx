@@ -35,7 +35,7 @@ import { DateScope, CustomDateRange, parseOrderDate } from '@/lib/dateFilter';
 import { classifyProductCategory } from '@/lib/reconciliationEngine';
 import { cleanProductMainName, extractMasterSku } from './ExecutiveOverviewTab';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
-import { isOnlinePaymentMethod } from '@/lib/woocommerceClient';
+import { isEcomPaymentMethod } from '@/lib/woocommerceClient';
 
 interface OutletSalesTabProps {
   orders?: ReconciledOrderRow[];
@@ -182,9 +182,9 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
     const paymentMethod = String(rawOrder.payment_method || '').toLowerCase();
     const paymentTitle = String(rawOrder.payment_method_title || '').toLowerCase();
 
-    // User rule: If payment is marked as online/ecom, then exclude them
-    const isOnlinePayment = isOnlinePaymentMethod(paymentMethod, paymentTitle);
-    if (isOnlinePayment) {
+    // User rule: If payment is marked as ecom, then exclude them (these are ecommerce orders dispatched from outlet)
+    const isEcomPayment = isEcomPaymentMethod(paymentMethod, paymentTitle);
+    if (isEcomPayment) {
       return null;
     }
 
@@ -209,7 +209,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
     const isExplicitPos = sourceMeta?.value === 'pos' || 
                           Boolean(posDomainMeta?.value) || 
                           meta.some((m) => m.key === '_sip_pos_order') ||
-                          (paymentMethod.startsWith('sip_') && !isOnlinePayment) ||
+                          (paymentMethod.startsWith('sip_') && !isEcomPayment) ||
                           createdVia === 'pos' ||
                           Boolean(createdByMeta?.value);
 
@@ -323,8 +323,8 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
       const rowAny = r as unknown as Record<string, unknown>;
       const pMethod = String(rowAny.paymentMethod || rowAny['Payment Method'] || r.paymentMethod || '').toLowerCase();
       const pTitle = String(rowAny.paymentMethodTitle || rowAny['Payment Method Title'] || '').toLowerCase();
-      if (isOnlinePaymentMethod(pMethod, pTitle)) {
-        return; // Exclude online marked orders from Outlet POS Sales
+      if (isEcomPaymentMethod(pMethod, pTitle)) {
+        return; // Exclude ecom marked orders from Outlet POS Sales
       }
 
       // Exclude online orders dispatched from outlets (courier dispatches)
@@ -510,8 +510,8 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
         data.orders.forEach((r: RawOrderRow, idx: number) => {
           const pMethod = String(r['Payment Method'] || r.paymentMethod || '').toLowerCase();
           const pTitle = String((r as Record<string, unknown>).payment_method_title || '').toLowerCase();
-          if (isOnlinePaymentMethod(pMethod, pTitle)) {
-            return; // Exclude online marked orders from Outlet Sales
+          if (isEcomPaymentMethod(pMethod, pTitle)) {
+            return; // Exclude ecom marked orders from Outlet Sales
           }
           if (r.isPos === false || (r.isBranchFulfillment === true && !r.isPos)) {
             return; // Exclude online orders dispatched from outlets
