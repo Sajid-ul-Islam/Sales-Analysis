@@ -42,6 +42,8 @@ interface OutletSalesTabProps {
   orders?: ReconciledOrderRow[];
   summary?: SummaryAnalytics;
   onSelectOrder?: (orderId: string) => void;
+  dateScope?: DateScope;
+  customRange?: CustomDateRange;
 }
 
 export interface WcOrderRecord {
@@ -138,7 +140,11 @@ export function formatTimeAgo(timestamp: number): string {
   return `${diffDays}d ago`;
 }
 
-export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTabProps) {
+export function OutletSalesTab({
+  orders: reconciledOrders = [],
+  dateScope: propDateScope,
+  customRange: propCustomRange
+}: OutletSalesTabProps) {
   const [wcOrders, setWcOrders] = useState<WcOrderRecord[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [syncStatusMsg, setSyncStatusMsg] = useState<string>('');
@@ -165,9 +171,21 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
   const [itemCurrentPage, setItemCurrentPage] = useState<number>(1);
   const itemPageSize = 20;
 
-  // Local Date Range Filter state
-  const [dateScope, setDateScope] = useState<DateScope>('30d');
-  const [customRange, setCustomRange] = useState<CustomDateRange | undefined>(undefined);
+  // Local Date Range Filter state (synced with global selector if supplied)
+  const [dateScope, setDateScope] = useState<DateScope>(propDateScope || '30d');
+  const [customRange, setCustomRange] = useState<CustomDateRange | undefined>(propCustomRange);
+
+  useEffect(() => {
+    if (propDateScope) {
+      setDateScope(propDateScope);
+    }
+  }, [propDateScope]);
+
+  useEffect(() => {
+    if (propCustomRange !== undefined) {
+      setCustomRange(propCustomRange);
+    }
+  }, [propCustomRange]);
 
   // Resolve Outlet from WooCommerce Order:
   // Strictly matches retail POS branches (Mirpur, Wari, Cumilla, Sylhet).

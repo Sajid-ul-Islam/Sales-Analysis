@@ -104,7 +104,7 @@ export function CourierMismatchTab({
         {/* Card 1: Total Audited */}
         <div
           onClick={() => setSelectedFilter('ALL')}
-          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
             selectedFilter === 'ALL'
               ? 'border-primary ring-2 ring-primary/20 shadow-sm'
               : 'border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-slate-300 dark:hover:border-slate-700'
@@ -112,21 +112,26 @@ export function CourierMismatchTab({
           title="Click to view all audited returns & manifests"
         >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider">Total Audited</span>
-            <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider truncate">Total Audited</span>
+            <div className="flex items-center gap-1.5 shrink-0">
               <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-deepBlack-elevated flex items-center justify-center text-slate-700 dark:text-slate-300 shadow-2xs group-hover:scale-105 transition-transform">
                 <Filter className="w-4.5 h-4.5" />
               </div>
               <ArrowUpRight className={`w-4 h-4 transition-all ${selectedFilter === 'ALL' ? 'text-primary dark:text-orange-400' : 'text-slate-300 dark:text-slate-500 group-hover:text-primary dark:group-hover:text-orange-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-3">
-            <div className="font-headline font-black text-2xl sm:text-3xl xl:text-4xl text-navy-deep dark:text-white tracking-tight">{totalAudited}</div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 block">Returns & Partials Ingested</span>
+          <div className="my-2.5 sm:my-3 min-w-0">
+            <div
+              className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-navy-deep dark:text-white tracking-tight truncate block"
+              title={String(totalAudited)}
+            >
+              {totalAudited}
+            </div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 block truncate">Returns & Partials Ingested</span>
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between">
-            <span>From Uploaded Excel</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${selectedFilter === 'ALL' ? 'bg-primary/10 text-primary dark:text-orange-400' : 'text-slate-400 dark:text-slate-500'}`}>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-2.5 border-t border-slate-100 dark:border-deepBlack-border flex flex-wrap items-center justify-between gap-1 min-w-0">
+            <span className="truncate">From Uploaded Excel</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${selectedFilter === 'ALL' ? 'bg-primary/10 text-primary dark:text-orange-400' : 'text-slate-400 dark:text-slate-500'}`}>
               {selectedFilter === 'ALL' ? 'Active Filter' : 'Click to view'}
             </span>
           </div>
@@ -136,7 +141,7 @@ export function CourierMismatchTab({
         {/* Card 2: Reconciled Matches */}
         <div
           onClick={() => setSelectedFilter('MATCH')}
-          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 ${
+          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 ${
             selectedFilter === 'MATCH'
               ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm'
               : 'border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-emerald-300 dark:hover:border-emerald-500/50'
@@ -144,21 +149,26 @@ export function CourierMismatchTab({
           title="Click to filter by Reconciled OK orders"
         >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-bold tracking-wider">Reconciled OK</span>
-            <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-bold tracking-wider truncate">Reconciled OK</span>
+            <div className="flex items-center gap-1.5 shrink-0">
               <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-2xs group-hover:scale-105 transition-transform">
                 <CheckCircle2 className="w-4.5 h-4.5" />
               </div>
               <ArrowUpRight className={`w-4 h-4 transition-all ${selectedFilter === 'MATCH' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-300 dark:text-slate-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-3">
-            <div className="font-headline font-black text-2xl sm:text-3xl xl:text-4xl text-emerald-600 dark:text-emerald-400 tracking-tight">{reconciledCount}</div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 block">Confirmed by Pathao</span>
+          <div className="my-2.5 sm:my-3 min-w-0">
+            <div
+              className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-emerald-600 dark:text-emerald-400 tracking-tight truncate block"
+              title={String(reconciledCount)}
+            >
+              {reconciledCount}
+            </div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 block truncate">Confirmed by Pathao</span>
           </div>
-          <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between">
-            <span>{totalAudited > 0 ? ((reconciledCount / totalAudited) * 100).toFixed(1) : 0}% Sync Rate</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${selectedFilter === 'MATCH' ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300' : 'text-emerald-600 dark:text-emerald-400'}`}>
+          <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold pt-2.5 border-t border-slate-100 dark:border-deepBlack-border flex flex-wrap items-center justify-between gap-1 min-w-0">
+            <span className="truncate">{totalAudited > 0 ? ((reconciledCount / totalAudited) * 100).toFixed(1) : 0}% Sync Rate</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${selectedFilter === 'MATCH' ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300' : 'text-emerald-600 dark:text-emerald-400'}`}>
               {selectedFilter === 'MATCH' ? 'Active Filter' : 'Verified'}
             </span>
           </div>
@@ -168,7 +178,7 @@ export function CourierMismatchTab({
         {/* Card 3: Critical Status Mismatches */}
         <div
           onClick={() => setSelectedFilter('CRITICAL')}
-          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40 ${
+          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40 ${
             selectedFilter === 'CRITICAL'
               ? 'border-rose-500 ring-2 ring-rose-500/20 shadow-sm bg-rose-50/30 dark:bg-rose-950/30'
               : 'border-rose-200/90 dark:border-rose-900/40 shadow-xs hover:border-rose-400 dark:hover:border-rose-500/50 bg-rose-50/15 dark:bg-rose-950/15'
@@ -176,21 +186,26 @@ export function CourierMismatchTab({
           title="Click to filter by Critical Status Mismatches"
         >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] text-rose-600 dark:text-rose-400 uppercase font-bold tracking-wider">Critical Mismatches</span>
-            <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-rose-600 dark:text-rose-400 uppercase font-bold tracking-wider truncate">Critical Mismatches</span>
+            <div className="flex items-center gap-1.5 shrink-0">
               <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-950/60 flex items-center justify-center text-rose-600 dark:text-rose-400 shadow-2xs group-hover:scale-105 transition-transform">
                 <XCircle className="w-4.5 h-4.5" />
               </div>
               <ArrowUpRight className={`w-4 h-4 transition-all ${selectedFilter === 'CRITICAL' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-300 dark:text-slate-500 group-hover:text-rose-600 dark:group-hover:text-rose-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-3">
-            <div className="font-headline font-black text-2xl sm:text-3xl xl:text-4xl text-rose-600 dark:text-rose-400 tracking-tight">{criticalCount}</div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 block">Return vs Courier Delivered</span>
+          <div className="my-2.5 sm:my-3 min-w-0">
+            <div
+              className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-rose-600 dark:text-rose-400 tracking-tight truncate block"
+              title={String(criticalCount)}
+            >
+              {criticalCount}
+            </div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 block truncate">Return vs Courier Delivered</span>
           </div>
-          <div className="text-[11px] text-rose-600 dark:text-rose-400 font-bold pt-3 border-t border-rose-100 dark:border-rose-950/50 flex items-center justify-between">
-            <span>Potential COD Leakage</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${selectedFilter === 'CRITICAL' ? 'bg-rose-200 dark:bg-rose-900/50 text-rose-800 dark:text-rose-200' : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300'}`}>
+          <div className="text-[11px] text-rose-600 dark:text-rose-400 font-bold pt-2.5 border-t border-rose-100 dark:border-rose-950/50 flex flex-wrap items-center justify-between gap-1 min-w-0">
+            <span className="truncate">Potential COD Leakage</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${selectedFilter === 'CRITICAL' ? 'bg-rose-200 dark:bg-rose-900/50 text-rose-800 dark:text-rose-200' : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300'}`}>
               High Risk
             </span>
           </div>
@@ -200,7 +215,7 @@ export function CourierMismatchTab({
         {/* Card 4: Missing in Pathao */}
         <div
           onClick={() => setSelectedFilter('MISSING')}
-          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 ${
+          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 ${
             selectedFilter === 'MISSING'
               ? 'border-amber-500 ring-2 ring-amber-500/20 shadow-sm bg-amber-50/30 dark:bg-amber-950/30'
               : 'border-amber-200/90 dark:border-amber-900/40 shadow-xs hover:border-amber-400 dark:hover:border-amber-500/50 bg-amber-50/15 dark:bg-amber-950/15'
@@ -208,21 +223,26 @@ export function CourierMismatchTab({
           title="Click to filter by Missing Consignments"
         >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] text-amber-600 dark:text-amber-400 uppercase font-bold tracking-wider">Missing in Courier</span>
-            <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-amber-600 dark:text-amber-400 uppercase font-bold tracking-wider truncate">Missing in Courier</span>
+            <div className="flex items-center gap-1.5 shrink-0">
               <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-2xs group-hover:scale-105 transition-transform">
                 <AlertTriangle className="w-4.5 h-4.5" />
               </div>
               <ArrowUpRight className={`w-4 h-4 transition-all ${selectedFilter === 'MISSING' ? 'text-amber-600 dark:text-amber-400' : 'text-slate-300 dark:text-slate-500 group-hover:text-amber-600 dark:group-hover:text-amber-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-3">
-            <div className="font-headline font-black text-2xl sm:text-3xl xl:text-4xl text-amber-600 dark:text-amber-400 tracking-tight">{missingCount}</div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 block">No Consignment in Manifest</span>
+          <div className="my-2.5 sm:my-3 min-w-0">
+            <div
+              className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-amber-600 dark:text-amber-400 tracking-tight truncate block"
+              title={String(missingCount)}
+            >
+              {missingCount}
+            </div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 block truncate">No Consignment in Manifest</span>
           </div>
-          <div className="text-[11px] text-amber-700 dark:text-amber-400 font-bold pt-3 border-t border-amber-100 dark:border-amber-950/50 flex items-center justify-between">
-            <span>Check Alternate Couriers</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${selectedFilter === 'MISSING' ? 'bg-amber-200 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'}`}>
+          <div className="text-[11px] text-amber-700 dark:text-amber-400 font-bold pt-2.5 border-t border-amber-100 dark:border-amber-950/50 flex flex-wrap items-center justify-between gap-1 min-w-0">
+            <span className="truncate">Check Alternate Couriers</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${selectedFilter === 'MISSING' ? 'bg-amber-200 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'}`}>
               Investigate
             </span>
           </div>
@@ -232,7 +252,7 @@ export function CourierMismatchTab({
         {/* Card 5: Partial / Amount Warnings */}
         <div
           onClick={() => setSelectedFilter('WARNING')}
-          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 ${
+          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 ${
             selectedFilter === 'WARNING'
               ? 'border-indigo-500 ring-2 ring-indigo-500/20 shadow-sm'
               : 'border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-indigo-300 dark:hover:border-indigo-500/50'
@@ -240,21 +260,26 @@ export function CourierMismatchTab({
           title="Click to filter by RTS / Partial Warnings"
         >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Other Warnings</span>
-            <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider truncate">Other Warnings</span>
+            <div className="flex items-center gap-1.5 shrink-0">
               <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-deepBlack-elevated flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-2xs group-hover:scale-105 transition-transform">
                 <HelpCircle className="w-4.5 h-4.5" />
               </div>
               <ArrowUpRight className={`w-4 h-4 transition-all ${selectedFilter === 'WARNING' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-300 dark:text-slate-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-3">
-            <div className="font-headline font-black text-2xl sm:text-3xl xl:text-4xl text-navy-deep dark:text-white tracking-tight">{Math.max(0, warningCount - missingCount)}</div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 block">Partial vs RTS Discrepancies</span>
+          <div className="my-2.5 sm:my-3 min-w-0">
+            <div
+              className="font-headline font-black text-xl sm:text-2xl xl:text-3xl text-navy-deep dark:text-white tracking-tight truncate block"
+              title={String(Math.max(0, warningCount - missingCount))}
+            >
+              {Math.max(0, warningCount - missingCount)}
+            </div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 block truncate">Partial vs RTS Discrepancies</span>
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between">
-            <span>Requires Hub Verification</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${selectedFilter === 'WARNING' ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300' : 'text-slate-400 dark:text-slate-500'}`}>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-2.5 border-t border-slate-100 dark:border-deepBlack-border flex flex-wrap items-center justify-between gap-1 min-w-0">
+            <span className="truncate">Requires Hub Verification</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${selectedFilter === 'WARNING' ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300' : 'text-slate-400 dark:text-slate-500'}`}>
               Discrepancy
             </span>
           </div>

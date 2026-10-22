@@ -173,14 +173,14 @@ export function DateRangeSelector({
       >
         <div className="flex items-center gap-1.5 min-w-0">
           <Calendar
-            className={`w-5 h-5 sm:w-3.5 sm:h-3.5 shrink-0 ${isNonDefault ? 'text-primary' : 'text-slate-400'}`}
+            className={`w-4 h-4 sm:w-3.5 sm:h-3.5 shrink-0 ${isNonDefault ? 'text-primary' : 'text-slate-400'}`}
           />
-          <span className="hidden sm:inline font-bold truncate max-w-[140px] md:max-w-[200px]">
+          <span className="font-bold truncate max-w-[105px] xs:max-w-[130px] sm:max-w-[160px] md:max-w-[200px]">
             {activeLabel}
           </span>
           {activeCount !== undefined && (
             <span
-              className={`hidden sm:inline px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold shrink-0 ${
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold shrink-0 ${
                 isNonDefault
                   ? 'bg-primary text-white'
                   : 'bg-slate-100 dark:bg-[#1A1A1A] text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-[#222222]'
@@ -191,23 +191,18 @@ export function DateRangeSelector({
           )}
         </div>
 
-        {/* Mobile Filter Indicator Dot */}
-        {isNonDefault && (
-          <span className="sm:hidden absolute bottom-1.5 w-1 h-1 rounded-full bg-[#EB5A19]" />
-        )}
-
-        {/* Clear filter icon if non-default on desktop */}
+        {/* Clear filter icon if non-default */}
         {isNonDefault ? (
           <span
             onClick={handleResetToDefault}
-            className="hidden sm:inline p-0.5 rounded-md hover:bg-orange-200/60 dark:hover:bg-orange-900/60 text-slate-400 hover:text-rose-600 transition-colors"
+            className="p-0.5 rounded-md hover:bg-orange-200/60 dark:hover:bg-orange-900/60 text-slate-400 hover:text-rose-600 transition-colors shrink-0 ml-0.5"
             title="Reset date filter to default (Last 30 Days)"
           >
             <X className="w-3.5 h-3.5" />
           </span>
         ) : (
           <ChevronDown
-            className={`hidden sm:inline w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${
+            className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ml-0.5 ${
               isOpen ? 'rotate-180 text-primary' : ''
             }`}
           />

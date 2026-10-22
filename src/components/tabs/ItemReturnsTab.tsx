@@ -67,33 +67,33 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
         {/* Card 1: Total Returned Quantity (Combined) */}
         <div
           onClick={() => setTypeFilter('ALL')}
-          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+          className={`kpi-card bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group min-w-0 ${
             typeFilter === 'ALL'
               ? 'border-rose-500 ring-2 ring-rose-500/20 shadow-sm bg-rose-50/20 dark:bg-rose-950/20'
               : 'border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-rose-300'
           }`}
           title="Click to view all returned units"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-black text-rose-800 dark:text-rose-400 uppercase tracking-wider">Total Returned Quantity</span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-950/50 flex items-center justify-center text-rose-600 dark:text-rose-400 shadow-2xs group-hover:scale-105 transition-transform">
-                <RotateCcw className="w-4.5 h-4.5" />
+          <div className="flex items-center justify-between mb-3 min-w-0">
+            <span className="text-[10px] font-black text-rose-800 dark:text-rose-400 uppercase tracking-wider truncate">Total Returned Quantity</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-rose-100 dark:bg-rose-950/50 flex items-center justify-center text-rose-600 dark:text-rose-400 shadow-2xs group-hover:scale-105 transition-transform">
+                <RotateCcw className="w-4 h-4" />
               </div>
               <ArrowUpRight className={`w-4 h-4 transition-all ${typeFilter === 'ALL' ? 'text-rose-600' : 'text-slate-300 group-hover:text-rose-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-slate-900 dark:text-white font-headline tracking-tight">
+          <div className="my-2.5 min-w-0">
+            <div className="text-xl sm:text-2xl xl:text-3xl font-black text-slate-900 dark:text-white font-headline tracking-tight truncate block" title={`${Math.round(totalUnits).toLocaleString()} units`}>
               {Math.round(totalUnits).toLocaleString()} <span className="text-sm font-bold text-rose-600 dark:text-rose-400">units</span>
             </div>
-            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium block mt-1">
+            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium block mt-1 truncate">
               <strong className="text-slate-800 dark:text-slate-200">{Math.round(fullUnits).toLocaleString()}</strong> Regular + <strong className="text-amber-700 dark:text-amber-400">{Math.round(partialUnits).toLocaleString()}</strong> Partial Qty
             </span>
           </div>
-          <div className="text-[11px] text-rose-700 dark:text-rose-400 font-semibold pt-3 border-t border-rose-100 dark:border-rose-900/40 flex items-center justify-between">
-            <span>Combined Total Qty</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeFilter === 'ALL' ? 'bg-rose-200 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200' : 'bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300'}`}>
+          <div className="text-[11px] text-rose-700 dark:text-rose-400 font-semibold pt-3 border-t border-rose-100 dark:border-rose-900/40 flex items-center justify-between gap-1 flex-wrap min-w-0">
+            <span className="truncate">Combined Total Qty</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${typeFilter === 'ALL' ? 'bg-rose-200 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200' : 'bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300'}`}>
               {typeFilter === 'ALL' ? 'Active' : 'All Qty'}
             </span>
           </div>
@@ -103,33 +103,33 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
         {/* Card 2: Total Returned Orders */}
         <div
           onClick={() => setTypeFilter('FULL')}
-          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+          className={`kpi-card bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group min-w-0 ${
             typeFilter === 'FULL'
               ? 'border-indigo-600 ring-2 ring-indigo-600/20 shadow-sm dark:bg-indigo-950/20'
               : 'border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-indigo-300'
           }`}
           title="Click to filter by 100% Returned-to-Origin (RTO) orders"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Returned Orders</span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-2xs group-hover:scale-105 transition-transform">
-                <Layers className="w-4.5 h-4.5" />
+          <div className="flex items-center justify-between mb-3 min-w-0">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">Total Returned Orders</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-2xs group-hover:scale-105 transition-transform">
+                <Layers className="w-4 h-4" />
               </div>
               <ArrowUpRight className={`w-4 h-4 transition-all ${typeFilter === 'FULL' ? 'text-indigo-600' : 'text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-slate-900 dark:text-white font-headline tracking-tight">
+          <div className="my-2.5 min-w-0">
+            <div className="text-xl sm:text-2xl xl:text-3xl font-black text-slate-900 dark:text-white font-headline tracking-tight truncate block" title={`${fullOrdersCount.toLocaleString()} orders`}>
               {fullOrdersCount.toLocaleString()} <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">orders</span>
             </div>
-            <span className="text-xs text-slate-500 dark:text-slate-400 block mt-1 font-medium">
+            <span className="text-xs text-slate-500 dark:text-slate-400 block mt-1 font-medium truncate">
               {fullCount.toLocaleString()} Line Items ({Math.round(fullUnits).toLocaleString()} Qty)
             </span>
           </div>
-          <div className="text-[11px] text-slate-400 dark:text-slate-500 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between">
-            <span>100% RTO Parcels</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeFilter === 'FULL' ? 'bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200' : 'text-slate-400 dark:text-slate-500'}`}>
+          <div className="text-[11px] text-slate-400 dark:text-slate-500 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between gap-1 flex-wrap min-w-0">
+            <span className="truncate">100% RTO Parcels</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${typeFilter === 'FULL' ? 'bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200' : 'text-slate-400 dark:text-slate-500'}`}>
               {typeFilter === 'FULL' ? 'Active Filter' : 'Full RTO'}
             </span>
           </div>
@@ -139,33 +139,33 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
         {/* Card 3: Total Partial Products */}
         <div
           onClick={() => setTypeFilter('PARTIAL')}
-          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+          className={`kpi-card bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group min-w-0 ${
             typeFilter === 'PARTIAL'
               ? 'border-amber-500 ring-2 ring-amber-500/20 shadow-sm bg-amber-50/20 dark:bg-amber-950/20'
               : 'border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-amber-300'
           }`}
           title="Click to filter by Rejected Items from Partial Deliveries"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">Total Partial Products</span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-2xs group-hover:scale-105 transition-transform">
-                <Split className="w-4.5 h-4.5" />
+          <div className="flex items-center justify-between mb-3 min-w-0">
+            <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider truncate">Total Partial Products</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-2xs group-hover:scale-105 transition-transform">
+                <Split className="w-4 h-4" />
               </div>
               <ArrowUpRight className={`w-4 h-4 transition-all ${typeFilter === 'PARTIAL' ? 'text-amber-600' : 'text-slate-300 group-hover:text-amber-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-amber-600 dark:text-amber-400 font-headline tracking-tight">
+          <div className="my-2.5 min-w-0">
+            <div className="text-xl sm:text-2xl xl:text-3xl font-black text-amber-600 dark:text-amber-400 font-headline tracking-tight truncate block" title={`${partialCount.toLocaleString()} products`}>
               {partialCount.toLocaleString()} <span className="text-sm font-bold text-amber-700 dark:text-amber-300">products</span>
             </div>
-            <span className="text-xs text-slate-600 dark:text-slate-400 block mt-1 font-medium">
+            <span className="text-xs text-slate-600 dark:text-slate-400 block mt-1 font-medium truncate">
               Across {partialOrdersCount.toLocaleString()} Orders ({Math.round(partialUnits).toLocaleString()} Qty rejected)
             </span>
           </div>
-          <div className="text-[11px] text-amber-700 dark:text-amber-400 pt-3 border-t border-amber-100 dark:border-amber-900/40 flex items-center justify-between font-semibold">
-            <span>Rejected Item Splits</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeFilter === 'PARTIAL' ? 'bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200' : 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300'}`}>
+          <div className="text-[11px] text-amber-700 dark:text-amber-400 pt-3 border-t border-amber-100 dark:border-amber-900/40 flex items-center justify-between font-semibold gap-1 flex-wrap min-w-0">
+            <span className="truncate">Rejected Item Splits</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${typeFilter === 'PARTIAL' ? 'bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200' : 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300'}`}>
               {typeFilter === 'PARTIAL' ? 'Active Filter' : 'Partials'}
             </span>
           </div>
@@ -175,25 +175,25 @@ export function ItemReturnsTab({ returnedItems }: ItemReturnsTabProps) {
         {/* Card 4: Returned Merchandise Value */}
         <div
           onClick={() => setTypeFilter('ALL')}
-          className="bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all flex flex-col justify-between cursor-pointer relative overflow-hidden group"
+          className="kpi-card bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all flex flex-col justify-between cursor-pointer relative overflow-hidden group min-w-0"
           title="Total displaced merchandise value"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Returned Inventory Value</span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-2xs group-hover:scale-105 transition-transform">
-                <Tag className="w-4.5 h-4.5" />
+          <div className="flex items-center justify-between mb-3 min-w-0">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">Returned Inventory Value</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-2xs group-hover:scale-105 transition-transform">
+                <Tag className="w-4 h-4" />
               </div>
               <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
           </div>
-          <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-slate-900 dark:text-white font-headline tracking-tight">৳ {Math.round(totalValue).toLocaleString()}</div>
-            <span className="text-xs text-slate-500 dark:text-slate-400 block mt-1">Displaced Retail Inventory Value</span>
+          <div className="my-2.5 min-w-0">
+            <div className="text-xl sm:text-2xl xl:text-3xl font-black text-slate-900 dark:text-white font-headline tracking-tight truncate block" title={`৳ ${Math.round(totalValue).toLocaleString()}`}>৳ {Math.round(totalValue).toLocaleString()}</div>
+            <span className="text-xs text-slate-500 dark:text-slate-400 block mt-1 truncate">Displaced Retail Inventory Value</span>
           </div>
-          <div className="text-[11px] text-slate-400 dark:text-slate-500 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between">
-            <span>Unrealized Gross Revenue</span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-300">
+          <div className="text-[11px] text-slate-400 dark:text-slate-500 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between gap-1 flex-wrap min-w-0">
+            <span className="truncate">Unrealized Gross Revenue</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-300 shrink-0">
               Merchandise
             </span>
           </div>

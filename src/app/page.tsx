@@ -1013,15 +1013,15 @@ export default function DashboardPage() {
 
           {/* Unified Date Range Sub-Header Context Bar — Option B */}
           {result && !initialLoading && activeTab !== 'tabSettings' && activeTab !== 'tabLiveOps' && (
-            <div className="sticky top-16 z-20 bg-white/95 dark:bg-[#0A0A0A]/95 backdrop-blur-md rounded-2xl p-2.5 sm:px-4 sm:py-3 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-wrap items-center justify-between gap-3 transition-colors">
+            <div className="sticky top-16 z-20 bg-white/95 dark:bg-[#0A0A0A]/95 backdrop-blur-md rounded-2xl p-2 sm:p-2.5 md:px-4 md:py-3 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-wrap items-center justify-between gap-2 sm:gap-3 transition-colors">
               {/* Left: Icon, Label, Dropdown & Reset */}
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0">
-                <div className="flex items-center gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 min-w-0">
+                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                   <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-800/40 flex items-center justify-center shrink-0 text-primary">
                     <Calendar className="w-4 h-4" />
                   </div>
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 hidden sm:inline shrink-0">
-                    Active Period:
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 shrink-0">
+                    Period:
                   </span>
                 </div>
 
@@ -1046,32 +1046,32 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => handleDateScopeChange('30d')}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary bg-slate-100 hover:bg-orange-50 dark:bg-[#171717] dark:hover:bg-orange-950/30 rounded-xl transition-colors border border-transparent hover:border-orange-200 dark:hover:border-orange-900/40 cursor-pointer shrink-0"
+                    className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary bg-slate-100 hover:bg-orange-50 dark:bg-[#171717] dark:hover:bg-orange-950/30 rounded-xl transition-colors border border-transparent hover:border-orange-200 dark:hover:border-orange-900/40 cursor-pointer shrink-0"
                     title="Reset date range to default (Last 30 Days)"
                   >
                     <RotateCcw className="w-3 h-3 text-slate-400 dark:text-slate-500" />
-                    <span>Reset (30D)</span>
+                    <span>Reset</span>
                   </button>
                 )}
               </div>
 
               {/* Right: Quick telemetry chips & Comparison buttons */}
-              <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
-                <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#121212] border border-slate-200/80 dark:border-[#1F1F1F] text-xs font-medium text-slate-600 dark:text-slate-400">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 shrink-0">
+                <div className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#121212] border border-slate-200/80 dark:border-[#1F1F1F] text-xs font-medium text-slate-600 dark:text-slate-400 shrink-0">
                   <span>Orders:</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-white">
                     {(dateFilterResult.matchedOrders ?? result.reconciledOrders.length).toLocaleString()}
                   </span>
                 </div>
 
-                <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#121212] border border-slate-200/80 dark:border-[#1F1F1F] text-xs font-medium text-slate-600 dark:text-slate-400">
+                <div className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#121212] border border-slate-200/80 dark:border-[#1F1F1F] text-xs font-medium text-slate-600 dark:text-slate-400 shrink-0">
                   <span>Delivered:</span>
                   <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
                     ৳{Math.round(result.summary.netDeliveredRevenue || result.summary.grossRevenue || 0).toLocaleString()}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     type="button"
                     onClick={() => {
@@ -1141,7 +1141,7 @@ export default function DashboardPage() {
               setMetaAdCost={setMetaAdCost}
               onRefreshReconciliation={() => {
                 computeReconciliation(
-                  rawOrders,
+                  dateFilterResult.filteredOrders,
                   rawReturns,
                   rawPartials,
                   excludeAugust,
@@ -1264,6 +1264,8 @@ export default function DashboardPage() {
                     orders={result.reconciledOrders}
                     summary={result.summary}
                     onSelectOrder={() => setActiveTab('tabOrders')}
+                    dateScope={dateScope}
+                    customRange={customDateRange}
                   />
                 )}
                 {activeTab === 'tabCourierMismatch' && (
@@ -1285,7 +1287,7 @@ export default function DashboardPage() {
                         }
                         if (data && data.success && data.orders) {
                           setRawReturns(data.orders);
-                          computeReconciliation(rawOrders, data.orders, rawPartials, excludeAugust, excludePOS, rawExchanges);
+                          computeReconciliation(dateFilterResult.filteredOrders, data.orders, rawPartials, excludeAugust, excludePOS, rawExchanges);
                           setStatusMessage(`Pathao cross-check complete: reconciled with ${data.orders.length} courier records.`);
                         } else {
                           setStatusMessage(data?.message || 'Pathao cross-check completed with cached consignments.');

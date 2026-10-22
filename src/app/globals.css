@@ -78,6 +78,25 @@
 }
 
 /* ==========================================================================
+   FLUID RESPONSIVE KPI CARD CONTAINER QUERIES
+   Guarantees zero overlap, zero text collision, and zero clipping across
+   ultrawide, desktop, laptop, tablet, and mobile split screens.
+   ========================================================================== */
+.kpi-card {
+  container-type: inline-size;
+}
+
+@container (max-width: 220px) {
+  .kpi-donut-micro-metrics {
+    display: none !important;
+  }
+  .kpi-metric-number {
+    font-size: 1.35rem !important;
+    line-height: 1.25 !important;
+  }
+}
+
+/* ==========================================================================
    LAYERED OLED DARK THEME ARCHITECTURE
    Canvas: Pure pitch black (#000000)
    Cards & Primary Panels: Deep Black Card (#0A0A0A)

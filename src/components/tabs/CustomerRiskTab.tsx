@@ -41,29 +41,29 @@ export function CustomerRiskTab({ profiles }: CustomerRiskTabProps) {
         {/* Total Customers */}
         <div
           onClick={() => setRiskFilter('ALL')}
-          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+          className={`kpi-card bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group min-w-0 ${
             riskFilter === 'ALL'
               ? 'border-primary ring-2 ring-primary/20 shadow-sm'
               : 'border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-slate-300 dark:hover:border-slate-700'
           }`}
           title="Click to view all audited buyer profiles"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Audited Buyer Profiles</span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-deepBlack-sidebar flex items-center justify-center text-primary shadow-2xs group-hover:scale-105 transition-transform">
-                <CheckCircle2 className="w-4.5 h-4.5 text-primary" />
+          <div className="flex items-center justify-between mb-3 min-w-0">
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider truncate">Audited Buyer Profiles</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-100 dark:bg-deepBlack-sidebar flex items-center justify-center text-primary shadow-2xs group-hover:scale-105 transition-transform">
+                <CheckCircle2 className="w-4 h-4 text-primary" />
               </div>
               <ArrowUpRight className={`w-4 h-4 transition-all ${riskFilter === 'ALL' ? 'text-primary' : 'text-slate-300 group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-slate-900 dark:text-white font-headline tracking-tight">{profiles.length.toLocaleString()}</div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mt-1">Aggregated by Buyer Phone</span>
+          <div className="my-2.5 min-w-0">
+            <div className="text-xl sm:text-2xl xl:text-3xl font-black text-slate-900 dark:text-white font-headline tracking-tight truncate block" title={profiles.length.toLocaleString()}>{profiles.length.toLocaleString()}</div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mt-1 truncate">Aggregated by Buyer Phone</span>
           </div>
-          <div className="text-[11px] text-slate-400 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between">
-            <span>E-Commerce CRM</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${riskFilter === 'ALL' ? 'bg-primary/10 text-primary' : 'text-slate-400'}`}>
+          <div className="text-[11px] text-slate-400 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between gap-1 flex-wrap min-w-0">
+            <span className="truncate">E-Commerce CRM</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${riskFilter === 'ALL' ? 'bg-primary/10 text-primary' : 'text-slate-400'}`}>
               {riskFilter === 'ALL' ? 'All Profiles' : 'Click to view'}
             </span>
           </div>
@@ -73,29 +73,29 @@ export function CustomerRiskTab({ profiles }: CustomerRiskTabProps) {
         {/* High Risk Tier */}
         <div
           onClick={() => setRiskFilter('HIGH_RISK')}
-          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+          className={`kpi-card bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group min-w-0 ${
             riskFilter === 'HIGH_RISK'
               ? 'border-rose-500 ring-2 ring-rose-500/20 shadow-sm bg-rose-50/20 dark:bg-rose-950/20'
               : 'border-rose-200/90 dark:border-rose-900/40 shadow-xs hover:border-rose-400 bg-rose-50/10 dark:bg-rose-950/10'
           }`}
           title="Click to filter by High Risk buyers (>50% RTO)"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wider">High Risk (&gt;50% RTO)</span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-950/50 flex items-center justify-center text-rose-600 dark:text-rose-400 shadow-2xs group-hover:scale-105 transition-transform">
-                <ShieldAlert className="w-4.5 h-4.5" />
+          <div className="flex items-center justify-between mb-3 min-w-0">
+            <span className="text-[10px] font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wider truncate">High Risk (&gt;50% RTO)</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-rose-100 dark:bg-rose-950/50 flex items-center justify-center text-rose-600 dark:text-rose-400 shadow-2xs group-hover:scale-105 transition-transform">
+                <ShieldAlert className="w-4 h-4" />
               </div>
               <ArrowUpRight className={`w-4 h-4 transition-all ${riskFilter === 'HIGH_RISK' ? 'text-rose-600' : 'text-slate-300 group-hover:text-rose-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-rose-600 font-headline tracking-tight">{highRiskCount.toLocaleString()}</div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mt-1">Chronic Return Suspects</span>
+          <div className="my-2.5 min-w-0">
+            <div className="text-xl sm:text-2xl xl:text-3xl font-black text-rose-600 font-headline tracking-tight truncate block" title={highRiskCount.toLocaleString()}>{highRiskCount.toLocaleString()}</div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mt-1 truncate">Chronic Return Suspects</span>
           </div>
-          <div className="text-[11px] text-rose-700 dark:text-rose-400 pt-3 border-t border-rose-100 dark:border-rose-900/40 flex items-center justify-between font-semibold">
-            <span>Mandate ৳150 Advance</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${riskFilter === 'HIGH_RISK' ? 'bg-rose-200 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200' : 'bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300'}`}>
+          <div className="text-[11px] text-rose-700 dark:text-rose-400 pt-3 border-t border-rose-100 dark:border-rose-900/40 flex items-center justify-between font-semibold gap-1 flex-wrap min-w-0">
+            <span className="truncate">Mandate ৳150 Advance</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${riskFilter === 'HIGH_RISK' ? 'bg-rose-200 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200' : 'bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300'}`}>
               High Risk
             </span>
           </div>
@@ -105,29 +105,29 @@ export function CustomerRiskTab({ profiles }: CustomerRiskTabProps) {
         {/* Medium Risk */}
         <div
           onClick={() => setRiskFilter('MEDIUM')}
-          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+          className={`kpi-card bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group min-w-0 ${
             riskFilter === 'MEDIUM'
               ? 'border-amber-500 ring-2 ring-amber-500/20 shadow-sm bg-amber-50/20 dark:bg-amber-950/20'
               : 'border-amber-200/90 dark:border-amber-900/40 shadow-xs hover:border-amber-400 bg-amber-50/10 dark:bg-amber-950/10'
           }`}
           title="Click to filter by Medium Risk buyers (25-50% RTO)"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">Medium Risk (25-50% RTO)</span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-2xs group-hover:scale-105 transition-transform">
-                <AlertTriangle className="w-4.5 h-4.5" />
+          <div className="flex items-center justify-between mb-3 min-w-0">
+            <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider truncate">Medium Risk (25-50% RTO)</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-2xs group-hover:scale-105 transition-transform">
+                <AlertTriangle className="w-4 h-4" />
               </div>
               <ArrowUpRight className={`w-4 h-4 transition-all ${riskFilter === 'MEDIUM' ? 'text-amber-600' : 'text-slate-300 group-hover:text-amber-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-amber-600 font-headline tracking-tight">{mediumRiskCount.toLocaleString()}</div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mt-1">Frequent Partial/Return Buyers</span>
+          <div className="my-2.5 min-w-0">
+            <div className="text-xl sm:text-2xl xl:text-3xl font-black text-amber-600 font-headline tracking-tight truncate block" title={mediumRiskCount.toLocaleString()}>{mediumRiskCount.toLocaleString()}</div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mt-1 truncate">Frequent Partial/Return Buyers</span>
           </div>
-          <div className="text-[11px] text-amber-700 dark:text-amber-400 pt-3 border-t border-amber-100 dark:border-amber-900/40 flex items-center justify-between font-semibold">
-            <span>Call Verification Recommended</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${riskFilter === 'MEDIUM' ? 'bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200' : 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300'}`}>
+          <div className="text-[11px] text-amber-700 dark:text-amber-400 pt-3 border-t border-amber-100 dark:border-amber-900/40 flex items-center justify-between font-semibold gap-1 flex-wrap min-w-0">
+            <span className="truncate">Call Verification Recommended</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${riskFilter === 'MEDIUM' ? 'bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200' : 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300'}`}>
               Review
             </span>
           </div>
@@ -137,29 +137,29 @@ export function CustomerRiskTab({ profiles }: CustomerRiskTabProps) {
         {/* Low Risk / Safelist */}
         <div
           onClick={() => setRiskFilter('LOW')}
-          className={`bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+          className={`kpi-card bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group min-w-0 ${
             riskFilter === 'LOW'
               ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm bg-emerald-50/20 dark:bg-emerald-950/20'
               : 'border-emerald-200/90 dark:border-emerald-900/40 shadow-xs hover:border-emerald-300 bg-emerald-50/10 dark:bg-emerald-950/10'
           }`}
           title="Click to filter by Low Risk / Safelist buyers"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Low Risk / Verified</span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-2xs group-hover:scale-105 transition-transform">
-                <ShieldCheck className="w-4.5 h-4.5" />
+          <div className="flex items-center justify-between mb-3 min-w-0">
+            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider truncate">Low Risk / Verified</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-2xs group-hover:scale-105 transition-transform">
+                <ShieldCheck className="w-4 h-4" />
               </div>
               <ArrowUpRight className={`w-4 h-4 transition-all ${riskFilter === 'LOW' ? 'text-emerald-600' : 'text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-emerald-600 font-headline tracking-tight">{lowRiskCount.toLocaleString()}</div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mt-1">High Acceptance Loyalty</span>
+          <div className="my-2.5 min-w-0">
+            <div className="text-xl sm:text-2xl xl:text-3xl font-black text-emerald-600 font-headline tracking-tight truncate block" title={lowRiskCount.toLocaleString()}>{lowRiskCount.toLocaleString()}</div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mt-1 truncate">High Acceptance Loyalty</span>
           </div>
-          <div className="text-[11px] text-emerald-700 dark:text-emerald-400 pt-3 border-t border-emerald-100 dark:border-emerald-900/40 flex items-center justify-between font-semibold">
-            <span>Instant Express Dispatch</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${riskFilter === 'LOW' ? 'bg-emerald-200 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200' : 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300'}`}>
+          <div className="text-[11px] text-emerald-700 dark:text-emerald-400 pt-3 border-t border-emerald-100 dark:border-emerald-900/40 flex items-center justify-between font-semibold gap-1 flex-wrap min-w-0">
+            <span className="truncate">Instant Express Dispatch</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${riskFilter === 'LOW' ? 'bg-emerald-200 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200' : 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300'}`}>
               Safe
             </span>
           </div>

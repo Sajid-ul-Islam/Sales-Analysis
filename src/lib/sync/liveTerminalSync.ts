@@ -1,5 +1,5 @@
 import { RawOrderRow, DatasetSnapshot } from '@/types';
-import { fetchWooCommerceOrders, formatWooCommerceToOrderRows, testWooCommerceConnection, WcCredentials, cleanCustomerPhone, isOnlinePaymentMethod, isEcomPaymentMethod } from '@/lib/woocommerceClient';
+import { fetchWooCommerceOrders, formatWooCommerceToOrderRows, testWooCommerceConnection, WcCredentials, cleanCustomerPhone, isEcomPaymentMethod } from '@/lib/woocommerceClient';
 import { batchFetchPathaoOrders, batchFetchPathaoOrdersByOrderIds, fetchRecentPathaoOrders, getPathaoToken, PathaoCredentials, PathaoOrderDetail } from '@/lib/pathaoClient';
 import { getSecretsWithOverrides } from '@/lib/secrets';
 import { createDataProvenance, DataProvenanceInfo } from '@/lib/dataAudit';

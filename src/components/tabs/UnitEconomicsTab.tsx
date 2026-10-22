@@ -18,20 +18,25 @@ export function UnitEconomicsTab({ summary: s }: UnitEconomicsTabProps) {
       {/* Financial Executive Waterfall Cards (5-Metric Omnichannel Grid) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-4.5 xl:gap-5">
         {/* 1. Net Realized Revenue */}
-        <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between relative overflow-hidden group">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between relative overflow-hidden group">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Realized Sales</span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-2xs group-hover:scale-105 transition-transform">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">Realized Sales</span>
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-2xs group-hover:scale-105 transition-transform shrink-0">
               <DollarSign className="w-4.5 h-4.5" />
             </div>
           </div>
-          <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-emerald-600 dark:text-emerald-400 font-headline tracking-tight">৳ {Math.round(u.netRealizedSales).toLocaleString()}</div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mt-1">Net Invoiced Cash</span>
+          <div className="my-2.5 sm:my-3 min-w-0">
+            <div
+              className="text-xl sm:text-2xl xl:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-headline tracking-tight truncate block"
+              title={`৳ ${Math.round(u.netRealizedSales).toLocaleString()}`}
+            >
+              ৳ {Math.round(u.netRealizedSales).toLocaleString()}
+            </div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mt-1 truncate">Net Invoiced Cash</span>
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between font-medium">
-            <span>Gross: ৳ {Math.round(u.grossInvoicedSales).toLocaleString()}</span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-300">
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-2.5 border-t border-slate-100 dark:border-deepBlack-border flex flex-wrap items-center justify-between gap-1 font-medium min-w-0">
+            <span className="truncate">Gross: ৳ {Math.round(u.grossInvoicedSales).toLocaleString()}</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-300 shrink-0">
               Net Invoiced
             </span>
           </div>
@@ -39,20 +44,25 @@ export function UnitEconomicsTab({ summary: s }: UnitEconomicsTabProps) {
         </div>
 
         {/* 2. Estimated COGS */}
-        <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-amber-300 dark:hover:border-amber-700 hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between relative overflow-hidden group">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-amber-300 dark:hover:border-amber-700 hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between relative overflow-hidden group">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">COGS (42%)</span>
-            <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-800/40 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-2xs group-hover:scale-105 transition-transform">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">COGS (42%)</span>
+            <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-800/40 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-2xs group-hover:scale-105 transition-transform shrink-0">
               <Package className="w-4.5 h-4.5" />
             </div>
           </div>
-          <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-amber-600 dark:text-amber-400 font-headline tracking-tight">৳ {Math.round(u.estimatedCogs).toLocaleString()}</div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mt-1">Fabric & Production</span>
+          <div className="my-2.5 sm:my-3 min-w-0">
+            <div
+              className="text-xl sm:text-2xl xl:text-3xl font-black text-amber-600 dark:text-amber-400 font-headline tracking-tight truncate block"
+              title={`৳ ${Math.round(u.estimatedCogs).toLocaleString()}`}
+            >
+              ৳ {Math.round(u.estimatedCogs).toLocaleString()}
+            </div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mt-1 truncate">Fabric & Production</span>
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between font-medium">
-            <span>Gross Margin: ৳ {Math.round(u.grossMargin).toLocaleString()}</span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/40 text-amber-700 dark:text-amber-300">
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-2.5 border-t border-slate-100 dark:border-deepBlack-border flex flex-wrap items-center justify-between gap-1 font-medium min-w-0">
+            <span className="truncate">Gross Margin: ৳ {Math.round(u.grossMargin).toLocaleString()}</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/40 text-amber-700 dark:text-amber-300 shrink-0">
               58% Margin
             </span>
           </div>
@@ -60,20 +70,25 @@ export function UnitEconomicsTab({ summary: s }: UnitEconomicsTabProps) {
         </div>
 
         {/* 3. Courier Logistics Burden */}
-        <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between relative overflow-hidden group">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between relative overflow-hidden group">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Courier Cost</span>
-            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-2xs group-hover:scale-105 transition-transform">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">Courier Cost</span>
+            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-2xs group-hover:scale-105 transition-transform shrink-0">
               <Truck className="w-4.5 h-4.5" />
             </div>
           </div>
-          <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-blue-600 dark:text-blue-400 font-headline tracking-tight">৳ {Math.round(c.netCourierBurden).toLocaleString()}</div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mt-1">Net Payable Fee</span>
+          <div className="my-2.5 sm:my-3 min-w-0">
+            <div
+              className="text-xl sm:text-2xl xl:text-3xl font-black text-blue-600 dark:text-blue-400 font-headline tracking-tight truncate block"
+              title={`৳ ${Math.round(c.netCourierBurden).toLocaleString()}`}
+            >
+              ৳ {Math.round(c.netCourierBurden).toLocaleString()}
+            </div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mt-1 truncate">Net Payable Fee</span>
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between font-medium">
-            <span>COD Rec: +৳ {Math.round(c.paidReturnCollectedCod).toLocaleString()}</span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/40 text-blue-700 dark:text-blue-300">
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-2.5 border-t border-slate-100 dark:border-deepBlack-border flex flex-wrap items-center justify-between gap-1 font-medium min-w-0">
+            <span className="truncate">COD Rec: +৳ {Math.round(c.paidReturnCollectedCod).toLocaleString()}</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/40 text-blue-700 dark:text-blue-300 shrink-0">
               Logistics
             </span>
           </div>
@@ -81,27 +96,32 @@ export function UnitEconomicsTab({ summary: s }: UnitEconomicsTabProps) {
         </div>
 
         {/* 4. Meta Performance Ads */}
-        <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between relative overflow-hidden group">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between relative overflow-hidden group">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider">Meta Ads</span>
-            <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-800/40 flex items-center justify-center text-purple-600 dark:text-purple-400 shadow-2xs group-hover:scale-105 transition-transform">
+            <span className="text-[10px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider truncate">Meta Ads</span>
+            <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-800/40 flex items-center justify-center text-purple-600 dark:text-purple-400 shadow-2xs group-hover:scale-105 transition-transform shrink-0">
               <Megaphone className="w-4.5 h-4.5" />
             </div>
           </div>
-          <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-purple-700 dark:text-purple-400 font-headline tracking-tight">৳ {Math.round(u.metaAdCost).toLocaleString()}</div>
-            <div className="flex items-center gap-1.5 mt-1">
-              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/60 dark:border-emerald-800/40 shadow-2xs">
+          <div className="my-2.5 sm:my-3 min-w-0">
+            <div
+              className="text-xl sm:text-2xl xl:text-3xl font-black text-purple-700 dark:text-purple-400 font-headline tracking-tight truncate block"
+              title={`৳ ${Math.round(u.metaAdCost).toLocaleString()}`}
+            >
+              ৳ {Math.round(u.metaAdCost).toLocaleString()}
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5 mt-1 min-w-0">
+              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/60 dark:border-emerald-800/40 shadow-2xs shrink-0">
                 {u.roas.toFixed(1)}x ROAS
               </span>
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">
                 ৳{Math.round(u.cac)} CAC
               </span>
             </div>
           </div>
-          <div className="text-[11px] text-purple-700 dark:text-purple-400 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between font-medium">
-            <span>Meta Ad Spend</span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/40 text-purple-700 dark:text-purple-300">
+          <div className="text-[11px] text-purple-700 dark:text-purple-400 pt-2.5 border-t border-slate-100 dark:border-deepBlack-border flex flex-wrap items-center justify-between gap-1 font-medium min-w-0">
+            <span className="truncate">Meta Ad Spend</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/40 text-purple-700 dark:text-purple-300 shrink-0">
               Paid Acquisition
             </span>
           </div>
@@ -109,23 +129,28 @@ export function UnitEconomicsTab({ summary: s }: UnitEconomicsTabProps) {
         </div>
 
         {/* 5. True Net Contribution Margin */}
-        <div className="bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 dark:from-emerald-950/30 dark:via-deepBlack-card dark:to-emerald-950/10 rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-emerald-200/90 dark:border-emerald-800/40 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between relative overflow-hidden group">
+        <div className="bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 dark:from-emerald-950/30 dark:via-deepBlack-card dark:to-emerald-950/10 rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-emerald-200/90 dark:border-emerald-800/40 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between relative overflow-hidden group">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">Contribution Margin</span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-200/60 dark:border-emerald-700/40 flex items-center justify-center text-emerald-700 dark:text-emerald-300 shadow-2xs group-hover:scale-105 transition-transform">
+            <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider truncate">Contribution Margin</span>
+            <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-200/60 dark:border-emerald-700/40 flex items-center justify-center text-emerald-700 dark:text-emerald-300 shadow-2xs group-hover:scale-105 transition-transform shrink-0">
               <Coins className="w-4.5 h-4.5" />
             </div>
           </div>
-          <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-emerald-700 dark:text-emerald-400 font-headline tracking-tight">৳ {Math.round(u.netContributionMargin).toLocaleString()}</div>
-            <div className="flex items-center gap-1.5 mt-1">
-              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-md bg-emerald-100/70 dark:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-700/50 shadow-2xs">{u.netMarginPercentage.toFixed(1)}%</span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">True Net Yield</span>
+          <div className="my-2.5 sm:my-3 min-w-0">
+            <div
+              className="text-xl sm:text-2xl xl:text-3xl font-black text-emerald-700 dark:text-emerald-400 font-headline tracking-tight truncate block"
+              title={`৳ ${Math.round(u.netContributionMargin).toLocaleString()}`}
+            >
+              ৳ {Math.round(u.netContributionMargin).toLocaleString()}
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5 mt-1 min-w-0">
+              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-md bg-emerald-100/70 dark:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-700/50 shadow-2xs shrink-0">{u.netMarginPercentage.toFixed(1)}%</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">True Net Yield</span>
             </div>
           </div>
-          <div className="text-[11px] text-emerald-700 dark:text-emerald-300 pt-3 border-t border-emerald-100 dark:border-deepBlack-border flex items-center justify-between font-semibold">
-            <span>Post-COGS, Courier & Ads</span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200">
+          <div className="text-[11px] text-emerald-700 dark:text-emerald-300 pt-2.5 border-t border-emerald-100 dark:border-deepBlack-border flex flex-wrap items-center justify-between gap-1 font-semibold min-w-0">
+            <span className="truncate">Post-COGS, Courier & Ads</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200 shrink-0">
               Net CM3
             </span>
           </div>

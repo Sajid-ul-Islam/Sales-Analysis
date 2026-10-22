@@ -132,39 +132,39 @@ export function ExchangedOrdersTab({
         {/* Card 1: Total Exchanges & Items Qty */}
         <div
           onClick={() => setStatusFilter('ALL')}
-          className={`bg-white dark:bg-deepBlack-card p-5 sm:p-5.5 xl:p-6 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+          className={`kpi-card bg-white dark:bg-deepBlack-card p-3.5 sm:p-4.5 xl:p-5 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group min-w-0 ${
             statusFilter === 'ALL'
               ? 'border-purple-600 ring-2 ring-purple-600/20 shadow-sm'
               : 'border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-purple-300'
           }`}
           title="Click to view all exchange orders"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total Exchanges</span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/40 flex items-center justify-center text-purple-600 dark:text-purple-400 shadow-2xs group-hover:scale-105 transition-transform">
-                <ArrowRightLeft className="w-4.5 h-4.5" />
+          <div className="flex items-center justify-between mb-3 min-w-0">
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider truncate">Total Exchanges</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-50 dark:bg-purple-950/40 flex items-center justify-center text-purple-600 dark:text-purple-400 shadow-2xs group-hover:scale-105 transition-transform">
+                <ArrowRightLeft className="w-4 h-4" />
               </div>
               <ArrowUpRight className={`w-4 h-4 transition-all ${statusFilter === 'ALL' ? 'text-purple-600' : 'text-slate-300 group-hover:text-purple-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-3 flex items-baseline justify-between gap-1">
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl sm:text-3xl xl:text-4xl font-black text-navy-deep dark:text-white font-headline tracking-tight">
+          <div className="my-2.5 flex items-baseline justify-between gap-1 min-w-0 flex-wrap">
+            <div className="flex items-baseline gap-1.5 min-w-0">
+              <span className="text-xl sm:text-2xl xl:text-3xl font-black text-navy-deep dark:text-white font-headline tracking-tight truncate block" title={totalCount.toLocaleString()}>
                 {totalCount.toLocaleString()}
               </span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">orders</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold shrink-0">orders</span>
             </div>
-            <div className="flex items-baseline gap-1 px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/40 shadow-2xs">
+            <div className="flex items-baseline gap-1 px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/40 shadow-2xs shrink-0">
               <span className="text-xs font-black font-headline">
                 {totalItemsQty.toLocaleString()}
               </span>
               <span className="text-[10px] font-bold">items</span>
             </div>
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between">
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between gap-1 flex-wrap min-w-0">
             <span className="truncate">{totalItemsQty.toLocaleString()} replacement items</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusFilter === 'ALL' ? 'bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200' : 'text-slate-400 dark:text-slate-500'}`}>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${statusFilter === 'ALL' ? 'bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200' : 'text-slate-400 dark:text-slate-500'}`}>
               {statusFilter === 'ALL' ? 'Active' : 'All'}
             </span>
           </div>
@@ -174,30 +174,30 @@ export function ExchangedOrdersTab({
         {/* Card 2: COD Collected */}
         <div
           onClick={() => setStatusFilter('ALL')}
-          className="bg-white dark:bg-deepBlack-card p-5 sm:p-5.5 xl:p-6 rounded-2xl border border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all flex flex-col justify-between cursor-pointer relative overflow-hidden group"
+          className="kpi-card bg-white dark:bg-deepBlack-card p-3.5 sm:p-4.5 xl:p-5 rounded-2xl border border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all flex flex-col justify-between cursor-pointer relative overflow-hidden group min-w-0"
           title="Doorstep fee collected from customers"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-bold tracking-wider">COD Collected</span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-2xs group-hover:scale-105 transition-transform">
-                <DollarSign className="w-4.5 h-4.5" />
+          <div className="flex items-center justify-between mb-3 min-w-0">
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-bold tracking-wider truncate">COD Collected</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-2xs group-hover:scale-105 transition-transform">
+                <DollarSign className="w-4 h-4" />
               </div>
               <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
           </div>
-          <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-emerald-600 dark:text-emerald-400 font-headline tracking-tight">
+          <div className="my-2.5 min-w-0">
+            <div className="text-xl sm:text-2xl xl:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-headline tracking-tight truncate block" title={`৳${totalCodCollected.toLocaleString()}`}>
               ৳{totalCodCollected.toLocaleString()}
             </div>
-            <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mt-1 flex items-center gap-1">
+            <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mt-1 flex items-center gap-1 flex-wrap truncate">
               <span>Avg ৳{avgCod}</span>
               <span className="text-[10px] text-slate-400 font-normal">/ exchange order</span>
             </div>
           </div>
-          <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between">
-            <span>Doorstep Recovery</span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-300">
+          <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between gap-1 flex-wrap min-w-0">
+            <span className="truncate">Doorstep Recovery</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-300 shrink-0">
               Recovered
             </span>
           </div>
@@ -207,30 +207,30 @@ export function ExchangedOrdersTab({
         {/* Card 3: Courier Net Expense */}
         <div
           onClick={() => setStatusFilter('ALL')}
-          className="bg-white dark:bg-deepBlack-card p-5 sm:p-5.5 xl:p-6 rounded-2xl border border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all flex flex-col justify-between cursor-pointer relative overflow-hidden group"
+          className="kpi-card bg-white dark:bg-deepBlack-card p-3.5 sm:p-4.5 xl:p-5 rounded-2xl border border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all flex flex-col justify-between cursor-pointer relative overflow-hidden group min-w-0"
           title="Courier charges incurred for replacement parcels"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] text-blue-600 dark:text-blue-400 uppercase font-bold tracking-wider">Courier Cost</span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-2xs group-hover:scale-105 transition-transform">
-                <Truck className="w-4.5 h-4.5" />
+          <div className="flex items-center justify-between mb-3 min-w-0">
+            <span className="text-[10px] text-blue-600 dark:text-blue-400 uppercase font-bold tracking-wider truncate">Courier Cost</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-2xs group-hover:scale-105 transition-transform">
+                <Truck className="w-4 h-4" />
               </div>
               <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
           </div>
-          <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-slate-900 dark:text-white font-headline tracking-tight">
+          <div className="my-2.5 min-w-0">
+            <div className="text-xl sm:text-2xl xl:text-3xl font-black text-slate-900 dark:text-white font-headline tracking-tight truncate block" title={`৳${netCourierCost.toLocaleString()}`}>
               ৳{netCourierCost.toLocaleString()}
             </div>
-            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1 flex-wrap truncate">
               <span>Gross ৳{totalCharges.toLocaleString()}</span>
               <span className="text-[10px] text-emerald-600 font-bold">(-৳{totalDiscounts.toLocaleString()} promo)</span>
             </div>
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between">
-            <span>After courier discount</span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300">
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between gap-1 flex-wrap min-w-0">
+            <span className="truncate">After courier discount</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 shrink-0">
               Logistics
             </span>
           </div>
@@ -240,33 +240,33 @@ export function ExchangedOrdersTab({
         {/* Card 4: Matched in Order Ledger */}
         <div
           onClick={() => setStatusFilter('MATCHED')}
-          className={`bg-white dark:bg-deepBlack-card p-5 sm:p-5.5 xl:p-6 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+          className={`kpi-card bg-white dark:bg-deepBlack-card p-3.5 sm:p-4.5 xl:p-5 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group min-w-0 ${
             statusFilter === 'MATCHED'
               ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm'
               : 'border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-emerald-300'
           }`}
           title="Click to filter by Matched in Order Ledger"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-bold tracking-wider">Ledger Matched</span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-2xs group-hover:scale-105 transition-transform">
-                <CheckCircle2 className="w-4.5 h-4.5" />
+          <div className="flex items-center justify-between mb-3 min-w-0">
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-bold tracking-wider truncate">Ledger Matched</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-2xs group-hover:scale-105 transition-transform">
+                <CheckCircle2 className="w-4 h-4" />
               </div>
               <ArrowUpRight className={`w-4 h-4 transition-all ${statusFilter === 'MATCHED' ? 'text-emerald-600' : 'text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-emerald-600 dark:text-emerald-400 font-headline tracking-tight">
+          <div className="my-2.5 min-w-0">
+            <div className="text-xl sm:text-2xl xl:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-headline tracking-tight truncate block" title={String(matchedCount)}>
               {matchedCount}
             </div>
-            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">
+            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 truncate">
               {totalCount > 0 ? ((matchedCount / totalCount) * 100).toFixed(0) : 0}% Reconciliation Match
             </div>
           </div>
-          <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between">
-            <span>Linked to Order ID</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusFilter === 'MATCHED' ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200' : 'text-emerald-600 dark:text-emerald-400'}`}>
+          <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between gap-1 flex-wrap min-w-0">
+            <span className="truncate">Linked to Order ID</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${statusFilter === 'MATCHED' ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200' : 'text-emerald-600 dark:text-emerald-400'}`}>
               {statusFilter === 'MATCHED' ? 'Active Filter' : 'Verified'}
             </span>
           </div>
@@ -276,33 +276,33 @@ export function ExchangedOrdersTab({
         {/* Card 5: COD Net Offset */}
         <div
           onClick={() => setStatusFilter('DELIVERED')}
-          className={`bg-white dark:bg-deepBlack-card p-5 sm:p-5.5 xl:p-6 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group ${
+          className={`kpi-card bg-white dark:bg-deepBlack-card p-3.5 sm:p-4.5 xl:p-5 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] relative overflow-hidden group min-w-0 ${
             statusFilter === 'DELIVERED'
               ? 'border-primary ring-2 ring-primary/20 shadow-sm'
               : 'border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-primary/40'
           }`}
           title="Click to view Delivered replacements"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Courier Recovery</span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-2xs group-hover:scale-105 transition-transform">
-                <Package className="w-4.5 h-4.5" />
+          <div className="flex items-center justify-between mb-3 min-w-0">
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider truncate">Courier Recovery</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-2xs group-hover:scale-105 transition-transform">
+                <Package className="w-4 h-4" />
               </div>
               <ArrowUpRight className={`w-4 h-4 transition-all ${statusFilter === 'DELIVERED' ? 'text-primary' : 'text-slate-300 group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5'}`} />
             </div>
           </div>
-          <div className="my-3">
-            <div className="text-2xl sm:text-3xl xl:text-4xl font-black text-primary font-headline tracking-tight">
+          <div className="my-2.5 min-w-0">
+            <div className="text-xl sm:text-2xl xl:text-3xl font-black text-primary font-headline tracking-tight truncate block" title={`${netCourierCost > 0 ? ((totalCodCollected / netCourierCost) * 100).toFixed(0) : 100}%`}>
               {netCourierCost > 0 ? ((totalCodCollected / netCourierCost) * 100).toFixed(0) : 100}%
             </div>
-            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">
+            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 truncate">
               Expense Offset Rate
             </div>
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between">
-            <span>Doorstep fee vs expense</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusFilter === 'DELIVERED' ? 'bg-primary/10 text-primary' : 'text-slate-400 dark:text-slate-500'}`}>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between gap-1 flex-wrap min-w-0">
+            <span className="truncate">Doorstep fee vs expense</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${statusFilter === 'DELIVERED' ? 'bg-primary/10 text-primary' : 'text-slate-400 dark:text-slate-500'}`}>
               {statusFilter === 'DELIVERED' ? 'Delivered' : 'Offset'}
             </span>
           </div>

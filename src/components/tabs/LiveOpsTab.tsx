@@ -243,7 +243,7 @@ export function LiveOpsTab({
   const [discrepancies, setDiscrepancies] = useState<DiscrepancyAlert[]>([]);
   const [wcConnected, setWcConnected] = useState<boolean>(false);
   const [pathaoConnected, setPathaoConnected] = useState<boolean>(false);
-  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+  const [_lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
   // Track previous discrepancies count to only alert on genuinely new issues
   const discrepanciesRef = React.useRef(discrepancies);
