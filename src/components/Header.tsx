@@ -184,7 +184,7 @@ export function Header({
   };
 
   return (
-    <header className="sticky top-0 h-16 border-b border-slate-200 dark:border-deepBlack-border bg-white/95 dark:bg-deepBlack-canvas/95 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 shrink-0 z-20 shadow-xs transition-colors duration-200">
+    <header className="sticky top-0 h-16 border-b border-slate-200 dark:border-deepBlack-border bg-white/95 dark:bg-deepBlack-canvas/95 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 shrink-0 z-30 shadow-xs transition-colors duration-200">
       {/* Search Input Bar with Mobile Menu Toggle & ⌘K shortcut */}
       <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 mr-2 sm:mr-4">
         {onToggleMobileMenu && (

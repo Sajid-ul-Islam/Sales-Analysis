@@ -8,6 +8,7 @@ import {
   CloudSyncBar,
   FileDropzone,
   KpiOverview,
+  DateRangeSelector,
   ExecutiveOverviewTab,
   CourierMismatchTab,
   TerritoryTab,
@@ -43,7 +44,7 @@ import { loadAppSettings } from '@/lib/settingsStore';
 import { DateScope, filterOrdersByDateScope, CustomDateRange, getDynamicDatasetTitle } from '@/lib/dateFilter';
 import { RawOrderRow, AgenticActionProposal, DatasetSnapshot } from '@/types';
 import { applyAgenticAction, clearAgenticTags } from '@/lib/ai/agenticActions';
-import { RefreshCw, CheckCircle2, UploadCloud } from 'lucide-react';
+import { RefreshCw, CheckCircle2, UploadCloud, Calendar, RotateCcw, Scale } from 'lucide-react';
 import {
   getCookie,
   setCookie,
@@ -1010,6 +1011,98 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* Unified Date Range Sub-Header Context Bar — Option B */}
+          {result && !initialLoading && activeTab !== 'tabSettings' && activeTab !== 'tabLiveOps' && (
+            <div className="sticky top-16 z-20 bg-white/95 dark:bg-[#0A0A0A]/95 backdrop-blur-md rounded-2xl p-2.5 sm:px-4 sm:py-3 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-wrap items-center justify-between gap-3 transition-colors">
+              {/* Left: Icon, Label, Dropdown & Reset */}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0">
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-800/40 flex items-center justify-center shrink-0 text-primary">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 hidden sm:inline shrink-0">
+                    Active Period:
+                  </span>
+                </div>
+
+                <DateRangeSelector
+                  activeScope={dateScope}
+                  customRange={customDateRange}
+                  onScopeChange={handleDateScopeChange}
+                  counts={dateFilterResult.counts}
+                  subLabel={dateFilterResult.subLabel}
+                  minDateIso={dateFilterResult.minDateIso}
+                  maxDateIso={dateFilterResult.maxDateIso}
+                  fileWeeks={dateFilterResult.fileWeeks}
+                  availableMonths={dateFilterResult.availableMonths}
+                  onOpenComparison={(mode) => {
+                    setComparisonMode(mode || 'week');
+                    setIsWeekComparisonOpen(true);
+                  }}
+                  align="left"
+                />
+
+                {(dateScope !== '30d' || customDateRange) && (
+                  <button
+                    type="button"
+                    onClick={() => handleDateScopeChange('30d')}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary bg-slate-100 hover:bg-orange-50 dark:bg-[#171717] dark:hover:bg-orange-950/30 rounded-xl transition-colors border border-transparent hover:border-orange-200 dark:hover:border-orange-900/40 cursor-pointer shrink-0"
+                    title="Reset date range to default (Last 30 Days)"
+                  >
+                    <RotateCcw className="w-3 h-3 text-slate-400 dark:text-slate-500" />
+                    <span>Reset (30D)</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Right: Quick telemetry chips & Comparison buttons */}
+              <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
+                <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#121212] border border-slate-200/80 dark:border-[#1F1F1F] text-xs font-medium text-slate-600 dark:text-slate-400">
+                  <span>Orders:</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-white">
+                    {(dateFilterResult.matchedOrders ?? result.reconciledOrders.length).toLocaleString()}
+                  </span>
+                </div>
+
+                <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#121212] border border-slate-200/80 dark:border-[#1F1F1F] text-xs font-medium text-slate-600 dark:text-slate-400">
+                  <span>Delivered:</span>
+                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    ৳{Math.round(result.summary.netDeliveredRevenue || result.summary.grossRevenue || 0).toLocaleString()}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setComparisonMode('week');
+                      setIsWeekComparisonOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-[#0E0E0E] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-[#1F1F1F] hover:border-slate-300 text-xs font-bold transition-all shadow-2xs cursor-pointer group"
+                    title="Compare Performance Between Weeks (WoW Analysis)"
+                  >
+                    <Scale className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
+                    <span className="hidden sm:inline">Week vs Week</span>
+                    <span className="sm:hidden">WoW</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setComparisonMode('month');
+                      setIsWeekComparisonOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-[#0E0E0E] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-[#1F1F1F] hover:border-slate-300 text-xs font-bold transition-all shadow-2xs cursor-pointer group"
+                    title="Compare Performance Between Months (MoM Analysis)"
+                  >
+                    <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
+                    <span className="hidden sm:inline">Month vs Month</span>
+                    <span className="sm:hidden">MoM</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* GA4 & Meta Marketing Intelligence Tab */}
           {activeTab === 'tabMarketingAnalytics' && (
             <MarketingAnalyticsTab
@@ -1018,7 +1111,6 @@ export default function DashboardPage() {
               configuredMetaCost={metaAdCost}
               activeScope={dateScope}
               customRange={customDateRange}
-              onScopeChange={handleDateScopeChange}
               counts={dateFilterResult.counts}
               subLabel={dateFilterResult.subLabel}
               minDateIso={dateFilterResult.minDateIso}
@@ -1118,8 +1210,6 @@ export default function DashboardPage() {
                   onKpiClick={handleKpiCardClick}
                   activeDateScope={dateScope}
                   customDateRange={customDateRange}
-                  onDateRangeSelect={handleDateScopeChange}
-                  onScopeChange={handleDateScopeChange}
                   dateScopeCounts={dateFilterResult.counts}
                   dateScopeLabel={dateFilterResult.label}
                   dateScopeSubLabel={dateFilterResult.subLabel}
@@ -1144,10 +1234,6 @@ export default function DashboardPage() {
                     handleSwitchDataSource('API');
                     const el = document.getElementById('cloudSyncSection');
                     el?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  onOpenComparison={(mode: 'week' | 'month' = 'week') => {
-                    setComparisonMode(mode);
-                    setIsWeekComparisonOpen(true);
                   }}
                   skuAnalytics={result.skuAnalytics}
                   customerRiskProfiles={result.customerRiskProfiles}
