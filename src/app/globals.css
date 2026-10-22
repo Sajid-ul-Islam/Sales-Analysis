@@ -86,13 +86,23 @@
   container-type: inline-size;
 }
 
-@container (max-width: 220px) {
+@container (max-width: 285px) {
   .kpi-donut-micro-metrics {
     display: none !important;
   }
+}
+
+@container (max-width: 245px) {
   .kpi-metric-number {
-    font-size: 1.35rem !important;
-    line-height: 1.25 !important;
+    font-size: 1.25rem !important;
+    line-height: 1.2 !important;
+  }
+}
+
+@container (max-width: 200px) {
+  .kpi-metric-number {
+    font-size: 1.1rem !important;
+    line-height: 1.15 !important;
   }
 }
 

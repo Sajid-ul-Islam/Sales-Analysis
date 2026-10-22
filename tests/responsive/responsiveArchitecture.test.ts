@@ -284,6 +284,16 @@ describe('DEEN Commerce Responsive Architecture Test Suite (Tiers 1 - 4)', () =>
         const content = readProjectFile('src/components/KpiOverview.tsx');
         expect(content).toMatch(/grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5/);
       });
+
+      it('F8.6: verifies container query threshold (max-width: 285px) and stepped font scaling in globals.css', () => {
+        const cssContent = readProjectFile('src/app/globals.css');
+        expect(cssContent).toContain('.kpi-card {');
+        expect(cssContent).toContain('container-type: inline-size;');
+        expect(cssContent).toContain('@container (max-width: 285px)');
+        expect(cssContent).toContain('.kpi-donut-micro-metrics');
+        expect(cssContent).toContain('@container (max-width: 245px)');
+        expect(cssContent).toContain('@container (max-width: 200px)');
+      });
     });
 
     describe('F9: Fluid Responsive SVG Charts', () => {
