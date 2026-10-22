@@ -1266,30 +1266,33 @@ export function LiveOpsTab({
       {/* ── 5 Operational KPI Cards (Top Row: Pixel-Matched to DEEN-OPS Screenshot) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         {/* Card 1: SHIPPED ITEMS - TODAY */}
-        <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="flex items-start justify-between">
-            <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+        <div className="kpi-card min-w-0 bg-white dark:bg-black rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+          <div className="flex items-start justify-between min-w-0">
+            <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider truncate">
               {selectedHistoricalDate
                 ? `Shipped Items (${report.refDayName.slice(0, 3)} ${report.referenceDate.slice(5)})`
                 : channelFilter === 'POS'
                 ? 'Outlet Units Sold - Today'
                 : (selectedView === "Today's Orders" ? "Today's Items - Total" : 'Shipped Items - Today')}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs">
+            <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs shrink-0">
               📦
             </div>
           </div>
 
-          <div className="mt-1 mb-2">
-            <div className="flex items-baseline gap-2 flex-wrap">
-              <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline group-hover:scale-[1.03] transition-transform duration-300 origin-left">
+          <div className="mt-1 mb-2 min-w-0">
+            <div className="flex items-baseline gap-2 flex-wrap min-w-0">
+              <div
+                className="kpi-metric-number text-xl sm:text-2xl xl:text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline group-hover:scale-[1.03] transition-transform duration-300 origin-left truncate block"
+                title={`${report.shippedItems.value} shipped items`}
+              >
                 {report.shippedItems.value}
               </div>
               {report.exchangeStats.itemsCount > 0 && (
                 <button
                   type="button"
                   onClick={() => setCourierFilter((prev) => (prev === 'EXCHANGES_ONLY' ? 'ALL' : 'EXCHANGES_ONLY'))}
-                  className={`text-[11px] font-bold px-2 py-0.5 rounded-full border transition-all flex items-center gap-1 shadow-2xs ${
+                  className={`text-[11px] font-bold px-2 py-0.5 rounded-full border transition-all flex items-center gap-1 shadow-2xs shrink-0 ${
                     courierFilter === 'EXCHANGES_ONLY'
                       ? 'bg-purple-600 text-white border-purple-700 ring-2 ring-purple-500/30'
                       : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/90 dark:border-purple-800/80 hover:bg-purple-100 dark:hover:bg-purple-900/50'
@@ -1302,11 +1305,9 @@ export function LiveOpsTab({
               )}
             </div>
 
-
-
-            <div className="mt-1.5">
+            <div className="mt-1.5 min-w-0">
               <span
-                className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border truncate ${
                   report.shippedItems.isPositive
                     ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-800/80'
                     : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200/80 dark:border-rose-800/80'
@@ -1331,30 +1332,31 @@ export function LiveOpsTab({
         </div>
 
         {/* Card 2: SALES REVENUE */}
-        <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="flex items-start justify-between">
-            <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+        <div className="kpi-card min-w-0 bg-white dark:bg-black rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+          <div className="flex items-start justify-between min-w-0">
+            <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider truncate">
               {selectedHistoricalDate
                 ? `Sales Revenue (${report.refDayName.slice(0, 3)} ${report.referenceDate.slice(5)})`
                 : channelFilter === 'POS'
                 ? 'Outlet Sales Revenue - Today'
                 : (selectedView === "Today's Orders" ? "Today's Revenue - Total" : 'Sales Revenue - Today')}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sky-600 dark:text-sky-400 font-bold text-sm shadow-2xs">
+            <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sky-600 dark:text-sky-400 font-bold text-sm shadow-2xs shrink-0">
               ৳
             </div>
           </div>
 
-          <div className="mt-1 mb-2">
-            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline group-hover:scale-[1.03] transition-transform duration-300 origin-left">
+          <div className="mt-1 mb-2 min-w-0">
+            <div
+              className="kpi-metric-number text-xl sm:text-2xl xl:text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline group-hover:scale-[1.03] transition-transform duration-300 origin-left truncate block"
+              title={`${report.salesRevenue.value} sales revenue`}
+            >
               {report.salesRevenue.value}
             </div>
 
-
-
-            <div className="mt-1.5">
+            <div className="mt-1.5 min-w-0">
               <span
-                className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border truncate ${
                   report.salesRevenue.isPositive
                     ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-800/80'
                     : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200/80 dark:border-rose-800/80'
@@ -1379,30 +1381,33 @@ export function LiveOpsTab({
         </div>
 
         {/* Card 3: SHIPPED ORDERS */}
-        <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="flex items-start justify-between">
-            <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+        <div className="kpi-card min-w-0 bg-white dark:bg-black rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+          <div className="flex items-start justify-between min-w-0">
+            <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider truncate">
               {selectedHistoricalDate
                 ? `Shipped Orders (${report.refDayName.slice(0, 3)} ${report.referenceDate.slice(5)})`
                 : channelFilter === 'POS'
                 ? 'Outlet Transactions - Today'
                 : (selectedView === "Today's Orders" ? "Today's Orders - Total" : 'Shipped Orders - Today')}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs">
+            <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs shrink-0">
               🚚
             </div>
           </div>
 
-          <div className="mt-1 mb-2">
-            <div className="flex items-baseline gap-2 flex-wrap">
-              <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline group-hover:scale-[1.03] transition-transform duration-300 origin-left">
+          <div className="mt-1 mb-2 min-w-0">
+            <div className="flex items-baseline gap-2 flex-wrap min-w-0">
+              <div
+                className="kpi-metric-number text-xl sm:text-2xl xl:text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline group-hover:scale-[1.03] transition-transform duration-300 origin-left truncate block"
+                title={`${report.shippedOrders.value} shipped orders`}
+              >
                 {report.shippedOrders.value}
               </div>
               {report.exchangeStats.count > 0 ? (
                 <button
                   type="button"
                   onClick={() => setCourierFilter((prev) => (prev === 'EXCHANGES_ONLY' ? 'ALL' : 'EXCHANGES_ONLY'))}
-                  className={`text-[11px] font-bold px-2 py-0.5 rounded-full border transition-all flex items-center gap-1 shadow-2xs ${
+                  className={`text-[11px] font-bold px-2 py-0.5 rounded-full border transition-all flex items-center gap-1 shadow-2xs shrink-0 ${
                     courierFilter === 'EXCHANGES_ONLY'
                       ? 'bg-purple-600 text-white border-purple-700 ring-2 ring-purple-500/30'
                       : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/90 dark:border-purple-800/80 hover:bg-purple-100 dark:hover:bg-purple-900/50'
@@ -1416,7 +1421,7 @@ export function LiveOpsTab({
                 <button
                   type="button"
                   onClick={() => setCourierFilter((prev) => (prev === 'EXCHANGES_ONLY' ? 'ALL' : 'EXCHANGES_ONLY'))}
-                  className={`text-[11px] font-bold px-2 py-0.5 rounded-full border transition-all flex items-center gap-1 shadow-2xs ${
+                  className={`text-[11px] font-bold px-2 py-0.5 rounded-full border transition-all flex items-center gap-1 shadow-2xs shrink-0 ${
                     courierFilter === 'EXCHANGES_ONLY'
                       ? 'bg-purple-600 text-white border-purple-700 ring-2 ring-purple-500/30'
                       : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/90 dark:border-purple-800/80 hover:bg-purple-100 dark:hover:bg-purple-900/50'
@@ -1429,11 +1434,9 @@ export function LiveOpsTab({
               ) : null}
             </div>
 
-
-
-            <div className="mt-1.5">
+            <div className="mt-1.5 min-w-0">
               <span
-                className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border truncate ${
                   report.shippedOrders.isPositive
                     ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-800/80'
                     : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200/80 dark:border-rose-800/80'
@@ -1458,26 +1461,27 @@ export function LiveOpsTab({
         </div>
 
         {/* Card 4: BASKET SIZE */}
-        <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="flex items-start justify-between">
-            <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+        <div className="kpi-card min-w-0 bg-white dark:bg-black rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+          <div className="flex items-start justify-between min-w-0">
+            <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider truncate">
               {selectedHistoricalDate ? `Basket Size (${report.refDayName.slice(0, 3)})` : 'Basket Size'}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs">
+            <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs shrink-0">
               🛍️
             </div>
           </div>
 
-          <div className="mt-1 mb-2">
-            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline group-hover:scale-[1.03] transition-transform duration-300 origin-left">
+          <div className="mt-1 mb-2 min-w-0">
+            <div
+              className="kpi-metric-number text-xl sm:text-2xl xl:text-3xl font-black text-slate-900 dark:text-white tracking-tight font-headline group-hover:scale-[1.03] transition-transform duration-300 origin-left truncate block"
+              title={`${report.basketSize.value} average basket size`}
+            >
               {report.basketSize.value}
             </div>
 
-
-
-            <div className="mt-1.5">
+            <div className="mt-1.5 min-w-0">
               <span
-                className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border truncate ${
                   report.basketSize.isPositive
                     ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-800/80'
                     : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200/80 dark:border-rose-800/80'
@@ -1502,23 +1506,26 @@ export function LiveOpsTab({
         </div>
 
         {/* Card 5: CUSTOMER MIX */}
-        <div className="bg-white dark:bg-black rounded-2xl p-4 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="flex items-start justify-between">
-            <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+        <div className="kpi-card min-w-0 bg-white dark:bg-black rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+          <div className="flex items-start justify-between min-w-0">
+            <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider truncate">
               {selectedHistoricalDate ? `Customer Mix (${report.refDayName.slice(0, 3)})` : 'Customer Mix'}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs">
+            <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs shrink-0">
               👥
             </div>
           </div>
 
-          <div className="mt-1 mb-2">
-            <div className="text-2xl sm:text-[24px] font-black text-slate-900 dark:text-white tracking-tight font-headline group-hover:scale-[1.03] transition-transform duration-300 origin-left">
+          <div className="mt-1 mb-2 min-w-0">
+            <div
+              className="kpi-metric-number text-lg sm:text-xl xl:text-2xl font-black text-slate-900 dark:text-white tracking-tight font-headline group-hover:scale-[1.03] transition-transform duration-300 origin-left truncate block"
+              title={`${report.customerMix.newCount} New / ${report.customerMix.retCount} Ret`}
+            >
               {report.customerMix.newCount} New / {report.customerMix.retCount} Ret
             </div>
 
-            <div className="mt-1.5">
-              <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-800/80">
+            <div className="mt-1.5 min-w-0">
+              <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-800/80 truncate max-w-full">
                 {report.customerMix.deltaNew >= 0 ? '▲ +' : '▼ '}{report.customerMix.deltaNew} New vs 7D Avg ({report.customerMix.prevNew}N / {report.customerMix.prevRet}R)
               </span>
             </div>
@@ -1858,57 +1865,69 @@ export function LiveOpsTab({
 
         {/* 4 Telemetry Metrics */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3.5 flex flex-col justify-between">
-            <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider">
+          <div className="kpi-card min-w-0 bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3.5 flex flex-col justify-between">
+            <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider truncate">
               Handed Over to Pathao
             </span>
-            <div className="mt-1">
-              <div className="text-2xl font-black text-white font-headline">
+            <div className="mt-1 min-w-0">
+              <div
+                className="kpi-metric-number text-xl sm:text-2xl font-black text-white font-headline truncate block"
+                title={courierStats ? `${courierStats.handedOverRate}%` : '94.2%'}
+              >
                 {courierStats ? `${courierStats.handedOverRate}%` : '94.2%'}
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-400 mt-0.5 truncate">
                 {courierStats ? `${courierStats.handedOverCount} of ${courierStats.totalOrders} parcels tracked` : 'Tracked via Courier API'}
               </p>
             </div>
           </div>
 
-          <div className="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3.5 flex flex-col justify-between">
-            <span className="text-[10.5px] font-bold text-blue-400 uppercase tracking-wider">
+          <div className="kpi-card min-w-0 bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3.5 flex flex-col justify-between">
+            <span className="text-[10.5px] font-bold text-blue-400 uppercase tracking-wider truncate">
               In-Transit With Courier
             </span>
-            <div className="mt-1">
-              <div className="text-2xl font-black text-blue-300 font-headline">
+            <div className="mt-1 min-w-0">
+              <div
+                className="kpi-metric-number text-xl sm:text-2xl font-black text-blue-300 font-headline truncate block"
+                title={`${courierStats ? courierStats.inTransitCount : 18} parcels`}
+              >
                 {courierStats ? courierStats.inTransitCount : 18} parcels
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-400 mt-0.5 truncate">
                 Moving to customer address
               </p>
             </div>
           </div>
 
-          <div className="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3.5 flex flex-col justify-between">
-            <span className="text-[10.5px] font-bold text-emerald-400 uppercase tracking-wider">
+          <div className="kpi-card min-w-0 bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3.5 flex flex-col justify-between">
+            <span className="text-[10.5px] font-bold text-emerald-400 uppercase tracking-wider truncate">
               Delivered by Pathao
             </span>
-            <div className="mt-1">
-              <div className="text-2xl font-black text-emerald-300 font-headline">
+            <div className="mt-1 min-w-0">
+              <div
+                className="kpi-metric-number text-xl sm:text-2xl font-black text-emerald-300 font-headline truncate block"
+                title={`${courierStats ? courierStats.deliveredCount : 28} parcels`}
+              >
                 {courierStats ? courierStats.deliveredCount : 28} parcels
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-400 mt-0.5 truncate">
                 COD Collected: ৳ {courierStats ? courierStats.totalCodCollected.toLocaleString() : '58,400'}
               </p>
             </div>
           </div>
 
-          <div className="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3.5 flex flex-col justify-between">
-            <span className="text-[10.5px] font-bold text-rose-400 uppercase tracking-wider">
+          <div className="kpi-card min-w-0 bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3.5 flex flex-col justify-between">
+            <span className="text-[10.5px] font-bold text-rose-400 uppercase tracking-wider truncate">
               Returned / RTO
             </span>
-            <div className="mt-1">
-              <div className="text-2xl font-black text-rose-300 font-headline">
+            <div className="mt-1 min-w-0">
+              <div
+                className="kpi-metric-number text-xl sm:text-2xl font-black text-rose-300 font-headline truncate block"
+                title={`${courierStats ? courierStats.returnedCount : 4} parcels`}
+              >
                 {courierStats ? courierStats.returnedCount : 4} parcels
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-400 mt-0.5 truncate">
                 Returned to Mirpur Warehouse
               </p>
             </div>
@@ -2058,44 +2077,44 @@ export function LiveOpsTab({
           <div className="space-y-4">
             {/* Top 4 Core Performance Metric Chips */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+              <div className="kpi-card min-w-0 bg-white/5 border border-white/10 rounded-2xl p-3">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider truncate block">
                   Dispatched Volume
                 </span>
-                <div className="text-lg sm:text-xl font-black text-white font-headline mt-0.5">
+                <div className="kpi-metric-number text-lg sm:text-xl font-black text-white font-headline mt-0.5 truncate block" title={`${report.executiveBriefing.totalOrders} orders`}>
                   {report.executiveBriefing.totalOrders} <span className="text-xs font-normal text-slate-400">orders</span>
                 </div>
-                <div className="text-[11px] text-slate-300">
+                <div className="text-[11px] text-slate-300 truncate">
                   {report.executiveBriefing.totalItems} items dispatched
                 </div>
               </div>
 
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+              <div className="kpi-card min-w-0 bg-white/5 border border-white/10 rounded-2xl p-3">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider truncate block">
                   Gross Value &amp; AOV
                 </span>
-                <div className="text-lg sm:text-xl font-black text-emerald-400 font-headline mt-0.5">
+                <div className="kpi-metric-number text-lg sm:text-xl font-black text-emerald-400 font-headline mt-0.5 truncate block" title={`৳ ${report.executiveBriefing.totalRevenue.toLocaleString()}`}>
                   ৳ {report.executiveBriefing.totalRevenue.toLocaleString()}
                 </div>
-                <div className="text-[11px] text-slate-300">
+                <div className="text-[11px] text-slate-300 truncate">
                   AOV: ৳ {report.executiveBriefing.aov.toLocaleString()}
                 </div>
               </div>
 
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+              <div className="kpi-card min-w-0 bg-white/5 border border-white/10 rounded-2xl p-3">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider truncate block">
                   vs 7-Day Daily Avg
                 </span>
-                <div className={`text-lg sm:text-xl font-black font-headline mt-0.5 ${(report.executiveBriefing.vs7dVolumePct || 0) >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                <div className={`kpi-metric-number text-lg sm:text-xl font-black font-headline mt-0.5 truncate block ${(report.executiveBriefing.vs7dVolumePct || 0) >= 0 ? 'text-emerald-400' : 'text-amber-400'}`} title={`${(report.executiveBriefing.vs7dVolumePct || 0) >= 0 ? '+' : ''}${report.executiveBriefing.vs7dVolumePct}% items`}>
                   {(report.executiveBriefing.vs7dVolumePct || 0) >= 0 ? '+' : ''}{report.executiveBriefing.vs7dVolumePct}% items
                 </div>
-                <div className="text-[11px] text-slate-300">
+                <div className="text-[11px] text-slate-300 truncate">
                   {(report.executiveBriefing.vs7dRevenuePct || 0) >= 0 ? '+' : ''}{report.executiveBriefing.vs7dRevenuePct}% revenue
                 </div>
               </div>
 
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+              <div className="kpi-card min-w-0 bg-white/5 border border-white/10 rounded-2xl p-3">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider truncate block">
                   Top Category &amp; SKU
                 </span>
                 <div className="text-sm font-black text-sky-300 truncate mt-0.5" title={report.executiveBriefing.topCategory.name}>
@@ -2110,7 +2129,7 @@ export function LiveOpsTab({
             {/* Briefing Modules: Collection Split, Dispatch IDs, Channel Breakdown, Top Products */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
               {/* Module 1: 🏷️ Collection Split */}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-2">
+              <div className="kpi-card min-w-0 bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
                     <span>🏷️</span> Collection Split
@@ -2154,18 +2173,18 @@ export function LiveOpsTab({
               </div>
 
               {/* Module 2: 📋 Fulfillment Tracking */}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-2">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
+              <div className="kpi-card min-w-0 bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-2">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5 truncate">
                   <span>📋</span> Dispatch Tracking
                 </span>
-                <div className="space-y-1.5 text-xs">
-                  <div>
+                <div className="space-y-1.5 text-xs min-w-0">
+                  <div className="min-w-0">
                     <div className="text-[10px] text-slate-400">Last Shipped Order:</div>
                     <div className="font-mono font-bold text-emerald-400 text-sm truncate">
                       #{report.executiveBriefing.fulfillment?.lastShippedOrder || 'None'}
                     </div>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-[10px] text-slate-400">Last Pathao Print:</div>
                     <div className="font-mono font-bold text-indigo-300 text-sm truncate">
                       {report.executiveBriefing.fulfillment?.lastPathaoPrint ? `${report.executiveBriefing.fulfillment.lastPathaoPrint}` : 'None'}
@@ -2175,25 +2194,25 @@ export function LiveOpsTab({
               </div>
 
               {/* Module 3: 🛒 Order Channel Breakdown */}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
+              <div className="kpi-card min-w-0 bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-2">
+                <div className="flex items-center justify-between min-w-0">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5 truncate">
                     <span>🛒</span> Channel Split
                   </span>
-                  <span className="text-[11px] font-bold text-white">
+                  <span className="text-[11px] font-bold text-white shrink-0">
                     {report.executiveBriefing.channelBreakdown?.totalOrders ?? report.executiveBriefing.totalOrders} total
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-1 text-center">
-                  <div className="bg-white/5 rounded-xl p-2">
-                    <div className="text-[10px] text-slate-400">🚀 Ecom (Checkout)</div>
-                    <div className="font-bold text-sky-400 text-sm mt-0.5">
+                  <div className="bg-white/5 rounded-xl p-2 min-w-0">
+                    <div className="text-[10px] text-slate-400 truncate">🚀 Ecom (Checkout)</div>
+                    <div className="font-bold text-sky-400 text-sm mt-0.5 truncate">
                       {report.executiveBriefing.channelBreakdown?.ecomCount ?? report.executiveBriefing.totalOrders}
                     </div>
                   </div>
-                  <div className="bg-white/5 rounded-xl p-2">
-                    <div className="text-[10px] text-slate-400">🔄 Exchanges</div>
-                    <div className="font-bold text-amber-400 text-sm mt-0.5">
+                  <div className="bg-white/5 rounded-xl p-2 min-w-0">
+                    <div className="text-[10px] text-slate-400 truncate">🔄 Exchanges</div>
+                    <div className="font-bold text-amber-400 text-sm mt-0.5 truncate">
                       {report.executiveBriefing.channelBreakdown?.exchangeCount ?? 0}
                     </div>
                   </div>
@@ -2201,7 +2220,7 @@ export function LiveOpsTab({
               </div>
 
               {/* Module 4: 🔥 Top Performing Products */}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-1.5">
+              <div className="kpi-card min-w-0 bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-1.5">
                 <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
                   <span>🔥</span> Top Products
                 </span>

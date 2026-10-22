@@ -227,7 +227,7 @@ export function OrderDetailModal({
               </h3>
             </div>
 
-            <div className="border border-slate-200 dark:border-deepBlack-border rounded-xl overflow-x-auto shadow-2xs">
+            <div className="border border-slate-200 dark:border-deepBlack-border rounded-xl overflow-x-auto min-w-0 shadow-2xs">
               <table className="w-full text-left text-xs min-w-[600px]">
                 <thead className="bg-slate-50 dark:bg-deepBlack-sidebar border-b border-slate-200 dark:border-deepBlack-border text-slate-600 dark:text-slate-300 font-bold">
                   <tr>

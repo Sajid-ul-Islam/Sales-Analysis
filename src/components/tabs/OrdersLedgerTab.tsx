@@ -196,9 +196,9 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
       )}
 
       {/* Search and Filters Bar */}
-      <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-4 border border-slate-200 dark:border-deepBlack-border shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
-        <div className="flex items-center gap-3 w-full md:w-auto flex-1">
-          <div className="relative flex-1 max-w-md">
+      <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-4 border border-slate-200 dark:border-deepBlack-border shadow-sm flex flex-col xl:flex-row gap-3 items-stretch xl:items-center justify-between min-w-0">
+        <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+          <div className="relative w-full sm:w-72 md:w-80 shrink-0">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -212,96 +212,94 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchTerm('');
-                  setStatusFilter('ALL');
-                  setBranchFilter('ALL');
-                  setTerritoryFilter('ALL');
-                  setAiTagFilter('ALL');
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  hasActiveFilter
-                    ? 'bg-primary text-white border border-primary shadow-xs hover:bg-primary-hover'
-                    : 'bg-slate-100 dark:bg-deepBlack-sidebar text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-deepBlack-border cursor-not-allowed hover:bg-slate-200/60 dark:hover:bg-deepBlack-hover'
-                }`}
-                title={hasActiveFilter ? 'Clear all filters (resets search, status, territory, and page to 1)' : 'No active filter to clear'}
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                <span>Clear Filters</span>
-              </button>
-              <select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-deepBlack-canvas"
-              >
-                <option value="ALL">All Statuses</option>
-                <option value="DELIVERED">Delivered Only</option>
-                <option value="PARTIAL">Partial Orders</option>
-                <option value="EXCHANGE">Exchanges (D- / DD-)</option>
-                <option value="PAID_RETURN">Paid Returns</option>
-                <option value="NON_PAID_RETURN">Non-Paid Returns</option>
-                <option value="FULL_RETURN">All Returns (Full)</option>
-              </select>
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm('');
+                setStatusFilter('ALL');
+                setBranchFilter('ALL');
+                setTerritoryFilter('ALL');
+                setAiTagFilter('ALL');
+                setCurrentPage(1);
+              }}
+              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+                hasActiveFilter
+                  ? 'bg-primary text-white border border-primary shadow-xs hover:bg-primary-hover'
+                  : 'bg-slate-100 dark:bg-deepBlack-sidebar text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-deepBlack-border cursor-not-allowed hover:bg-slate-200/60 dark:hover:bg-deepBlack-hover'
+              }`}
+              title={hasActiveFilter ? 'Clear all filters (resets search, status, territory, and page to 1)' : 'No active filter to clear'}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              <span>Clear Filters</span>
+            </button>
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-deepBlack-canvas"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="DELIVERED">Delivered Only</option>
+              <option value="PARTIAL">Partial Orders</option>
+              <option value="EXCHANGE">Exchanges (D- / DD-)</option>
+              <option value="PAID_RETURN">Paid Returns</option>
+              <option value="NON_PAID_RETURN">Non-Paid Returns</option>
+              <option value="FULL_RETURN">All Returns (Full)</option>
+            </select>
 
+            <select
+              value={branchFilter}
+              onChange={(e) => {
+                setBranchFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-deepBlack-canvas"
+            >
+              <option value="ALL">All Outlets / Branches</option>
+              <option value="Online Store (Central Warehouse)">Online Store (Central Warehouse)</option>
+              <option value="Mirpur Outlet POS">Mirpur Outlet POS (m)</option>
+              <option value="Cumilla Branch">Cumilla Branch (c)</option>
+              <option value="Wari Branch">Wari Branch (w)</option>
+              <option value="Sylhet Branch">Sylhet Branch (s)</option>
+            </select>
+
+            <select
+              value={territoryFilter}
+              onChange={(e) => {
+                setTerritoryFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-deepBlack-canvas"
+            >
+              <option value="ALL">All Territories</option>
+              <option value="Inside Dhaka">Inside Dhaka</option>
+              <option value="Outside Dhaka">Outside Dhaka</option>
+            </select>
+
+            {availableAiTags.length > 0 && (
               <select
-                value={branchFilter}
+                value={aiTagFilter}
                 onChange={(e) => {
-                  setBranchFilter(e.target.value);
+                  setAiTagFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-deepBlack-canvas"
+                className="bg-orange-50/70 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/40 rounded-xl px-3 py-2 text-xs font-bold text-primary focus:outline-none focus:border-primary"
               >
-                <option value="ALL">All Outlets / Branches</option>
-                <option value="Online Store (Central Warehouse)">Online Store (Central Warehouse)</option>
-                <option value="Mirpur Outlet POS">Mirpur Outlet POS (m)</option>
-                <option value="Cumilla Branch">Cumilla Branch (c)</option>
-                <option value="Wari Branch">Wari Branch (w)</option>
-                <option value="Sylhet Branch">Sylhet Branch (s)</option>
+                <option value="ALL">All AI Tags ({orders.filter((o) => Boolean(o.aiAuditTag)).length})</option>
+                {availableAiTags.map((tag, tIdx) => (
+                  <option key={tIdx} value={tag}>🏷️ {tag}</option>
+                ))}
               </select>
-
-              <select
-                value={territoryFilter}
-                onChange={(e) => {
-                  setTerritoryFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-deepBlack-canvas"
-              >
-                <option value="ALL">All Territories</option>
-                <option value="Inside Dhaka">Inside Dhaka</option>
-                <option value="Outside Dhaka">Outside Dhaka</option>
-              </select>
-
-              {availableAiTags.length > 0 && (
-                <select
-                  value={aiTagFilter}
-                  onChange={(e) => {
-                    setAiTagFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="bg-orange-50/70 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/40 rounded-xl px-3 py-2 text-xs font-bold text-primary focus:outline-none focus:border-primary"
-                >
-                  <option value="ALL">All AI Tags ({orders.filter((o) => Boolean(o.aiAuditTag)).length})</option>
-                  {availableAiTags.map((tag, tIdx) => (
-                    <option key={tIdx} value={tag}>🏷️ {tag}</option>
-                  ))}
-                </select>
-              )}
-            </div>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end text-xs text-slate-500 dark:text-slate-400">
+        <div className="flex items-center gap-3 w-full xl:w-auto justify-between xl:justify-end text-xs text-slate-500 dark:text-slate-400 shrink-0">
           <span>
             Showing <strong className="text-slate-900 dark:text-white">{filteredOrders.length.toLocaleString()}</strong> records
           </span>

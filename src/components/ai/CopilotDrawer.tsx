@@ -332,27 +332,28 @@ export function CopilotDrawer({
             <button
               type="button"
               onClick={handleExportTranscript}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+              className="min-w-[40px] min-h-[40px] inline-flex items-center justify-center text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
               title="Export chat transcript (.md)"
+              aria-label="Export chat transcript"
             >
               <Download className="w-4 h-4" />
             </button>
 
             {/* Clear History with Confirm */}
             {confirmClear ? (
-              <div className="flex items-center gap-1 bg-rose-950/80 p-1 rounded-lg border border-rose-500/40 animate-fadeIn">
+              <div className="flex items-center gap-1.5 bg-rose-950/80 p-1 rounded-lg border border-rose-500/40 animate-fadeIn">
                 <span className="text-[10px] text-rose-200 px-1 font-bold">Clear all?</span>
                 <button
                   type="button"
                   onClick={handleClearHistory}
-                  className="px-1.5 py-0.5 rounded bg-rose-600 text-white text-[10px] font-black hover:bg-rose-700 cursor-pointer"
+                  className="min-h-[32px] px-2.5 py-1 rounded bg-rose-600 text-white text-xs font-black hover:bg-rose-700 cursor-pointer inline-flex items-center justify-center"
                 >
                   Yes
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmClear(false)}
-                  className="px-1.5 py-0.5 rounded bg-slate-700 text-slate-200 text-[10px] hover:bg-slate-600 cursor-pointer"
+                  className="min-h-[32px] px-2.5 py-1 rounded bg-slate-700 text-slate-200 text-xs hover:bg-slate-600 cursor-pointer inline-flex items-center justify-center"
                 >
                   No
                 </button>
@@ -361,8 +362,9 @@ export function CopilotDrawer({
               <button
                 type="button"
                 onClick={() => setConfirmClear(true)}
-                className="p-1.5 text-slate-400 hover:text-rose-300 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                className="min-w-[40px] min-h-[40px] inline-flex items-center justify-center text-slate-400 hover:text-rose-300 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
                 title="Clear saved chat history"
+                aria-label="Clear chat history"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -371,8 +373,9 @@ export function CopilotDrawer({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+              className="min-w-[40px] min-h-[40px] inline-flex items-center justify-center text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
               title="Close drawer"
+              aria-label="Close copilot drawer"
             >
               <X className="w-5 h-5" />
             </button>

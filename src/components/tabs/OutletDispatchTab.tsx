@@ -484,7 +484,7 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
       </div>
 
       {/* 5 High-Impact Interactive Outlet Dispatch KPI Overview Cards (Strictly Parcel Counts) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-4.5 xl:gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3.5 sm:gap-4 lg:gap-4.5 xl:gap-5">
         {/* KPI 1: Gross Dispatched Parcels (Interactive -> Reset & Parcel Summary) */}
         <div
           onClick={() => {
@@ -492,17 +492,17 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
             setStatusFilter('ALL');
             setActiveViewMode('MATRIX');
           }}
-          className="bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-sm hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          className="kpi-card min-w-0 bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-sm hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
           title="Click to reset filters and view full Outlet Matrix"
         >
-          <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center justify-between gap-3 mb-3 min-w-0">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
-                <Truck className="w-4.5 h-4.5" />
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+                <Truck className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
               </div>
               <div className="min-w-0">
                 <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block truncate">Gross Dispatched</span>
-                <span className="text-[10px] text-indigo-700 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full border border-indigo-200/60 dark:border-indigo-800 inline-block mt-0.5">
+                <span className="text-[10px] text-indigo-700 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full border border-indigo-200/60 dark:border-indigo-800 inline-block mt-0.5 truncate">
                   All Outlets Fleet
                 </span>
               </div>
@@ -512,26 +512,29 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
             </div>
           </div>
 
-          <div className="my-3 space-y-1.5">
-            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-slate-900 dark:text-white font-headline tracking-tight">
+          <div className="my-2.5 space-y-1.5 min-w-0">
+            <div
+              className="kpi-metric-number text-xl sm:text-2xl xl:text-3xl font-black text-slate-900 dark:text-white font-headline tracking-tight truncate block"
+              title={`${aggregateTotals.totalDispatchedParcels.toLocaleString()} Parcels`}
+            >
               {aggregateTotals.totalDispatchedParcels.toLocaleString()}
               <span className="text-xs font-bold text-slate-400 dark:text-slate-500 ml-1.5">Parcels</span>
             </div>
-            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-0.5">
-              <span>Retail Value: <strong className="text-slate-800 dark:text-slate-200 font-semibold">৳ {aggregateTotals.totalDispatchedGmv.toLocaleString()}</strong></span>
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-0.5 flex-wrap gap-1 min-w-0">
+              <span className="truncate">Retail Value: <strong className="text-slate-800 dark:text-slate-200 font-semibold">৳ {aggregateTotals.totalDispatchedGmv.toLocaleString()}</strong></span>
             </div>
             {/* Split Distribution: Hub vs Branches */}
-            <div className="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 pt-1">
+            <div className="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 pt-1 flex-wrap gap-1 min-w-0">
               <span>Hub: <strong className="text-slate-700 dark:text-slate-300 font-semibold">{aggregateTotals.totalDispatchedParcels - aggregateTotals.branchDispatchedParcels}</strong></span>
               <span>Branches: <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{aggregateTotals.branchDispatchedParcels}</strong></span>
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+          <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 flex-wrap gap-1 min-w-0">
             <span>Matrix Action:</span>
             <span className="font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 group-hover:underline">
               <span>View Summary</span>
-              <span className="text-indigo-400 dark:text-indigo-500 font-normal">→</span>
+              <span className="text-indigo-400 dark:text-indigo-500 font-normal shrink-0">→</span>
             </span>
           </div>
         </div>
@@ -543,17 +546,17 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
             setActiveViewMode('LEDGER');
             setCurrentPage(1);
           }}
-          className="bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-sm hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          className="kpi-card min-w-0 bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-sm hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
           title="Click to inspect all Delivered Parcels in Ledger"
         >
-          <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center justify-between gap-3 mb-3 min-w-0">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
                 <PackageCheck className="w-4.5 h-4.5" />
               </div>
               <div className="min-w-0">
                 <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block truncate">Delivered Parcels</span>
-                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800 inline-block mt-0.5">
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800 inline-block mt-0.5 truncate">
                   {aggregateTotals.overallRetention.toFixed(1)}% Realized
                 </span>
               </div>
@@ -563,14 +566,17 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
             </div>
           </div>
 
-          <div className="my-3 space-y-1.5">
-            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-emerald-600 dark:text-emerald-400 font-headline tracking-tight">
+          <div className="my-2.5 space-y-1.5 min-w-0">
+            <div
+              className="kpi-metric-number text-xl sm:text-2xl xl:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-headline tracking-tight truncate block"
+              title={`${aggregateTotals.totalDeliveredParcels.toLocaleString()} Delivered Parcels`}
+            >
               {aggregateTotals.totalDeliveredParcels.toLocaleString()}
               <span className="text-xs font-bold text-slate-400 dark:text-slate-500 ml-1.5">Parcels</span>
             </div>
-            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-0.5">
-              <span>Net Sales: <strong className="text-slate-800 dark:text-slate-200 font-semibold">৳ {aggregateTotals.totalDeliveredRevenue.toLocaleString()}</strong></span>
-              <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-200/60 dark:border-emerald-800">Success</span>
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-0.5 flex-wrap gap-1 min-w-0">
+              <span className="truncate">Net Sales: <strong className="text-slate-800 dark:text-slate-200 font-semibold">৳ {aggregateTotals.totalDeliveredRevenue.toLocaleString()}</strong></span>
+              <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-200/60 dark:border-emerald-800 shrink-0">Success</span>
             </div>
             {/* Visual Retention Bar */}
             <div className="w-full bg-slate-100 dark:bg-deepBlack-elevated rounded-full h-1.5 mt-2 overflow-hidden">
@@ -581,11 +587,11 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+          <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 flex-wrap gap-1 min-w-0">
             <span>Retention Rate:</span>
             <span className="font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 group-hover:underline">
               <span>Filter Delivered</span>
-              <span className="text-emerald-500 font-normal">→</span>
+              <span className="text-emerald-500 font-normal shrink-0">→</span>
             </span>
           </div>
         </div>
@@ -597,17 +603,17 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
             setActiveViewMode('LEDGER');
             setCurrentPage(1);
           }}
-          className="bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-sm hover:border-rose-300 dark:hover:border-rose-600 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          className="kpi-card min-w-0 bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-sm hover:border-rose-300 dark:hover:border-rose-600 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
           title="Click to audit Returned Parcels in Ledger"
         >
-          <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center justify-between gap-3 mb-3 min-w-0">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/40 flex items-center justify-center text-rose-600 dark:text-rose-400 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/40 flex items-center justify-center text-rose-600 dark:text-rose-400 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
                 <RotateCcw className="w-4.5 h-4.5" />
               </div>
               <div className="min-w-0">
                 <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block truncate">Returned Parcels</span>
-                <span className="text-[10px] text-rose-700 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-full border border-rose-200/60 dark:border-rose-800 inline-block mt-0.5">
+                <span className="text-[10px] text-rose-700 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-full border border-rose-200/60 dark:border-rose-800 inline-block mt-0.5 truncate">
                   {aggregateTotals.overallReturnRate.toFixed(1)}% RTO Rate
                 </span>
               </div>
@@ -617,14 +623,17 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
             </div>
           </div>
 
-          <div className="my-3 space-y-1.5">
-            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-rose-600 dark:text-rose-400 font-headline tracking-tight">
+          <div className="my-2.5 space-y-1.5 min-w-0">
+            <div
+              className="kpi-metric-number text-xl sm:text-2xl xl:text-3xl font-black text-rose-600 dark:text-rose-400 font-headline tracking-tight truncate block"
+              title={`${aggregateTotals.totalReturnedParcels.toLocaleString()} Returned Parcels`}
+            >
               {aggregateTotals.totalReturnedParcels.toLocaleString()}
               <span className="text-xs font-bold text-slate-400 dark:text-slate-500 ml-1.5">Parcels</span>
             </div>
-            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-0.5">
-              <span>Lost Retail: <strong className="text-rose-700 dark:text-rose-300 font-semibold">৳ {aggregateTotals.totalReturnedLoss.toLocaleString()}</strong></span>
-              <span className="text-[10px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200/60 dark:border-rose-800">
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-0.5 flex-wrap gap-1 min-w-0">
+              <span className="truncate">Lost Retail: <strong className="text-rose-700 dark:text-rose-300 font-semibold">৳ {aggregateTotals.totalReturnedLoss.toLocaleString()}</strong></span>
+              <span className="text-[10px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200/60 dark:border-rose-800 shrink-0">
                 {aggregateTotals.totalPaidReturns} Paid
               </span>
             </div>
@@ -637,11 +646,11 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+          <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 flex-wrap gap-1 min-w-0">
             <span>Paid RTO Ratio:</span>
             <span className="font-bold text-rose-700 dark:text-rose-400 flex items-center gap-1 group-hover:underline">
               <span>Filter Returns</span>
-              <span className="text-rose-500 font-normal">→</span>
+              <span className="text-rose-500 font-normal shrink-0">→</span>
             </span>
           </div>
         </div>
@@ -655,17 +664,17 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
               setCurrentPage(1);
             }
           }}
-          className="bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-sm hover:border-amber-300 dark:hover:border-amber-600 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          className="kpi-card min-w-0 bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-sm hover:border-amber-300 dark:hover:border-amber-600 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
           title={aggregateTotals.topPerformer?.name ? `Click to filter parcels to ${aggregateTotals.topPerformer.name}` : 'Awaiting data'}
         >
-          <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center justify-between gap-3 mb-3 min-w-0">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900/40 flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900/40 flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
                 <Award className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400" />
               </div>
               <div className="min-w-0">
                 <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block truncate">Top Retail Branch</span>
-                <span className="text-[10px] text-amber-800 dark:text-amber-300 font-bold bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-200/60 dark:border-amber-800 inline-block mt-0.5">
+                <span className="text-[10px] text-amber-800 dark:text-amber-300 font-bold bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-200/60 dark:border-amber-800 inline-block mt-0.5 truncate">
                   {aggregateTotals.topPerformer?.retentionRate ? `${aggregateTotals.topPerformer.retentionRate.toFixed(1)}% Retention` : 'Leader'}
                 </span>
               </div>
@@ -675,13 +684,13 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
             </div>
           </div>
 
-          <div className="my-3 space-y-1.5">
-            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-headline truncate" title={aggregateTotals.topPerformer?.name || 'All Outlets'}>
+          <div className="my-2.5 space-y-1.5 min-w-0">
+            <div className="kpi-metric-number text-xl sm:text-2xl xl:text-3xl font-black text-slate-900 dark:text-white font-headline truncate block" title={aggregateTotals.topPerformer?.name || 'All Outlets'}>
               {aggregateTotals.topPerformer?.name || 'Retail Outlets'}
             </div>
-            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-0.5">
-              <span>Sales: <strong className="text-slate-800 dark:text-slate-200 font-semibold">৳ {aggregateTotals.topPerformer?.deliveredRevenue ? aggregateTotals.topPerformer.deliveredRevenue.toLocaleString() : 0}</strong></span>
-              <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-0.5 flex-wrap gap-1 min-w-0">
+              <span className="truncate">Sales: <strong className="text-slate-800 dark:text-slate-200 font-semibold">৳ {aggregateTotals.topPerformer?.deliveredRevenue ? aggregateTotals.topPerformer.deliveredRevenue.toLocaleString() : 0}</strong></span>
+              <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 shrink-0">
                 {aggregateTotals.topPerformer?.dispatchedParcels || 0} parcels
               </span>
             </div>
@@ -694,11 +703,11 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+          <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 flex-wrap gap-1 min-w-0">
             <span>Branch Action:</span>
             <span className="font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1 group-hover:underline">
               <span>Filter Branch</span>
-              <span className="text-amber-500 font-normal">⚡</span>
+              <span className="text-amber-500 font-normal shrink-0">⚡</span>
             </span>
           </div>
         </div>
@@ -708,17 +717,17 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
           onClick={() => {
             setActiveViewMode(activeViewMode === 'MATRIX' ? 'LEDGER' : 'MATRIX');
           }}
-          className="bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-sm hover:border-sky-300 dark:hover:border-sky-600 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
+          className="kpi-card min-w-0 bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-sm hover:border-sky-300 dark:hover:border-sky-600 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
           title="Click to toggle between Parcel Matrix and Detailed Ledger"
         >
-          <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center justify-between gap-3 mb-3 min-w-0">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-100 dark:border-sky-900/40 flex items-center justify-center text-sky-600 dark:text-sky-400 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-100 dark:border-sky-900/40 flex items-center justify-center text-sky-600 dark:text-sky-400 group-hover:scale-105 transition-transform shrink-0 shadow-2xs">
                 <Building2 className="w-4.5 h-4.5" />
               </div>
               <div className="min-w-0">
                 <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block truncate">Retail Outlets Share</span>
-                <span className="text-[10px] text-sky-700 dark:text-sky-400 font-bold bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded-full border border-sky-200/60 dark:border-sky-800 inline-block mt-0.5">
+                <span className="text-[10px] text-sky-700 dark:text-sky-400 font-bold bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded-full border border-sky-200/60 dark:border-sky-800 inline-block mt-0.5 truncate">
                   {aggregateTotals.branchDispatchedParcels} Branch Parcels
                 </span>
               </div>
@@ -728,13 +737,16 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
             </div>
           </div>
 
-          <div className="my-3 space-y-1.5">
-            <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-sky-600 dark:text-sky-400 font-headline tracking-tight">
+          <div className="my-2.5 space-y-1.5 min-w-0">
+            <div
+              className="kpi-metric-number text-xl sm:text-2xl xl:text-3xl font-black text-sky-600 dark:text-sky-400 font-headline tracking-tight truncate block"
+              title={`${aggregateTotals.branchVolumeShare.toFixed(1)}%`}
+            >
               {aggregateTotals.branchVolumeShare.toFixed(1)}%
             </div>
-            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-0.5">
-              <span>Realized: <strong className="text-slate-800 dark:text-slate-200 font-semibold">৳ {aggregateTotals.branchRealizedGmv.toLocaleString()}</strong></span>
-              <span className="text-[10px] font-semibold text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/40 px-1.5 py-0.5 rounded border border-sky-200/60 dark:border-sky-800">Branches</span>
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-0.5 flex-wrap gap-1 min-w-0">
+              <span className="truncate">Realized: <strong className="text-slate-800 dark:text-slate-200 font-semibold">৳ {aggregateTotals.branchRealizedGmv.toLocaleString()}</strong></span>
+              <span className="text-[10px] font-semibold text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/40 px-1.5 py-0.5 rounded border border-sky-200/60 dark:border-sky-800 shrink-0">Branches</span>
             </div>
             {/* Visual Volume Share Bar */}
             <div className="w-full bg-slate-100 dark:bg-deepBlack-elevated rounded-full h-1.5 mt-2 overflow-hidden">
@@ -745,11 +757,11 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+          <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 flex-wrap gap-1 min-w-0">
             <span>Store Network:</span>
             <span className="font-bold text-sky-700 dark:text-sky-400 flex items-center gap-1 group-hover:underline">
               <span>{activeViewMode === 'MATRIX' ? 'Switch to Ledger' : 'Switch to Matrix'}</span>
-              <span className="text-sky-500 font-normal">→</span>
+              <span className="text-sky-500 font-normal shrink-0">→</span>
             </span>
           </div>
         </div>

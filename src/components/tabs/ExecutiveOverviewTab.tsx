@@ -579,53 +579,53 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
 
             <div className="grid grid-cols-2 gap-3 sm:gap-3.5">
               {/* Delivery Rate */}
-              <div className="p-3.5 sm:p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/40 flex flex-col gap-1.5 shadow-2xs">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/40 flex flex-col gap-1.5 shadow-2xs kpi-card min-w-0">
                 <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider">
                   Net Delivery
                 </span>
-                <span className="font-headline text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-400">
+                <span className="font-headline text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-400 kpi-metric-number truncate block" title={`${deliveryRate}%`}>
                   {deliveryRate}%
                 </span>
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
                   {s.fullDeliveredOrders.toLocaleString()} orders
                 </span>
               </div>
 
               {/* Full Return Rate */}
-              <div className="p-3.5 sm:p-4 rounded-xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200/70 dark:border-rose-800/40 flex flex-col gap-1.5 shadow-2xs">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200/70 dark:border-rose-800/40 flex flex-col gap-1.5 shadow-2xs kpi-card min-w-0">
                 <span className="text-[10px] text-rose-700 dark:text-rose-400 font-bold uppercase tracking-wider">
                   Full Returns
                 </span>
-                <span className="font-headline text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400">
+                <span className="font-headline text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400 kpi-metric-number truncate block" title={`${returnRate}%`}>
                   {returnRate}%
                 </span>
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
                   {s.fullReturnedOrders.toLocaleString()} orders
                 </span>
               </div>
 
               {/* Exchange Rate */}
-              <div className="p-3.5 sm:p-4 rounded-xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200/70 dark:border-purple-800/40 flex flex-col gap-1.5 shadow-2xs">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200/70 dark:border-purple-800/40 flex flex-col gap-1.5 shadow-2xs kpi-card min-w-0">
                 <span className="text-[10px] text-purple-700 dark:text-purple-400 font-bold uppercase tracking-wider">
                   Exchanges
                 </span>
-                <span className="font-headline text-xl sm:text-2xl font-black text-purple-700 dark:text-purple-400">
+                <span className="font-headline text-xl sm:text-2xl font-black text-purple-700 dark:text-purple-400 kpi-metric-number truncate block" title={`${exchangeRate}%`}>
                   {exchangeRate}%
                 </span>
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
                   {(s.totalExchangedOrders || 0).toLocaleString()} swaps
                 </span>
               </div>
 
               {/* Partial Rate */}
-              <div className="p-3.5 sm:p-4 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/40 flex flex-col gap-1.5 shadow-2xs">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/40 flex flex-col gap-1.5 shadow-2xs kpi-card min-w-0">
                 <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold uppercase tracking-wider">
                   Partial Orders
                 </span>
-                <span className="font-headline text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400">
+                <span className="font-headline text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 kpi-metric-number truncate block" title={`${partialRate}%`}>
                   {partialRate}%
                 </span>
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
                   {s.partialOrders.toLocaleString()} split
                 </span>
               </div>

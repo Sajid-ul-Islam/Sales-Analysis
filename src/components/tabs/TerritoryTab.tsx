@@ -206,7 +206,7 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder: _onSelect
       {/* 1. Territory High-Level Comparison Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {/* Inside Dhaka Card */}
-        <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-xs flex flex-col justify-between hover:border-blue-300 dark:hover:border-blue-600 transition-all">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-4 sm:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-xs flex flex-col justify-between hover:border-blue-300 dark:hover:border-blue-600 transition-all kpi-card min-w-0">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
@@ -223,19 +223,19 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder: _onSelect
           </div>
 
           <div className="grid grid-cols-2 gap-4 my-5 py-4 border-y border-slate-100 dark:border-deepBlack-border">
-            <div>
+            <div className="min-w-0">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Dispatched</span>
-              <span className="text-2xl font-black text-slate-900 dark:text-white">{s.insideOrders.toLocaleString()}</span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">{insideNetOrders.toLocaleString()} Net Delivered</span>
+              <span className="text-2xl font-black text-slate-900 dark:text-white kpi-metric-number truncate block" title={s.insideOrders.toLocaleString()}>{s.insideOrders.toLocaleString()}</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5 truncate">{insideNetOrders.toLocaleString()} Net Delivered</span>
             </div>
-            <div>
+            <div className="min-w-0">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Net Sales</span>
-              <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">৳ {Math.round(s.insideNetRevenue).toLocaleString()}</span>
+              <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 kpi-metric-number truncate block" title={`৳ ${Math.round(s.insideNetRevenue).toLocaleString()}`}>৳ {Math.round(s.insideNetRevenue).toLocaleString()}</span>
               <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">Delivered net</span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-xs font-semibold">
+          <div className="flex items-center justify-between text-xs font-semibold gap-2 flex-wrap">
             <div className="flex items-center gap-2">
               <span className="text-slate-500 dark:text-slate-400">Returns & Partials:</span>
               <span className="text-amber-600 dark:text-amber-400 font-bold">{s.insideReturns} Full / {s.insidePartials} Partial</span>
@@ -250,7 +250,7 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder: _onSelect
         </div>
 
         {/* Outside Dhaka Card */}
-        <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-xs flex flex-col justify-between hover:border-amber-300 dark:hover:border-amber-600 transition-all">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-4 sm:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-xs flex flex-col justify-between hover:border-amber-300 dark:hover:border-amber-600 transition-all kpi-card min-w-0">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-800/40 flex items-center justify-center text-amber-600 dark:text-amber-400">
@@ -267,19 +267,19 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder: _onSelect
           </div>
 
           <div className="grid grid-cols-2 gap-4 my-5 py-4 border-y border-slate-100 dark:border-deepBlack-border">
-            <div>
+            <div className="min-w-0">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Dispatched</span>
-              <span className="text-2xl font-black text-slate-900 dark:text-white">{s.outsideOrders.toLocaleString()}</span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">{outsideNetOrders.toLocaleString()} Net Delivered</span>
+              <span className="text-2xl font-black text-slate-900 dark:text-white kpi-metric-number truncate block" title={s.outsideOrders.toLocaleString()}>{s.outsideOrders.toLocaleString()}</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5 truncate">{outsideNetOrders.toLocaleString()} Net Delivered</span>
             </div>
-            <div>
+            <div className="min-w-0">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Net Sales</span>
-              <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">৳ {Math.round(s.outsideNetRevenue).toLocaleString()}</span>
+              <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 kpi-metric-number truncate block" title={`৳ ${Math.round(s.outsideNetRevenue).toLocaleString()}`}>৳ {Math.round(s.outsideNetRevenue).toLocaleString()}</span>
               <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">Delivered net</span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-xs font-semibold">
+          <div className="flex items-center justify-between text-xs font-semibold gap-2 flex-wrap">
             <div className="flex items-center gap-2">
               <span className="text-slate-500 dark:text-slate-400">Returns & Partials:</span>
               <span className="text-rose-600 dark:text-rose-400 font-bold">{s.outsideReturns} Full / {s.outsidePartials} Partial</span>
@@ -294,13 +294,13 @@ export function TerritoryTab({ summary: s, orders = [], onSelectOrder: _onSelect
         </div>
 
         {/* Territory Ratio (Integer Value & Noise Reduced) */}
-        <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-xs flex flex-col justify-between hover:border-indigo-300 dark:hover:border-indigo-600 transition-all">
+        <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-4 sm:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-xs flex flex-col justify-between hover:border-indigo-300 dark:hover:border-indigo-600 transition-all kpi-card min-w-0">
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Territory Ratio</h3>
               <TrendingUp className="w-4 h-4 text-primary" />
             </div>
-            <div className="text-3xl font-black text-slate-900 dark:text-white mb-1 font-headline">
+            <div className="text-3xl font-black text-slate-900 dark:text-white mb-1 font-headline kpi-metric-number truncate block">
               {s.grossOrders === 0 ? '0 : 0' : `${intRatio} : 1`}
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400">
