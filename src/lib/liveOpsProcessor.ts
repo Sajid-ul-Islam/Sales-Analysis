@@ -419,10 +419,22 @@ export function isOrderExchange(order: RawOrderRow): boolean {
   // 5. No-Checkout / Non-Checkout Orders (Manual admin creation in WooCommerce for customer exchanges)
   if (o.isNoCheckout === true || o.isNonCheckout === true) return true;
 
+  // SIP POS exchange orders & metadata
+  if (
+    o._sip_exchange_order === '1' ||
+    o._sip_exchange_order === 1 ||
+    Boolean(o._sip_exchange_of) ||
+    Boolean(o._sip_exchange_code)
+  ) {
+    return true;
+  }
+
   const createdVia = String(order['Created Via'] || o.created_via || o.createdVia || o.created_source || '').toLowerCase().trim();
   if (
     createdVia === 'admin' ||
     createdVia === 'manual' ||
+    createdVia === 'sip_exchange' ||
+    createdVia.includes('exchange') ||
     createdVia === 'no-checkout' ||
     createdVia === 'no_checkout' ||
     createdVia === 'non-checkout' ||
@@ -473,7 +485,30 @@ export function extractExchangeInfo(order: RawOrderRow): ExchangeInfo {
   const consignmentId = String(order['Consignment ID'] || o.consignmentId || o.tracking_number || '').trim();
   const notes = getAllOrderNotes(order);
 
-  // Check for referenced order (e.g. "Exchange for #17839" or D-17839 or notes containing D-17381)
+  // Check for referenced order (e.g. _sip_exchange_of, "Exchange for #17839", D-17839)
+  let sipExchangeOf = String(o._sip_exchange_of || (order as Record<string, unknown>)['Exchange Of'] || '').trim();
+  if (!sipExchangeOf) {
+    const rawOrder = (o.rawOrder || order) as Record<string, unknown>;
+    const metaList = Array.isArray(rawOrder?.meta_data)
+      ? (rawOrder.meta_data as Array<{ key?: string; value?: unknown }>)
+      : Array.isArray(o.meta_data)
+        ? (o.meta_data as Array<{ key?: string; value?: unknown }>)
+        : [];
+    const found = metaList.find(m => m.key === '_sip_exchange_of');
+    if (found && found.value) {
+      sipExchangeOf = String(found.value).trim();
+    }
+  }
+
+  if (sipExchangeOf) {
+    return {
+      isExchange: true,
+      type: 'replacement',
+      referencedOrderId: sipExchangeOf,
+      displayTag: `Exchange for #${sipExchangeOf}`,
+    };
+  }
+
   const refMatch = notes.match(/exchange\s+for\s+#?(\d+)/i) ||
                    notes.match(/\bdd?-(\d+)\b/i) ||
                    orderId.match(/^d+-(\d+)/i) ||

@@ -22,7 +22,8 @@ import {
   Shirt,
   Zap,
   Trash2,
-  ArrowUpRight
+  ArrowUpRight,
+  X
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -87,28 +88,28 @@ interface OutletSalesMetric {
 // Canonical Physical Retail Branches (Online Store excluded by business rule)
 export const PHYSICAL_OUTLETS = [
   {
-    id: '1',
+    id: '2',
     name: 'Mirpur Outlet POS',
     channelType: 'Retail Branch POS' as const,
     badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
     dotColor: '#a855f7'
   },
   {
-    id: '9',
+    id: '8',
     name: 'Wari Branch POS',
     channelType: 'Retail Branch POS' as const,
     badgeColor: 'bg-sky-50 text-sky-700 border-sky-200',
     dotColor: '#0ea5e9'
   },
   {
-    id: '2',
+    id: '7',
     name: 'Cumilla Branch POS',
     channelType: 'Retail Branch POS' as const,
     badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     dotColor: '#10b981'
   },
   {
-    id: '7',
+    id: '9',
     name: 'Sylhet Branch POS',
     channelType: 'Retail Branch POS' as const,
     badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
@@ -191,6 +192,17 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
     // Web checkout orders are online orders (even if fulfilled from an outlet), exclude them
     const createdVia = String(rawOrder.created_via || '').toLowerCase().trim();
     if (createdVia === 'checkout' || createdVia === 'store-api') {
+      return null;
+    }
+
+    // Exclude exchange replacements (e.g. sip_exchange, _sip_exchange_order, RET- prefixes)
+    // Non-checkout/exchange replacements are isolated from new retail walk-in sales
+    const hasExchangeMeta = meta.some((m) => {
+      const k = String(m.key || '').toLowerCase();
+      const v = String(m.value || '').trim();
+      return (k === '_sip_exchange_order' && v === '1') || k === '_sip_exchange_of' || k === '_sip_exchange_code';
+    });
+    if (createdVia === 'sip_exchange' || hasExchangeMeta || orderIdStr.startsWith('ret-')) {
       return null;
     }
 
@@ -335,6 +347,11 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
         return;
       }
       if (String(rowAny.created_via || rowAny['Created Via'] || '').toLowerCase().trim() === 'checkout') {
+        return;
+      }
+
+      // Exclude exchange replacements
+      if (rowAny.isExchange || r.isExchange || String(rowAny.substatus || '').toLowerCase().includes('exchange') || String(rowAny.created_via || rowAny['Created Via'] || '').toLowerCase() === 'sip_exchange') {
         return;
       }
 
@@ -899,6 +916,9 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
     let _totalCatUnits = 0;
 
     dateFilteredOrders.forEach(order => {
+      if (selectedOutletFilter !== 'ALL' && order.outletName !== selectedOutletFilter) {
+        return;
+      }
       const orderBranch = order.outletName;
       (order.lineItems || []).forEach(it => {
         const cat = classifyProductCategory(it.name, it.sku) || 'Apparel & Accessories';
@@ -919,10 +939,10 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
         ...g,
         asp: g.unitsSold > 0 ? Math.round(g.revenue / g.unitsSold) : 0,
         revenueShare: totalCatRevenue > 0 ? (g.revenue / totalCatRevenue) * 100 : 0,
-        topBranchName: Object.entries(g.branchSales).sort((a, b) => b[1] - a[1])[0]?.[0] || 'All Outlets'
+        topBranchName: Object.entries(g.branchSales).sort((a, b) => b[1] - a[1])[0]?.[0] || (selectedOutletFilter !== 'ALL' ? selectedOutletFilter : 'All Outlets')
       }))
       .sort((a, b) => b.revenue - a.revenue);
-  }, [dateFilteredOrders]);
+  }, [dateFilteredOrders, selectedOutletFilter]);
 
   // ============================================================================
   // ITEM & MASTER SKU-WISE SALES BREAKDOWN (Just like the Main Executive Overview page)
@@ -1139,25 +1159,46 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
     }
   };
 
+  // Active scope metrics: if selectedOutletFilter !== 'ALL', scope KPI stats to the filtered outlet
+  const activeScopeTotals = useMemo(() => {
+    if (selectedOutletFilter === 'ALL') {
+      return aggregateTotals;
+    }
+    const target = outletMetrics.find(m => m.name === selectedOutletFilter);
+    if (!target) return aggregateTotals;
+    return {
+      totalSales: target.netSales,
+      totalOrders: target.ordersCount,
+      totalUnits: target.unitsSold,
+      totalDiscounts: target.discounts,
+      overallAov: target.aov
+    };
+  }, [selectedOutletFilter, aggregateTotals, outletMetrics]);
+
   // Computed values for Enhanced Interactive KPI Cards
   const kpiStats = useMemo(() => {
-    const grossSales = aggregateTotals.totalSales + aggregateTotals.totalDiscounts;
+    const grossSales = activeScopeTotals.totalSales + activeScopeTotals.totalDiscounts;
     const realizationRate = grossSales > 0 
-      ? Math.min(100, Math.round((aggregateTotals.totalSales / grossSales) * 100)) 
+      ? Math.min(100, Math.round((activeScopeTotals.totalSales / grossSales) * 100)) 
       : 100;
-    const avgUnitsPerOrder = aggregateTotals.totalOrders > 0 
-      ? (aggregateTotals.totalUnits / aggregateTotals.totalOrders).toFixed(1) 
+    const avgUnitsPerOrder = activeScopeTotals.totalOrders > 0 
+      ? (activeScopeTotals.totalUnits / activeScopeTotals.totalOrders).toFixed(1) 
       : '0.0';
-    const unitAsp = aggregateTotals.totalUnits > 0 
-      ? Math.round(aggregateTotals.totalSales / aggregateTotals.totalUnits) 
+    const unitAsp = activeScopeTotals.totalUnits > 0 
+      ? Math.round(activeScopeTotals.totalSales / activeScopeTotals.totalUnits) 
       : 0;
 
     const cashEntry = paymentMethodTotals.find(p => p.method.toLowerCase().includes('cash') || p.method.toLowerCase().includes('register'));
     const cashPct = cashEntry ? Math.round(cashEntry.pct) : (paymentMethodTotals[0] ? Math.round(paymentMethodTotals[0].pct) : 80);
 
     const topCategoryName = categorySales[0]?.name || 'Apparel';
-    const topBranchName = topBranch ? topBranch.name.replace(' Branch POS', '').replace(' POS', '') : 'N/A';
-    const topBranchShare = topBranch ? topBranch.revenueShare.toFixed(1) : '0';
+    const activeOutletMetric = selectedOutletFilter !== 'ALL' ? outletMetrics.find(m => m.name === selectedOutletFilter) : null;
+    const topBranchName = activeOutletMetric
+      ? activeOutletMetric.name.replace(' Branch POS', '').replace(' POS', '')
+      : (topBranch ? topBranch.name.replace(' Branch POS', '').replace(' POS', '') : 'N/A');
+    const topBranchShare = activeOutletMetric
+      ? activeOutletMetric.revenueShare.toFixed(1)
+      : (topBranch ? topBranch.revenueShare.toFixed(1) : '0');
 
     return {
       grossSales,
@@ -1169,7 +1210,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
       topBranchName,
       topBranchShare
     };
-  }, [aggregateTotals, paymentMethodTotals, categorySales, topBranch]);
+  }, [activeScopeTotals, paymentMethodTotals, categorySales, topBranch, selectedOutletFilter, outletMetrics]);
 
   const donutColors = ['#a855f7', '#0ea5e9', '#10b981', '#f59e0b', '#6366f1'];
 
@@ -1193,7 +1234,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                In-store POS register transactions across physical branches (Mirpur, Wari, Cumilla, and Sylhet). Online website orders are excluded.
+                In-store POS sales across physical branches (Mirpur, Wari, Cumilla, Sylhet).
               </p>
             </div>
           </div>
@@ -1313,6 +1354,89 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
         </div>
       )}
 
+      {/* 4 Physical Retail Outlets Filter Bar */}
+      <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-4 border border-slate-200/90 dark:border-deepBlack-border shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-800/40 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0 shadow-2xs">
+            <Building2 className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                Outlet Branch Filter
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-400 border border-slate-200/70 dark:border-deepBlack-border">
+                {selectedOutletFilter === 'ALL' ? 'All 4 Outlets' : selectedOutletFilter.replace(' Branch POS', '').replace(' Outlet POS', '')}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+              {selectedOutletFilter === 'ALL'
+                ? 'Showing consolidated in-store retail data across all 4 store registers'
+                : `Filtered strictly to ${selectedOutletFilter} register sales`}
+            </p>
+          </div>
+        </div>
+
+        {/* 4 Outlet Selection Pills */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* All Outlets Pill */}
+          <button
+            onClick={() => {
+              setSelectedOutletFilter('ALL');
+              setSelectedBranchFilter('ALL');
+              setCurrentPage(1);
+              setItemCurrentPage(1);
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              selectedOutletFilter === 'ALL'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'bg-slate-100 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-deepBlack-hover border border-slate-200/60 dark:border-deepBlack-border'
+            }`}
+          >
+            <span>All Branches</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+              selectedOutletFilter === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-deepBlack-border text-slate-700 dark:text-slate-300'
+            }`}>
+              {dateFilteredOrders.length}
+            </span>
+          </button>
+
+          {/* 4 Physical Branches */}
+          {PHYSICAL_OUTLETS.map(outlet => {
+            const metric = outletMetrics.find(m => m.name === outlet.name);
+            const count = metric?.ordersCount || 0;
+            const sales = metric?.netSales || 0;
+            const isSelected = selectedOutletFilter === outlet.name;
+
+            return (
+              <button
+                key={outlet.id}
+                onClick={() => {
+                  setSelectedOutletFilter(outlet.name);
+                  setSelectedBranchFilter(outlet.name);
+                  setCurrentPage(1);
+                  setItemCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  isSelected
+                    ? 'bg-purple-600 text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-deepBlack-hover border border-slate-200/60 dark:border-deepBlack-border'
+                }`}
+                title={`${outlet.name}: ${count} orders, ৳${sales.toLocaleString()}`}
+              >
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: outlet.dotColor }}></span>
+                <span>{outlet.name.replace(' Branch POS', '').replace(' Outlet POS', '')}</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                  isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-deepBlack-border text-slate-700 dark:text-slate-300'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* 5 High-Impact Retail Outlet Interactive KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-4.5 xl:gap-5">
         {/* KPI 1: Total Physical Outlet Net Sales (Interactive -> Branch Summary) */}
@@ -1344,17 +1468,19 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
           <div className="my-3 space-y-1.5">
             <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-emerald-600 dark:text-emerald-400 font-headline tracking-tight">
-              ৳ {aggregateTotals.totalSales.toLocaleString()}
+              ৳ {activeScopeTotals.totalSales.toLocaleString()}
             </div>
             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-0.5">
               <span>Gross: <strong className="text-slate-800 dark:text-slate-200 font-semibold">৳ {kpiStats.grossSales.toLocaleString()}</strong></span>
-              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 bg-slate-100/80 dark:bg-deepBlack-sidebar px-1.5 py-0.5 rounded">0 Courier Risk</span>
+              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 bg-slate-100/80 dark:bg-deepBlack-sidebar px-1.5 py-0.5 rounded">
+                {selectedOutletFilter === 'ALL' ? '0 Courier Risk' : selectedOutletFilter.replace(' Branch POS', '').replace(' Outlet POS', '')}
+              </span>
             </div>
           </div>
 
           <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
             <span>Discounts Saved:</span>
-            <span className="font-bold text-slate-800 dark:text-slate-200">৳ {aggregateTotals.totalDiscounts.toLocaleString()}</span>
+            <span className="font-bold text-slate-800 dark:text-slate-200">৳ {activeScopeTotals.totalDiscounts.toLocaleString()}</span>
           </div>
         </div>
 
@@ -1383,7 +1509,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
           <div className="my-3 space-y-2">
             <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-slate-900 dark:text-slate-100 font-headline tracking-tight">
-              {aggregateTotals.totalOrders.toLocaleString()}
+              {activeScopeTotals.totalOrders.toLocaleString()}
               <span className="text-xs font-bold text-slate-400 dark:text-slate-500 ml-1.5">Orders</span>
             </div>
             {/* 4 Branch Dot Distribution */}
@@ -1404,7 +1530,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
           <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
             <span>Store Network:</span>
             <span className="font-bold text-purple-700 dark:text-purple-400 flex items-center gap-1">
-              <span>4 Branches Active</span>
+              <span>{selectedOutletFilter === 'ALL' ? '4 Branches Active' : selectedOutletFilter.replace(' Branch POS', '').replace(' Outlet POS', '')}</span>
               <span className="text-purple-400 font-normal">→</span>
             </span>
           </div>
@@ -1435,7 +1561,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
           <div className="my-3 space-y-1.5">
             <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-sky-600 dark:text-sky-400 font-headline tracking-tight">
-              {aggregateTotals.totalUnits.toLocaleString()}
+              {activeScopeTotals.totalUnits.toLocaleString()}
               <span className="text-xs font-bold text-slate-400 dark:text-slate-500 ml-1.5">Pcs</span>
             </div>
             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-0.5">
@@ -1478,7 +1604,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
           <div className="my-3 space-y-1.5">
             <div className="text-2xl sm:text-[26px] xl:text-[28px] font-black text-amber-600 dark:text-amber-400 font-headline tracking-tight">
-              ৳ {aggregateTotals.overallAov.toLocaleString()}
+              ৳ {activeScopeTotals.overallAov.toLocaleString()}
             </div>
             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-0.5">
               <span className="truncate max-w-[120px]">Top: <strong className="text-slate-800 dark:text-slate-200 font-semibold">{kpiStats.topCategoryName}</strong></span>
@@ -1497,10 +1623,13 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
           </div>
         </div>
 
-        {/* KPI 5: Top Performing Retail Outlet (Interactive -> Filter to Branch) */}
+        {/* KPI 5: Top Performing Retail Outlet / Active Filter (Interactive) */}
         <div
           onClick={() => {
-            if (topBranch) {
+            if (selectedOutletFilter !== 'ALL') {
+              setSelectedOutletFilter('ALL');
+              setSelectedBranchFilter('ALL');
+            } else if (topBranch) {
               const bName = topBranch.name;
               setSelectedOutletFilter(bName);
               setSelectedBranchFilter(bName);
@@ -1508,7 +1637,7 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
             }
           }}
           className="bg-white dark:bg-deepBlack-card rounded-2xl p-5 sm:p-5.5 xl:p-6 border border-slate-200/90 dark:border-deepBlack-border shadow-sm hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-[0.99]"
-          title={topBranch ? `Click to filter dashboard to ${topBranch.name}` : 'Awaiting data'}
+          title={selectedOutletFilter !== 'ALL' ? 'Click to clear filter and show all outlets' : (topBranch ? `Click to filter dashboard to ${topBranch.name}` : 'Awaiting data')}
         >
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -1516,7 +1645,9 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                 <Award className="w-4.5 h-4.5 text-amber-500" />
               </div>
               <div className="min-w-0">
-                <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block truncate">Top Branch</span>
+                <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block truncate">
+                  {selectedOutletFilter === 'ALL' ? 'Top Branch' : 'Filtered Branch'}
+                </span>
                 <span className="text-[10px] text-purple-700 dark:text-purple-300 font-bold bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-full border border-purple-200/60 dark:border-purple-800/40 inline-block mt-0.5">
                   {kpiStats.topBranchShare}% Share
                 </span>
@@ -1528,12 +1659,12 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
           </div>
 
           <div className="my-3 space-y-1.5">
-            <div className="text-xl sm:text-2xl font-black text-purple-700 dark:text-purple-400 font-headline truncate" title={topBranch?.name || 'All Outlets'}>
+            <div className="text-xl sm:text-2xl font-black text-purple-700 dark:text-purple-400 font-headline truncate" title={selectedOutletFilter !== 'ALL' ? selectedOutletFilter : (topBranch?.name || 'All Outlets')}>
               {kpiStats.topBranchName}
             </div>
             <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-between pt-0.5">
-              <span>৳ {topBranch ? topBranch.netSales.toLocaleString() : 0}</span>
-              <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">{topBranch?.ordersCount || 0} orders</span>
+              <span>৳ {activeScopeTotals.totalSales.toLocaleString()}</span>
+              <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">{activeScopeTotals.totalOrders} orders</span>
             </div>
             {/* Visual Revenue Share Bar */}
             <div className="w-full bg-slate-100 dark:bg-deepBlack-sidebar rounded-full h-1.5 mt-2 overflow-hidden">
@@ -1547,8 +1678,8 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
           <div className="pt-3 border-t border-slate-100 dark:border-deepBlack-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
             <span>Branch Action:</span>
             <span className="font-bold text-purple-700 dark:text-purple-400 flex items-center gap-1 group-hover:underline">
-              <span>Filter Branch</span>
-              <span className="text-purple-400 font-normal">⚡</span>
+              <span>{selectedOutletFilter === 'ALL' ? 'Filter Branch' : 'Reset to All'}</span>
+              <span className="text-purple-400 font-normal">{selectedOutletFilter === 'ALL' ? '⚡' : '✕'}</span>
             </span>
           </div>
         </div>
@@ -1779,6 +1910,28 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
             </div>
           </div>
 
+          {/* Active Filter Notice Chip */}
+          {selectedOutletFilter !== 'ALL' && (
+            <div className="px-4 py-2.5 bg-purple-50/80 dark:bg-purple-950/40 border-b border-purple-200/80 dark:border-purple-800/50 flex items-center justify-between text-xs text-purple-950 dark:text-purple-300">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                <span>
+                  Filtered to: <strong className="font-bold">{selectedOutletFilter}</strong> ({activeScopeTotals.totalOrders} orders • ৳ {activeScopeTotals.totalSales.toLocaleString()})
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedOutletFilter('ALL');
+                  setSelectedBranchFilter('ALL');
+                }}
+                className="text-[11px] font-bold text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 hover:underline cursor-pointer flex items-center gap-1"
+              >
+                <span>Show All 4 Branches</span>
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+
           <div className="overflow-x-auto min-w-0">
             <table className="w-full text-xs text-left">
               <thead className="bg-slate-50/90 dark:bg-deepBlack-sidebar text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-deepBlack-border">
@@ -1795,22 +1948,48 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border font-medium text-slate-800 dark:text-slate-200">
-                {outletMetrics.map((m) => (
-                  <tr key={m.id} className="hover:bg-slate-50/70 dark:hover:bg-deepBlack-hover transition-colors">
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-2xs"
-                          style={{ backgroundColor: m.dotColor }}
-                        >
-                          {m.name.charAt(0)}
+                {outletMetrics.map((m) => {
+                  const isRowSelected = selectedOutletFilter === m.name;
+                  return (
+                    <tr
+                      key={m.id}
+                      onClick={() => {
+                        if (isRowSelected) {
+                          setSelectedOutletFilter('ALL');
+                          setSelectedBranchFilter('ALL');
+                        } else {
+                          setSelectedOutletFilter(m.name);
+                          setSelectedBranchFilter(m.name);
+                        }
+                      }}
+                      className={`cursor-pointer transition-colors ${
+                        isRowSelected
+                          ? 'bg-purple-50/70 dark:bg-purple-950/30'
+                          : 'hover:bg-slate-50/70 dark:hover:bg-deepBlack-hover'
+                      }`}
+                      title={isRowSelected ? 'Click to show all branches' : `Click to filter dashboard to ${m.name}`}
+                    >
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-2xs"
+                            style={{ backgroundColor: m.dotColor }}
+                          >
+                            {m.name.charAt(0)}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-slate-900 dark:text-slate-100">{m.name}</span>
+                              {isRowSelected && (
+                                <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider bg-purple-600 text-white shadow-2xs">
+                                  Active
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500">Branch Register ID: {m.id}</span>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-bold text-slate-900 dark:text-slate-100">{m.name}</div>
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500">Branch Register ID: {m.id}</span>
-                        </div>
-                      </div>
-                    </td>
+                      </td>
                     <td className="py-3.5 px-3">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${m.badgeColor}`}>
                         {m.channelType}
@@ -1849,7 +2028,8 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
               <tfoot className="bg-slate-50 dark:bg-deepBlack-sidebar font-bold text-slate-900 dark:text-slate-100 border-t-2 border-slate-200 dark:border-deepBlack-border">
                 <tr>
@@ -2032,7 +2212,9 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                 <select
                   value={selectedBranchFilter}
                   onChange={(e) => {
-                    setSelectedBranchFilter(e.target.value);
+                    const val = e.target.value;
+                    setSelectedBranchFilter(val);
+                    setSelectedOutletFilter(val);
                     setItemCurrentPage(1);
                   }}
                   className="px-2.5 py-1.5 bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-lg text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
@@ -2191,7 +2373,9 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
                 <select
                   value={selectedOutletFilter}
                   onChange={(e) => {
-                    setSelectedOutletFilter(e.target.value);
+                    const val = e.target.value;
+                    setSelectedOutletFilter(val);
+                    setSelectedBranchFilter(val);
                     setCurrentPage(1);
                   }}
                   className="px-2.5 py-1.5 bg-slate-50 dark:bg-deepBlack-canvas border border-slate-200 dark:border-deepBlack-border rounded-lg text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"

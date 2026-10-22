@@ -118,7 +118,13 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
         if (branchFilter === 'Online Store (Central Warehouse)') {
           if (loc !== 'Online Store (Central Warehouse)' && loc !== 'Warehouse (Mirpur)') return false;
         } else if (branchFilter === 'Mirpur Outlet POS') {
-          if (loc !== 'Mirpur Outlet POS' && loc !== 'Mirpur Outlet' && o.branchSuffix !== 'm') return false;
+          if (!loc.includes('Mirpur') && o.branchSuffix !== 'm') return false;
+        } else if (branchFilter === 'Cumilla Branch') {
+          if (!loc.includes('Cumilla') && !loc.includes('Comilla') && o.branchSuffix !== 'c') return false;
+        } else if (branchFilter === 'Wari Branch') {
+          if (!loc.includes('Wari') && o.branchSuffix !== 'w') return false;
+        } else if (branchFilter === 'Sylhet Branch') {
+          if (!loc.includes('Sylhet') && o.branchSuffix !== 's') return false;
         } else if (loc !== branchFilter) {
           return false;
         }

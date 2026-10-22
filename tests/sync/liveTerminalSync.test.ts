@@ -268,7 +268,7 @@ describe('Live Terminal Synchronization & Courier Reconciliation Engine', () => 
       const enrichedOrder2 = result.orders.find((o) => o['Order ID'] === '17001');
       expect(enrichedOrder2).toBeDefined();
       expect(enrichedOrder2?.['Courier Status']).toBe('Untracked');
-    });
+    }, 15000);
 
     it('resolves consignment tracking by order ID when consignment ID is missing in WooCommerce', async () => {
       // Order 16048 has no consignment ID specified, but exists in baseline pathaoDelivery

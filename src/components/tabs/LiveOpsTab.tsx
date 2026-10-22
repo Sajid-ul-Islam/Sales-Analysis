@@ -1018,39 +1018,8 @@ export function LiveOpsTab({
           </div>
         )}
 
-        {/* Row 2: Operational Context & Segmented View Switcher */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {/* Discrete Context Chips (Hidden in Outlet mode where retail sales are in-store without courier dispatches) */}
-          {channelFilter !== 'POS' && (
-            <div className="flex items-center gap-2 flex-wrap text-xs">
-              {/* Reference Snapshot Date */}
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-[#141414] text-slate-700 dark:text-slate-300 font-semibold border border-slate-200/60 dark:border-[#222222]">
-                <span>🗓️</span>
-                <span>Operational snapshot: <strong className="text-slate-900 dark:text-white font-bold">{report.refDayName} ({report.referenceDate})</strong></span>
-              </span>
-
-              {/* 7-Day Baseline Pill */}
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-[#141414] text-slate-700 dark:text-slate-300 font-medium border border-slate-200/60 dark:border-[#222222]">
-                <span className="font-bold text-slate-900 dark:text-white">Baseline:</span>
-                <span>7-Day Daily Avg ({report.avg7dMetrics.items} pkgs/day, ৳{report.avg7dMetrics.revenue.toLocaleString()})</span>
-              </span>
-
-              {/* Sync Time */}
-              {lastSyncTime && (
-                <span className="text-[11px] text-slate-400 dark:text-slate-500 pl-1">
-                  Synced at {lastSyncTime}
-                </span>
-              )}
-
-              {report.isFallbackDate && (
-                <span className="text-amber-600 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-lg border border-amber-200/80 dark:border-amber-800/60 text-[11px]">
-                  (Displaying latest recorded dispatches)
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Segmented View Mode Switcher OR Outlet Retail Branch Switcher */}
+        {/* Row 2: Segmented View Mode Switcher / Outlet Branch Switcher */}
+        <div className="flex items-center gap-3 flex-wrap">
           {channelFilter === 'POS' ? (
             <div className="inline-flex bg-slate-100 dark:bg-[#121212] p-1 rounded-2xl border border-slate-200/80 dark:border-[#1F1F1F] text-xs font-bold self-start md:self-auto shadow-2xs flex-wrap gap-1">
               <button
@@ -1699,7 +1668,7 @@ export function LiveOpsTab({
         {/* Side-by-Side Charts (Donut & Volume Bar) - STRICTLY SPLIT VIEW */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Left Chart: Revenue Share (TK) Donut */}
-          <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-5 shadow-xs flex flex-col justify-between transition-all duration-300">
+          <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-5 shadow-xs flex flex-col justify-between transition-all duration-300 h-full">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center justify-between gap-1.5 w-full">
                 <span className="flex items-center gap-1.5">
@@ -1728,7 +1697,7 @@ export function LiveOpsTab({
           </div>
 
           {/* Right Chart: Sales Volume by Category Bar Chart */}
-          <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-5 shadow-xs flex flex-col justify-between transition-all duration-300">
+          <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-5 shadow-xs flex flex-col justify-between transition-all duration-300 h-full">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center justify-between gap-1.5 w-full">
                 <span className="flex items-center gap-1.5">
@@ -1757,7 +1726,7 @@ export function LiveOpsTab({
               </h3>
             </div>
 
-            <div className="w-full flex-1 min-h-[380px] flex flex-col justify-end">
+            <div className="w-full flex-1 min-h-[440px] md:min-h-[480px] lg:min-h-[520px] flex flex-col justify-end">
               <LiveVolumeBarChart
                 items={activeCategoryItems}
                 avgUnitsSold={report.avgUnitsSold}
@@ -1807,7 +1776,7 @@ export function LiveOpsTab({
               </button>
             </div>
 
-            <div className="w-full flex-1 min-h-[460px] py-2">
+            <div className="w-full flex-1 min-h-[520px] py-2">
               <LiveVolumeBarChart
                 items={activeCategoryItems}
                 avgUnitsSold={report.avgUnitsSold}
@@ -1822,150 +1791,7 @@ export function LiveOpsTab({
         </div>
       )}
 
-      {/* ── Today's Orders Pipeline Status Strip (Only when Today's Orders view is selected AND not POS) ── */}
-      {channelFilter !== 'POS' && (selectedView === "Today's Orders" || (selectedView as string) === 'All Orders') && report.allOrdersBreakdown && (
-        <div className="bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200/90 dark:border-deepBlack-border rounded-3xl p-4 shadow-xs space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 dark:border-deepBlack-border pb-2.5">
-            <div className="flex items-center gap-2">
-              <span className="text-base">📦</span>
-              <div>
-                <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center gap-2">
-                  <span>Today&apos;s Orders Operational Pipeline</span>
-                  <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300">
-                    Shipped Today + Processing + Hold
-                  </span>
-                </h3>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Active orders placed from online store checkout: {report.allOrdersBreakdown.totalActiveCount} orders (৳ {report.allOrdersBreakdown.totalActiveAmount.toLocaleString()})
-                </p>
-              </div>
-            </div>
 
-            {/* Pipeline quick filter buttons */}
-            <div className="inline-flex bg-white dark:bg-deepBlack-card p-0.5 rounded-xl border border-slate-200 dark:border-deepBlack-border text-xs font-bold">
-              <button
-                type="button"
-                onClick={() => setPipelineFilter('ALL')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  pipelineFilter === 'ALL'
-                    ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                All ({report.allOrdersBreakdown.totalActiveCount})
-              </button>
-              <button
-                type="button"
-                onClick={() => setPipelineFilter('PROCESSING')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  pipelineFilter === 'PROCESSING'
-                    ? 'bg-blue-600 text-white shadow-2xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                ⚡ Processing ({report.allOrdersBreakdown.processingCount})
-              </button>
-              <button
-                type="button"
-                onClick={() => setPipelineFilter('HOLD')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  pipelineFilter === 'HOLD'
-                    ? 'bg-amber-600 text-white shadow-2xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                ⏳ On-Hold ({report.allOrdersBreakdown.holdCount})
-              </button>
-              <button
-                type="button"
-                onClick={() => setPipelineFilter('SHIPPED_TODAY')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  pipelineFilter === 'SHIPPED_TODAY'
-                    ? 'bg-emerald-600 text-white shadow-2xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                🚚 Today Shipped ({report.allOrdersBreakdown.todayShippedCount})
-              </button>
-            </div>
-          </div>
-
-          {/* 3 Pipeline Segment Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div
-              onClick={() => setPipelineFilter(pipelineFilter === 'PROCESSING' ? 'ALL' : 'PROCESSING')}
-              className={`p-3 rounded-2xl border transition-all cursor-pointer ${
-                pipelineFilter === 'PROCESSING'
-                  ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-700/60 ring-2 ring-blue-500/20'
-                  : 'bg-white dark:bg-deepBlack-card border-slate-200/80 dark:border-deepBlack-border hover:border-blue-200 dark:hover:border-blue-900/60'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
-                  ⚡ Processing Queue
-                </span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">To Pack</span>
-              </div>
-              <div className="mt-1 flex items-baseline justify-between">
-                <span className="text-xl font-black text-slate-900 dark:text-white font-headline">
-                  {report.allOrdersBreakdown.processingCount} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">orders</span>
-                </span>
-                <span className="text-xs font-bold text-blue-700 dark:text-blue-400">
-                  ৳ {report.allOrdersBreakdown.processingAmount.toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            <div
-              onClick={() => setPipelineFilter(pipelineFilter === 'HOLD' ? 'ALL' : 'HOLD')}
-              className={`p-3 rounded-2xl border transition-all cursor-pointer ${
-                pipelineFilter === 'HOLD'
-                  ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700/60 ring-2 ring-amber-500/20'
-                  : 'bg-white dark:bg-deepBlack-card border-slate-200/80 dark:border-deepBlack-border hover:border-amber-200 dark:hover:border-amber-900/60'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
-                  ⏳ On-Hold (Verification)
-                </span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Advance / Confirm</span>
-              </div>
-              <div className="mt-1 flex items-baseline justify-between">
-                <span className="text-xl font-black text-slate-900 dark:text-white font-headline">
-                  {report.allOrdersBreakdown.holdCount} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">orders</span>
-                </span>
-                <span className="text-xs font-bold text-amber-700 dark:text-amber-400">
-                  ৳ {report.allOrdersBreakdown.holdAmount.toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            <div
-              onClick={() => setPipelineFilter(pipelineFilter === 'SHIPPED_TODAY' ? 'ALL' : 'SHIPPED_TODAY')}
-              className={`p-3 rounded-2xl border transition-all cursor-pointer ${
-                pipelineFilter === 'SHIPPED_TODAY'
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/60 ring-2 ring-emerald-500/20'
-                  : 'bg-white dark:bg-deepBlack-card border-slate-200/80 dark:border-deepBlack-border hover:border-emerald-200 dark:hover:border-emerald-900/60'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
-                  🚚 Today Shipped / Completed
-                </span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Handed Over</span>
-              </div>
-              <div className="mt-1 flex items-baseline justify-between">
-                <span className="text-xl font-black text-slate-900 dark:text-white font-headline">
-                  {report.allOrdersBreakdown.todayShippedCount} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">orders</span>
-                </span>
-                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                  ৳ {report.allOrdersBreakdown.todayShippedAmount.toLocaleString()}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Live Courier Verification & Telemetry Strip (Pathao Hermes Integration) ── */}
       <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white rounded-3xl p-5 shadow-sm space-y-4 border border-slate-800">

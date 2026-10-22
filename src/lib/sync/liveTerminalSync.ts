@@ -162,8 +162,8 @@ export function cleanOrderId(rawId: unknown): string {
 export function extractBaseOrderId(rawId: unknown): string {
   if (!rawId) return '';
   const cleaned = cleanOrderId(rawId);
-  // Strip exchange/duplicate prefixes like d-, dd-, ex-, exchange-
-  const withoutPrefix = cleaned.replace(/^(dd?|ex|exchange)[-_]?/i, '');
+  // Strip exchange/duplicate prefixes like d-, dd-, ex-, exchange-, ret-
+  const withoutPrefix = cleaned.replace(/^(dd?|ex|exchange|ret)[-_]?/i, '');
   // Strip branch register suffixes like -m, -c, -w, -s or m, c, w, s
   const baseNumeric = withoutPrefix.replace(/[-_]?[mcws]$/i, '');
   return baseNumeric;
@@ -192,6 +192,20 @@ export function detectFulfillmentBranch(orderIdOrRow: unknown): FulfillmentBranc
         isBranchFulfillment: true,
         baseOrderId,
       };
+    }
+
+    const createdVia = String(rowObj['Created Via'] || rowObj.created_via || rowObj.createdVia || '').toLowerCase().trim();
+    const hasSipExchange = Boolean(
+      rowObj.isExchange === true ||
+      createdVia === 'sip_exchange' ||
+      createdVia.includes('exchange') ||
+      rowObj._sip_exchange_order === '1' ||
+      rowObj._sip_exchange_order === 1 ||
+      Boolean(rowObj._sip_exchange_of) ||
+      Boolean(rowObj._sip_exchange_code)
+    );
+    if (hasSipExchange || /^(dd?|ex|exchange|ret)[-_]/i.test(rawOid)) {
+      return { branchName: 'Exchange Replacement', branchCode: 'EXCHANGE', isBranchFulfillment: true, baseOrderId };
     }
 
     // Authoritative Branch Suffix on Order ID (e.g. 17265 c, 17266 w, 17267 s, 17264 m)
@@ -296,6 +310,12 @@ export function detectFulfillmentBranch(orderIdOrRow: unknown): FulfillmentBranc
     rowObj?.isNonCheckout === true ||
     createdVia === 'admin' ||
     createdVia === 'manual' ||
+    createdVia === 'sip_exchange' ||
+    createdVia.includes('exchange') ||
+    rowObj?._sip_exchange_order === '1' ||
+    rowObj?._sip_exchange_order === 1 ||
+    Boolean(rowObj?._sip_exchange_of) ||
+    Boolean(rowObj?._sip_exchange_code) ||
     createdVia.includes('no-checkout') ||
     createdVia.includes('no_checkout') ||
     createdVia.includes('non-checkout') ||
@@ -313,7 +333,7 @@ export function detectFulfillmentBranch(orderIdOrRow: unknown): FulfillmentBranc
     rowObj?.isExchange === true ||
     isNoCheckout;
 
-  if (/^(dd?|ex|exchange)[-_]/i.test(cleaned) || /^d-\d+/i.test(raw.trim()) || hasExchangeNote) {
+  if (/^(dd?|ex|exchange|ret)[-_]/i.test(cleaned) || /^d-\d+/i.test(raw.trim()) || hasExchangeNote) {
     return {
       branchName: 'Exchange Replacement',
       branchCode: 'EXCHANGE',

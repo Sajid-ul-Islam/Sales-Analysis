@@ -285,7 +285,11 @@ export function isOnlinePaymentMethod(paymentMethod?: unknown, paymentTitle?: un
  * 1. Offline in-store POS retail orders (isPos = true, walk-in register sales)
  * 2. Online orders dispatched from retail branch outlets (isPos = false, suffix w/s/c/m or online marked payment/courier tracking)
  */
-export function detectBranchFromOrder(order: WcOrder, meta: WcMetaItem[], orderId: string): {
+export function detectBranchFromOrder(
+  order: WcOrder,
+  meta: WcMetaItem[] = ((order as unknown as Record<string, unknown>)?.meta_data as WcMetaItem[]) || [],
+  orderId: string = String(order?.id || '')
+): {
   isPos: boolean;
   outletId: string;
   fulfillmentBranch: string;
@@ -321,9 +325,18 @@ export function detectBranchFromOrder(order: WcOrder, meta: WcMetaItem[], orderI
     }
   }
   const effectiveCreatedVia = rawCreatedVia || metaCreatedVia;
+  const hasSipExchangeMeta = meta.some((m: WcMetaItem) =>
+    (m.key === '_sip_exchange_order' && String(m.value) === '1') ||
+    m.key === '_sip_exchange_of' ||
+    m.key === '_sip_exchange_code'
+  );
+
   const isNoCheckout =
     effectiveCreatedVia === 'admin' ||
     effectiveCreatedVia === 'manual' ||
+    effectiveCreatedVia === 'sip_exchange' ||
+    effectiveCreatedVia.includes('exchange') ||
+    hasSipExchangeMeta ||
     effectiveCreatedVia.includes('no-checkout') ||
     effectiveCreatedVia.includes('no_checkout') ||
     effectiveCreatedVia.includes('non-checkout') ||
@@ -331,6 +344,7 @@ export function detectBranchFromOrder(order: WcOrder, meta: WcMetaItem[], orderI
 
   const hasNoCheckoutNotice =
     isNoCheckout ||
+    hasSipExchangeMeta ||
     customerNote.includes('no checkout') ||
     customerNote.includes('no-checkout') ||
     customerNote.includes('non-checkout') ||
@@ -339,9 +353,11 @@ export function detectBranchFromOrder(order: WcOrder, meta: WcMetaItem[], orderI
     paymentMethodText.includes('no-checkout') ||
     paymentMethodText.includes('non-checkout');
 
-  // 1. Exchange Replacement: D-17263 / DD-17263 / ex-17263 / "Exchange for #17839" / "Exchanged" / No-Checkout orders
+  // 1. Exchange Replacement: D-17263 / DD-17263 / ex-17263 / RET-XXXX / "Exchange for #17839" / "Exchanged" / No-Checkout orders
   if (
-    /^(dd?|ex|exchange)[-_]/i.test(cleanId) ||
+    hasSipExchangeMeta ||
+    effectiveCreatedVia === 'sip_exchange' ||
+    /^(dd?|ex|exchange|ret)[-_]/i.test(cleanId) ||
     /^d-\d+/i.test(cleanId) ||
     /exchange\s+for\s+#?\d+/i.test(customerNote) ||
     /exchange\s+for\s+#?\d+/i.test(metaStrings) ||
@@ -1081,6 +1097,16 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
       if (match) substatus = match[0];
     }
 
+    const exchangeOfMeta = meta.find((m) => m.key === '_sip_exchange_of');
+    const hasSipExchangeMeta = meta.some((m) =>
+      (m.key === '_sip_exchange_order' && String(m.value) === '1') ||
+      m.key === '_sip_exchange_of' ||
+      m.key === '_sip_exchange_code'
+    );
+    if (!substatus && exchangeOfMeta && exchangeOfMeta.value) {
+      substatus = `Exchange for #${exchangeOfMeta.value}`;
+    }
+
     // Extract created_via source
     const rawCreatedVia = String(order.created_via || '').toLowerCase().trim();
     let metaCreatedVia = '';
@@ -1094,6 +1120,9 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
     const isNoCheckout =
       effectiveCreatedVia === 'admin' ||
       effectiveCreatedVia === 'manual' ||
+      effectiveCreatedVia === 'sip_exchange' ||
+      effectiveCreatedVia.includes('exchange') ||
+      hasSipExchangeMeta ||
       effectiveCreatedVia.includes('no-checkout') ||
       effectiveCreatedVia.includes('no_checkout') ||
       effectiveCreatedVia.includes('non-checkout') ||
@@ -1103,6 +1132,7 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
     const paymentMethodLower = `${order.payment_method || ''} ${order.payment_method_title || ''}`.toLowerCase();
     const hasNoCheckoutNotice =
       isNoCheckout ||
+      hasSipExchangeMeta ||
       notesLower.includes('no checkout') ||
       notesLower.includes('no-checkout') ||
       notesLower.includes('non-checkout') ||
@@ -1121,8 +1151,8 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
       }
     }
     const isEcomPayment = isEcomPaymentMethod(order.payment_method, order.payment_method_title);
-    const isOutletOrder = branchInfo.isPos || (Boolean(branchInfo.outletId) && !trackingId && !isEcomPayment);
-    const orderCreatedVia = effectiveCreatedVia || (isOutletOrder ? 'pos' : (hasNoCheckoutNotice ? 'admin' : (isEcomPayment ? 'pos-ecom' : 'checkout')));
+    const isOutletOrder = !isOrderExchangeRow && (branchInfo.isPos || (Boolean(branchInfo.outletId) && !trackingId && !isEcomPayment));
+    const orderCreatedVia = effectiveCreatedVia || (isOrderExchangeRow ? 'sip_exchange' : isOutletOrder ? 'pos' : (hasNoCheckoutNotice ? 'admin' : (isEcomPayment ? 'pos-ecom' : 'checkout')));
 
     const lineItems = order.line_items || [];
     if (lineItems.length === 0) {

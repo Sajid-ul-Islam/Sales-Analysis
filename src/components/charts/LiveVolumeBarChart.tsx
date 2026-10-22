@@ -67,11 +67,11 @@ export function LiveVolumeBarChart({
 
   // Sizing geometry: Dynamically scaled to make the chart as prominent and visually substantial as possible
   const chartWidth = isModal ? 1160 : isFullWidth ? 1040 : 640;
-  const chartHeight = isModal ? 520 : isFullWidth ? 480 : 440;
+  const chartHeight = isModal ? 640 : isFullWidth ? 580 : 540;
   const paddingLeft = isModal ? 52 : isFullWidth ? 48 : 40;
   const paddingRight = isModal ? 44 : isFullWidth ? 40 : 36;
   const paddingTop = isModal ? 32 : isFullWidth ? 28 : 24;
-  const paddingBottom = isModal ? 74 : isFullWidth ? 68 : 62;
+  const paddingBottom = isModal ? 80 : isFullWidth ? 74 : 68;
 
   const innerWidth = chartWidth - paddingLeft - paddingRight;
   const innerHeight = chartHeight - paddingTop - paddingBottom;
@@ -109,10 +109,10 @@ export function LiveVolumeBarChart({
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
           className={`w-full h-auto ${
             isModal
-              ? 'min-h-[460px] max-h-[600px]'
+              ? 'min-h-[500px] max-h-[720px]'
               : isFullWidth
-                ? 'min-h-[420px] max-h-[540px]'
-                : 'min-h-[380px] max-h-[480px]'
+                ? 'min-h-[460px] max-h-[640px]'
+                : 'min-h-[420px] md:min-h-[460px] lg:min-h-[500px]'
           } overflow-visible`}
           preserveAspectRatio="xMidYMid meet"
         >

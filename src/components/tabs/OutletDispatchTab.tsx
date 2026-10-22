@@ -52,23 +52,16 @@ interface OutletMetric {
   aov: number;
 }
 
-// Canonical Outlets: Online Store (Central Warehouse) and Mirpur Outlet POS are STRICTLY DISTINCT!
+// Canonical Outlets for Courier Dispatches: Central Warehouse (Mirpur) and Regional Retail Branches (Cumilla, Wari, Sylhet)
+// Note: Mirpur Outlet and Central Warehouse are co-located in Mirpur; both dispatch from Central Warehouse (no suffix in Pathao).
 const OUTLET_CONFIG = [
   {
     id: 'Online Store (Central Warehouse)',
-    name: 'Online Store (Central Warehouse)',
+    name: 'Online Store (Central Warehouse - Mirpur)',
     suffix: 'Base (None)',
     locationType: 'Central Warehouse (Online)' as const,
-    city: 'Dhaka (Online Hub)',
+    city: 'Dhaka (Online Hub & Mirpur)',
     badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200'
-  },
-  {
-    id: 'Mirpur Outlet POS',
-    name: 'Mirpur Outlet POS',
-    suffix: 'm',
-    locationType: 'Retail Outlet POS' as const,
-    city: 'Dhaka (Mirpur)',
-    badgeColor: 'bg-purple-50 text-purple-700 border-purple-200'
   },
   {
     id: 'Cumilla Branch',
@@ -106,15 +99,17 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
 
   // Helper to resolve an order line's outlet
   const getOrderOutlet = (o: ReconciledOrderRow): string => {
-    if (o.fulfillmentLocation) {
-      if (o.fulfillmentLocation === 'Mirpur Outlet POS' || o.fulfillmentLocation === 'Mirpur Outlet') return 'Mirpur Outlet POS';
-      if (o.fulfillmentLocation === 'Warehouse (Mirpur)') return 'Online Store (Central Warehouse)';
-      return o.fulfillmentLocation;
+    const loc = String(o.fulfillmentLocation || '').toLowerCase();
+    if (loc.includes('cumilla') || loc.includes('comilla') || o.branchSuffix === 'c' || /\b\d+\s*c\b|[-_\s]c$/i.test(o.orderId)) {
+      return 'Cumilla Branch';
     }
-    if (o.branchSuffix === 'c' || /\b\d+\s*c\b|[-_\s]c$/i.test(o.orderId)) return 'Cumilla Branch';
-    if (o.branchSuffix === 'w' || /\b\d+\s*w\b|[-_\s]w$/i.test(o.orderId)) return 'Wari Branch';
-    if (o.branchSuffix === 's' || /\b\d+\s*s\b|[-_\s]s$/i.test(o.orderId)) return 'Sylhet Branch';
-    if (o.branchSuffix === 'm' || /\b\d+\s*m\b|[-_\s]m$/i.test(o.orderId)) return 'Mirpur Outlet POS';
+    if (loc.includes('wari') || o.branchSuffix === 'w' || /\b\d+\s*w\b|[-_\s]w$/i.test(o.orderId)) {
+      return 'Wari Branch';
+    }
+    if (loc.includes('sylhet') || o.branchSuffix === 's' || /\b\d+\s*s\b|[-_\s]s$/i.test(o.orderId)) {
+      return 'Sylhet Branch';
+    }
+    // Mirpur and Central Warehouse are co-located in Mirpur; courier dispatches from Mirpur are fulfilled from Central Warehouse (no suffix in Pathao)
     return 'Online Store (Central Warehouse)';
   };
 
@@ -254,7 +249,7 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
       totalPaidReturns += m.paidReturnsCount;
       totalExchanges += m.exchangeCount;
 
-      if (m.locationType === 'Retail Branch' || m.locationType === 'Retail Outlet POS') {
+      if (m.locationType === 'Retail Branch') {
         branchDispatchedParcels += m.dispatchedParcels;
         branchDeliveredParcels += m.deliveredParcels;
         branchReturnedParcels += m.returnedParcels;
@@ -267,8 +262,8 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
     const overallReturnRate = totalDispatchedParcels > 0 ? (totalReturnedParcels / totalDispatchedParcels) * 100 : 0;
     const branchVolumeShare = totalDispatchedParcels > 0 ? (branchDispatchedParcels / totalDispatchedParcels) * 100 : 0;
 
-    // Best performing physical retail branch (Mirpur POS, Cumilla, Wari, Sylhet)
-    const retailBranches = outletMetrics.filter(m => m.locationType === 'Retail Branch' || m.locationType === 'Retail Outlet POS');
+    // Best performing regional retail branch (Cumilla, Wari, Sylhet)
+    const retailBranches = outletMetrics.filter(m => m.locationType === 'Retail Branch');
     const sortedRetail = [...retailBranches].sort((a, b) => b.retentionRate - a.retentionRate);
     const topPerformer = sortedRetail[0] || outletMetrics[0];
 
@@ -444,7 +439,7 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Courier parcel dispatches, delivery retention rates, and returned consignment values across Online Store (Central Warehouse) and retail branch outlets (Mirpur POS, Cumilla, Wari, Sylhet).
+                Courier parcel dispatches and delivery performance across Central Warehouse (Mirpur) and branch outlets (Cumilla, Wari, Sylhet).
               </p>
             </div>
           </div>

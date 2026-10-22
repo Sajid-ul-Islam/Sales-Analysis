@@ -46,8 +46,8 @@ export function normalizeOrderId(raw: unknown): string {
   let str = String(raw).trim();
   str = str.replace(/^["'\s]+|["'\s]+$/g, '');
   if (str.endsWith('.0')) str = str.slice(0, -2);
-  // Support prefixes like D-17263, DD-17263, EXCH-17263
-  str = str.replace(/^(DD|D|EXCH)[-_ ]+/i, '');
+  // Support prefixes like D-17263, DD-17263, EXCH-17263, RET-17263
+  str = str.replace(/^(DD|D|EXCH|RET)[-_ ]+/i, '');
   return str.trim().replace(/^["'\s]+|["'\s]+$/g, '');
 }
 
