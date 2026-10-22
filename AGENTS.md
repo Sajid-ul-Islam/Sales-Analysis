@@ -21,12 +21,12 @@ Refer to detailed rules in [.agents/rules/order_rules.md](.agents/rules/order_ru
 ### 2. Fulfillment Locations & Courier IDs
 * **Online Store (Central Warehouse)**: Pathao Courier ID remains unchanged without suffix (e.g., `17263`).
 * **Retail Outlet Branches & POS (Two Distinct Categories)**:
-  * **Type 1: POS / Non-Checkout Orders (Offline Retail Walk-In Orders)**: Physical store register sales (`_sip_outlet_id: 1, 2, 9, 7/8`, cashier user IDs `1508, 3, 572, 35, 69`, `created_via: "pos"` or empty). Walk-in customers paying with Cash, bKash QR, Nagad QR, or Card terminal swipe at store registers without courier tracking. Excluded from online commercial dispatches (`isPos: true`, `isOrderOnline: false`). Tracked strictly on `OutletSalesTab`.
+  * **Type 1: POS / Non-Checkout Orders (Offline Retail Walk-In Orders)**: Physical store register sales (`_sip_outlet_id`: Mirpur `2`, Cumilla `7`, Wari `8`, Sylhet `9`; cashier user IDs: Mirpur `3`, Cumilla `35`, Wari `69`, Sylhet `572`; `created_via: "pos"` or empty). Walk-in customers paying with Cash, bKash QR, Nagad QR, or Card terminal swipe at store registers without courier tracking. Excluded from online commercial dispatches (`isPos: true`, `isOrderOnline: false`). Tracked strictly on `OutletSalesTab`.
   * **Type 2: Online Orders Dispatched from Outlets (Branch Courier Dispatches)**: Web checkout orders fulfilled from physical branch outlets when central warehouse lacks stock:
-    * `17263 c`: Items sent from **Cumilla Branch** (POS outlet ID `2`)
-    * `17263 w`: Items sent from **Wari Branch** (POS outlet ID `9`)
-    * `17263 s`: Items sent from **Sylhet Branch** (POS outlet IDs `7` & `8`)
-    * `17263 m`: Items sent from **Mirpur Outlet** (POS outlet ID `1`)
+    * `17263 c`: Items sent from **Cumilla Branch** (POS outlet ID `7`, cashier `35`)
+    * `17263 w`: Items sent from **Wari Branch** (POS outlet ID `8`, cashier `69`)
+    * `17263 s`: Items sent from **Sylhet Branch** (POS outlet ID `9`, cashier `572`)
+    * `17263 m`: Items sent from **Mirpur Outlet** (POS outlet ID `2`, cashier `3`)
     * **Single Definitive Rule for Ecommerce Orders**: An order is strictly classified as an Ecommerce order (`isOrderOnline: true`, `isPos: false`) if and only if:
       1. It was placed via web checkout (`created_via: "checkout"` or `"store-api"`), OR
       2. It has an explicit ecommerce payment method (`payment_method: "ecom"` or `"sip_ecom"`), OR

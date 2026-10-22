@@ -16,11 +16,17 @@ These rules govern WooCommerce REST API synchronization, Pathao Courier Hermes A
 * Max pages: `5` (up to 500 orders per sync batch).
 * Orders must be parsed to extract POS register metadata:
   * `_sip_outlet_id`:
-    * `1` $\rightarrow$ `Mirpur Outlet POS`
-    * `2` $\rightarrow$ `Cumilla Branch POS`
-    * `9` $\rightarrow$ `Wari Branch POS`
-    * `7` or `8` $\rightarrow$ `Sylhet Branch POS`
-  * `_sip_created_by`: Cashier user IDs (`1508`, `3`, `572`, `35`, `69`).
+    * `2` $\rightarrow$ `Mirpur Outlet POS` (`outlet_slug: "mirpur-12"`)
+    * `7` $\rightarrow$ `Cumilla Branch POS` (`outlet_slug: "cumilla"`)
+    * `8` $\rightarrow$ `Wari Branch POS` (`outlet_slug: "wari"`)
+    * `9` $\rightarrow$ `Sylhet Branch POS` (`outlet_slug: "sylhet"`)
+    * `1` $\rightarrow$ `Central Warehouse` (`outlet_slug: "warehouse"`)
+  * `_sip_created_by`: Cashier user IDs:
+    * `3` $\rightarrow$ Mirpur (`mirpur12posuser@gmail.com`)
+    * `35` $\rightarrow$ Cumilla (`deencumilla@gmail.com`)
+    * `69` $\rightarrow$ Wari (`deenwari@gmail.com`)
+    * `572` $\rightarrow$ Sylhet (`sylhet@deencommerce.com`)
+    * `1508` $\rightarrow$ Shop Manager (`mohimanul@deencommerce.com`)
 
 ---
 

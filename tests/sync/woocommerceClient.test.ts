@@ -120,13 +120,13 @@ describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
     it('identifies POS from metadata outlet ID without online payment', () => {
       const meta = [{ key: '_sip_outlet_id', value: '2' }];
       const res = detectBranchFromOrder({}, meta, '17263');
-      expect(res.branchCode).toBe('CUMILLA');
-      expect(res.fulfillmentBranch).toBe('Cumilla Branch POS');
+      expect(res.branchCode).toBe('MIRPUR');
+      expect(res.fulfillmentBranch).toBe('Mirpur Outlet POS');
       expect(res.isPos).toBe(true);
     });
 
     it('identifies Online Branch Dispatch when metadata outlet ID has ecom payment method (sip_ecom)', () => {
-      const meta = [{ key: '_sip_outlet_id', value: '2' }];
+      const meta = [{ key: '_sip_outlet_id', value: '7' }];
       const res = detectBranchFromOrder({ payment_method: 'sip_ecom', payment_method_title: 'Ecommerce Outlet Fulfillment' }, meta, '17263');
       expect(res.branchCode).toBe('CUMILLA');
       expect(res.fulfillmentBranch).toBe('Cumilla Branch');
@@ -134,18 +134,18 @@ describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
     });
 
     it('identifies in-store POS walk-in sale when customer pays with bKash QR or Card at outlet register', () => {
-      const meta = [{ key: '_sip_outlet_id', value: '2' }];
+      const meta = [{ key: '_sip_outlet_id', value: '8' }];
       const res = detectBranchFromOrder({ payment_method: 'bkash', payment_method_title: 'bKash QR' }, meta, '17263');
-      expect(res.branchCode).toBe('CUMILLA');
-      expect(res.fulfillmentBranch).toBe('Cumilla Branch POS');
+      expect(res.branchCode).toBe('WARI');
+      expect(res.fulfillmentBranch).toBe('Wari Branch POS');
       expect(res.isPos).toBe(true);
     });
 
     it('identifies Online Branch Dispatch when metadata outlet ID was created via web checkout', () => {
       const meta = [{ key: '_sip_outlet_id', value: '9' }];
       const res = detectBranchFromOrder({ created_via: 'checkout' }, meta, '17263');
-      expect(res.branchCode).toBe('WARI');
-      expect(res.fulfillmentBranch).toBe('Wari Branch');
+      expect(res.branchCode).toBe('SYLHET');
+      expect(res.fulfillmentBranch).toBe('Sylhet Branch');
       expect(res.isPos).toBe(false);
     });
   });

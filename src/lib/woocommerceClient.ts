@@ -373,47 +373,50 @@ export function detectBranchFromOrder(order: WcOrder, meta: WcMetaItem[], orderI
 
   const isOnlineDispatch = isEcomPayment || isWebCheckout || hasCourierTracking;
 
-  // 3. Cumilla Branch: 17263 c or POS Outlet ID 2
-  if (outletId === '2' || /[-_]?c$/i.test(cleanId) || /\s+c$/i.test(String(orderId).trim())) {
-    const isPos = !isOnlineDispatch && (isPosMeta || effectiveCreatedVia === 'pos' || (Boolean(outletId) && !cleanId.endsWith('c')));
+  const createdByMeta = meta.find((m: WcMetaItem) => m.key === '_sip_created_by' || m.key === '_sip_cashier_id' || m.key === 'cashier_id');
+  const cashierId = createdByMeta ? String(createdByMeta.value).trim() : '';
+
+  // 3. Mirpur Outlet POS: 17263 m, POS Outlet ID 2, Cashier 3 (mirpur12posuser), or legacy ID 1
+  if (outletId === '2' || cashierId === '3' || /[-_]?m$/i.test(cleanId) || /\s+m$/i.test(String(orderId).trim()) || (outletId === '1' && (isPosMeta || effectiveCreatedVia === 'pos'))) {
+    const isPos = !isOnlineDispatch;
     return {
       isPos,
       outletId: outletId || '2',
+      fulfillmentBranch: isPos ? 'Mirpur Outlet POS' : 'Mirpur Outlet (Online Dispatch)',
+      branchCode: 'MIRPUR',
+    };
+  }
+
+  // 4. Cumilla Branch: 17263 c, POS Outlet ID 7, or Cashier 35 (deencumilla)
+  if (outletId === '7' || cashierId === '35' || /[-_]?c$/i.test(cleanId) || /\s+c$/i.test(String(orderId).trim())) {
+    const isPos = !isOnlineDispatch && (isPosMeta || effectiveCreatedVia === 'pos' || (Boolean(outletId) && !cleanId.endsWith('c')));
+    return {
+      isPos,
+      outletId: outletId || '7',
       fulfillmentBranch: isPos ? 'Cumilla Branch POS' : 'Cumilla Branch',
       branchCode: 'CUMILLA',
     };
   }
 
-  // 4. Wari Branch: 17263 w or POS Outlet ID 9
-  if (outletId === '9' || /[-_]?w$/i.test(cleanId) || /\s+w$/i.test(String(orderId).trim())) {
+  // 5. Wari Branch: 17263 w, POS Outlet ID 8, or Cashier 69 (deenwari)
+  if (outletId === '8' || cashierId === '69' || /[-_]?w$/i.test(cleanId) || /\s+w$/i.test(String(orderId).trim())) {
     const isPos = !isOnlineDispatch && (isPosMeta || effectiveCreatedVia === 'pos' || (Boolean(outletId) && !cleanId.endsWith('w')));
     return {
       isPos,
-      outletId: outletId || '9',
+      outletId: outletId || '8',
       fulfillmentBranch: isPos ? 'Wari Branch POS' : 'Wari Branch',
       branchCode: 'WARI',
     };
   }
 
-  // 5. Sylhet Branch: 17263 s or POS Outlet IDs 7 & 8
-  if (outletId === '7' || outletId === '8' || /[-_]?s$/i.test(cleanId) || /\s+s$/i.test(String(orderId).trim())) {
+  // 6. Sylhet Branch: 17263 s, POS Outlet ID 9, or Cashier 572 (deensylhet)
+  if (outletId === '9' || cashierId === '572' || /[-_]?s$/i.test(cleanId) || /\s+s$/i.test(String(orderId).trim())) {
     const isPos = !isOnlineDispatch && (isPosMeta || effectiveCreatedVia === 'pos' || (Boolean(outletId) && !cleanId.endsWith('s')));
     return {
       isPos,
-      outletId: outletId || '7',
+      outletId: outletId || '9',
       fulfillmentBranch: isPos ? 'Sylhet Branch POS' : 'Sylhet Branch',
       branchCode: 'SYLHET',
-    };
-  }
-
-  // 6. Mirpur Outlet POS: 17263 m or POS Outlet ID 1
-  if (outletId === '1' || /[-_]?m$/i.test(cleanId) || /\s+m$/i.test(String(orderId).trim())) {
-    const isPos = !isOnlineDispatch;
-    return {
-      isPos,
-      outletId: outletId || '1',
-      fulfillmentBranch: isPos ? 'Mirpur Outlet POS' : 'Mirpur Outlet (Online Dispatch)',
-      branchCode: 'MIRPUR',
     };
   }
 

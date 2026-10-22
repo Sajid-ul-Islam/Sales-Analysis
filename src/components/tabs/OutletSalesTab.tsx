@@ -223,25 +223,25 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
 
     // 1. Check explicit POS outlet IDs or POS register domains
     if (isExplicitPos || outletId) {
-      if (outletId === '1' || createdBy === '1508' || note.includes('mirpur') || /\b\d+\s*m\b|[-_\s]m$/i.test(orderIdStr)) {
-        return { outletId: '1', outletName: 'Mirpur Outlet POS', orderSource: 'pos' };
+      if (outletId === '2' || outletId === '1' || createdBy === '3' || createdBy === '1508' || note.includes('mirpur') || /\b\d+\s*m\b|[-_\s]m$/i.test(orderIdStr)) {
+        return { outletId: outletId || '2', outletName: 'Mirpur Outlet POS', orderSource: 'pos' };
       }
-      if (outletId === '9' || createdBy === '572' || note.includes('wari')) {
-        return { outletId: '9', outletName: 'Wari Branch POS', orderSource: 'pos' };
+      if (outletId === '8' || createdBy === '69' || note.includes('wari') || /\b\d+\s*w\b|[-_\s]w$/i.test(orderIdStr)) {
+        return { outletId: outletId || '8', outletName: 'Wari Branch POS', orderSource: 'pos' };
       }
-      if (outletId === '2' || createdBy === '3' || note.includes('cumilla') || note.includes('comilla')) {
-        return { outletId: '2', outletName: 'Cumilla Branch POS', orderSource: 'pos' };
+      if (outletId === '7' || createdBy === '35' || note.includes('cumilla') || note.includes('comilla') || /\b\d+\s*c\b|[-_\s]c$/i.test(orderIdStr)) {
+        return { outletId: outletId || '7', outletName: 'Cumilla Branch POS', orderSource: 'pos' };
       }
-      if (outletId === '7' || outletId === '8' || createdBy === '35' || createdBy === '69' || note.includes('sylhet')) {
-        return { outletId: '7', outletName: 'Sylhet Branch POS', orderSource: 'pos' };
+      if (outletId === '9' || createdBy === '572' || note.includes('sylhet') || /\b\d+\s*s\b|[-_\s]s$/i.test(orderIdStr)) {
+        return { outletId: outletId || '9', outletName: 'Sylhet Branch POS', orderSource: 'pos' };
       }
       // Unspecified POS outlet defaults to primary Mirpur register
-      return { outletId: outletId || '1', outletName: 'Mirpur Outlet POS', orderSource: 'pos' };
+      return { outletId: outletId || '2', outletName: 'Mirpur Outlet POS', orderSource: 'pos' };
     }
 
     // 2. Check for Mirpur POS suffix on order number (17263 m)
     if (/\b\d+\s*m\b|[-_\s]m$/i.test(orderIdStr) || note.includes('mirpur')) {
-      return { outletId: '1', outletName: 'Mirpur Outlet POS', orderSource: 'pos' };
+      return { outletId: '2', outletName: 'Mirpur Outlet POS', orderSource: 'pos' };
     }
 
     // Default: Online Store website checkout order — strictly filtered out from Outlet Sales
@@ -345,17 +345,17 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
       const bOutlet = String(r.fulfillmentLocation || rowAny.branchOutlet || '');
       const bSuffix = String(r.branchSuffix || '');
 
-      if (rowAny.posOutletId === '1' || bOutlet.includes('Mirpur Outlet POS') || (!bSuffix && /[-_\s]m$/i.test(oid))) {
-        outletId = '1';
-        outletName = 'Mirpur Outlet POS';
-      } else if (rowAny.posOutletId === '9' || bOutlet.includes('Wari Branch POS')) {
-        outletId = '9';
-        outletName = 'Wari Branch POS';
-      } else if (rowAny.posOutletId === '2' || bOutlet.includes('Cumilla Branch POS')) {
+      if (rowAny.posOutletId === '2' || rowAny.posOutletId === '1' || bOutlet.includes('Mirpur Outlet POS') || (!bSuffix && /[-_\s]m$/i.test(oid))) {
         outletId = '2';
-        outletName = 'Cumilla Branch POS';
-      } else if (rowAny.posOutletId === '7' || rowAny.posOutletId === '8' || bOutlet.includes('Sylhet Branch POS')) {
+        outletName = 'Mirpur Outlet POS';
+      } else if (rowAny.posOutletId === '8' || bOutlet.includes('Wari Branch POS') || (!bSuffix && /[-_\s]w$/i.test(oid))) {
+        outletId = '8';
+        outletName = 'Wari Branch POS';
+      } else if (rowAny.posOutletId === '7' || bOutlet.includes('Cumilla Branch POS') || (!bSuffix && /[-_\s]c$/i.test(oid))) {
         outletId = '7';
+        outletName = 'Cumilla Branch POS';
+      } else if (rowAny.posOutletId === '9' || bOutlet.includes('Sylhet Branch POS') || (!bSuffix && /[-_\s]s$/i.test(oid))) {
+        outletId = '9';
         outletName = 'Sylhet Branch POS';
       }
 
@@ -531,20 +531,20 @@ export function OutletSalesTab({ orders: reconciledOrders = [] }: OutletSalesTab
           let outletId = '';
           let outletName = '';
 
-          if (rawOutletId === '1' || (!rawOutletId && /[-_\s]m$/i.test(oid))) {
-            outletId = '1';
-            outletName = 'Mirpur Outlet POS';
-          } else if (rawOutletId === '9') {
-            outletId = '9';
-            outletName = 'Wari Branch POS';
-          } else if (rawOutletId === '2') {
+          if (rawOutletId === '2' || rawOutletId === '1' || (!rawOutletId && /[-_\s]m$/i.test(oid))) {
             outletId = '2';
-            outletName = 'Cumilla Branch POS';
-          } else if (rawOutletId === '7' || rawOutletId === '8') {
+            outletName = 'Mirpur Outlet POS';
+          } else if (rawOutletId === '8' || (!rawOutletId && /[-_\s]w$/i.test(oid))) {
+            outletId = '8';
+            outletName = 'Wari Branch POS';
+          } else if (rawOutletId === '7' || (!rawOutletId && /[-_\s]c$/i.test(oid))) {
             outletId = '7';
+            outletName = 'Cumilla Branch POS';
+          } else if (rawOutletId === '9' || (!rawOutletId && /[-_\s]s$/i.test(oid))) {
+            outletId = '9';
             outletName = 'Sylhet Branch POS';
           } else if (isPos) {
-            outletId = '1';
+            outletId = '2';
             outletName = 'Mirpur Outlet POS';
           }
 

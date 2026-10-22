@@ -149,8 +149,8 @@ Audits differences between courier records and merchant order records:
 - Uses HTTP Basic Authentication (`consumer_key:consumer_secret`).
 - Fetches orders in paginated batches (`per_page: 100`, up to 5 pages / 500 orders).
 - Extracts in-store POS register metadata:
-  - `_sip_outlet_id`: `1` (Mirpur), `2` (Cumilla), `9` (Wari), `7/8` (Sylhet).
-  - `_sip_created_by`: Cashier user IDs (`1508`, `3`, `572`, `35/69`).
+  - `_sip_outlet_id`: `2` (Mirpur), `7` (Cumilla), `8` (Wari), `9` (Sylhet).
+  - `_sip_created_by`: Cashier user IDs (`3` Mirpur, `35` Cumilla, `69` Wari, `572` Sylhet).
 
 ### 4.3 `/api/sync/status` (GET)
 - Health-check endpoint verifying configuration status and live connectivity for Pathao and WooCommerce.

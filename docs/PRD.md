@@ -78,10 +78,10 @@ The dashboard features **12 dedicated operational modules**:
 - **Channel Partitioning**:
   - **Online E-Commerce**: Orders placed via web checkout (`created_via: "checkout"`).
   - **In-Store POS Registers**: Filtered via `_sip_outlet_id` and cashier metadata (`_sip_created_by`):
-    - `Mirpur Outlet POS` (`outlet_id: 1` or cashier `1508`)
-    - `Cumilla Branch POS` (`outlet_id: 2` or cashier `3`)
-    - `Wari Branch POS` (`outlet_id: 9` or cashier `572`)
-    - `Sylhet Branch POS` (`outlet_id: 7/8` or cashier `35/69`)
+    - `Mirpur Outlet POS` (`outlet_id: 2` or cashier `3`)
+    - `Cumilla Branch POS` (`outlet_id: 7` or cashier `35`)
+    - `Wari Branch POS` (`outlet_id: 8` or cashier `69`)
+    - `Sylhet Branch POS` (`outlet_id: 9` or cashier `572`)
 - **Interactive Multi-Page Sync**: Dynamic pagination pull (100 per page across 5 pages) to capture high-density POS transactions across outlets.
 
 ### 4.5 SKU Performance & Category Breakdown
