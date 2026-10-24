@@ -1672,10 +1672,10 @@ export function LiveOpsTab({
           </div>
         </div>
 
-        {/* Side-by-Side Charts (Donut & Volume Bar) - STRICTLY SPLIT VIEW */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Side-by-Side Charts (Donut & Volume Bar) - Dynamic Screen Utilization */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
           {/* Left Chart: Revenue Share (TK) Donut */}
-          <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-5 shadow-xs flex flex-col justify-between transition-all duration-300 h-full">
+          <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between transition-all duration-300 h-full min-h-[460px]">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center justify-between gap-1.5 w-full">
                 <span className="flex items-center gap-1.5">
@@ -1693,18 +1693,20 @@ export function LiveOpsTab({
               </h3>
             </div>
 
-            <LiveRevenueDonutChart
-              items={activeCategoryItems}
-              totalRevenue={report.salesRevenue.rawValue}
-              selectsShare={report.selectsStats.selectsRevShare}
-              selectedCategory={categoryFilter}
-              onSelectCategory={(cat) => setCategoryFilter((prev) => (prev === cat ? 'ALL' : cat))}
-              isSubCategory={showSubCategory}
-            />
+            <div className="w-full flex-1 flex flex-col justify-between">
+              <LiveRevenueDonutChart
+                items={activeCategoryItems}
+                totalRevenue={report.salesRevenue.rawValue}
+                selectsShare={report.selectsStats.selectsRevShare}
+                selectedCategory={categoryFilter}
+                onSelectCategory={(cat) => setCategoryFilter((prev) => (prev === cat ? 'ALL' : cat))}
+                isSubCategory={showSubCategory}
+              />
+            </div>
           </div>
 
           {/* Right Chart: Sales Volume by Category Bar Chart */}
-          <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-5 shadow-xs flex flex-col justify-between transition-all duration-300 h-full">
+          <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between transition-all duration-300 h-full min-h-[460px]">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center justify-between gap-1.5 w-full">
                 <span className="flex items-center gap-1.5">
@@ -1733,7 +1735,7 @@ export function LiveOpsTab({
               </h3>
             </div>
 
-            <div className="w-full flex-1 min-h-[440px] md:min-h-[480px] lg:min-h-[520px] flex flex-col justify-end">
+            <div className="w-full flex-1 flex flex-col justify-between">
               <LiveVolumeBarChart
                 items={activeCategoryItems}
                 avgUnitsSold={report.avgUnitsSold}

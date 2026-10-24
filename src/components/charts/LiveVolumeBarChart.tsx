@@ -32,7 +32,7 @@ export function LiveVolumeBarChart({
 
   // Order categories: Strictly from large to small by volume (units sold)
   // In full-width or modal views, show more categories to maximize visual detail
-  const maxItems = isModal ? 14 : isFullWidth ? 12 : 9;
+  const maxItems = isModal ? 18 : isFullWidth ? 16 : (isSubCategory ? 16 : 12);
   const displayItems = useMemo(() => {
     return [...sourceItems]
       .sort((a, b) => {
@@ -43,6 +43,20 @@ export function LiveVolumeBarChart({
       })
       .slice(0, maxItems);
   }, [sourceItems, maxItems]);
+
+  const totalVolumeSold = useMemo(() => {
+    return displayItems.reduce((sum, item) => sum + item.volume, 0);
+  }, [displayItems]);
+
+  const totalSelectsVolume = useMemo(() => {
+    return displayItems.reduce((sum, item) => sum + item.selectsVolume, 0);
+  }, [displayItems]);
+
+  const totalRegularVolume = useMemo(() => {
+    return displayItems.reduce((sum, item) => sum + (item.regularVolume || item.volume - item.selectsVolume), 0);
+  }, [displayItems]);
+
+  const topItem = displayItems[0] || null;
 
   const maxActualVolume = displayItems.reduce((max, item) => Math.max(max, item.volume), 0);
 
@@ -66,19 +80,19 @@ export function LiveVolumeBarChart({
   }
 
   // Sizing geometry: Dynamically scaled to make the chart as prominent and visually substantial as possible
-  const chartWidth = isModal ? 1160 : isFullWidth ? 1040 : 640;
-  const chartHeight = isModal ? 640 : isFullWidth ? 580 : 540;
-  const paddingLeft = isModal ? 52 : isFullWidth ? 48 : 40;
-  const paddingRight = isModal ? 44 : isFullWidth ? 40 : 36;
-  const paddingTop = isModal ? 32 : isFullWidth ? 28 : 24;
-  const paddingBottom = isModal ? 80 : isFullWidth ? 74 : 68;
+  const chartWidth = isModal ? 1200 : isFullWidth ? 1080 : 920;
+  const chartHeight = isModal ? 580 : isFullWidth ? 520 : 440;
+  const paddingLeft = isModal ? 56 : isFullWidth ? 50 : 44;
+  const paddingRight = isModal ? 48 : isFullWidth ? 42 : 36;
+  const paddingTop = isModal ? 34 : isFullWidth ? 28 : 24;
+  const paddingBottom = isModal ? 80 : isFullWidth ? 76 : 72;
 
   const innerWidth = chartWidth - paddingLeft - paddingRight;
   const innerHeight = chartHeight - paddingTop - paddingBottom;
 
   const slotWidth = innerWidth / (displayItems.length || 1);
-  const maxBarWidth = isModal ? 76 : isFullWidth ? 68 : 54;
-  const barWidth = Math.min(maxBarWidth, slotWidth * 0.84);
+  const maxBarWidth = isModal ? 84 : isFullWidth ? 76 : Math.max(54, Math.min(84, slotWidth * 0.78));
+  const barWidth = Math.min(maxBarWidth, slotWidth * 0.82);
 
   const getYCoord = (vol: number) => {
     return paddingTop + innerHeight - (vol / (maxVolume || 1)) * innerHeight;
@@ -103,16 +117,16 @@ export function LiveVolumeBarChart({
   };
 
   return (
-    <div className="relative flex flex-col p-1 select-none w-full h-full flex-1 justify-end">
+    <div className="relative flex flex-col p-1 select-none w-full h-full flex-1 justify-between">
       <div className="w-full overflow-x-auto min-w-0 flex-1 flex flex-col justify-end">
         <svg
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
           className={`w-full h-auto ${
             isModal
-              ? 'min-h-[500px] max-h-[720px]'
+              ? 'min-h-[460px] max-h-[720px]'
               : isFullWidth
-                ? 'min-h-[460px] max-h-[640px]'
-                : 'min-h-[420px] md:min-h-[460px] lg:min-h-[500px]'
+                ? 'min-h-[420px] max-h-[640px]'
+                : 'min-h-[340px] max-h-[500px]'
           } overflow-visible`}
           preserveAspectRatio="xMidYMid meet"
         >
@@ -391,6 +405,32 @@ export function LiveVolumeBarChart({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Dynamic Category Volume Highlights Strip (Uses the extra blank screen dynamically) */}
+      <div className="w-full mt-3 pt-3 border-t border-slate-100 dark:border-[#1F1F1F] flex items-center justify-between flex-wrap gap-2 text-xs">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-300">
+            <span>📦 Dispatched:</span>
+            <span className="font-black text-slate-900 dark:text-white font-mono">{totalVolumeSold} pcs</span>
+            <span className="text-[10px] text-slate-400">({displayItems.length} active)</span>
+          </div>
+          {topItem && (
+            <div className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
+              <span>🔥 Leader:</span>
+              <span>{topItem.displayName || topItem.name} ({topItem.volume} pcs • {totalVolumeSold > 0 ? Math.round((topItem.volume / totalVolumeSold) * 100) : 0}%)</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 font-mono text-[11px]">
+          <span className="px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-bold">
+            💎 Selects: {totalSelectsVolume} pcs
+          </span>
+          <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-bold">
+            📦 Regular: {totalRegularVolume} pcs
+          </span>
+        </div>
       </div>
     </div>
   );

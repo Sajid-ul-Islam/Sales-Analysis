@@ -209,341 +209,429 @@ export function LiveRevenueDonutChart({
   const active = hoveredIdx !== null ? orderedSlices[hoveredIdx] : null;
 
   return (
-    <div className="relative flex flex-col items-center justify-center p-1 select-none w-full">
-      {/* Donut Chart Container */}
-      <div className="relative w-full max-w-[480px] lg:max-w-[520px] aspect-square flex items-center justify-center">
-        <svg
-          viewBox="0 0 340 340"
-          className="w-full h-full overflow-visible drop-shadow-xs"
-        >
-          {/* Slice Paths */}
-          {slicePaths.map((sp) => {
-            const rawName = sp.slice.displayName || sp.slice.name;
-            const sliceLabel = isSubCategory ? rawName : formatShortCategoryName(rawName);
-            const isSelected = Boolean(
-              selectedCategory &&
-              selectedCategory !== 'ALL' &&
-              (selectedCategory === sp.slice.name ||
-                selectedCategory === sp.slice.displayName ||
-                selectedCategory === sliceLabel ||
-                (!isSubCategory && selectedCategory === 'Twill' && /^Twill/i.test(rawName)) ||
-                (!isSubCategory && selectedCategory === 'Jacket' && /Jacket/i.test(rawName)))
-            );
-            const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);
+    <div className="relative flex flex-col p-1 select-none w-full h-full justify-between">
+      {/* Top/Main Container: On larger screens (e.g. xl: / 2xl:), display Donut + Interactive Category Distribution Ledger side-by-side; on mobile/tablet, stack them */}
+      <div className="w-full flex-1 flex flex-col xl:flex-row items-center xl:items-center justify-between gap-4">
+        {/* Donut Chart Container - dynamically sized to fill space without hard cap */}
+        <div className="relative w-full max-w-[340px] sm:max-w-[380px] xl:max-w-[420px] 2xl:max-w-[460px] aspect-square flex items-center justify-center shrink-0 mx-auto">
+          <svg
+            viewBox="0 0 340 340"
+            className="w-full h-full overflow-visible drop-shadow-xs"
+          >
+            {/* Slice Paths */}
+            {slicePaths.map((sp) => {
+              const rawName = sp.slice.displayName || sp.slice.name;
+              const sliceLabel = isSubCategory ? rawName : formatShortCategoryName(rawName);
+              const isSelected = Boolean(
+                selectedCategory &&
+                selectedCategory !== 'ALL' &&
+                (selectedCategory === sp.slice.name ||
+                  selectedCategory === sp.slice.displayName ||
+                  selectedCategory === sliceLabel ||
+                  (!isSubCategory && selectedCategory === 'Twill' && /^Twill/i.test(rawName)) ||
+                  (!isSubCategory && selectedCategory === 'Jacket' && /Jacket/i.test(rawName)))
+              );
+              const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);
 
-            return (
-              <g key={`donut-slice-group-${sp.idx}-${sp.slice.name}`}>
-                {/* Visible Annular Path */}
-                <path
-                  d={sp.d}
-                  fill={sp.fillColor}
-                  stroke="currentColor"
-                  strokeWidth={isSelected ? '4' : '3'}
-                  className="cursor-pointer transition-all duration-300 ease-out stroke-white dark:stroke-black text-white dark:text-black"
+              return (
+                <g key={`donut-slice-group-${sp.idx}-${sp.slice.name}`}>
+                  {/* Visible Annular Path */}
+                  <path
+                    d={sp.d}
+                    fill={sp.fillColor}
+                    stroke="currentColor"
+                    strokeWidth={isSelected ? '4' : '3'}
+                    className="cursor-pointer transition-all duration-300 ease-out stroke-white dark:stroke-black text-white dark:text-black"
+                    style={{
+                      transformOrigin: `${cx}px ${cy}px`,
+                      transform: sp.isHovered || isSelected ? 'scale(1.05)' : 'scale(1)',
+                      filter: sp.isHovered || isSelected ? 'brightness(1.15) drop-shadow(0 6px 14px rgba(0,0,0,0.35))' : 'none',
+                      opacity: isDimmed ? 0.35 : 1,
+                    }}
+                    onClick={() => onSelectCategory && onSelectCategory(sp.slice.name)}
+                    onMouseEnter={() => setHoveredIdx(sp.idx)}
+                    onMouseLeave={() => setHoveredIdx(null)}
+                  />
+
+                  {/* Generous touch/hover hit target for small slices to make hover/tap effortless */}
+                  {sp.isSmall && (
+                    <path
+                      d={sp.d}
+                      fill="none"
+                      stroke="transparent"
+                      strokeWidth="18"
+                      className="cursor-pointer"
+                      onClick={() => onSelectCategory && onSelectCategory(sp.slice.name)}
+                      onMouseEnter={() => setHoveredIdx(sp.idx)}
+                      onMouseLeave={() => setHoveredIdx(null)}
+                    />
+                  )}
+                </g>
+              );
+            })}
+
+            {/* Leader Lines and External Callout Labels for Slices */}
+            {slicePaths.map((sp) => {
+              const rawName = sp.slice.displayName || sp.slice.name;
+              const sliceLabel = isSubCategory ? rawName : formatShortCategoryName(rawName);
+
+              const isSelected = Boolean(
+                selectedCategory &&
+                selectedCategory !== 'ALL' &&
+                (selectedCategory === sp.slice.name ||
+                  selectedCategory === sp.slice.displayName ||
+                  selectedCategory === sliceLabel ||
+                  (!isSubCategory && selectedCategory === 'Twill' && /^Twill/i.test(rawName)) ||
+                  (!isSubCategory && selectedCategory === 'Jacket' && /Jacket/i.test(rawName)))
+              );
+              const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);
+
+              // Small slices (< 6%):
+              // If hovered or selected: ALWAYS show callout line and enlarged label with high contrast
+              // If at rest (not hovered/selected): only show callout if slice is >= 5% to prevent cluster collisions
+              const isCalloutVisible = sp.isHovered || isSelected || (sp.isSmall && sp.sharePercent >= 5);
+              if (!sp.isSmall || !isCalloutVisible) return null;
+
+              // Stagger radius offset to prevent adjacent small slices from overlapping each other
+              const radialOffset = sp.smallOrder % 2 === 0 ? 12 : 20;
+              const rLeaderEnd = rOuter + radialOffset;
+
+              const isRightSide = Math.cos(sp.midAngle) >= 0;
+              const xAnchor = cx + (rOuter + 2) * Math.cos(sp.midAngle);
+              const yAnchor = cy + (rOuter + 2) * Math.sin(sp.midAngle);
+
+              const xKnee = cx + rLeaderEnd * Math.cos(sp.midAngle);
+              const yKnee = cy + rLeaderEnd * Math.sin(sp.midAngle);
+
+              const armLength = sp.isHovered ? 14 : 10;
+              const xEnd = isRightSide ? xKnee + armLength : xKnee - armLength;
+              const yEnd = yKnee;
+
+              const textX = isRightSide ? xEnd + 4 : xEnd - 4;
+              const textY = yEnd;
+              const textAnchor = isRightSide ? 'start' : 'end';
+
+              return (
+                <g
+                  key={`callout-small-${sp.idx}-${sp.slice.name}`}
+                  className="cursor-pointer transition-all duration-200"
                   style={{
-                    transformOrigin: `${cx}px ${cy}px`,
-                    transform: sp.isHovered || isSelected ? 'scale(1.05)' : 'scale(1)',
-                    filter: sp.isHovered || isSelected ? 'brightness(1.15) drop-shadow(0 6px 14px rgba(0,0,0,0.35))' : 'none',
                     opacity: isDimmed ? 0.35 : 1,
                   }}
                   onClick={() => onSelectCategory && onSelectCategory(sp.slice.name)}
                   onMouseEnter={() => setHoveredIdx(sp.idx)}
                   onMouseLeave={() => setHoveredIdx(null)}
-                />
-
-                {/* Generous touch/hover hit target for small slices to make hover/tap effortless */}
-                {sp.isSmall && (
+                >
+                  {/* Leader line from outer arc edge out to external label */}
                   <path
-                    d={sp.d}
+                    d={`M ${xAnchor} ${yAnchor} L ${xKnee} ${yKnee} L ${xEnd} ${yEnd}`}
+                    stroke={sp.fillColor}
+                    strokeWidth={sp.isHovered ? '2.5' : '1.5'}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                     fill="none"
-                    stroke="transparent"
-                    strokeWidth="18"
-                    className="cursor-pointer"
-                    onClick={() => onSelectCategory && onSelectCategory(sp.slice.name)}
-                    onMouseEnter={() => setHoveredIdx(sp.idx)}
-                    onMouseLeave={() => setHoveredIdx(null)}
+                    className="transition-all duration-200"
                   />
-                )}
-              </g>
-            );
-          })}
 
-          {/* Leader Lines and External Callout Labels for Slices */}
-          {slicePaths.map((sp) => {
-            const rawName = sp.slice.displayName || sp.slice.name;
-            const sliceLabel = isSubCategory ? rawName : formatShortCategoryName(rawName);
+                  {/* Dot at arc anchor point */}
+                  <circle
+                    cx={xAnchor}
+                    cy={yAnchor}
+                    r={sp.isHovered ? '3.5' : '2'}
+                    fill={sp.fillColor}
+                    className="transition-all duration-200"
+                  />
 
-            const isSelected = Boolean(
-              selectedCategory &&
-              selectedCategory !== 'ALL' &&
-              (selectedCategory === sp.slice.name ||
-                selectedCategory === sp.slice.displayName ||
-                selectedCategory === sliceLabel ||
-                (!isSubCategory && selectedCategory === 'Twill' && /^Twill/i.test(rawName)) ||
-                (!isSubCategory && selectedCategory === 'Jacket' && /Jacket/i.test(rawName)))
-            );
-            const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);
+                  {/* External high-contrast label with smooth hover enlargement */}
+                  <text
+                    x={textX}
+                    y={textY}
+                    textAnchor={textAnchor}
+                    dominantBaseline="central"
+                    fontSize={sp.isHovered ? '12.5' : '9.5'}
+                    fontWeight="900"
+                    fill="currentColor"
+                    className="fill-slate-900 dark:fill-white font-headline transition-all duration-200"
+                    style={{
+                      transformOrigin: `${textX}px ${textY}px`,
+                      transform: sp.isHovered ? 'scale(1.15)' : 'scale(1)',
+                      transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                    }}
+                  >
+                    {sliceLabel} {Math.round(sp.sharePercent)}%
+                  </text>
+                </g>
+              );
+            })}
 
-            // Small slices (< 6%):
-            // If hovered or selected: ALWAYS show callout line and enlarged label with high contrast
-            // If at rest (not hovered/selected): only show callout if slice is >= 5% to prevent cluster collisions
-            const isCalloutVisible = sp.isHovered || isSelected || (sp.isSmall && sp.sharePercent >= 5);
-            if (!sp.isSmall || !isCalloutVisible) return null;
+            {/* Slices labels (Inside Slice) for Main Categories (>= 6% share) */}
+            {slicePaths.map((sp) => {
+              if (sp.isSmall) return null; // Small slices are rendered with callouts above
+              const rawName = sp.slice.displayName || sp.slice.name;
+              const sliceLabel = isSubCategory ? rawName : formatShortCategoryName(rawName);
 
-            // Stagger radius offset to prevent adjacent small slices from overlapping each other
-            const radialOffset = sp.smallOrder % 2 === 0 ? 12 : 20;
-            const rLeaderEnd = rOuter + radialOffset;
-
-            const isRightSide = Math.cos(sp.midAngle) >= 0;
-            const xAnchor = cx + (rOuter + 2) * Math.cos(sp.midAngle);
-            const yAnchor = cy + (rOuter + 2) * Math.sin(sp.midAngle);
-
-            const xKnee = cx + rLeaderEnd * Math.cos(sp.midAngle);
-            const yKnee = cy + rLeaderEnd * Math.sin(sp.midAngle);
-
-            const armLength = sp.isHovered ? 14 : 10;
-            const xEnd = isRightSide ? xKnee + armLength : xKnee - armLength;
-            const yEnd = yKnee;
-
-            const textX = isRightSide ? xEnd + 4 : xEnd - 4;
-            const textY = yEnd;
-            const textAnchor = isRightSide ? 'start' : 'end';
-
-            return (
-              <g
-                key={`callout-small-${sp.idx}-${sp.slice.name}`}
-                className="cursor-pointer transition-all duration-200"
-                style={{
-                  opacity: isDimmed ? 0.35 : 1,
-                }}
-                onClick={() => onSelectCategory && onSelectCategory(sp.slice.name)}
-                onMouseEnter={() => setHoveredIdx(sp.idx)}
-                onMouseLeave={() => setHoveredIdx(null)}
-              >
-                {/* Leader line from outer arc edge out to external label */}
-                <path
-                  d={`M ${xAnchor} ${yAnchor} L ${xKnee} ${yKnee} L ${xEnd} ${yEnd}`}
-                  stroke={sp.fillColor}
-                  strokeWidth={sp.isHovered ? '2.5' : '1.5'}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                  className="transition-all duration-200"
-                />
-
-                {/* Dot at arc anchor point */}
-                <circle
-                  cx={xAnchor}
-                  cy={yAnchor}
-                  r={sp.isHovered ? '3.5' : '2'}
-                  fill={sp.fillColor}
-                  className="transition-all duration-200"
-                />
-
-                {/* External high-contrast label with smooth hover enlargement */}
-                <text
-                  x={textX}
-                  y={textY}
-                  textAnchor={textAnchor}
-                  dominantBaseline="central"
-                  fontSize={sp.isHovered ? '12.5' : '9.5'}
-                  fontWeight="900"
-                  fill="currentColor"
-                  className="fill-slate-900 dark:fill-white font-headline transition-all duration-200"
+              const hoverScale = sp.isHovered ? 1.25 : 1;
+              return (
+                <g
+                  key={`donut-label-${sp.idx}-${sp.slice.name}`}
+                  pointerEvents="none"
                   style={{
-                    transformOrigin: `${textX}px ${textY}px`,
-                    transform: sp.isHovered ? 'scale(1.15)' : 'scale(1)',
+                    transformOrigin: `${sp.lx}px ${sp.ly}px`,
+                    transform: `scale(${hoverScale})`,
+                    transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
+                    opacity: selectedCategory && selectedCategory !== 'ALL' && !sp.isHovered ? 0.35 : 1,
+                  }}
+                >
+                  <text
+                    x={sp.lx}
+                    y={sp.ly - 7}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize={sp.isHovered ? '13' : '11'}
+                    fontWeight="900"
+                    fill="#ffffff"
+                    className="drop-shadow-md font-headline transition-all duration-200"
+                  >
+                    {sliceLabel}
+                  </text>
+                  <text
+                    x={sp.lx}
+                    y={sp.ly + 8}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize={sp.isHovered ? '14' : '11.5'}
+                    fontWeight="900"
+                    fill="#ffffff"
+                    className="drop-shadow-md font-headline transition-all duration-200"
+                  >
+                    {Math.round(sp.sharePercent)}%
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* Center Donut Annotation (Smooth dynamic interactive feedback on hover) */}
+            <g pointerEvents="none" className="transition-all duration-300 ease-out">
+              <circle
+                cx={cx}
+                cy={cy}
+                r={rInner - 3}
+                fill="currentColor"
+                className="fill-white dark:fill-black text-white dark:text-black transition-colors duration-300"
+              />
+              {active ? (
+                <g
+                  key={`center-active-${active.name}`}
+                  style={{
+                    transformOrigin: `${cx}px ${cy}px`,
+                    transform: 'scale(1.04)',
                     transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                   }}
                 >
-                  {sliceLabel} {Math.round(sp.sharePercent)}%
-                </text>
-              </g>
-            );
-          })}
+                  <text
+                    x={cx}
+                    y={cy - 22}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize="24"
+                    fontWeight="900"
+                    fill="currentColor"
+                    className="font-headline tracking-tight fill-slate-900 dark:fill-white transition-all duration-200"
+                  >
+                    ৳ {active.revenue.toLocaleString()}
+                  </text>
+                  <text
+                    x={cx}
+                    y={cy + 2}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize="12"
+                    fontWeight="900"
+                    letterSpacing="0.8"
+                    fill={CANONICAL_SLICE_COLORS[active.displayName] || CANONICAL_SLICE_COLORS[active.name] || '#f43f5e'}
+                    className="font-headline uppercase transition-colors duration-200"
+                  >
+                    {formatShortCategoryName(active.displayName || active.name)}
+                  </text>
+                  <text
+                    x={cx}
+                    y={cy + 23}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize="10.5"
+                    fontWeight="bold"
+                    fill="currentColor"
+                    className="fill-slate-600 dark:fill-slate-300 transition-colors duration-200"
+                  >
+                    {active.revenueShare}% Share • {active.volume} pcs
+                  </text>
+                </g>
+              ) : (
+                <g
+                  key="center-default"
+                  style={{
+                    transformOrigin: `${cx}px ${cy}px`,
+                    transform: 'scale(1.02)',
+                    transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
+                >
+                  <text
+                    x={cx}
+                    y={cy - 20}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize="23"
+                    fontWeight="900"
+                    fill="currentColor"
+                    className="font-headline tracking-tight fill-slate-900 dark:fill-white text-slate-900 dark:text-white transition-colors duration-200"
+                  >
+                    ৳ {effectiveRevenue.toLocaleString()}
+                  </text>
+                  <text
+                    x={cx}
+                    y={cy + 2}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize="9.5"
+                    fontWeight="bold"
+                    letterSpacing="0.9"
+                    fill="currentColor"
+                    className="fill-slate-500 dark:fill-white text-slate-500 dark:text-white transition-colors duration-200"
+                  >
+                    TOTAL REVENUE
+                  </text>
+                  <text
+                    x={cx}
+                    y={cy + 22}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize="10.5"
+                    fontWeight="bold"
+                    fill="currentColor"
+                    className="fill-teal-700 dark:fill-white text-teal-700 dark:text-white transition-colors duration-200"
+                  >
+                    💎 {effectiveSelectsShare}% Selects
+                  </text>
+                </g>
+              )}
+            </g>
+          </svg>
 
-          {/* Slices labels (Inside Slice) for Main Categories (>= 6% share) */}
-          {slicePaths.map((sp) => {
-            if (sp.isSmall) return null; // Small slices are rendered with callouts above
-            const rawName = sp.slice.displayName || sp.slice.name;
-            const sliceLabel = isSubCategory ? rawName : formatShortCategoryName(rawName);
-
-            const hoverScale = sp.isHovered ? 1.25 : 1;
-            return (
-              <g
-                key={`donut-label-${sp.idx}-${sp.slice.name}`}
-                pointerEvents="none"
-                style={{
-                  transformOrigin: `${sp.lx}px ${sp.ly}px`,
-                  transform: `scale(${hoverScale})`,
-                  transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
-                  opacity: selectedCategory && selectedCategory !== 'ALL' && !sp.isHovered ? 0.35 : 1,
-                }}
-              >
-                <text
-                  x={sp.lx}
-                  y={sp.ly - 7}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fontSize={sp.isHovered ? '13' : '11'}
-                  fontWeight="900"
-                  fill="#ffffff"
-                  className="drop-shadow-md font-headline transition-all duration-200"
-                >
-                  {sliceLabel}
-                </text>
-                <text
-                  x={sp.lx}
-                  y={sp.ly + 8}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fontSize={sp.isHovered ? '14' : '11.5'}
-                  fontWeight="900"
-                  fill="#ffffff"
-                  className="drop-shadow-md font-headline transition-all duration-200"
-                >
-                  {Math.round(sp.sharePercent)}%
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Center Donut Annotation (Smooth dynamic interactive feedback on hover) */}
-          <g pointerEvents="none" className="transition-all duration-300 ease-out">
-            <circle
-              cx={cx}
-              cy={cy}
-              r={rInner - 3}
-              fill="currentColor"
-              className="fill-white dark:fill-black text-white dark:text-black transition-colors duration-300"
-            />
-            {active ? (
-              <g
-                key={`center-active-${active.name}`}
-                style={{
-                  transformOrigin: `${cx}px ${cy}px`,
-                  transform: 'scale(1.04)',
-                  transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                }}
-              >
-                <text
-                  x={cx}
-                  y={cy - 22}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fontSize="24"
-                  fontWeight="900"
-                  fill="currentColor"
-                  className="font-headline tracking-tight fill-slate-900 dark:fill-white transition-all duration-200"
-                >
-                  ৳ {active.revenue.toLocaleString()}
-                </text>
-                <text
-                  x={cx}
-                  y={cy + 2}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fontSize="12"
-                  fontWeight="900"
-                  letterSpacing="0.8"
-                  fill={CANONICAL_SLICE_COLORS[active.displayName] || CANONICAL_SLICE_COLORS[active.name] || '#f43f5e'}
-                  className="font-headline uppercase transition-colors duration-200"
-                >
-                  {formatShortCategoryName(active.displayName || active.name)}
-                </text>
-                <text
-                  x={cx}
-                  y={cy + 23}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fontSize="10.5"
-                  fontWeight="bold"
-                  fill="currentColor"
-                  className="fill-slate-600 dark:fill-slate-300 transition-colors duration-200"
-                >
-                  {active.revenueShare}% Share • {active.volume} pcs
-                </text>
-              </g>
-            ) : (
-              <g
-                key="center-default"
-                style={{
-                  transformOrigin: `${cx}px ${cy}px`,
-                  transform: 'scale(1)',
-                  transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                }}
-              >
-                <text
-                  x={cx}
-                  y={cy - 20}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fontSize="23"
-                  fontWeight="900"
-                  fill="currentColor"
-                  className="font-headline tracking-tight fill-slate-900 dark:fill-white text-slate-900 dark:text-white transition-colors duration-200"
-                >
-                  ৳ {effectiveRevenue.toLocaleString()}
-                </text>
-                <text
-                  x={cx}
-                  y={cy + 2}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fontSize="9.5"
-                  fontWeight="bold"
-                  letterSpacing="0.9"
-                  fill="currentColor"
-                  className="fill-slate-500 dark:fill-white text-slate-500 dark:text-white transition-colors duration-200"
-                >
-                  TOTAL REVENUE
-                </text>
-                <text
-                  x={cx}
-                  y={cy + 22}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fontSize="10.5"
-                  fontWeight="bold"
-                  fill="currentColor"
-                  className="fill-teal-700 dark:fill-white text-teal-700 dark:text-white transition-colors duration-200"
-                >
-                  💎 {effectiveSelectsShare}% Selects
-                </text>
-              </g>
-            )}
-          </g>
-        </svg>
-
-        {/* Floating Tooltip - Elevated with larger typography and smooth transitions */}
-        {active && (
-          <div
-            className="absolute z-20 pointer-events-none bg-slate-950/95 dark:bg-black/95 text-white px-3.5 py-2.5 rounded-2xl text-xs shadow-2xl border border-slate-700/60 dark:border-[#333333] backdrop-blur-md min-w-[170px] transition-all duration-200 ease-out animate-in fade-in zoom-in-95"
-            style={{
-              top: '12px',
-              right: '12px',
-            }}
-          >
-            <div className="font-headline font-black text-white text-xs sm:text-sm flex items-center justify-between gap-2 border-b border-slate-800 pb-1.5 mb-1.5">
-              <span>{formatShortCategoryName(active.displayName || active.name)}</span>
-              <span className="text-amber-400 font-black text-sm">{active.revenueShare}%</span>
-            </div>
-            <div className="space-y-1 text-slate-300 text-xs">
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">💰 Revenue:</span>
-                <span className="font-black text-emerald-400 text-xs sm:text-sm">৳ {active.revenue.toLocaleString()}</span>
+          {/* Floating Tooltip - Elevated with larger typography and smooth transitions */}
+          {active && (
+            <div
+              className="absolute z-20 pointer-events-none bg-slate-950/95 dark:bg-black/95 text-white px-3.5 py-2.5 rounded-2xl text-xs shadow-2xl border border-slate-700/60 dark:border-[#333333] backdrop-blur-md min-w-[170px] transition-all duration-200 ease-out animate-in fade-in zoom-in-95"
+              style={{
+                top: '12px',
+                right: '12px',
+              }}
+            >
+              <div className="font-headline font-black text-white text-xs sm:text-sm flex items-center justify-between gap-2 border-b border-slate-800 pb-1.5 mb-1.5">
+                <span>{formatShortCategoryName(active.displayName || active.name)}</span>
+                <span className="text-amber-400 font-black text-sm">{active.revenueShare}%</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">📦 Volume:</span>
-                <span className="font-bold text-sky-300 text-xs sm:text-sm">{active.volume} units</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">🏷️ Avg Price:</span>
-                <span className="font-medium text-slate-200 text-xs">৳ {active.avgUnitPrice.toLocaleString()}</span>
+              <div className="space-y-1 text-slate-300 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">💰 Revenue:</span>
+                  <span className="font-black text-emerald-400 text-xs sm:text-sm">৳ {active.revenue.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">📦 Volume:</span>
+                  <span className="font-bold text-sky-300 text-xs sm:text-sm">{active.volume} units</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">🏷️ Avg Price:</span>
+                  <span className="font-medium text-slate-200 text-xs">৳ {active.avgUnitPrice.toLocaleString()}</span>
+                </div>
               </div>
             </div>
+          )}
+        </div>
+
+        {/* Dynamic Category Revenue & Share Ledger (Uses the extra blank screen dynamically) */}
+        <div className="w-full xl:w-[280px] 2xl:w-[320px] flex flex-col justify-center min-w-0 flex-1">
+          <div className="flex items-center justify-between text-[11px] font-black text-slate-500 dark:text-slate-400 mb-2 px-1 border-b border-slate-100 dark:border-[#1F1F1F] pb-1.5">
+            <span className="uppercase tracking-wider flex items-center gap-1.5">
+              <span>🏆</span>
+              <span>{isSubCategory ? 'Sub-Category Ranking' : 'Category Ranking'}</span>
+            </span>
+            <span className="text-[10px] font-mono text-slate-400">
+              {orderedSlices.length} Families
+            </span>
           </div>
-        )}
+
+          <div className="space-y-1.5 max-h-[360px] overflow-y-auto pr-1 select-none custom-scrollbar">
+            {orderedSlices.map((slice, idx) => {
+              const rawName = slice.displayName || slice.name;
+              const sliceLabel = isSubCategory ? rawName : formatShortCategoryName(rawName);
+              const isHovered = hoveredIdx === idx;
+              const isSelected = Boolean(
+                selectedCategory &&
+                selectedCategory !== 'ALL' &&
+                (selectedCategory === slice.name ||
+                  selectedCategory === slice.displayName ||
+                  selectedCategory === sliceLabel ||
+                  (!isSubCategory && selectedCategory === 'Twill' && /^Twill/i.test(rawName)) ||
+                  (!isSubCategory && selectedCategory === 'Jacket' && /Jacket/i.test(rawName)))
+              );
+              const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);
+              const color = isSubCategory
+                ? (slice.color || CANONICAL_SLICE_COLORS[slice.displayName] || CANONICAL_SLICE_COLORS[slice.name] || '#f43f5e')
+                : (CANONICAL_SLICE_COLORS[slice.displayName] || CANONICAL_SLICE_COLORS[slice.name] || slice.color || '#f43f5e');
+
+              return (
+                <div
+                  key={`legend-row-${slice.name}-${idx}`}
+                  onClick={() => onSelectCategory && onSelectCategory(slice.name)}
+                  onMouseEnter={() => setHoveredIdx(idx)}
+                  onMouseLeave={() => setHoveredIdx(null)}
+                  className={`group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl border transition-all duration-200 cursor-pointer ${
+                    isSelected
+                      ? 'bg-orange-50/90 dark:bg-orange-950/40 border-orange-300 dark:border-orange-800 shadow-xs'
+                      : isHovered
+                        ? 'bg-slate-100 dark:bg-[#1A1A1A] border-slate-300 dark:border-[#333333] translate-x-1'
+                        : 'bg-slate-50/70 dark:bg-[#0D0D0D] border-slate-200/60 dark:border-[#1F1F1F] hover:bg-slate-100 dark:hover:bg-[#1A1A1A]'
+                  } ${isDimmed ? 'opacity-40' : 'opacity-100'}`}
+                >
+                  {/* Left: Rank & Color dot & Name */}
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 w-3.5 text-center">
+                      #{idx + 1}
+                    </span>
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs"
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate font-headline group-hover:text-primary transition-colors">
+                      {sliceLabel}
+                    </span>
+                  </div>
+
+                  {/* Right: Revenue, Share % & Volume */}
+                  <div className="flex items-center gap-2 text-right shrink-0">
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs font-black text-slate-900 dark:text-white font-mono">
+                        ৳{slice.revenue.toLocaleString()}
+                      </span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
+                        {slice.volume} pcs
+                      </span>
+                    </div>
+                    <span
+                      className="text-[11px] font-black px-1.5 py-0.5 rounded-md min-w-[38px] text-center font-mono shadow-2xs"
+                      style={{
+                        backgroundColor: `${color}18`,
+                        color: color,
+                      }}
+                    >
+                      {Math.round(slice.revenueShare)}%
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
