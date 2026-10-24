@@ -1693,7 +1693,7 @@ export function LiveOpsTab({
               </h3>
             </div>
 
-            <div className="w-full flex-1 flex flex-col justify-between">
+            <div className="w-full flex-1 flex items-center justify-center">
               <LiveRevenueDonutChart
                 items={activeCategoryItems}
                 totalRevenue={report.salesRevenue.rawValue}
@@ -1735,7 +1735,7 @@ export function LiveOpsTab({
               </h3>
             </div>
 
-            <div className="w-full flex-1 flex flex-col justify-between">
+            <div className="w-full flex-1 flex items-center justify-center">
               <LiveVolumeBarChart
                 items={activeCategoryItems}
                 avgUnitsSold={report.avgUnitsSold}

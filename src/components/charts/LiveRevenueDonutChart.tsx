@@ -209,15 +209,13 @@ export function LiveRevenueDonutChart({
   const active = hoveredIdx !== null ? orderedSlices[hoveredIdx] : null;
 
   return (
-    <div className="relative flex flex-col p-1 select-none w-full h-full justify-between">
-      {/* Top/Main Container: On larger screens (e.g. xl: / 2xl:), display Donut + Interactive Category Distribution Ledger side-by-side; on mobile/tablet, stack them */}
-      <div className="w-full flex-1 flex flex-col xl:flex-row items-center xl:items-center justify-between gap-4">
-        {/* Donut Chart Container - dynamically sized to fill space without hard cap */}
-        <div className="relative w-full max-w-[340px] sm:max-w-[380px] xl:max-w-[420px] 2xl:max-w-[460px] aspect-square flex items-center justify-center shrink-0 mx-auto">
-          <svg
-            viewBox="0 0 340 340"
-            className="w-full h-full overflow-visible drop-shadow-xs"
-          >
+    <div className="relative flex flex-col items-center justify-center p-2 select-none w-full h-full flex-1 min-h-[380px]">
+      {/* Donut Chart Container - dynamically expands to fill available card width and height */}
+      <div className="relative w-full flex-1 max-w-[560px] lg:max-w-[620px] aspect-square flex items-center justify-center mx-auto my-auto">
+        <svg
+          viewBox="0 0 340 340"
+          className="w-full h-full max-w-full max-h-full overflow-visible drop-shadow-xs"
+        >
             {/* Slice Paths */}
             {slicePaths.map((sp) => {
               const rawName = sp.slice.displayName || sp.slice.name;
@@ -547,92 +545,6 @@ export function LiveRevenueDonutChart({
             </div>
           )}
         </div>
-
-        {/* Dynamic Category Revenue & Share Ledger (Uses the extra blank screen dynamically) */}
-        <div className="w-full xl:w-[280px] 2xl:w-[320px] flex flex-col justify-center min-w-0 flex-1">
-          <div className="flex items-center justify-between text-[11px] font-black text-slate-500 dark:text-slate-400 mb-2 px-1 border-b border-slate-100 dark:border-[#1F1F1F] pb-1.5">
-            <span className="uppercase tracking-wider flex items-center gap-1.5">
-              <span>🏆</span>
-              <span>{isSubCategory ? 'Sub-Category Ranking' : 'Category Ranking'}</span>
-            </span>
-            <span className="text-[10px] font-mono text-slate-400">
-              {orderedSlices.length} Families
-            </span>
-          </div>
-
-          <div className="space-y-1.5 max-h-[360px] overflow-y-auto pr-1 select-none custom-scrollbar">
-            {orderedSlices.map((slice, idx) => {
-              const rawName = slice.displayName || slice.name;
-              const sliceLabel = isSubCategory ? rawName : formatShortCategoryName(rawName);
-              const isHovered = hoveredIdx === idx;
-              const isSelected = Boolean(
-                selectedCategory &&
-                selectedCategory !== 'ALL' &&
-                (selectedCategory === slice.name ||
-                  selectedCategory === slice.displayName ||
-                  selectedCategory === sliceLabel ||
-                  (!isSubCategory && selectedCategory === 'Twill' && /^Twill/i.test(rawName)) ||
-                  (!isSubCategory && selectedCategory === 'Jacket' && /Jacket/i.test(rawName)))
-              );
-              const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);
-              const color = isSubCategory
-                ? (slice.color || CANONICAL_SLICE_COLORS[slice.displayName] || CANONICAL_SLICE_COLORS[slice.name] || '#f43f5e')
-                : (CANONICAL_SLICE_COLORS[slice.displayName] || CANONICAL_SLICE_COLORS[slice.name] || slice.color || '#f43f5e');
-
-              return (
-                <div
-                  key={`legend-row-${slice.name}-${idx}`}
-                  onClick={() => onSelectCategory && onSelectCategory(slice.name)}
-                  onMouseEnter={() => setHoveredIdx(idx)}
-                  onMouseLeave={() => setHoveredIdx(null)}
-                  className={`group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl border transition-all duration-200 cursor-pointer ${
-                    isSelected
-                      ? 'bg-orange-50/90 dark:bg-orange-950/40 border-orange-300 dark:border-orange-800 shadow-xs'
-                      : isHovered
-                        ? 'bg-slate-100 dark:bg-[#1A1A1A] border-slate-300 dark:border-[#333333] translate-x-1'
-                        : 'bg-slate-50/70 dark:bg-[#0D0D0D] border-slate-200/60 dark:border-[#1F1F1F] hover:bg-slate-100 dark:hover:bg-[#1A1A1A]'
-                  } ${isDimmed ? 'opacity-40' : 'opacity-100'}`}
-                >
-                  {/* Left: Rank & Color dot & Name */}
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 w-3.5 text-center">
-                      #{idx + 1}
-                    </span>
-                    <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs"
-                      style={{ backgroundColor: color }}
-                    />
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate font-headline group-hover:text-primary transition-colors">
-                      {sliceLabel}
-                    </span>
-                  </div>
-
-                  {/* Right: Revenue, Share % & Volume */}
-                  <div className="flex items-center gap-2 text-right shrink-0">
-                    <div className="flex flex-col items-end">
-                      <span className="text-xs font-black text-slate-900 dark:text-white font-mono">
-                        ৳{slice.revenue.toLocaleString()}
-                      </span>
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
-                        {slice.volume} pcs
-                      </span>
-                    </div>
-                    <span
-                      className="text-[11px] font-black px-1.5 py-0.5 rounded-md min-w-[38px] text-center font-mono shadow-2xs"
-                      style={{
-                        backgroundColor: `${color}18`,
-                        color: color,
-                      }}
-                    >
-                      {Math.round(slice.revenueShare)}%
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </div>
-    </div>
-  );
+    );
 }
