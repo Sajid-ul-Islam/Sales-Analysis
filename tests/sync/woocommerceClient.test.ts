@@ -10,6 +10,8 @@ import {
   extractVariationAttributes,
   formatWooCommerceToOrderRows,
   detectWordPressStatusMarks,
+  resolveSipOutlet,
+  extractLineItemSipInventory,
 } from '@/lib/woocommerceClient';
 
 describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
@@ -507,6 +509,167 @@ describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
 
       const resPartial = detectWordPressStatusMarks({ status: 'processing', customer_note: 'Customer accepted 1 shirt, partial return for 1 jeans' });
       expect(resPartial.isPartialFromWp).toBe(true);
+    });
+  });
+
+  describe('resolveSipOutlet', () => {
+    it('resolves Outlet 1 / warehouse to Central Warehouse', () => {
+      const res = resolveSipOutlet('1');
+      expect(res.outletId).toBe('1');
+      expect(res.inventorySource).toBe('Central Warehouse');
+      expect(res.inventoryCode).toBe('ONLINE');
+      expect(res.isBranchFulfillment).toBe(false);
+    });
+
+    it('resolves Outlet 2 / mirpur to Mirpur Outlet', () => {
+      const res = resolveSipOutlet('2');
+      expect(res.outletId).toBe('2');
+      expect(res.inventorySource).toBe('Mirpur Outlet');
+      expect(res.inventoryCode).toBe('MIRPUR');
+      expect(res.isBranchFulfillment).toBe(true);
+    });
+
+    it('resolves Outlet 7 / cumilla to Cumilla Branch', () => {
+      const res = resolveSipOutlet('7');
+      expect(res.outletId).toBe('7');
+      expect(res.inventorySource).toBe('Cumilla Branch');
+      expect(res.inventoryCode).toBe('CUMILLA');
+      expect(res.isBranchFulfillment).toBe(true);
+    });
+
+    it('resolves Outlet 8 / wari to Wari Branch', () => {
+      const res = resolveSipOutlet('8');
+      expect(res.outletId).toBe('8');
+      expect(res.inventorySource).toBe('Wari Branch');
+      expect(res.inventoryCode).toBe('WARI');
+      expect(res.isBranchFulfillment).toBe(true);
+    });
+
+    it('resolves Outlet 9 / sylhet to Sylhet Branch', () => {
+      const res = resolveSipOutlet('9');
+      expect(res.outletId).toBe('9');
+      expect(res.inventorySource).toBe('Sylhet Branch');
+      expect(res.inventoryCode).toBe('SYLHET');
+      expect(res.isBranchFulfillment).toBe(true);
+    });
+  });
+
+  describe('extractLineItemSipInventory & WooCommerce REST API Waterfall Deductions', () => {
+    it('accurately resolves split line-item inventory from _sip_waterfall_deductions', () => {
+      const mockOrder = {
+        id: 18881,
+        created_via: 'checkout',
+        meta_data: [
+          {
+            key: '_sip_waterfall_deductions',
+            value: [
+              {
+                outlet_id: 1,
+                outlet_slug: 'warehouse',
+                product_id: 17766,
+                variation_id: 17767,
+                qty: 1,
+              },
+              {
+                outlet_id: 2,
+                outlet_slug: 'mirpur-12',
+                product_id: 18705,
+                variation_id: 18706,
+                qty: 1,
+              },
+            ],
+          },
+        ],
+      };
+
+      const item1 = {
+        id: 101,
+        product_id: 17766,
+        variation_id: 17767,
+        name: 'DEEN Regular Jeans',
+      };
+      const item2 = {
+        id: 102,
+        product_id: 18705,
+        variation_id: 18706,
+        name: 'DEEN Oxford Shirt',
+      };
+
+      const res1 = extractLineItemSipInventory(item1, mockOrder, mockOrder.meta_data);
+      expect(res1.inventorySource).toBe('Central Warehouse');
+      expect(res1.inventoryCode).toBe('ONLINE');
+      expect(res1.outletId).toBe('1');
+
+      const res2 = extractLineItemSipInventory(item2, mockOrder, mockOrder.meta_data);
+      expect(res2.inventorySource).toBe('Mirpur Outlet');
+      expect(res2.inventoryCode).toBe('MIRPUR');
+      expect(res2.outletId).toBe('2');
+    });
+
+    it('formats multi-item orders into rows with specific SIP inventory per item', () => {
+      const mockOrder = {
+        id: 18740,
+        number: '18740',
+        date_created: '2026-10-25T14:00:00',
+        total: '4980',
+        status: 'completed',
+        billing: {
+          first_name: 'Karim',
+          phone: '01712000000',
+        },
+        meta_data: [
+          {
+            key: '_sip_waterfall_deductions',
+            value: [
+              {
+                outlet_id: 9,
+                outlet_slug: 'sylhet',
+                product_id: 9433,
+                variation_id: 9435,
+                qty: 1,
+              },
+              {
+                outlet_id: 2,
+                outlet_slug: 'mirpur-12',
+                product_id: 9419,
+                variation_id: 9422,
+                qty: 1,
+              },
+            ],
+          },
+        ],
+        line_items: [
+          {
+            id: 301,
+            product_id: 9433,
+            variation_id: 9435,
+            name: 'Sylhet Fulfilled Item',
+            sku: 'SYL-01',
+            quantity: 1,
+            total: '2490',
+          },
+          {
+            id: 302,
+            product_id: 9419,
+            variation_id: 9422,
+            name: 'Mirpur Fulfilled Item',
+            sku: 'MIR-02',
+            quantity: 1,
+            total: '2490',
+          },
+        ],
+      };
+
+      const rows = formatWooCommerceToOrderRows([mockOrder]);
+      expect(rows.length).toBe(2);
+
+      expect(rows[0].sipInventory).toBe('Sylhet Branch');
+      expect(rows[0].branchCode).toBe('SYLHET');
+      expect(rows[0].sipOutletId).toBe('9');
+
+      expect(rows[1].sipInventory).toBe('Mirpur Outlet');
+      expect(rows[1].branchCode).toBe('MIRPUR');
+      expect(rows[1].sipOutletId).toBe('2');
     });
   });
 });

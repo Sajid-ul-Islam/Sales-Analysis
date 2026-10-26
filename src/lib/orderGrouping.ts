@@ -28,6 +28,7 @@ import {
   compareOrdersByNumber,
   saveWorkbook,
 } from './excelExport';
+import { resolveSipOutlet } from './woocommerceClient';
 
 export interface OrderWiseItem {
   itemName: string;
@@ -38,6 +39,10 @@ export interface OrderWiseItem {
   itemCost: number;
   amount: number;
   isSelects: boolean;
+  sipInventory?: string;
+  sipOutletId?: string;
+  sipOutletSlug?: string;
+  branchCode?: 'ONLINE' | 'MIRPUR' | 'CUMILLA' | 'WARI' | 'SYLHET' | 'EXCHANGE';
   row: RawOrderRow;
 }
 
@@ -165,6 +170,22 @@ export function groupOrdersByOrderId(rows: RawOrderRow[]): OrderWiseGroup[] {
     const amount = itemCost > 0 ? itemCost * quantity : (rowAmt > 0 ? rowAmt : 0);
     const isSelects = classifyProductLine(itemName, sku, category) === 'DEEN Selects';
 
+    const rawSip = String(
+      row.sipInventory ||
+      row.sip_inventory ||
+      row.inventorySource ||
+      row.fulfillmentBranch ||
+      (group.branch?.branchName ?? '')
+    ).trim();
+    const resolvedItemSip = resolveSipOutlet(
+      String(row.sipOutletId || row.sip_outlet_id || row['Outlet ID'] || row.outletId || ''),
+      rawSip
+    );
+    const sipInventory = rawSip || resolvedItemSip.inventorySource;
+    const sipOutletId = String(row.sipOutletId || row.sip_outlet_id || resolvedItemSip.outletId || '').trim();
+    const sipOutletSlug = String(row.sipOutletSlug || resolvedItemSip.outletSlug || '').trim();
+    const branchCode = (row.branchCode as 'ONLINE' | 'MIRPUR' | 'CUMILLA' | 'WARI' | 'SYLHET' | 'EXCHANGE') || resolvedItemSip.inventoryCode || group.branch?.branchCode || 'ONLINE';
+
     group.items.push({
       itemName,
       sku,
@@ -174,6 +195,10 @@ export function groupOrdersByOrderId(rows: RawOrderRow[]): OrderWiseGroup[] {
       itemCost,
       amount,
       isSelects,
+      sipInventory,
+      sipOutletId,
+      sipOutletSlug,
+      branchCode,
       row,
     });
 
@@ -265,7 +290,10 @@ export function filterOrderWiseGroups(
       const matchPhone = group.phone.toLowerCase().includes(query);
       const matchCid = group.consignmentIds.some((cid) => cid.toLowerCase().includes(query));
       const matchItems = group.items.some(
-        (i) => i.itemName.toLowerCase().includes(query) || i.sku.toLowerCase().includes(query)
+        (i) =>
+          i.itemName.toLowerCase().includes(query) ||
+          i.sku.toLowerCase().includes(query) ||
+          (i.sipInventory && i.sipInventory.toLowerCase().includes(query))
       );
 
       if (!matchOid && !matchCust && !matchPhone && !matchCid && !matchItems) {

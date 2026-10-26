@@ -134,6 +134,55 @@ describe('Order-Wise Grouping & Filtering Engine', () => {
     expect(jacketOrders.map((o) => o.orderId)).toContain('1002');
   });
 
+  it('attaches SIP inventory source to each line item in OrderWiseGroup', () => {
+    const splitRows: Partial<RawOrderRow>[] = [
+      {
+        'Order ID': '2001',
+        orderId: '2001',
+        'Customer Name': 'Zubair',
+        'Item Name': 'Warehouse Denim',
+        SKU: 'WH-01',
+        Quantity: 1,
+        'Item Cost': 2000,
+        'Order Amount': 2000,
+        sipInventory: 'Central Warehouse',
+        sipOutletId: '1',
+        branchCode: 'ONLINE',
+      },
+      {
+        'Order ID': '2001',
+        orderId: '2001',
+        'Customer Name': 'Zubair',
+        'Item Name': 'Cumilla Shirt',
+        SKU: 'CU-02',
+        Quantity: 1,
+        'Item Cost': 1500,
+        'Order Amount': 1500,
+        sipInventory: 'Cumilla Branch',
+        sipOutletId: '7',
+        branchCode: 'CUMILLA',
+      },
+    ];
+
+    const groups = groupOrdersByOrderId(splitRows as RawOrderRow[]);
+    expect(groups).toHaveLength(1);
+    const g = groups[0];
+    expect(g.items).toHaveLength(2);
+
+    expect(g.items[0].sipInventory).toBe('Central Warehouse');
+    expect(g.items[0].branchCode).toBe('ONLINE');
+    expect(g.items[0].sipOutletId).toBe('1');
+
+    expect(g.items[1].sipInventory).toBe('Cumilla Branch');
+    expect(g.items[1].branchCode).toBe('CUMILLA');
+    expect(g.items[1].sipOutletId).toBe('7');
+
+    // Searching for "Cumilla" matches order because of the item SIP inventory
+    const filteredBySip = filterOrderWiseGroups(groups, { searchQuery: 'Cumilla' });
+    expect(filteredBySip).toHaveLength(1);
+    expect(filteredBySip[0].orderId).toBe('2001');
+  });
+
   it('filters order-wise groups by courier status', () => {
     const groups = groupOrdersByOrderId(mockRows as RawOrderRow[]);
 

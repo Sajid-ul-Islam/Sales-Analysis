@@ -455,6 +455,220 @@ export function detectBranchFromOrder(
   };
 }
 
+export interface SipInventoryInfo {
+  outletId: string;
+  outletSlug: string;
+  inventorySource: string;
+  inventoryCode: 'ONLINE' | 'MIRPUR' | 'CUMILLA' | 'WARI' | 'SYLHET' | 'EXCHANGE';
+  isPos: boolean;
+  isBranchFulfillment: boolean;
+}
+
+/**
+ * Resolves a SIP outlet ID or slug to canonical outlet inventory metadata.
+ *
+ * DEEN Commerce Operational Inventory Locations:
+ * - Outlet 1 (slug: 'warehouse') -> Central Warehouse Hub (Online Store)
+ * - Outlet 2 (slug: 'mirpur-12') -> Mirpur Outlet (POS Register / Branch)
+ * - Outlet 7 (slug: 'cumilla') -> Cumilla Branch
+ * - Outlet 8 (slug: 'wari') -> Wari Branch
+ * - Outlet 9 (slug: 'sylhet') -> Sylhet Branch
+ */
+export function resolveSipOutlet(
+  outletIdOrSlug?: string | number | null,
+  fallbackName?: string
+): {
+  outletId: string;
+  outletSlug: string;
+  inventorySource: string;
+  inventoryCode: 'ONLINE' | 'MIRPUR' | 'CUMILLA' | 'WARI' | 'SYLHET' | 'EXCHANGE';
+  isBranchFulfillment: boolean;
+} {
+  const s = String(outletIdOrSlug || '').trim().toLowerCase();
+
+  if (s === '2' || s.includes('mirpur')) {
+    return {
+      outletId: '2',
+      outletSlug: 'mirpur-12',
+      inventorySource: 'Mirpur Outlet',
+      inventoryCode: 'MIRPUR',
+      isBranchFulfillment: true,
+    };
+  }
+  if (s === '7' || s.includes('cumilla') || s.includes('comilla')) {
+    return {
+      outletId: '7',
+      outletSlug: 'cumilla',
+      inventorySource: 'Cumilla Branch',
+      inventoryCode: 'CUMILLA',
+      isBranchFulfillment: true,
+    };
+  }
+  if (s === '8' || s.includes('wari')) {
+    return {
+      outletId: '8',
+      outletSlug: 'wari',
+      inventorySource: 'Wari Branch',
+      inventoryCode: 'WARI',
+      isBranchFulfillment: true,
+    };
+  }
+  if (s === '9' || s.includes('sylhet')) {
+    return {
+      outletId: '9',
+      outletSlug: 'sylhet',
+      inventorySource: 'Sylhet Branch',
+      inventoryCode: 'SYLHET',
+      isBranchFulfillment: true,
+    };
+  }
+  if (s === '1' || s.includes('warehouse') || s.includes('central') || s.includes('online')) {
+    return {
+      outletId: '1',
+      outletSlug: 'warehouse',
+      inventorySource: 'Central Warehouse',
+      inventoryCode: 'ONLINE',
+      isBranchFulfillment: false,
+    };
+  }
+  if (s.includes('exchange')) {
+    return {
+      outletId: '',
+      outletSlug: 'exchange',
+      inventorySource: 'Exchange Replacement',
+      inventoryCode: 'EXCHANGE',
+      isBranchFulfillment: false,
+    };
+  }
+
+  // Fallback to name inspection
+  if (fallbackName) {
+    const fLower = fallbackName.toLowerCase();
+    if (fLower.includes('mirpur')) return resolveSipOutlet('2');
+    if (fLower.includes('cumilla') || fLower.includes('comilla')) return resolveSipOutlet('7');
+    if (fLower.includes('wari')) return resolveSipOutlet('8');
+    if (fLower.includes('sylhet')) return resolveSipOutlet('9');
+    if (fLower.includes('exchange')) return resolveSipOutlet('exchange');
+  }
+
+  return {
+    outletId: '1',
+    outletSlug: 'warehouse',
+    inventorySource: 'Central Warehouse',
+    inventoryCode: 'ONLINE',
+    isBranchFulfillment: false,
+  };
+}
+
+/**
+ * Extracts line-item level SIP Inventory source from WooCommerce REST API order payload.
+ *
+ * Checks in priority order:
+ * 1. WooCommerce REST API `_sip_waterfall_deductions` order meta array matching by line item variation_id / product_id.
+ * 2. Item-level `meta_data` for direct outlet ID/slug/location keys.
+ * 3. Order-level branch detection (POS register outlet ID, cashier ID, or courier dispatch suffix e.g. 17263 c/w/s/m).
+ * 4. Default: Central Warehouse (Online Store Hub).
+ */
+export function extractLineItemSipInventory(
+  item?: {
+    id?: number | string;
+    product_id?: number | string;
+    variation_id?: number | string;
+    meta_data?: WcMetaItem[];
+    [key: string]: unknown;
+  },
+  order?: WcOrder,
+  orderMeta: WcMetaItem[] = ((order as unknown as Record<string, unknown>)?.meta_data as WcMetaItem[]) || [],
+  orderId: string = String(order?.id || '')
+): SipInventoryInfo {
+  // 1. Inspect WooCommerce REST API `_sip_waterfall_deductions`
+  const deductionsMeta = orderMeta.find((m) => m.key === '_sip_waterfall_deductions');
+  if (deductionsMeta && item) {
+    let deductionsList: Array<{
+      outlet_id?: number | string;
+      outlet_slug?: string;
+      product_id?: number | string;
+      variation_id?: number | string;
+      qty?: number;
+    }> = [];
+
+    if (Array.isArray(deductionsMeta.value)) {
+      deductionsList = deductionsMeta.value;
+    } else if (typeof deductionsMeta.value === 'string') {
+      try {
+        deductionsList = JSON.parse(deductionsMeta.value);
+      } catch {
+        // ignore parse error
+      }
+    }
+
+    const itemProdId = Number(item.product_id) || 0;
+    const itemVarId = Number(item.variation_id) || 0;
+
+    let matched = deductionsList.find(
+      (d) =>
+        (Number(d.variation_id) > 0 && Number(d.variation_id) === itemVarId) ||
+        (itemVarId === 0 && Number(d.product_id) === itemProdId)
+    );
+
+    if (!matched && itemProdId > 0) {
+      matched = deductionsList.find((d) => Number(d.product_id) === itemProdId);
+    }
+
+    if (matched) {
+      const resolved = resolveSipOutlet(
+        matched.outlet_id ?? matched.outlet_slug ?? '',
+        matched.outlet_slug
+      );
+      const isPos =
+        String(order?.created_via || '').toLowerCase() === 'pos' ||
+        orderMeta.some((m) => m.key === '_sip_order_source' && String(m.value).toLowerCase() === 'pos');
+      return {
+        ...resolved,
+        isPos,
+      };
+    }
+  }
+
+  // 2. Check item-level meta_data
+  if (item && Array.isArray(item.meta_data)) {
+    for (const m of item.meta_data) {
+      const k = String(m.key || '').toLowerCase();
+      const v = m.value;
+      if (/sip.*outlet|outlet.*id|_outlet|location.*id|stock.*store|warehouse/i.test(k)) {
+        if (typeof v === 'string' || typeof v === 'number') {
+          const resolved = resolveSipOutlet(v);
+          return { ...resolved, isPos: false };
+        } else if (typeof v === 'object' && v !== null) {
+          const obj = v as Record<string, unknown>;
+          const cand = obj.id || obj.outlet_id || obj.slug || obj.name;
+          if (cand) {
+            const resolved = resolveSipOutlet(String(cand));
+            return { ...resolved, isPos: false };
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Fallback to order-level branch resolution
+  const branchInfo = detectBranchFromOrder(order || {}, orderMeta, orderId);
+  const resolved = resolveSipOutlet(branchInfo.outletId, branchInfo.fulfillmentBranch);
+
+  return {
+    ...resolved,
+    inventorySource:
+      branchInfo.branchCode === 'EXCHANGE'
+        ? 'Exchange Replacement'
+        : branchInfo.isPos
+        ? `${resolved.inventorySource} POS`
+        : resolved.inventorySource,
+    inventoryCode: branchInfo.branchCode,
+    isPos: branchInfo.isPos,
+    isBranchFulfillment: branchInfo.branchCode !== 'ONLINE' && !branchInfo.isPos,
+  };
+}
+
 /**
  * Parses potential courier consignment tracking candidates across strings, numbers, JSON structures, and URLs.
  */
@@ -1161,6 +1375,7 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
       const subCat = getSubCategoryForSales(prodName);
       const lineClass = classifyProductLine(prodName, 'GENERAL', cat);
       const isSelects = lineClass === 'DEEN Selects';
+      const sipInfo = extractLineItemSipInventory(undefined, order, meta, orderId);
 
       rows.push({
         'Order ID': orderId,
@@ -1219,9 +1434,16 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
         'Apparel Line': lineClass,
         'isSelects': isSelects,
         'Order Source': branchInfo.isPos ? 'POS' : 'Online',
-        'Outlet ID': branchInfo.outletId,
-        'fulfillmentBranch': branchInfo.fulfillmentBranch,
-        'branchCode': branchInfo.branchCode,
+        'Outlet ID': sipInfo.outletId || branchInfo.outletId,
+        'outletId': sipInfo.outletId || branchInfo.outletId,
+        'fulfillmentBranch': sipInfo.inventorySource,
+        'branchCode': sipInfo.inventoryCode,
+        'sipInventory': sipInfo.inventorySource,
+        'sip_inventory': sipInfo.inventorySource,
+        'sipOutletId': sipInfo.outletId,
+        'sip_outlet_id': sipInfo.outletId,
+        'sipOutletSlug': sipInfo.outletSlug,
+        'inventorySource': sipInfo.inventorySource,
         'Created Via': orderCreatedVia,
         'created_via': orderCreatedVia,
         'createdVia': orderCreatedVia,
@@ -1247,8 +1469,7 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
         'isExchangeFromWp': wpMarks.isExchangeFromWp,
         'isPaidReturnFromWp': wpMarks.isPaidReturnFromWp,
         isPos: branchInfo.isPos,
-        outletId: branchInfo.outletId,
-        isBranchFulfillment: branchInfo.branchCode !== 'ONLINE' && !branchInfo.isPos,
+        isBranchFulfillment: sipInfo.isBranchFulfillment,
       });
     } else {
       for (const item of lineItems) {
@@ -1262,6 +1483,7 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
         const subCat = getSubCategoryForSales(prodName);
         const lineClass = classifyProductLine(prodName, sku, cat);
         const isSelects = lineClass === 'DEEN Selects';
+        const sipInfo = extractLineItemSipInventory(item, order, meta, orderId);
 
         rows.push({
           'Order ID': orderId,
@@ -1324,9 +1546,16 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
           'Delivery Status': status,
           'status': status,
           'Order Source': branchInfo.isPos ? 'POS' : 'Online',
-          'Outlet ID': branchInfo.outletId,
-          'fulfillmentBranch': branchInfo.fulfillmentBranch,
-          'branchCode': branchInfo.branchCode,
+          'Outlet ID': sipInfo.outletId || branchInfo.outletId,
+          'outletId': sipInfo.outletId || branchInfo.outletId,
+          'fulfillmentBranch': sipInfo.inventorySource,
+          'branchCode': sipInfo.inventoryCode,
+          'sipInventory': sipInfo.inventorySource,
+          'sip_inventory': sipInfo.inventorySource,
+          'sipOutletId': sipInfo.outletId,
+          'sip_outlet_id': sipInfo.outletId,
+          'sipOutletSlug': sipInfo.outletSlug,
+          'inventorySource': sipInfo.inventorySource,
           'Created Via': orderCreatedVia,
           'created_via': orderCreatedVia,
           'createdVia': orderCreatedVia,
@@ -1352,8 +1581,7 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
           'isExchangeFromWp': wpMarks.isExchangeFromWp,
           'isPaidReturnFromWp': wpMarks.isPaidReturnFromWp,
           isPos: branchInfo.isPos,
-          outletId: branchInfo.outletId,
-          isBranchFulfillment: branchInfo.branchCode !== 'ONLINE' && !branchInfo.isPos,
+          isBranchFulfillment: sipInfo.isBranchFulfillment,
         });
       }
     }

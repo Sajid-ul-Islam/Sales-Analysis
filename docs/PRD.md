@@ -278,3 +278,7 @@ To guarantee a best-in-class merchant and auditor experience across Desktop, Tab
 ### 6.6 Offline Persistence & IndexedDB Caching
 - Browser IndexedDB caching of order snapshots and reconciliation states for instantaneous (<150ms) boot times and offline resilience during warehouse network interruptions.
 
+### 4.9 Smart Inventory (SIP) Line-Item Origin Tracking
+- **Purpose**: Direct extraction from WooCommerce REST API order payload to surface which exact branch inventory fulfilled each line item.
+- **Data Source**: Order-level `_sip_waterfall_deductions` array mapping item `variation_id` / `product_id` to physical outlets (Warehouse, Mirpur-12, Cumilla, Wari, Sylhet).
+- **Presentation**: Displayed as color-coded badges in Everyday Dispatched Orders Ledger (Order-Wise nested list and Item-Wise flat view) and Order Details modal.

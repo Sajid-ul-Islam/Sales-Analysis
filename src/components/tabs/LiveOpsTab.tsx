@@ -99,6 +99,85 @@ function formatOrderDateTime(val: unknown): string {
   );
 }
 
+export function SipInventoryBadge({
+  inventory,
+  branchCode,
+  className = '',
+}: {
+  inventory?: string;
+  branchCode?: string;
+  className?: string;
+}) {
+  const inv = String(inventory || '').trim();
+  const code = String(branchCode || '').toUpperCase();
+
+  if (code === 'MIRPUR' || /mirpur/i.test(inv)) {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800 font-sans shadow-2xs ${className}`}
+        title="SIP Inventory: Mirpur Outlet"
+      >
+        <span>🏬</span>
+        <span>Mirpur Outlet</span>
+      </span>
+    );
+  }
+  if (code === 'CUMILLA' || /cumilla|comilla/i.test(inv)) {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800 font-sans shadow-2xs ${className}`}
+        title="SIP Inventory: Cumilla Branch"
+      >
+        <span>🏬</span>
+        <span>Cumilla Branch</span>
+      </span>
+    );
+  }
+  if (code === 'WARI' || /wari/i.test(inv)) {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-800 border border-teal-200 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800 font-sans shadow-2xs ${className}`}
+        title="SIP Inventory: Wari Branch"
+      >
+        <span>🏬</span>
+        <span>Wari Branch</span>
+      </span>
+    );
+  }
+  if (code === 'SYLHET' || /sylhet/i.test(inv)) {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 font-sans shadow-2xs ${className}`}
+        title="SIP Inventory: Sylhet Branch"
+      >
+        <span>🏬</span>
+        <span>Sylhet Branch</span>
+      </span>
+    );
+  }
+  if (code === 'EXCHANGE' || /exchange/i.test(inv)) {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-800 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800 font-sans shadow-2xs ${className}`}
+        title="Exchange Replacement"
+      >
+        <span>🔄</span>
+        <span>Exchange</span>
+      </span>
+    );
+  }
+  // Default: Central Warehouse
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800 font-sans shadow-2xs ${className}`}
+      title="SIP Inventory: Central Warehouse"
+    >
+      <span>🌐</span>
+      <span>Central Warehouse</span>
+    </span>
+  );
+}
+
 interface LiveTerminalCacheEnvelope {
   orders: RawOrderRow[];
   stats: LiveTerminalStats;
@@ -2715,6 +2794,7 @@ export function LiveOpsTab({
                   <th className="py-3 px-3.5">Customer & Phone</th>
                   <th className="py-3 px-3.5">Product & SKU</th>
                   <th className="py-3 px-3.5 text-center">Collection</th>
+                  <th className="py-3 px-3.5 text-center">SIP Inventory</th>
                   <th className="py-3 px-3.5 text-center">Qty</th>
                   <th className="py-3 px-3.5 text-right">Unit Price</th>
                   <th className="py-3 px-3.5 text-right">Order Total</th>
@@ -3049,6 +3129,7 @@ export function LiveOpsTab({
                                         <th className="py-2 px-3">SKU</th>
                                         <th className="py-2 px-3">Category</th>
                                         <th className="py-2 px-3 text-center">Collection</th>
+                                        <th className="py-2 px-3 text-center">SIP Inventory</th>
                                         <th className="py-2 px-3 text-center">Qty</th>
                                         <th className="py-2 px-3 text-right">Unit Price</th>
                                         <th className="py-2 px-3 text-right">Subtotal</th>
@@ -3076,6 +3157,9 @@ export function LiveOpsTab({
                                                 📦 Regular
                                               </span>
                                             )}
+                                          </td>
+                                          <td className="py-2 px-3 text-center whitespace-nowrap">
+                                            <SipInventoryBadge inventory={item.sipInventory} branchCode={item.branchCode} />
                                           </td>
                                           <td className="py-2 px-3 text-center font-bold text-slate-900 dark:text-white">
                                             {item.quantity}
@@ -3108,7 +3192,7 @@ export function LiveOpsTab({
             ) : (
               filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-slate-400 dark:text-slate-500">
+                  <td colSpan={12} className="py-12 text-center text-slate-400 dark:text-slate-500">
                     <Package className="w-8 h-8 mx-auto mb-2 opacity-40" />
                     <p className="font-semibold">No orders found matching the filter criteria.</p>
                   </td>
@@ -3117,7 +3201,7 @@ export function LiveOpsTab({
                 <>
                   {itemWiseVirtualizer.paddingTop > 0 && (
                     <tr className="pointer-events-none select-none border-0" aria-hidden="true">
-                      <td colSpan={11} style={{ height: `${itemWiseVirtualizer.paddingTop}px`, padding: 0, border: 0 }} />
+                      <td colSpan={12} style={{ height: `${itemWiseVirtualizer.paddingTop}px`, padding: 0, border: 0 }} />
                     </tr>
                   )}
                   {itemWiseVirtualizer.virtualItems.map(({ item: row, index: idx }) => {
@@ -3251,6 +3335,12 @@ export function LiveOpsTab({
                             </span>
                           )}
                         </td>
+                        <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
+                          <SipInventoryBadge
+                            inventory={String(row.sipInventory || row.inventorySource || row.fulfillmentBranch || '')}
+                            branchCode={String(row.branchCode || '')}
+                          />
+                        </td>
                         <td className="py-2.5 px-3.5 text-center font-bold text-slate-800 dark:text-white">
                           {qty}
                         </td>
@@ -3329,7 +3419,7 @@ export function LiveOpsTab({
                   })}
                   {itemWiseVirtualizer.paddingBottom > 0 && (
                     <tr className="pointer-events-none select-none border-0" aria-hidden="true">
-                      <td colSpan={11} style={{ height: `${itemWiseVirtualizer.paddingBottom}px`, padding: 0, border: 0 }} />
+                      <td colSpan={12} style={{ height: `${itemWiseVirtualizer.paddingBottom}px`, padding: 0, border: 0 }} />
                     </tr>
                   )}
                 </>
@@ -3428,8 +3518,11 @@ export function LiveOpsTab({
                           <span className="font-bold shrink-0">x{it.quantity}</span>
                         </div>
                         <div className="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 font-mono">
-                          <span>SKU: {it.sku || 'N/A'}</span>
-                          <span>৳ {it.amount.toLocaleString()}</span>
+                          <div className="flex items-center gap-1.5 truncate pr-2">
+                            <span>SKU: {it.sku || 'N/A'}</span>
+                            <SipInventoryBadge inventory={it.sipInventory} branchCode={it.branchCode} />
+                          </div>
+                          <span className="shrink-0">৳ {it.amount.toLocaleString()}</span>
                         </div>
                       </div>
                     ))}
@@ -3437,7 +3530,13 @@ export function LiveOpsTab({
                 ) : (
                   <div>
                     <div className="font-bold text-slate-900 dark:text-white">{String(selectedDetailOrder['Item Name'] || '')}</div>
-                    <div className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">SKU: {String(selectedDetailOrder.SKU || 'N/A')}</div>
+                    <div className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5 flex items-center gap-2">
+                      <span>SKU: {String(selectedDetailOrder.SKU || 'N/A')}</span>
+                      <SipInventoryBadge
+                        inventory={String(selectedDetailOrder.sipInventory || selectedDetailOrder.inventorySource || selectedDetailOrder.fulfillmentBranch || '')}
+                        branchCode={String(selectedDetailOrder.branchCode || '')}
+                      />
+                    </div>
                   </div>
                 )}
                 <div className="flex justify-between items-center pt-2 border-t border-slate-200/60 dark:border-deepBlack-border text-slate-600 dark:text-slate-300">

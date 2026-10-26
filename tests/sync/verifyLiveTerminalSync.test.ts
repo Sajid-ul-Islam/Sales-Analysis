@@ -129,7 +129,7 @@ describe('Live Terminal Synchronization Verification', () => {
     }
     expect(result.orders.length).toBeGreaterThan(0);
     expect(result.stats.totalOrders).toBeGreaterThan(0);
-  }, 45000);
+  }, 90000);
 
   it.runIf(!hasLiveCreds)('gracefully handles unconfigured environment without crashing', async () => {
     const conn = await testWooCommerceConnection();

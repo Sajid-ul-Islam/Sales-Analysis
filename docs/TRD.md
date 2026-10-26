@@ -366,4 +366,12 @@ When orders are synced via WooCommerce REST API, tracking consignment numbers ar
 - Supports B2B external client login (`POST /aladdin/api/v1/external/login`) with `client_id` + `client_secret` (90-day long-lived tokens).
 - Order tracking queries use the official endpoint: `GET /aladdin/api/v1/orders/{consignment_id}/info`.
 
-
+### 4.7 Smart Inventory (SIP) Deduction Engine
+- **WooCommerce Payload Parsing**: Parses `_sip_waterfall_deductions` metadata array in `formatWooCommerceToOrderRows()`:
+  - Outlet ID 1 (`warehouse`): Central Warehouse (`ONLINE`)
+  - Outlet ID 2 (`mirpur-12`): Mirpur Outlet (`MIRPUR`)
+  - Outlet ID 7 (`cumilla`): Cumilla Branch (`CUMILLA`)
+  - Outlet ID 8 (`wari`): Wari Branch (`WARI`)
+  - Outlet ID 9 (`sylhet`): Sylhet Branch (`SYLHET`)
+- **Waterfall Resolution**: Falls back through line item `meta_data`, order-level POS outlet/cashier IDs, and courier suffix codes before defaulting to Central Warehouse.
+- **Group Aggregation**: Attached to `OrderWiseItem` in `src/lib/orderGrouping.ts` with omni-search matching in `filterOrderWiseGroups()`.

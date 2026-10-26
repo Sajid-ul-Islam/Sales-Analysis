@@ -85,3 +85,18 @@ Refer to detailed rules in [.agents/rules/order_rules.md](.agents/rules/order_ru
     - ⚠️ **High Risk**: Delivery rate $< 60\%$ ($\ge 2$ orders) or flagged return risk
     - 🌱 **New Buyer**: $\le 1$ total lifetime order without courier history
 
+### 9. Smart Inventory (SIP) & Outlet Allocation Engine
+* **WooCommerce SIP Plugin Metadata**: Smart Inventory / Point of Sale metadata is resolved from order-level `_sip_waterfall_deductions` array (`[{"outlet_id":1,"outlet_slug":"warehouse","product_id":...,"variation_id":...}]`), mapping each specific apparel item to its physical inventory origin.
+* **4-Tier Waterfall Resolution Order**:
+  1. `_sip_waterfall_deductions` exact `variation_id` and `product_id` match.
+  2. Line-item level `meta_data` keys (`_sip_outlet_id`, `_outlet_id`, `location_id`).
+  3. Order-level branch fallback (`_sip_outlet_id`, cashier ID `_sip_created_by`: Mirpur `3`, Cumilla `35`, Wari `69`, Sylhet `572`, or courier dispatch suffixes `c`, `w`, `s`, `m`).
+  4. Default: `Central Warehouse` (Online store).
+* **Physical Nodes & Visual Badges**:
+  - `Central Warehouse` (Code: `ONLINE`, Outlet: `1`, Slug: `warehouse`): Sky badge `🌐 Central Warehouse`.
+  - `Mirpur Outlet` (Code: `MIRPUR`, Outlet: `2`, Slug: `mirpur-12`): Purple badge `🏬 Mirpur Outlet`.
+  - `Cumilla Branch` (Code: `CUMILLA`, Outlet: `7`, Slug: `cumilla`): Amber badge `🏬 Cumilla Branch`.
+  - `Wari Branch` (Code: `WARI`, Outlet: `8`, Slug: `wari`): Teal badge `🏬 Wari Branch`.
+  - `Sylhet Branch` (Code: `SYLHET`, Outlet: `9`, Slug: `sylhet`): Indigo badge `🏬 Sylhet Branch`.
+  - `Exchange Replacement` (Code: `EXCHANGE`): Violet badge `🔄 Exchange Replacement`.
+* **Ledger Visibility**: Rendered in Order-Wise view (`ORDER_WISE`) within the nested line-items breakdown table, in Item-Wise view (`ITEM_WISE`) in a dedicated `SIP Inventory` column, and in the Order Details Telemetry modal. Search filter supports filtering directly by outlet name (e.g. "Cumilla", "Warehouse").

@@ -173,4 +173,46 @@ The Excel export (`Reconciled Orders` ledger) features two distinct status colum
   * First-time customer with $\le 1$ order and no courier history.
 
 
+---
 
+## 9. Smart Inventory (SIP) & Outlet Allocation Engine
+
+### A. WooCommerce SIP Metadata Structure
+DEEN Commerce utilizes a Smart Inventory / POS plugin to manage multi-location branch stock. Inventory deductions are persisted in order-level and line-item metadata:
+* **Order-Level Deduction Waterfall (`_sip_waterfall_deductions`)**:
+  * An array of JSON objects recorded directly on the order:
+    ```json
+    [
+      { "outlet_id": 1, "outlet_slug": "warehouse", "product_id": 17766, "variation_id": 17767, "qty": 1 },
+      { "outlet_id": 2, "outlet_slug": "mirpur-12", "product_id": 18705, "variation_id": 18706, "qty": 1 }
+    ]
+    ```
+  * Maps individual items by `variation_id` and `product_id` to their exact deduction location.
+  * Allows split-origin orders where Item 1 originates from Central Warehouse and Item 2 originates from a retail branch.
+
+### B. 4-Tier Waterfall Resolution Architecture
+When extracting the inventory origin for any line item, the engine resolves in the following strict precedence:
+1. **Tier 1 — Waterfall Deductions Array**: Match item `variation_id` (or `product_id`) within `_sip_waterfall_deductions`.
+2. **Tier 2 — Line Item Metadata**: Check item `meta_data` for `_sip_outlet_id`, `_outlet_id`, `outlet_id`, `location_id`, `sip_location`.
+3. **Tier 3 — Order-Level Branch Fallback**: Inspect order metadata (`_sip_outlet_id`, cashier `_sip_created_by`: Mirpur `3`, Cumilla `35`, Wari `69`, Sylhet `572`) or courier dispatch suffixes (`c`, `w`, `s`, `m`).
+4. **Tier 4 — Default Origin**: If no branch indicator exists, assign to **Central Warehouse** (`ONLINE`).
+
+### C. Physical Nodes & Design Token Badges
+* **Central Warehouse** (Outlet `1`, Slug `warehouse`, Code `ONLINE`):
+  * Sky badge: `bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800` with `🌐` icon.
+* **Mirpur Outlet** (Outlet `2`, Slug `mirpur-12`, Code `MIRPUR`):
+  * Purple badge: `bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800` with `🏬` icon.
+* **Cumilla Branch** (Outlet `7`, Slug `cumilla`, Code `CUMILLA`):
+  * Amber badge: `bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800` with `🏬` icon.
+* **Wari Branch** (Outlet `8`, Slug `wari`, Code `WARI`):
+  * Teal badge: `bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800` with `🏬` icon.
+* **Sylhet Branch** (Outlet `9`, Slug `sylhet`, Code `SYLHET`):
+  * Indigo badge: `bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800` with `🏬` icon.
+* **Exchange Replacement** (Code `EXCHANGE`):
+  * Violet badge: `bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800` with `🔄` icon.
+
+### D. Ledger Visibility & Search Filtering
+* **Order-Wise View (`ORDER_WISE`)**: Rendered inside the expanded nested line-items breakdown table under the `SIP Inventory` column.
+* **Line Items View (`ITEM_WISE`)**: Rendered in a dedicated table column between `Collection` and `Qty`.
+* **Telemetry Modal**: Displayed on every order item in the Order Details modal.
+* **Omni-Search Support**: The ledger search bar dynamically filters orders matching any SIP inventory name (e.g. "Cumilla", "Warehouse", "Sylhet").
