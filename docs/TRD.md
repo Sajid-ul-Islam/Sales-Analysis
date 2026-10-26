@@ -375,3 +375,10 @@ When orders are synced via WooCommerce REST API, tracking consignment numbers ar
   - Outlet ID 9 (`sylhet`): Sylhet Branch (`SYLHET`)
 - **Waterfall Resolution**: Falls back through line item `meta_data`, order-level POS outlet/cashier IDs, and courier suffix codes before defaulting to Central Warehouse.
 - **Group Aggregation**: Attached to `OrderWiseItem` in `src/lib/orderGrouping.ts` with omni-search matching in `filterOrderWiseGroups()`.
+
+### 10.4 Category Analytics Bar Chart Dynamic Sizing & Scale Adjuster
+- **Highest Bar Scaling**: `LiveVolumeBarChart` dynamically scales its viewBox and card container height in `AUTO` mode based on `maxCategoryVol` (peak bar volume: $\ge 16 \rightarrow 540\text{px}$, $\ge 10 \rightarrow 500\text{px}$, $\ge 5 \rightarrow 460\text{px}$, $< 5 \rightarrow 420\text{px}$).
+- **Interactive Size Controls**: Toolbar in `LiveOpsTab` provides 4 preset sizing modes (`AUTO`, `STANDARD` at 480px, `TALL` at 580px, `MAX` at 680px) and continuous $\pm 30\text{px}$ stepper adjustment, persisted in `localStorage` (`deen_bar_chart_size_mode`, `deen_bar_chart_custom_height`).
+- **Synchronized Symmetrical Layout**: Donut chart and bar chart cards adapt synchronously to `resolvedCardMinHeight` in `grid grid-cols-1 lg:grid-cols-2 items-stretch`.
+- **Overhead Count Labels**: Peak bar features a crowned `👑 {units}` indicator with subtle drop-shadow glow, and all bars display idle volume counts without requiring hover interaction.
+

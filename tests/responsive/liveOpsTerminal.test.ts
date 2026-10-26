@@ -1291,6 +1291,20 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(res0.maxVolume).toBe(4);
       expect(res0.yTicks).toEqual([0, 1, 2, 3, 4]);
     });
+
+    it('supports adjustable chart height and dynamic scaling according to the highest bar', () => {
+      const calculateAutoHeight = (maxActualVolume: number) => {
+        if (maxActualVolume >= 16) return 540;
+        if (maxActualVolume >= 10) return 500;
+        if (maxActualVolume >= 5) return 460;
+        return 420;
+      };
+
+      expect(calculateAutoHeight(20)).toBe(540);
+      expect(calculateAutoHeight(14)).toBe(500);
+      expect(calculateAutoHeight(8)).toBe(460);
+      expect(calculateAutoHeight(3)).toBe(420);
+    });
   });
 });
 

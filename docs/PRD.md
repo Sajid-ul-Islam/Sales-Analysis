@@ -282,3 +282,10 @@ To guarantee a best-in-class merchant and auditor experience across Desktop, Tab
 - **Purpose**: Direct extraction from WooCommerce REST API order payload to surface which exact branch inventory fulfilled each line item.
 - **Data Source**: Order-level `_sip_waterfall_deductions` array mapping item `variation_id` / `product_id` to physical outlets (Warehouse, Mirpur-12, Cumilla, Wari, Sylhet).
 - **Presentation**: Displayed as color-coded badges in Everyday Dispatched Orders Ledger (Order-Wise nested list and Item-Wise flat view) and Order Details modal.
+
+### 4.10 Dynamic & Adjustable Category Volume Bar Chart
+- **Purpose**: Ensure the Category & Sub-Category sales volume bar chart seamlessly fills available screen space and dynamically scales relative to peak product dispatches.
+- **Highest Bar Scaling**: Dynamic height calculation based on the highest product category volume, giving ample vertical presence to top-selling items and preventing letterbox distortion.
+- **Adjustable Size Controls**: Real-time user sizing controls (`Auto`, `Mid`, `Tall`, `Max`, and `+`/`-` fine-tuning steppers) with localStorage persistence.
+- **Visual Intelligence**: Overhead volume counts rendered directly above all bars with a crowned badge (`👑`) on the highest-performing category.
+

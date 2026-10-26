@@ -3,6 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import { LiveCategoryItem, DEFAULT_DEEN_OPS_CATEGORY_ITEMS, computeDynamicYAxis } from '@/lib/liveOpsProcessor';
 
+export type BarChartSizeMode = 'AUTO' | 'COMPACT' | 'STANDARD' | 'TALL' | 'MAX';
+
 interface LiveVolumeBarChartProps {
   items: LiveCategoryItem[];
   avgUnitsSold: number;
@@ -11,6 +13,8 @@ interface LiveVolumeBarChartProps {
   isSubCategory?: boolean;
   isFullWidth?: boolean;
   isModal?: boolean;
+  sizeMode?: BarChartSizeMode;
+  customHeight?: number | null;
 }
 
 export function LiveVolumeBarChart({
@@ -21,6 +25,8 @@ export function LiveVolumeBarChart({
   isSubCategory = false,
   isFullWidth = false,
   isModal = false,
+  sizeMode = 'AUTO',
+  customHeight = null,
 }: LiveVolumeBarChartProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
@@ -49,6 +55,32 @@ export function LiveVolumeBarChart({
   // Dynamic Y-axis scale: Automatically expands or contracts to fit actual category volume data
   const { maxVolume, yTicks } = useMemo(() => computeDynamicYAxis(maxActualVolume), [maxActualVolume]);
 
+  // Sizing geometry: Dynamically adjustable based on the highest bar and user preference
+  const resolvedHeight = useMemo(() => {
+    if (isModal) return 580;
+    if (isFullWidth) return 520;
+    if (customHeight && customHeight >= 320 && customHeight <= 800) {
+      return customHeight;
+    }
+    switch (sizeMode) {
+      case 'COMPACT':
+        return 380;
+      case 'STANDARD':
+        return 480;
+      case 'TALL':
+        return 580;
+      case 'MAX':
+        return 680;
+      case 'AUTO':
+      default:
+        // In AUTO mode: Dynamically adjusts chart size based on the highest bar!
+        if (maxActualVolume >= 16) return 540;
+        if (maxActualVolume >= 10) return 500;
+        if (maxActualVolume >= 5) return 460;
+        return 420;
+    }
+  }, [isModal, isFullWidth, customHeight, sizeMode, maxActualVolume]);
+
   if (sourceItems.length === 0) {
     return (
       <div className="relative flex flex-col items-center justify-center p-6 text-center select-none w-full min-h-[320px]">
@@ -65,12 +97,12 @@ export function LiveVolumeBarChart({
     );
   }
 
-  // Sizing geometry: Dynamically scaled to make the chart as prominent and visually substantial as possible
-  const chartWidth = isModal ? 1200 : isFullWidth ? 1080 : 920;
-  const chartHeight = isModal ? 580 : isFullWidth ? 520 : 440;
+  // Width & height calibrated for split desktop card (760px) vs modal (1200px)
+  const chartWidth = isModal ? 1200 : isFullWidth ? 1080 : 760;
+  const chartHeight = resolvedHeight;
   const paddingLeft = isModal ? 56 : isFullWidth ? 50 : 44;
   const paddingRight = isModal ? 48 : isFullWidth ? 42 : 36;
-  const paddingTop = isModal ? 34 : isFullWidth ? 28 : 24;
+  const paddingTop = isModal ? 38 : isFullWidth ? 32 : 30; // 30px headroom so top bar badges never clip
   const paddingBottom = isModal ? 80 : isFullWidth ? 76 : 72;
 
   const innerWidth = chartWidth - paddingLeft - paddingRight;
@@ -107,13 +139,11 @@ export function LiveVolumeBarChart({
       <div className="w-full overflow-x-auto min-w-0 flex-1 flex flex-col justify-center">
         <svg
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-          className={`w-full h-auto ${
-            isModal
-              ? 'min-h-[460px] max-h-[720px]'
-              : isFullWidth
-                ? 'min-h-[420px] max-h-[640px]'
-                : 'min-h-[340px] max-h-[540px]'
-          } overflow-visible`}
+          className="w-full h-auto overflow-visible transition-all duration-300"
+          style={{
+            minHeight: isModal ? '460px' : isFullWidth ? '420px' : `${Math.min(chartHeight - 40, 480)}px`,
+            maxHeight: isModal ? '720px' : isFullWidth ? '640px' : `${chartHeight + 60}px`,
+          }}
           preserveAspectRatio="xMidYMid meet"
         >
           {/* Y-axis gridlines and labels */}
@@ -177,6 +207,7 @@ export function LiveVolumeBarChart({
             const selY = regY - selHeight;
 
             const isHovered = hoveredIdx === idx;
+            const isHighestBar = Boolean(totalVol === maxActualVolume && maxActualVolume > 0 && idx === 0);
 
             // X-axis label: In Sub-Category view, preserve distinct fits/cuts; in Category view unify Twill and Jacket
             const rawLabel = item.displayName || item.name;
@@ -223,7 +254,7 @@ export function LiveVolumeBarChart({
                     rx={selVol > 0 ? 0 : 3}
                     fill={barFillColor}
                     opacity={isDimmed ? 0.35 : (isHovered || isSelected ? 1 : 0.95)}
-                    filter={isHovered || isSelected ? 'brightness(1.12) drop-shadow(0 4px 8px rgba(0,0,0,0.25))' : undefined}
+                    filter={isHovered || isSelected ? 'brightness(1.12) drop-shadow(0 4px 8px rgba(0,0,0,0.25))' : isHighestBar ? 'drop-shadow(0 2px 6px rgba(244,63,94,0.35))' : undefined}
                     style={{
                       transformOrigin: `${x + barWidth / 2}px ${bottomY}px`,
                       transform: isHovered || isSelected ? 'scaleX(1.06) scaleY(1.02)' : 'scale(1)',
@@ -242,13 +273,34 @@ export function LiveVolumeBarChart({
                     rx={3}
                     fill="#facc15"
                     opacity={isDimmed ? 0.35 : (isHovered || isSelected ? 1 : 0.95)}
-                    filter={isHovered || isSelected ? 'brightness(1.12) drop-shadow(0 4px 8px rgba(0,0,0,0.25))' : undefined}
+                    filter={isHovered || isSelected ? 'brightness(1.12) drop-shadow(0 4px 8px rgba(0,0,0,0.25))' : isHighestBar ? 'drop-shadow(0 2px 6px rgba(244,63,94,0.35))' : undefined}
                     style={{
                       transformOrigin: `${x + barWidth / 2}px ${bottomY}px`,
                       transform: isHovered || isSelected ? 'scaleX(1.06) scaleY(1.02)' : 'scale(1)',
                       transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
                     }}
                   />
+                )}
+
+                {/* Overhead Value Label (Visible on top of bars when not hovered) */}
+                {!isHovered && totalVol > 0 && (
+                  <g pointerEvents="none" className="transition-opacity duration-200">
+                    <text
+                      x={x + barWidth / 2}
+                      y={Math.min(selY, regY) - 7}
+                      textAnchor="middle"
+                      dominantBaseline="auto"
+                      fontSize={isFullWidth || isModal ? (isHighestBar ? '12.5' : '11.5') : (isHighestBar ? '12' : '11')}
+                      fontWeight={isHighestBar ? '900' : 'bold'}
+                      className={
+                        isHighestBar
+                          ? 'fill-rose-600 dark:fill-rose-400 font-headline'
+                          : 'fill-slate-600 dark:fill-slate-300 font-headline'
+                      }
+                    >
+                      {isHighestBar ? `👑 ${totalVol}` : totalVol}
+                    </text>
+                  </g>
                 )}
 
                 {/* Overhead Floating Volume Pill Badge (Smoothly appears on hover) */}

@@ -45,7 +45,7 @@ import {
   parseOrderDateValue,
 } from '@/lib/liveOpsProcessor';
 import { LiveRevenueDonutChart } from '@/components/charts/LiveRevenueDonutChart';
-import { LiveVolumeBarChart } from '@/components/charts/LiveVolumeBarChart';
+import { LiveVolumeBarChart, BarChartSizeMode } from '@/components/charts/LiveVolumeBarChart';
 import { KpiSparkline } from '@/components/charts/KpiSparkline';
 import { classifyProductLine } from '@/lib/selectsAnalytics';
 import { getCategoryForSales, getSubCategoryForSales, getShortSubCategoryLabel } from '@/lib/liveCategoryEngine';
@@ -271,6 +271,46 @@ export function LiveOpsTab({
   const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
   const [localSyncing, setLocalSyncing] = useState(false);
 
+  // Bar Chart Size & Height Adjuster State
+  const [barChartSize, setBarChartSize] = useState<BarChartSizeMode>('AUTO');
+  const [barChartCustomHeight, setBarChartCustomHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('deen_bar_chart_size_mode');
+      if (saved && ['AUTO', 'COMPACT', 'STANDARD', 'TALL', 'MAX'].includes(saved)) {
+        setBarChartSize(saved as BarChartSizeMode);
+      }
+      const savedHeight = localStorage.getItem('deen_bar_chart_custom_height');
+      if (savedHeight) {
+        const num = parseInt(savedHeight, 10);
+        if (!isNaN(num) && num >= 320 && num <= 800) {
+          setBarChartCustomHeight(num);
+        }
+      }
+    } catch {}
+  }, []);
+
+  const handleSetSizeMode = useCallback((mode: BarChartSizeMode) => {
+    setBarChartSize(mode);
+    setBarChartCustomHeight(null);
+    try {
+      localStorage.setItem('deen_bar_chart_size_mode', mode);
+      localStorage.removeItem('deen_bar_chart_custom_height');
+    } catch {}
+  }, []);
+
+  const handleAdjustHeight = useCallback((delta: number) => {
+    setBarChartCustomHeight((prev) => {
+      const base = prev ?? (barChartSize === 'COMPACT' ? 380 : barChartSize === 'STANDARD' ? 480 : barChartSize === 'TALL' ? 580 : barChartSize === 'MAX' ? 680 : 480);
+      const next = Math.max(340, Math.min(800, base + delta));
+      try {
+        localStorage.setItem('deen_bar_chart_custom_height', next.toString());
+      } catch {}
+      return next;
+    });
+  }, [barChartSize]);
+
   // Table Granularity Switcher: Consolidated Orders (Order-Wise default) vs Line Items (Item-Wise)
   const [ledgerViewMode, setLedgerViewMode] = useState<'ITEM_WISE' | 'ORDER_WISE'>('ORDER_WISE');
   const [expandedOrderIds, setExpandedOrderIds] = useState<Set<string>>(new Set());
@@ -439,6 +479,35 @@ export function LiveOpsTab({
   }, [activeDataset, selectedView, channelFilter, posBranchFilter, onlineOnly, selectedHistoricalDate, snapshotAnchorDate, orders]);
 
   const activeCategoryItems = showSubCategory ? report.subCategoryItems : report.categoryItems;
+
+  // Highest Category/Subcategory volume for dynamic sizing & scale adjustment
+  const maxCategoryVol = useMemo(() => {
+    return activeCategoryItems.reduce((max, item) => Math.max(max, item.volume), 0);
+  }, [activeCategoryItems]);
+
+  // Dynamic card min-height to match bar chart size mode & highest bar
+  const resolvedCardMinHeight = useMemo(() => {
+    if (barChartCustomHeight) {
+      return Math.max(460, barChartCustomHeight + 60);
+    }
+    switch (barChartSize) {
+      case 'COMPACT':
+        return 420;
+      case 'STANDARD':
+        return 500;
+      case 'TALL':
+        return 600;
+      case 'MAX':
+        return 700;
+      case 'AUTO':
+      default:
+        // Automatically adjust card size based on highest bar volume
+        if (maxCategoryVol >= 16) return 560;
+        if (maxCategoryVol >= 10) return 520;
+        if (maxCategoryVol >= 5) return 480;
+        return 440;
+    }
+  }, [barChartCustomHeight, barChartSize, maxCategoryVol]);
 
   // Filter out Friday if closed (0 dispatches). Show Friday only if open with shipped parcels.
   // In Bangladesh fulfillment operations, orders placed on Friday are dispatched on Saturday.
@@ -1754,7 +1823,10 @@ export function LiveOpsTab({
         {/* Side-by-Side Charts (Donut & Volume Bar) - Dynamic Screen Utilization */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
           {/* Left Chart: Revenue Share (TK) Donut */}
-          <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between transition-all duration-300 h-full min-h-[460px]">
+          <div
+            className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between transition-all duration-300 h-full"
+            style={{ minHeight: `${resolvedCardMinHeight}px` }}
+          >
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center justify-between gap-1.5 w-full">
                 <span className="flex items-center gap-1.5">
@@ -1785,33 +1857,113 @@ export function LiveOpsTab({
           </div>
 
           {/* Right Chart: Sales Volume by Category Bar Chart */}
-          <div className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between transition-all duration-300 h-full min-h-[460px]">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center justify-between gap-1.5 w-full">
-                <span className="flex items-center gap-1.5">
-                  <span>📦</span>
-                  <span>{showSubCategory ? 'Sales Volume by Sub-Category' : 'Sales Volume by Category'}</span>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
-                    • {selectedHistoricalDate ? `${report.refDayName.slice(0, 3)} (${report.referenceDate.slice(5)})` : 'Today'}
-                  </span>
+          <div
+            className="bg-white dark:bg-black border border-slate-200/90 dark:border-[#1F1F1F] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between transition-all duration-300 h-full"
+            style={{ minHeight: `${resolvedCardMinHeight}px` }}
+          >
+            <div className="flex items-center justify-between mb-2 gap-2 flex-wrap sm:flex-nowrap">
+              <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white tracking-tight font-headline flex items-center gap-1.5 shrink-0">
+                <span>📦</span>
+                <span>{showSubCategory ? 'Sales Volume by Sub-Category' : 'Sales Volume by Category'}</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
+                  • {selectedHistoricalDate ? `${report.refDayName.slice(0, 3)} (${report.referenceDate.slice(5)})` : 'Today'}
                 </span>
-                <div className="flex items-center gap-1.5">
-                  {categoryFilter !== 'ALL' && (
-                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
-                      Filter: {categoryFilter}
-                    </span>
-                  )}
+              </h3>
+
+              <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap">
+                {categoryFilter !== 'ALL' && (
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                    Filter: {categoryFilter}
+                  </span>
+                )}
+
+                {/* Interactive Chart Size / Height Adjuster (Adjusts highest bar scale & chart size) */}
+                <div className="flex items-center bg-slate-100 dark:bg-[#181818] rounded-xl p-0.5 border border-slate-200/80 dark:border-[#2A2A2A] shadow-2xs">
+                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 px-1.5 select-none" title="Adjust chart height & bar scale">
+                    ↕ Size
+                  </span>
                   <button
                     type="button"
-                    onClick={() => setIsVolumeModalOpen(true)}
-                    className="p-1 px-2 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-[#1A1A1A] dark:hover:bg-[#252525] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2A2A2A] transition-all flex items-center gap-1"
-                    title="Open in fullscreen modal"
+                    onClick={() => handleSetSizeMode('AUTO')}
+                    className={`px-1.5 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                      barChartSize === 'AUTO' && !barChartCustomHeight
+                        ? 'bg-white dark:bg-[#282828] text-rose-600 dark:text-rose-400 shadow-2xs font-black'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                    title="Dynamic Auto: Automatically scales chart size to the highest bar"
                   >
-                    <span>⛶</span>
-                    <span className="text-[10px]">Fullscreen</span>
+                    Auto
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSetSizeMode('STANDARD')}
+                    className={`px-1.5 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                      barChartSize === 'STANDARD' && !barChartCustomHeight
+                        ? 'bg-white dark:bg-[#282828] text-rose-600 dark:text-rose-400 shadow-2xs font-black'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                    title="Mid: Standard balanced height (480px)"
+                  >
+                    Mid
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSetSizeMode('TALL')}
+                    className={`px-1.5 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                      barChartSize === 'TALL' && !barChartCustomHeight
+                        ? 'bg-white dark:bg-[#282828] text-rose-600 dark:text-rose-400 shadow-2xs font-black'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                    title="Tall: Extended height for prominent vertical bars (580px)"
+                  >
+                    Tall
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSetSizeMode('MAX')}
+                    className={`px-1.5 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                      barChartSize === 'MAX' && !barChartCustomHeight
+                        ? 'bg-white dark:bg-[#282828] text-rose-600 dark:text-rose-400 shadow-2xs font-black'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                    title="Max: Maximum expanded height (680px)"
+                  >
+                    Max
+                  </button>
+
+                  {/* Stepper height buttons for fine control */}
+                  <div className="flex items-center border-l border-slate-200 dark:border-[#2A2A2A] ml-0.5 pl-0.5">
+                    <button
+                      type="button"
+                      onClick={() => handleAdjustHeight(-30)}
+                      className="w-4 h-4 rounded flex items-center justify-center text-[11px] font-bold text-slate-500 hover:bg-white dark:hover:bg-[#282828] dark:text-slate-400"
+                      title="Decrease chart height (-30px)"
+                      aria-label="Decrease chart height"
+                    >
+                      -
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAdjustHeight(+30)}
+                      className="w-4 h-4 rounded flex items-center justify-center text-[11px] font-bold text-slate-500 hover:bg-white dark:hover:bg-[#282828] dark:text-slate-400"
+                      title="Increase chart height (+30px)"
+                      aria-label="Increase chart height"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
-              </h3>
+
+                <button
+                  type="button"
+                  onClick={() => setIsVolumeModalOpen(true)}
+                  className="p-1 px-2 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-[#1A1A1A] dark:hover:bg-[#252525] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2A2A2A] transition-all flex items-center gap-1 shadow-2xs"
+                  title="Open in fullscreen modal"
+                >
+                  <span>⛶</span>
+                  <span className="text-[10px]">Fullscreen</span>
+                </button>
+              </div>
             </div>
 
             <div className="w-full flex-1 flex items-center justify-center">
@@ -1822,6 +1974,8 @@ export function LiveOpsTab({
                 onSelectCategory={(cat) => setCategoryFilter((prev) => (prev === cat ? 'ALL' : cat))}
                 isSubCategory={showSubCategory}
                 isFullWidth={false}
+                sizeMode={barChartSize}
+                customHeight={barChartCustomHeight}
               />
             </div>
           </div>
