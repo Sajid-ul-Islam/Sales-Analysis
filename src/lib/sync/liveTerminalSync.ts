@@ -262,7 +262,7 @@ export function detectFulfillmentBranch(orderIdOrRow: unknown): FulfillmentBranc
     // Outlet 7 = Cumilla Branch POS (Cashier 35: deencumilla)
     // Outlet 8 = Wari Branch POS (Cashier 69: deenwari)
     // Outlet 9 = Sylhet Branch POS (Cashier 572: deensylhet)
-    // Outlet 1 = Central Warehouse (Cashier 1508: mohimanul) - also supported as Mirpur fallback for legacy mocks
+    // Outlet 1 = Central Warehouse (Cashier 1508: mohimanul) — Central Online Hub, NEVER Mirpur POS!
     if (oid === '2') {
       return { branchName: 'Mirpur Outlet POS', branchCode: 'MIRPUR', isBranchFulfillment: true, baseOrderId };
     }
@@ -276,7 +276,7 @@ export function detectFulfillmentBranch(orderIdOrRow: unknown): FulfillmentBranc
       return { branchName: 'Sylhet Branch', branchCode: 'SYLHET', isBranchFulfillment: true, baseOrderId };
     }
     if (oid === '1') {
-      return { branchName: 'Mirpur Outlet POS', branchCode: 'MIRPUR', isBranchFulfillment: true, baseOrderId };
+      return { branchName: 'Online Store (Central Warehouse)', branchCode: 'ONLINE', isBranchFulfillment: false, baseOrderId };
     }
 
     const cashierId = String(rowObj.cashierId || rowObj.cashier_id || rowObj._sip_cashier_id || rowObj._sip_created_by || '').trim();
@@ -293,7 +293,7 @@ export function detectFulfillmentBranch(orderIdOrRow: unknown): FulfillmentBranc
       return { branchName: 'Sylhet Branch', branchCode: 'SYLHET', isBranchFulfillment: true, baseOrderId };
     }
     if (cashierId === '1508') {
-      return { branchName: 'Mirpur Outlet POS', branchCode: 'MIRPUR', isBranchFulfillment: true, baseOrderId };
+      return { branchName: 'Online Store (Central Warehouse)', branchCode: 'ONLINE', isBranchFulfillment: false, baseOrderId };
     }
 
     const locText = String(
@@ -304,6 +304,10 @@ export function detectFulfillmentBranch(orderIdOrRow: unknown): FulfillmentBranc
       rowObj.branch ||
       ''
     ).toLowerCase();
+    // Central Warehouse ('Warehouse (Mirpur)' or 'Central Warehouse') is ONLINE, NOT Mirpur POS
+    if (locText.includes('warehouse') || locText.includes('central') || locText.includes('online')) {
+      return { branchName: 'Online Store (Central Warehouse)', branchCode: 'ONLINE', isBranchFulfillment: false, baseOrderId };
+    }
     if (locText.includes('mirpur')) {
       return { branchName: 'Mirpur Outlet POS', branchCode: 'MIRPUR', isBranchFulfillment: true, baseOrderId };
     }

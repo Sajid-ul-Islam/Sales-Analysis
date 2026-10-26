@@ -222,3 +222,9 @@ When extracting the inventory origin for any line item, the engine resolves in t
   * Any order placed via web checkout (`created_via: "checkout"` or `"store-api"`) is **EXCLUSIVELY an Ecommerce order (`isOrderOnline: true`, `isPos: false`)**, regardless of whether its line-item stock was deducted from a branch outlet inventory via SIP (`_sip_waterfall_deductions` or `_sip_outlet_id`).
   * The SIP inventory source belongs strictly to the **line-item** metadata (`sipInventory`), indicating physical inventory origin for fulfillment tracking.
   * It must **NEVER** overwrite or mutate the order-level routing (`fulfillmentBranch`, `branchCode`, `outletId`, `isPos`) to an outlet POS classification.
+
+### F. Mirpur POS vs Central Warehouse Inventory Separation in SIP
+* **Two Distinct Operational Inventories**:
+  * **Central Warehouse Hub** (SIP Outlet ID `1`, slug: `warehouse`, cashier user ID: `1508` mohimanul, code: `ONLINE`): Fulfills standard online ecommerce orders. Even if described as "Warehouse (Mirpur)" in legacy manifests, it is strictly Central Warehouse stock.
+  * **Mirpur-12 Outlet POS** (SIP Outlet ID `2`, slug: `mirpur-12`, cashier user ID: `3` mirpur12posuser, code: `MIRPUR`, dispatch suffix `m`): Physical retail walk-in store register in Mirpur-12.
+  * **Strict Invariant**: Outlet `1` and Outlet `2` are never merged, aliased, or conflated.

@@ -27,11 +27,11 @@ export const KNOWLEDGE_BASE_ENTRIES: KnowledgeEntry[] = [
     title: 'Branch Outlet Codes & Suffix Decoding',
     summary: 'Branch letters attached to Order IDs indicate origin fulfillment retail store.',
     formulaOrRule:
-      'Online Central Store = No suffix (e.g. 17263)\n' +
-      'Cumilla Branch = Suffix "c" (e.g. 17263 c, Outlet ID: 2)\n' +
-      'Wari Branch = Suffix "w" (e.g. 17263 w, Outlet ID: 9)\n' +
-      'Sylhet Branch = Suffix "s" (e.g. 17263 s, Outlet IDs: 7 & 8)\n' +
-      'Mirpur Outlet POS = Suffix "m" (e.g. 17263 m, Outlet ID: 1, physical store register strictly distinct from central online warehouse)',
+      'Online Central Store = No suffix (e.g. 17263, Outlet ID: 1, slug: warehouse, cashier: 1508)\n' +
+      'Mirpur Outlet POS = Suffix "m" (e.g. 17263 m, Outlet ID: 2, slug: mirpur-12, cashier: 3, store register strictly distinct from central warehouse)\n' +
+      'Cumilla Branch = Suffix "c" (e.g. 17263 c, Outlet ID: 7, slug: cumilla, cashier: 35)\n' +
+      'Wari Branch = Suffix "w" (e.g. 17263 w, Outlet ID: 8, slug: wari, cashier: 69)\n' +
+      'Sylhet Branch = Suffix "s" (e.g. 17263 s, Outlet ID: 9, slug: sylhet, cashier: 572)',
     operationalSOP: 'Orders can split across multiple parcels/branches. Use base order ID (without suffix) to reconcile overall customer order state.',
     keywords: ['branch', 'suffix', 'cumilla', 'wari', 'sylhet', 'mirpur', 'outlet', 'location', 'pos', 'store', 'split']
   },

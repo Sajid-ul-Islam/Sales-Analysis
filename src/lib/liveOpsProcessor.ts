@@ -796,10 +796,15 @@ export function isOrderPos(order: RawOrderRow): boolean {
   const loc = String(o.fulfillmentLocation || o.fulfillmentBranch || o.outletName || o.storeName || '').toLowerCase().trim();
   if (loc.includes('pos') || loc.includes('register')) return true;
 
+  // Central Warehouse orders (including 'Warehouse (Mirpur)') are strictly NEVER POS orders
+  if (loc.includes('warehouse') || loc.includes('central') || loc.includes('online')) return false;
+
   const outletId = String(o.outletId || o['Outlet ID'] || o._sip_outlet_id || o._pos_outlet_id || '').trim();
   const cashierId = String(o.cashierId || o.cashier_id || o._sip_cashier_id || '').trim();
-  const isPosCashier = cashierId === '1508' || cashierId === '3' || cashierId === '572' || cashierId === '35' || cashierId === '69';
-  const hasPosOutlet = Boolean(outletId && outletId !== '0');
+  // Cashier 1508 is Central Warehouse manager (mohimanul), NOT a POS cashier!
+  const isPosCashier = cashierId === '3' || cashierId === '572' || cashierId === '35' || cashierId === '69';
+  // Outlet 1 is Central Warehouse in SIP, NOT a POS outlet
+  const hasPosOutlet = Boolean(outletId && outletId !== '0' && outletId !== '1');
   if (hasPosOutlet || isPosCashier) return true;
 
   // Suffix checks on order ID: m, c, w, s are branch outlet registers
@@ -860,8 +865,10 @@ export function isOrderOnline(order: RawOrderRow): boolean {
 
   const outletId = String(o.outletId || o['Outlet ID'] || o._sip_outlet_id || o._pos_outlet_id || '').trim();
   const cashierId = String(o.cashierId || o.cashier_id || o._sip_cashier_id || '').trim();
-  const isPosCashier = cashierId === '1508' || cashierId === '3' || cashierId === '572' || cashierId === '35' || cashierId === '69';
-  const hasPosOutlet = Boolean(outletId && outletId !== '0');
+  // Cashier 1508 is Central Warehouse, NOT POS
+  const isPosCashier = cashierId === '3' || cashierId === '572' || cashierId === '35' || cashierId === '69';
+  // Outlet 1 is Central Warehouse in SIP
+  const hasPosOutlet = Boolean(outletId && outletId !== '0' && outletId !== '1');
 
   // 2. Central Warehouse orders are always online store orders
   if (loc.includes('warehouse') || loc.includes('central')) {

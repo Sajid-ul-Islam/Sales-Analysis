@@ -485,53 +485,10 @@ export function resolveSipOutlet(
   isBranchFulfillment: boolean;
 } {
   const s = String(outletIdOrSlug || '').trim().toLowerCase();
+  const f = String(fallbackName || '').trim().toLowerCase();
 
-  if (s === '2' || s.includes('mirpur')) {
-    return {
-      outletId: '2',
-      outletSlug: 'mirpur-12',
-      inventorySource: 'Mirpur Outlet',
-      inventoryCode: 'MIRPUR',
-      isBranchFulfillment: true,
-    };
-  }
-  if (s === '7' || s.includes('cumilla') || s.includes('comilla')) {
-    return {
-      outletId: '7',
-      outletSlug: 'cumilla',
-      inventorySource: 'Cumilla Branch',
-      inventoryCode: 'CUMILLA',
-      isBranchFulfillment: true,
-    };
-  }
-  if (s === '8' || s.includes('wari')) {
-    return {
-      outletId: '8',
-      outletSlug: 'wari',
-      inventorySource: 'Wari Branch',
-      inventoryCode: 'WARI',
-      isBranchFulfillment: true,
-    };
-  }
-  if (s === '9' || s.includes('sylhet')) {
-    return {
-      outletId: '9',
-      outletSlug: 'sylhet',
-      inventorySource: 'Sylhet Branch',
-      inventoryCode: 'SYLHET',
-      isBranchFulfillment: true,
-    };
-  }
-  if (s === '1' || s.includes('warehouse') || s.includes('central') || s.includes('online')) {
-    return {
-      outletId: '1',
-      outletSlug: 'warehouse',
-      inventorySource: 'Central Warehouse',
-      inventoryCode: 'ONLINE',
-      isBranchFulfillment: false,
-    };
-  }
-  if (s.includes('exchange')) {
+  // Exchange replacements
+  if (s.includes('exchange') || f.includes('exchange')) {
     return {
       outletId: '',
       outletSlug: 'exchange',
@@ -541,14 +498,81 @@ export function resolveSipOutlet(
     };
   }
 
-  // Fallback to name inspection
-  if (fallbackName) {
-    const fLower = fallbackName.toLowerCase();
-    if (fLower.includes('mirpur')) return resolveSipOutlet('2');
-    if (fLower.includes('cumilla') || fLower.includes('comilla')) return resolveSipOutlet('7');
-    if (fLower.includes('wari')) return resolveSipOutlet('8');
-    if (fLower.includes('sylhet')) return resolveSipOutlet('9');
-    if (fLower.includes('exchange')) return resolveSipOutlet('exchange');
+  // 1. Central Warehouse Hub (SIP Outlet 1, slug: 'warehouse')
+  // CRITICAL SIP INVARIANT: Central Warehouse is Outlet 1 ('warehouse').
+  // DEEN's central online warehouse is physically located in Mirpur (often labeled 'Warehouse (Mirpur)'
+  // or 'Mirpur Warehouse' in logistics manifests), but in SIP it is strictly Outlet 1 (warehouse)
+  // and is NOT the Mirpur Outlet store register (Outlet 2, mirpur-12).
+  const isWarehouseMatch =
+    s === '1' ||
+    s === 'warehouse' ||
+    s === 'central' ||
+    s === 'online' ||
+    (!s.includes('mirpur-12') && (s.includes('warehouse') || s.includes('central') || (f.includes('warehouse') && !f.includes('mirpur-12'))));
+
+  if (isWarehouseMatch) {
+    return {
+      outletId: '1',
+      outletSlug: 'warehouse',
+      inventorySource: 'Central Warehouse',
+      inventoryCode: 'ONLINE',
+      isBranchFulfillment: false,
+    };
+  }
+
+  // 2. Mirpur Outlet POS / Retail Store (SIP Outlet 2, slug: 'mirpur-12')
+  // Strictly the physical retail outlet branch store register, distinct from Central Warehouse.
+  const isMirpurOutletMatch =
+    s === '2' ||
+    s === 'mirpur-12' ||
+    s === 'mirpur12' ||
+    s.includes('mirpur-12') ||
+    s.includes('mirpur outlet') ||
+    s.includes('mirpur pos') ||
+    (s.includes('mirpur') && !s.includes('warehouse')) ||
+    (f.includes('mirpur') && !f.includes('warehouse'));
+
+  if (isMirpurOutletMatch) {
+    return {
+      outletId: '2',
+      outletSlug: 'mirpur-12',
+      inventorySource: 'Mirpur Outlet',
+      inventoryCode: 'MIRPUR',
+      isBranchFulfillment: true,
+    };
+  }
+
+  // 3. Cumilla Branch (SIP Outlet 7, slug: 'cumilla')
+  if (s === '7' || s.includes('cumilla') || s.includes('comilla') || f.includes('cumilla') || f.includes('comilla')) {
+    return {
+      outletId: '7',
+      outletSlug: 'cumilla',
+      inventorySource: 'Cumilla Branch',
+      inventoryCode: 'CUMILLA',
+      isBranchFulfillment: true,
+    };
+  }
+
+  // 4. Wari Branch (SIP Outlet 8, slug: 'wari')
+  if (s === '8' || s.includes('wari') || f.includes('wari')) {
+    return {
+      outletId: '8',
+      outletSlug: 'wari',
+      inventorySource: 'Wari Branch',
+      inventoryCode: 'WARI',
+      isBranchFulfillment: true,
+    };
+  }
+
+  // 5. Sylhet Branch (SIP Outlet 9, slug: 'sylhet')
+  if (s === '9' || s.includes('sylhet') || f.includes('sylhet')) {
+    return {
+      outletId: '9',
+      outletSlug: 'sylhet',
+      inventorySource: 'Sylhet Branch',
+      inventoryCode: 'SYLHET',
+      isBranchFulfillment: true,
+    };
   }
 
   return {

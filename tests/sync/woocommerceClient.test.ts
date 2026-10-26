@@ -552,6 +552,52 @@ describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
       expect(res.inventoryCode).toBe('SYLHET');
       expect(res.isBranchFulfillment).toBe(true);
     });
+
+    it('strictly isolates Central Warehouse (Outlet 1) from Mirpur Outlet POS (Outlet 2)', () => {
+      // Central Warehouse representations in logistics manifests
+      const wh1 = resolveSipOutlet('1');
+      expect(wh1.outletId).toBe('1');
+      expect(wh1.inventorySource).toBe('Central Warehouse');
+      expect(wh1.inventoryCode).toBe('ONLINE');
+      expect(wh1.isBranchFulfillment).toBe(false);
+
+      const whNamed = resolveSipOutlet('warehouse');
+      expect(whNamed.outletId).toBe('1');
+      expect(whNamed.inventorySource).toBe('Central Warehouse');
+
+      const whMirpur = resolveSipOutlet(undefined, 'Warehouse (Mirpur)');
+      expect(whMirpur.outletId).toBe('1');
+      expect(whMirpur.inventorySource).toBe('Central Warehouse');
+      expect(whMirpur.inventoryCode).toBe('ONLINE');
+      expect(whMirpur.isBranchFulfillment).toBe(false);
+
+      const mirpurWh = resolveSipOutlet('Mirpur Warehouse');
+      expect(mirpurWh.outletId).toBe('1');
+      expect(mirpurWh.inventorySource).toBe('Central Warehouse');
+
+      // Mirpur Retail Outlet POS representations
+      const mirpurPos = resolveSipOutlet('2');
+      expect(mirpurPos.outletId).toBe('2');
+      expect(mirpurPos.inventorySource).toBe('Mirpur Outlet');
+      expect(mirpurPos.inventoryCode).toBe('MIRPUR');
+      expect(mirpurPos.isBranchFulfillment).toBe(true);
+
+      const mirpurSlug = resolveSipOutlet('mirpur-12');
+      expect(mirpurSlug.outletId).toBe('2');
+      expect(mirpurSlug.inventorySource).toBe('Mirpur Outlet');
+
+      const mirpurOutletName = resolveSipOutlet(undefined, 'Mirpur Outlet POS');
+      expect(mirpurOutletName.outletId).toBe('2');
+      expect(mirpurOutletName.inventorySource).toBe('Mirpur Outlet');
+    });
+
+    it('identifies Online Store Central Warehouse when outletId is 1 without POS suffix', () => {
+      const meta = [{ key: '_sip_outlet_id', value: '1' }];
+      const res = detectBranchFromOrder({}, meta, '17263');
+      expect(res.branchCode).toBe('ONLINE');
+      expect(res.fulfillmentBranch).toBe('Online Store (Central Warehouse)');
+      expect(res.isPos).toBe(false);
+    });
   });
 
   describe('extractLineItemSipInventory & WooCommerce REST API Waterfall Deductions', () => {
