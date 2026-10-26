@@ -767,6 +767,14 @@ export const isAllOrdersEligible = isTodayOrdersEligible;
 export function isOrderPos(order: RawOrderRow): boolean {
   const o = order as Record<string, unknown>;
 
+  // Priority Step 0: DEFINITIVE INVARIANT — Web checkout orders are EXCLUSIVELY Ecommerce orders (NEVER POS)
+  // User Rule: "if order is checkout order no matter what it is ecom order, maybe its items stock is from outlet inventory->sip,
+  // but it is exclusively ecom order, if it is checkout order"
+  const createdVia = String(o.created_via || o['Created Via'] || o.createdVia || '').toLowerCase().trim();
+  if (createdVia === 'checkout' || createdVia === 'store-api' || createdVia.includes('checkout')) {
+    return false;
+  }
+
   // User Rule: Outlet records with payment_method 'ecom' or 'sip_ecom' must be excluded from outlet orders
   const paymentMethod = String(order['Payment Method'] || o.paymentMethod || o.payment_method || '').toLowerCase().trim();
   const paymentTitle = String(o.payment_method_title || o.paymentMethodTitle || '').toLowerCase().trim();
@@ -783,8 +791,6 @@ export function isOrderPos(order: RawOrderRow): boolean {
   if (o.isPos === true) return true;
   const src = String(order['Order Source'] || o.orderSource || '').toLowerCase().trim();
   if (src === 'pos') return true;
-
-  const createdVia = String(o.created_via || o['Created Via'] || o.createdVia || '').toLowerCase().trim();
   if (createdVia.includes('pos')) return true;
 
   const loc = String(o.fulfillmentLocation || o.fulfillmentBranch || o.outletName || o.storeName || '').toLowerCase().trim();
@@ -827,7 +833,15 @@ export const isOrderEcommerce = isOrderOnline;
 export function isOrderOnline(order: RawOrderRow): boolean {
   const o = order as Record<string, unknown>;
 
-  // Priority Step 0: Check for explicit ecom payment method
+  // Priority Step 0: DEFINITIVE INVARIANT — Web checkout orders are EXCLUSIVELY Ecommerce orders.
+  // User Rule: "if order is checkout order no matter what it is ecom order, maybe its items stock is from outlet inventory->sip,
+  // but it is exclusively ecom order, if it is checkout order"
+  const createdVia = String(o.created_via || o['Created Via'] || o.createdVia || '').toLowerCase().trim();
+  if (createdVia === 'checkout' || createdVia === 'store-api' || createdVia.includes('checkout')) {
+    return true;
+  }
+
+  // Priority Step 1: Check for explicit ecom payment method
   // User Rule: Exclude outlet ecom dispatches (sip_ecom/ecom) from ecom orders (already counted under original web checkout)
   const paymentMethod = String(order['Payment Method'] || o.paymentMethod || o.payment_method || '').toLowerCase().trim();
   const paymentTitle = String(o.payment_method_title || o.paymentMethodTitle || '').toLowerCase().trim();
@@ -839,8 +853,6 @@ export function isOrderOnline(order: RawOrderRow): boolean {
   if (o.isPos === true) return false;
   const src = String(order['Order Source'] || o.orderSource || '').toLowerCase().trim();
   if (src === 'pos') return false;
-
-  const createdVia = String(o.created_via || o['Created Via'] || o.createdVia || '').toLowerCase().trim();
   if (createdVia.includes('pos')) return false;
 
   const loc = String(o.fulfillmentLocation || o.fulfillmentBranch || o.outletName || o.storeName || '').toLowerCase().trim();

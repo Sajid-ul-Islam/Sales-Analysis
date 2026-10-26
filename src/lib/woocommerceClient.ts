@@ -1434,10 +1434,10 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
         'Apparel Line': lineClass,
         'isSelects': isSelects,
         'Order Source': branchInfo.isPos ? 'POS' : 'Online',
-        'Outlet ID': sipInfo.outletId || branchInfo.outletId,
-        'outletId': sipInfo.outletId || branchInfo.outletId,
-        'fulfillmentBranch': sipInfo.inventorySource,
-        'branchCode': sipInfo.inventoryCode,
+        'Outlet ID': branchInfo.outletId,
+        'outletId': branchInfo.outletId,
+        'fulfillmentBranch': branchInfo.fulfillmentBranch,
+        'branchCode': branchInfo.branchCode,
         'sipInventory': sipInfo.inventorySource,
         'sip_inventory': sipInfo.inventorySource,
         'sipOutletId': sipInfo.outletId,
@@ -1469,7 +1469,7 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
         'isExchangeFromWp': wpMarks.isExchangeFromWp,
         'isPaidReturnFromWp': wpMarks.isPaidReturnFromWp,
         isPos: branchInfo.isPos,
-        isBranchFulfillment: sipInfo.isBranchFulfillment,
+        isBranchFulfillment: branchInfo.branchCode !== 'ONLINE' && !branchInfo.isPos,
       });
     } else {
       for (const item of lineItems) {
@@ -1546,10 +1546,10 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
           'Delivery Status': status,
           'status': status,
           'Order Source': branchInfo.isPos ? 'POS' : 'Online',
-          'Outlet ID': sipInfo.outletId || branchInfo.outletId,
-          'outletId': sipInfo.outletId || branchInfo.outletId,
-          'fulfillmentBranch': sipInfo.inventorySource,
-          'branchCode': sipInfo.inventoryCode,
+          'Outlet ID': branchInfo.outletId,
+          'outletId': branchInfo.outletId,
+          'fulfillmentBranch': branchInfo.fulfillmentBranch,
+          'branchCode': branchInfo.branchCode,
           'sipInventory': sipInfo.inventorySource,
           'sip_inventory': sipInfo.inventorySource,
           'sipOutletId': sipInfo.outletId,
@@ -1581,7 +1581,7 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
           'isExchangeFromWp': wpMarks.isExchangeFromWp,
           'isPaidReturnFromWp': wpMarks.isPaidReturnFromWp,
           isPos: branchInfo.isPos,
-          isBranchFulfillment: sipInfo.isBranchFulfillment,
+          isBranchFulfillment: branchInfo.branchCode !== 'ONLINE' && !branchInfo.isPos,
         });
       }
     }

@@ -216,3 +216,9 @@ When extracting the inventory origin for any line item, the engine resolves in t
 * **Line Items View (`ITEM_WISE`)**: Rendered in a dedicated table column between `Collection` and `Qty`.
 * **Telemetry Modal**: Displayed on every order item in the Order Details modal.
 * **Omni-Search Support**: The ledger search bar dynamically filters orders matching any SIP inventory name (e.g. "Cumilla", "Warehouse", "Sylhet").
+
+### E. Web Checkout Exclusivity & Channel Isolation
+* **Definitive Rule for Web Checkout Orders**:
+  * Any order placed via web checkout (`created_via: "checkout"` or `"store-api"`) is **EXCLUSIVELY an Ecommerce order (`isOrderOnline: true`, `isPos: false`)**, regardless of whether its line-item stock was deducted from a branch outlet inventory via SIP (`_sip_waterfall_deductions` or `_sip_outlet_id`).
+  * The SIP inventory source belongs strictly to the **line-item** metadata (`sipInventory`), indicating physical inventory origin for fulfillment tracking.
+  * It must **NEVER** overwrite or mutate the order-level routing (`fulfillmentBranch`, `branchCode`, `outletId`, `isPos`) to an outlet POS classification.

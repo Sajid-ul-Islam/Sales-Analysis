@@ -469,6 +469,66 @@ describe('Order-Wise Grouping & Filtering Engine', () => {
       expect(allOrders).toHaveLength(2);
       expect(allOrders.map((g) => g.orderId)).toEqual(['2001', '2002 m']);
     });
+
+    it('guarantees that a web checkout order with item stock from outlet SIP inventory is strictly an Ecommerce order', () => {
+      const ecomRowsWithOutletSip = [
+        {
+          orderId: '3001',
+          'Order ID': '3001',
+          'Created Via': 'checkout',
+          created_via: 'checkout',
+          'Item Name': 'Signature Polo Shirt',
+          SKU: 'DN-POLO-01',
+          Quantity: 1,
+          'Order Amount': 2490,
+          'Item Cost': 2490,
+          sipInventory: 'Sylhet Branch',
+          sipOutletId: '9',
+          outletId: '',
+          'Order Source': 'Online',
+          isPos: false,
+        },
+        {
+          orderId: '3001',
+          'Order ID': '3001',
+          'Created Via': 'checkout',
+          created_via: 'checkout',
+          'Item Name': 'Classic Twill Pant',
+          SKU: 'DN-PANT-01',
+          Quantity: 1,
+          'Order Amount': 2490,
+          'Item Cost': 2490,
+          sipInventory: 'Mirpur Outlet',
+          sipOutletId: '2',
+          outletId: '',
+          'Order Source': 'Online',
+          isPos: false,
+        },
+      ];
+
+      const groups = groupOrdersByOrderId(ecomRowsWithOutletSip as RawOrderRow[]);
+      expect(groups).toHaveLength(1);
+      const grp = groups[0];
+
+      // Must be strictly classified as Ecommerce, NEVER POS/Outlet
+      expect(grp.isEcommerce).toBe(true);
+      expect(grp.isOnline).toBe(true);
+      expect(grp.isOutlet).toBe(false);
+      expect(grp.isPos).toBe(false);
+
+      // Line items retain individual SIP inventory deduction sources
+      expect(grp.items).toHaveLength(2);
+      expect(grp.items[0].sipInventory).toBe('Sylhet Branch');
+      expect(grp.items[1].sipInventory).toBe('Mirpur Outlet');
+
+      // Filtered under ECOMMERCE -> included
+      const ecom = filterOrderWiseGroups(groups, { channelFilter: 'ECOMMERCE' });
+      expect(ecom).toHaveLength(1);
+
+      // Filtered under OUTLET -> strictly excluded
+      const outlet = filterOrderWiseGroups(groups, { channelFilter: 'OUTLET' });
+      expect(outlet).toHaveLength(0);
+    });
   });
 });
 

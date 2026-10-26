@@ -208,6 +208,32 @@ export function detectFulfillmentBranch(orderIdOrRow: unknown): FulfillmentBranc
       return { branchName: 'Exchange Replacement', branchCode: 'EXCHANGE', isBranchFulfillment: true, baseOrderId };
     }
 
+    // DEFINITIVE INVARIANT: Web checkout orders (created_via: checkout / store-api)
+    // If order was placed via web checkout, it is EXCLUSIVELY an Ecommerce order.
+    // Check if it was an explicit branch courier dispatch with suffix (e.g. 17263 c, 17263 w, 17263 s, 17263 m).
+    // Otherwise, it is an Online Store (Central Warehouse) order, NOT a POS register sale!
+    const isWebCheckout = createdVia === 'checkout' || createdVia === 'store-api' || createdVia.includes('checkout');
+    if (isWebCheckout) {
+      if (/\b\d+\s*c\b|[-_\s]c$/i.test(rawOid) || /\d+c$/i.test(rawOid)) {
+        return { branchName: 'Cumilla Branch', branchCode: 'CUMILLA', isBranchFulfillment: true, baseOrderId };
+      }
+      if (/\b\d+\s*w\b|[-_\s]w$/i.test(rawOid) || /\d+w$/i.test(rawOid)) {
+        return { branchName: 'Wari Branch', branchCode: 'WARI', isBranchFulfillment: true, baseOrderId };
+      }
+      if (/\b\d+\s*s\b|[-_\s]s$/i.test(rawOid) || /\d+s$/i.test(rawOid)) {
+        return { branchName: 'Sylhet Branch', branchCode: 'SYLHET', isBranchFulfillment: true, baseOrderId };
+      }
+      if (/\b\d+\s*m\b|[-_\s]m$/i.test(rawOid) || /\d+m$/i.test(rawOid)) {
+        return { branchName: 'Mirpur Outlet', branchCode: 'MIRPUR', isBranchFulfillment: true, baseOrderId };
+      }
+      return {
+        branchName: 'Online Store (Central Warehouse)',
+        branchCode: 'ONLINE',
+        isBranchFulfillment: false,
+        baseOrderId,
+      };
+    }
+
     // Authoritative Branch Suffix on Order ID (e.g. 17265 c, 17266 w, 17267 s, 17264 m)
     if (/\b\d+\s*c\b|[-_\s]c$/i.test(rawOid) || /\d+c$/i.test(rawOid)) {
       return { branchName: 'Cumilla Branch', branchCode: 'CUMILLA', isBranchFulfillment: true, baseOrderId };

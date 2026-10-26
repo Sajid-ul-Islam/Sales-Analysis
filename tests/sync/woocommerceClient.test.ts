@@ -664,12 +664,16 @@ describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
       expect(rows.length).toBe(2);
 
       expect(rows[0].sipInventory).toBe('Sylhet Branch');
-      expect(rows[0].branchCode).toBe('SYLHET');
       expect(rows[0].sipOutletId).toBe('9');
+      expect(rows[0].branchCode).toBe('ONLINE');
+      expect(rows[0]['Order Source']).toBe('Online');
+      expect(rows[0].isPos).toBe(false);
 
       expect(rows[1].sipInventory).toBe('Mirpur Outlet');
-      expect(rows[1].branchCode).toBe('MIRPUR');
       expect(rows[1].sipOutletId).toBe('2');
+      expect(rows[1].branchCode).toBe('ONLINE');
+      expect(rows[1]['Order Source']).toBe('Online');
+      expect(rows[1].isPos).toBe(false);
     });
   });
 });
