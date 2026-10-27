@@ -271,7 +271,7 @@ function LoginForm() {
                   type={showPasscode ? 'text' : 'password'}
                   value={passcode}
                   onChange={(e) => setPasscode(e.target.value)}
-                  placeholder="Enter Passcode or PIN (e.g. 2026)"
+                  placeholder="Enter Passcode or PIN (e.g. 9876)"
                   autoComplete="current-password"
                   required
                   disabled={loading}
