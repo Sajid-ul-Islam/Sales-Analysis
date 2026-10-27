@@ -375,6 +375,7 @@ When orders are synced via WooCommerce REST API, tracking consignment numbers ar
   - Outlet ID 9 (`sylhet`): Sylhet Branch (`SYLHET`)
 - **Waterfall Resolution**: Falls back through line item `meta_data`, order-level POS outlet/cashier IDs, and courier suffix codes before defaulting to Central Warehouse.
 - **Group Aggregation**: Attached to `OrderWiseItem` in `src/lib/orderGrouping.ts` with omni-search matching in `filterOrderWiseGroups()`.
+- **Export Manifest Integration**: Standardized `SIP Inventory` column in all Excel (`.xlsx`) workbooks and CSV files (`buildOrderWiseWorkbook`, `buildLiveShippedOrdersWorkbook`, `exportReconciledExcel`, `handleExportOutletReport`, and `handleExportCsv`). Shows item-level stock origin or comma-separated branch sources for multi-item orders.
 
 ### 10.4 Category Analytics Bar Chart Dynamic Sizing & Scale Adjuster
 - **Highest Bar Scaling**: `LiveVolumeBarChart` dynamically scales its viewBox and card container height in `AUTO` mode based on `maxCategoryVol` (peak bar volume: $\ge 16 \rightarrow 540\text{px}$, $\ge 10 \rightarrow 500\text{px}$, $\ge 5 \rightarrow 460\text{px}$, $< 5 \rightarrow 420\text{px}$).

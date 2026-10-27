@@ -360,6 +360,7 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
     const ordersData = sortedOrders.map(o => ({
       'Order ID (Parcel)': o.orderId,
       'Outlet Fulfilled From': getOrderOutlet(o),
+      'SIP Inventory': o.sipInventory || getOrderOutlet(o),
       'Branch Suffix': o.branchSuffix || 'Base',
       'Order Delivery Status': o.orderDeliveryStatus || 'Delivered',
       'Item Delivery Status': o.itemDeliveryStatus || 'Delivered',

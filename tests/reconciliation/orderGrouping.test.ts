@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import * as XLSX from 'xlsx';
 import { groupOrdersByOrderId, filterOrderWiseGroups, buildOrderWiseWorkbook } from '@/lib/orderGrouping';
 import { RawOrderRow } from '@/types';
 
@@ -210,6 +211,9 @@ describe('Order-Wise Grouping & Filtering Engine', () => {
     expect(wb.SheetNames).toContain('Shipped Orders (Order-Wise)');
     const sheet = wb.Sheets['Shipped Orders (Order-Wise)'];
     expect(sheet).toBeDefined();
+    const sheetData = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+    expect(sheetData.length).toBeGreaterThan(0);
+    expect(sheetData[0]).toHaveProperty('SIP Inventory');
   });
 
   describe('Branch Suffix & camelCase Normalization Invariants', () => {

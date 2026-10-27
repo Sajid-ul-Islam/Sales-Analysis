@@ -945,6 +945,7 @@ export function LiveOpsTab({
           'Courier Status': g.courierStatus,
           'Consignment ID': g.consignmentIds.join(', ') || 'N/A',
           'Fulfillment Branch': g.branch.branchName,
+          'SIP Inventory': Array.from(new Set(g.items.map((i) => i.sipInventory).filter(Boolean))).join(', ') || g.branch.branchName || 'Central Warehouse',
           'Discrepancy': g.hasDiscrepancy ? 'YES' : 'NO',
         };
       });
@@ -987,6 +988,7 @@ export function LiveOpsTab({
         'WooCommerce Status': o['Delivery Status'] || 'shipped',
         'Courier Status': o['Courier Status'] || o.courierStatus || 'Untracked',
         'Consignment ID': o['Consignment ID'] || o.consignmentId || '',
+        'SIP Inventory': String(o.sipInventory || o.sip_inventory || (o as Record<string, unknown>)['SIP Inventory'] || o.fulfillmentBranch || 'Central Warehouse'),
         'Discrepancy': o.hasDiscrepancy ? 'YES' : 'NO',
       };
     });

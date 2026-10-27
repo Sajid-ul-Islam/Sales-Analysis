@@ -51,6 +51,12 @@ Refer to detailed rules in [.agents/rules/order_rules.md](.agents/rules/order_ru
   * If order is **Partial** -> `Delivered` (kept item) or `Returned` (returned item)
   * If order is **Exchange** -> `Exchange`
 * **Commercial Export Isolation**: Shipped orders Excel export strictly excludes POS outlet orders and manual non-checkout exchange replacements from the commercial sales sheet (`Shipped Orders (Online)`). Replacements are cleanly isolated on `Exchanges & Non-Checkout`.
+* **SIP Inventory Origin in All Exports**: All Excel (.xlsx) and CSV export manifests include an authoritative `SIP Inventory` column identifying the Smart Inventory stock deduction location (`Central Warehouse`, `Mirpur Outlet`, `Cumilla Branch`, `Wari Branch`, `Sylhet Branch`, `Exchange Replacement`, or consolidated multi-branch lists like `Sylhet Branch, Mirpur Outlet`) across:
+  - `Shipped Orders (Order-Wise)` and `Exchanges & Non-Checkout` (`buildOrderWiseWorkbook`)
+  - `Shipped Orders (Online)` and `Exchanges & Non-Checkout` (`buildLiveShippedOrdersWorkbook`)
+  - `Reconciled Orders` and `Item-Wise Returns` (`exportReconciledExcel`)
+  - `Outlet Parcels Ledger` (`handleExportOutletReport`)
+  - Real-time CSV exports in `LiveOpsTab` (`handleExportCsv`)
 
 ### 5. Unbreakable CSS & Styling Standards
 * **Compiled Zero-CDN PostCSS Architecture**: Production CSS is compiled ahead-of-time through Next.js PostCSS (`postcss.config.js` and `postcss.config.mjs`) with zero runtime CDN scripts, eliminating render-blocking network requests and layout shifts.
@@ -102,6 +108,7 @@ Refer to detailed rules in [.agents/rules/order_rules.md](.agents/rules/order_ru
 * **Ledger Visibility**: Rendered in Order-Wise view (`ORDER_WISE`) within the nested line-items breakdown table, in Item-Wise view (`ITEM_WISE`) in a dedicated `SIP Inventory` column, and in the Order Details Telemetry modal. Search filter supports filtering directly by outlet name (e.g. "Cumilla", "Warehouse").
 * **Web Checkout Exclusivity**: Any order placed via web checkout (`created_via: "checkout"` or `"store-api"`) is **EXCLUSIVELY an Ecommerce order (`isOrderOnline: true`, `isPos: false`)**, regardless of whether its line-item stock was deducted from a branch outlet inventory via SIP (`_sip_waterfall_deductions` or `_sip_outlet_id`). The SIP inventory source belongs strictly to the line item (`sipInventory`), and NEVER alters the order-level channel to POS/Outlet.
 * **Mirpur POS vs Central Warehouse Separation**: Central Warehouse (Outlet `1`, slug: `warehouse`, cashier: `1508`, code: `ONLINE`) and Mirpur Outlet POS (Outlet `2`, slug: `mirpur-12`, cashier: `3`, code: `MIRPUR`) are **two strictly separate, independent inventories in SIP**. Central Warehouse orders (even if historically designated "Warehouse (Mirpur)") are NEVER treated as Mirpur POS retail stock.
+* **Export Ledger Grounding**: All Excel and CSV exports ground the `SIP Inventory` column against resolved line-item inventory origins, providing operational transparency for branch inventory transfers and reconciliations.
 
 ### 10. Performance Outlook & Category Analytics Bar Chart Sizing Invariants
 * **Highest Bar Scaling & Dynamic Height**: The Category & Sub-Category volume bar chart (`LiveVolumeBarChart`) dynamically scales its SVG height and card container based on the highest bar (`maxCategoryVol` / peak item volume), eliminating awkward vertical letterbox whitespace in split desktop layouts.

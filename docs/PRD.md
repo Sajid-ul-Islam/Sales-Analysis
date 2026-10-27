@@ -282,6 +282,7 @@ To guarantee a best-in-class merchant and auditor experience across Desktop, Tab
 - **Purpose**: Direct extraction from WooCommerce REST API order payload to surface which exact branch inventory fulfilled each line item.
 - **Data Source**: Order-level `_sip_waterfall_deductions` array mapping item `variation_id` / `product_id` to physical outlets (Warehouse, Mirpur-12, Cumilla, Wari, Sylhet).
 - **Presentation**: Displayed as color-coded badges in Everyday Dispatched Orders Ledger (Order-Wise nested list and Item-Wise flat view) and Order Details modal.
+- **Excel & CSV Export Manifests**: All Excel workbooks (`.xlsx`) and CSV manifests include an explicit `SIP Inventory` column identifying the originating warehouse/outlet node for auditing branch stock deductions offline.
 
 ### 4.10 Dynamic & Adjustable Category Volume Bar Chart
 - **Purpose**: Ensure the Category & Sub-Category sales volume bar chart seamlessly fills available screen space and dynamically scales relative to peak product dispatches.

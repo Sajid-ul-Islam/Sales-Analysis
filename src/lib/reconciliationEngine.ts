@@ -1020,6 +1020,7 @@ export function runReconciliationEngine(
         : undefined;
       const rPathaoStatus = (r.pathaoPluginStatus || r['Pathao Status']) ? String(r.pathaoPluginStatus || r['Pathao Status']) : undefined;
       const rPathaoCollectedAmount = (r.pathaoCollectedAmount || r['Pathao Collected Amount']) ? Number(r.pathaoCollectedAmount || r['Pathao Collected Amount']) : undefined;
+      const itemSip = String(r.sipInventory || r.sip_inventory || r.inventorySource || branchInfo.branch || 'Central Warehouse').trim();
 
       if (orderDeliveryCategory === 'FULL_RETURN') {
         const displayDeliveryStatus = hasAnyPaidParcel ? 'Paid Return (Full)' : 'Returned (Non-Paid Return)';
@@ -1047,6 +1048,7 @@ export function runReconciliationEngine(
           rawNote: note || undefined,
           cogsEstimate: (itemCost * rawQty) * cogsRate,
           fulfillmentLocation: branchInfo.branch,
+          sipInventory: itemSip,
           branchSuffix: branchInfo.suffix || undefined,
           isPaidReturn: hasAnyPaidParcel,
           isExchange: false,
@@ -1085,6 +1087,7 @@ export function runReconciliationEngine(
             rawNote: note || undefined,
             cogsEstimate: (itemCost * keptQty) * cogsRate,
             fulfillmentLocation: branchInfo.branch,
+            sipInventory: itemSip,
             branchSuffix: branchInfo.suffix || undefined,
             isPaidReturn: hasAnyPaidParcel,
             isExchange: false,
@@ -1122,6 +1125,7 @@ export function runReconciliationEngine(
             rawNote: note || undefined,
             cogsEstimate: (itemCost * returnedQty) * cogsRate,
             fulfillmentLocation: branchInfo.branch,
+            sipInventory: itemSip,
             branchSuffix: branchInfo.suffix || undefined,
             isPaidReturn: hasAnyPaidParcel,
             isExchange: false,
@@ -1158,6 +1162,7 @@ export function runReconciliationEngine(
           rawNote: note || undefined,
           cogsEstimate: (itemCost * rawQty) * cogsRate,
           fulfillmentLocation: branchInfo.branch,
+          sipInventory: itemSip,
           branchSuffix: branchInfo.suffix || undefined,
           isPaidReturn: hasAnyPaidParcel,
           isExchange: true,
@@ -1191,6 +1196,7 @@ export function runReconciliationEngine(
           rawNote: note || undefined,
           cogsEstimate: (itemCost * rawQty) * cogsRate,
           fulfillmentLocation: branchInfo.branch,
+          sipInventory: itemSip,
           branchSuffix: branchInfo.suffix || undefined,
           isPaidReturn: hasAnyPaidParcel,
           isExchange: false,
@@ -1243,7 +1249,8 @@ export function runReconciliationEngine(
         quantity: retQty,
         itemCost: r.itemCost,
         returnedValue: retQty * r.itemCost,
-        orderAmount: r.orderAmount
+        orderAmount: r.orderAmount,
+        sipInventory: r.sipInventory || r.fulfillmentLocation || 'Central Warehouse'
       });
     }
   }

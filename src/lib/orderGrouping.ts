@@ -366,6 +366,10 @@ export function buildOrderWiseWorkbook(
 
   const exportData = groups.map((g) => {
     const r = options.ratings?.[g.phone];
+    const sipInventory = Array.from(
+      new Set(g.items.map((i) => i.sipInventory).filter(Boolean))
+    ).join(', ') || g.branch.branchName || 'Central Warehouse';
+
     return {
       'Order ID': g.orderId,
       'Order Date': g.orderDate,
@@ -376,6 +380,7 @@ export function buildOrderWiseWorkbook(
       'City': g.city,
       'Total Items (Pcs)': g.totalQuantity,
       'Items Summary': g.items.map((i) => `${i.itemName} (x${i.quantity})`).join('; '),
+      'SIP Inventory': sipInventory,
       'Collection Type':
         g.collectionType === 'SELECTS'
           ? 'DEEN Selects'
@@ -400,6 +405,10 @@ export function buildOrderWiseWorkbook(
     const exchangeGroups = groupOrdersByOrderId(report.exchangeStats.replacementOrders);
     const exData = exchangeGroups.map((g) => {
       const r = options.ratings?.[g.phone];
+      const sipInventory = Array.from(
+        new Set(g.items.map((i) => i.sipInventory).filter(Boolean))
+      ).join(', ') || 'Exchange Replacement';
+
       return {
         'Replacement Order ID': g.orderId,
         'Original Order ID': g.exchangeInfo.referencedOrderId || 'N/A',
@@ -412,6 +421,7 @@ export function buildOrderWiseWorkbook(
         'City': g.city,
         'Total Items (Pcs)': g.totalQuantity,
         'Items Summary': g.items.map((i) => `${i.itemName} (x${i.quantity})`).join('; '),
+        'SIP Inventory': sipInventory,
         'Courier Status': g.courierStatus,
         'Pathao Consignment ID': g.consignmentIds.join(', ') || 'N/A',
         'Commercial Revenue Recognized': 0,

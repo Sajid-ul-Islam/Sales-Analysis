@@ -1083,6 +1083,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       );
       expect(commercialSheetData.length).toBe(1);
       expect(commercialSheetData[0]['Order ID']).toBe('18100');
+      expect(commercialSheetData[0]).toHaveProperty('SIP Inventory');
       const exportedIds = commercialSheetData.map((r) => r['Order ID']);
       expect(exportedIds).not.toContain('18101 m'); // POS excluded
       expect(exportedIds).not.toContain('18099'); // Non-checkout excluded
@@ -1095,6 +1096,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(exchangeSheetData.length).toBe(1);
       expect(exchangeSheetData[0]['Replacement Order ID']).toBe('18099');
       expect(exchangeSheetData[0]['Commercial Revenue Recognized']).toBe(0);
+      expect(exchangeSheetData[0]).toHaveProperty('SIP Inventory');
     });
   });
 
