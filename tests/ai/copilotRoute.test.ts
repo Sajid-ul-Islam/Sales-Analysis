@@ -249,4 +249,76 @@ describe('/api/ai/copilot Live Ops Integration', () => {
     expect(data.answer).toContain('0 Outside orders');
     expect(data.answer).not.toContain('~1 Outside orders per 1 Dhaka order');
   });
+
+  describe('In-Memory SQL Execution Engine via /api/ai/copilot', () => {
+    it('executes direct read-only SQL queries and returns formatted markdown table and sqlMeta', async () => {
+      const req = new NextRequest('http://localhost:3000/api/ai/copilot', {
+        method: 'POST',
+        body: JSON.stringify({
+          query: 'SELECT sku, itemName, quantity FROM orders LIMIT 2',
+          summary: mockSummary,
+          orders: mockOrders,
+        }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(200);
+      const data = await res.json();
+
+      expect(data.success).toBe(true);
+      expect(data.source).toBe('sql_in_memory');
+      expect(data.answer).toContain('### ⚡ SQL Execution Results');
+      expect(data.answer).toContain('sku');
+      expect(data.answer).toContain('itemName');
+      expect(data.sqlMeta).toBeDefined();
+      expect(data.sqlMeta.rowCount).toBe(2);
+      expect(data.sqlMeta.columns).toEqual(['sku', 'itemName', 'quantity']);
+      expect(data.sqlMeta.executionTimeMs).toBeGreaterThanOrEqual(0);
+    });
+
+    it('rejects destructive SQL statements and returns safe error message', async () => {
+      const req = new NextRequest('http://localhost:3000/api/ai/copilot', {
+        method: 'POST',
+        body: JSON.stringify({
+          query: 'DROP TABLE orders',
+          summary: mockSummary,
+          orders: mockOrders,
+        }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(200);
+      const data = await res.json();
+
+      expect(data.success).toBe(true);
+      expect(data.source).toBe('sql_in_memory');
+      expect(data.answer).toContain('SQL Execution Error');
+      expect(data.answer).toContain('Only read-only SELECT queries are allowed');
+      expect(data.sqlMeta).toBeDefined();
+      expect(data.sqlMeta.error).toBeDefined();
+      expect(data.sqlMeta.rowCount).toBe(0);
+    });
+
+    it('detects natural language analytical intent, executes in-memory SQL, and attaches sqlMeta', async () => {
+      mockGenerateAICompletion.mockResolvedValue(null);
+
+      const req = new NextRequest('http://localhost:3000/api/ai/copilot', {
+        method: 'POST',
+        body: JSON.stringify({
+          query: 'What are the top 5 returning items by loss?',
+          summary: mockSummary,
+          orders: mockOrders,
+        }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(200);
+      const data = await res.json();
+
+      expect(data.success).toBe(true);
+      expect(data.sqlMeta).toBeDefined();
+      expect(data.sqlMeta.query).toContain('WHERE isReturn = 1');
+      expect(data.sqlMeta.query).toContain('ORDER BY totalReturnedLoss DESC');
+    });
+  });
 });

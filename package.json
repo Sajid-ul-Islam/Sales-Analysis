@@ -14,6 +14,7 @@
   "dependencies": {
     "@google/genai": "^2.29.1",
     "@vercel/blob": "^2.8.2",
+    "alasql": "^4.21.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.453.0",
     "next": "14.2.35",

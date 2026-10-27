@@ -188,7 +188,7 @@ function LoginForm() {
                   type="text"
                   value={wcUsername}
                   onChange={(e) => setWcUsername(e.target.value)}
-                  placeholder="e.g. mirpur, cashier, sajid"
+                  placeholder="e.g. username@deencommerce.com"
                   autoComplete="username"
                   required
                   disabled={loading}
@@ -308,7 +308,7 @@ function LoginForm() {
                   className="py-1.5 px-2 rounded-lg border border-slate-200 dark:border-[#222] bg-slate-50 dark:bg-[#121212] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1A1A1A] transition-colors text-left flex flex-col gap-0.5"
                 >
                   <span className="font-semibold text-[11px] truncate">👑 Admin</span>
-                  <span className="font-mono text-slate-400 text-[10px]">2026</span>
+                  <span className="font-mono text-slate-400 text-[10px]">Admin@2026</span>
                 </button>
                 <button
                   type="button"
@@ -316,15 +316,15 @@ function LoginForm() {
                   className="py-1.5 px-2 rounded-lg border border-slate-200 dark:border-[#222] bg-slate-50 dark:bg-[#121212] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1A1A1A] transition-colors text-left flex flex-col gap-0.5"
                 >
                   <span className="font-semibold text-[11px] truncate">👔 Director</span>
-                  <span className="font-mono text-slate-400 text-[10px]">7742</span>
+                  <span className="font-mono text-slate-400 text-[10px]">Director@7742</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setPasscode('1234')}
                   className="py-1.5 px-2 rounded-lg border border-slate-200 dark:border-[#222] bg-slate-50 dark:bg-[#121212] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1A1A1A] transition-colors text-left flex flex-col gap-0.5"
                 >
-                  <span className="font-semibold text-[11px] truncate">📦 Ops PIN</span>
-                  <span className="font-mono text-slate-400 text-[10px]">1234</span>
+                  <span className="font-semibold text-[11px] truncate">📦 Ops</span>
+                  <span className="font-mono text-slate-400 text-[10px]">Ops@1234</span>
                 </button>
               </div>
             </div>

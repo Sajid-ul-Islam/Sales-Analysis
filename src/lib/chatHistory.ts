@@ -1,5 +1,13 @@
 import { AgenticActionProposal } from '@/types';
 
+export interface SqlExecutionMeta {
+  query: string;
+  rowCount: number;
+  executionTimeMs: number;
+  columns?: string[];
+  error?: string;
+}
+
 export interface CopilotChatMessage {
   id: string;
   sender: 'user' | 'assistant';
@@ -8,6 +16,7 @@ export interface CopilotChatMessage {
   source?: string;
   appliedRules?: string[];
   agenticAction?: AgenticActionProposal;
+  sqlMeta?: SqlExecutionMeta;
 }
 
 const CURRENT_STORAGE_KEY = 'deen_assistant_chat_history_v2';

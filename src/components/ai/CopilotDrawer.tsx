@@ -27,7 +27,9 @@ import {
   History,
   CornerDownLeft,
   Tag,
-  CheckCircle2
+  CheckCircle2,
+  Database,
+  Terminal,
 } from 'lucide-react';
 import { loadBYOKConfig, BYOKConfig } from '@/lib/byok';
 import { BYOKModal } from '@/components/ai/BYOKModal';
@@ -38,12 +40,18 @@ import {
   clearSavedChatHistory,
   getPreviousUserQueries,
   exportChatTranscriptMarkdown,
-  CopilotChatMessage
+  CopilotChatMessage,
 } from '@/lib/chatHistory';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 import { getTabContext } from '@/lib/ai/contextualPrompts';
 import { detectAgenticIntent } from '@/lib/ai/agenticActions';
 import { AgenticActionProposal } from '@/types';
+import {
+  executeInMemorySql,
+  detectDirectSql,
+  detectAnalyticalSqlIntent,
+  formatSqlResultToMarkdownTable,
+} from '@/lib/ai/sqlEngine';
 
 interface CopilotDrawerProps {
   isOpen: boolean;
@@ -75,14 +83,29 @@ export function CopilotDrawer({
   const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
   const [showHistoryChips, setShowHistoryChips] = useState(true);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [expandedSqlMsgs, setExpandedSqlMsgs] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const toggleSqlExpand = (msgId: string) => {
+    setExpandedSqlMsgs((prev) => {
+      const next = new Set(prev);
+      if (next.has(msgId)) {
+        next.delete(msgId);
+      } else {
+        next.add(msgId);
+      }
+      return next;
+    });
+  };
+
+  const orderPool = useMemo(() => {
+    return (liveOrders && liveOrders.length > 0)
+      ? liveOrders
+      : (reconciliationResult?.reconciledOrders || []);
+  }, [liveOrders, reconciliationResult]);
 
   // Deterministically precompute analytical slices for high-precision query grounding
   const analyticsSlices: AnalyticsSlices | undefined = useMemo(() => {
-    const orderPool = (liveOrders && liveOrders.length > 0)
-      ? liveOrders
-      : (reconciliationResult?.reconciledOrders || []);
-
     const liveOps = orderPool.length > 0 ? computeLiveOpsSlice(orderPool as unknown as (Record<string, unknown> | RawOrderRow)[]) : undefined;
 
     if (!reconciliationResult && !liveOps) return undefined;
@@ -94,7 +117,7 @@ export function CopilotDrawer({
       customerRisk: reconciliationResult ? computeCustomerRiskSummary(reconciliationResult.customerRiskProfiles) : undefined,
       liveOps,
     };
-  }, [reconciliationResult, liveOrders]);
+  }, [reconciliationResult, orderPool]);
 
   // Initialize messages from localStorage on mount and ensure welcome message is always fresh
   useEffect(() => {
@@ -170,6 +193,53 @@ export function CopilotDrawer({
     setInputQuery('');
     setIsLoading(true);
 
+    // 1. Direct In-Memory SQL Execution Check
+    const directSql = detectDirectSql(q);
+    if (directSql && orderPool.length > 0) {
+      const sqlResult = executeInMemorySql(directSql, orderPool);
+      const tableMarkdown = formatSqlResultToMarkdownTable(sqlResult);
+
+      const botMsg: CopilotChatMessage = {
+        id: `bot-sql-${Date.now()}`,
+        sender: 'assistant',
+        text: sqlResult.success
+          ? `### ⚡ SQL Query Results\n${tableMarkdown}\n\n*Executed in ${sqlResult.executionTimeMs}ms across ${orderPool.length.toLocaleString()} in-memory records.*`
+          : `### ❌ SQL Execution Error\n${tableMarkdown}\n\n*Error: ${sqlResult.error || 'Query failed'}. Note: Only read-only SELECT queries are allowed.*`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        source: 'sql_in_memory',
+        appliedRules: ['In-Memory SQL Execution Engine'],
+        sqlMeta: {
+          query: sqlResult.query,
+          rowCount: sqlResult.rowCount,
+          executionTimeMs: sqlResult.executionTimeMs,
+          columns: sqlResult.columns,
+          error: sqlResult.error,
+        },
+      };
+
+      const finalMessages = [...updatedWithUser, botMsg];
+      setMessages(finalMessages);
+      saveChatHistory(finalMessages);
+      setIsLoading(false);
+      return;
+    }
+
+    // 2. Analytical Intent SQL Pre-Execution (Client-side grounding)
+    let clientSqlExecution: { query: string; result: ReturnType<typeof executeInMemorySql>; markdownTable: string } | undefined = undefined;
+    const analyticalSql = detectAnalyticalSqlIntent(q);
+    if (analyticalSql && orderPool.length > 0) {
+      try {
+        const clientSqlResult = executeInMemorySql(analyticalSql, orderPool);
+        if (clientSqlResult.success) {
+          clientSqlExecution = {
+            query: analyticalSql,
+            result: clientSqlResult,
+            markdownTable: formatSqlResultToMarkdownTable(clientSqlResult),
+          };
+        }
+      } catch {}
+    }
+
     const detectedAction = reconciliationResult ? detectAgenticIntent(q, reconciliationResult) : null;
 
     try {
@@ -186,6 +256,7 @@ export function CopilotDrawer({
           tabLabel: currentContext.label,
           pageContext: currentContext.summaryFocus,
           analyticsSlices,
+          sqlExecution: clientSqlExecution,
         })
       });
 
@@ -200,21 +271,47 @@ export function CopilotDrawer({
         source: data?.source || 'ai',
         appliedRules: data?.appliedRules || [],
         agenticAction: detectedAction || data?.agenticAction,
+        sqlMeta: data?.sqlMeta || (clientSqlExecution ? {
+          query: clientSqlExecution.result.query,
+          rowCount: clientSqlExecution.result.rowCount,
+          executionTimeMs: clientSqlExecution.result.executionTimeMs,
+          columns: clientSqlExecution.result.columns,
+        } : undefined),
       };
 
       const finalMessages = [...updatedWithUser, botMsg];
       setMessages(finalMessages);
       saveChatHistory(finalMessages);
     } catch {
-      const errMsg: CopilotChatMessage = {
-        id: `bot-err-${Date.now()}`,
-        sender: 'assistant',
-        text: 'Network error communicating with AI server. Please verify your connection or API key.',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      const finalMessages = [...updatedWithUser, errMsg];
-      setMessages(finalMessages);
-      saveChatHistory(finalMessages);
+      if (clientSqlExecution) {
+        const botMsg: CopilotChatMessage = {
+          id: `bot-offline-sql-${Date.now()}`,
+          sender: 'assistant',
+          text: `### ⚡ In-Memory SQL Query Analysis (Client Offline Fallback)\n${clientSqlExecution.markdownTable}\n\n*Executed locally in ${clientSqlExecution.result.executionTimeMs}ms across ${orderPool.length.toLocaleString()} records.*`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          source: 'sql_in_memory',
+          appliedRules: ['In-Memory SQL Execution Engine (Offline)'],
+          sqlMeta: {
+            query: clientSqlExecution.result.query,
+            rowCount: clientSqlExecution.result.rowCount,
+            executionTimeMs: clientSqlExecution.result.executionTimeMs,
+            columns: clientSqlExecution.result.columns,
+          },
+        };
+        const finalMessages = [...updatedWithUser, botMsg];
+        setMessages(finalMessages);
+        saveChatHistory(finalMessages);
+      } else {
+        const errMsg: CopilotChatMessage = {
+          id: `bot-err-${Date.now()}`,
+          sender: 'assistant',
+          text: 'Network error communicating with AI server. Please verify your connection or API key.',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        const finalMessages = [...updatedWithUser, errMsg];
+        setMessages(finalMessages);
+        saveChatHistory(finalMessages);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -475,6 +572,38 @@ export function CopilotDrawer({
             >
               <span>🏷️ Tag Outside Returns</span>
             </button>
+
+            <span className="text-[11px] uppercase font-bold text-cyan-600 dark:text-cyan-400 shrink-0 pl-1 border-l border-slate-200 dark:border-slate-800">
+              SQL Engine:
+            </span>
+            <button
+              type="button"
+              onClick={() => handleSendQuery("SELECT sku, itemName, SUM(quantity) AS unitsSold, SUM(totalPrice) AS totalRevenue FROM orders WHERE isReturn = 0 GROUP BY sku, itemName ORDER BY unitsSold DESC LIMIT 5")}
+              className="text-[11px] font-medium bg-cyan-50/80 dark:bg-cyan-950/40 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 px-2.5 py-1 rounded-full border border-cyan-200 dark:border-cyan-800/60 shrink-0 shadow-2xs transition-colors flex items-center gap-1 active:scale-95 cursor-pointer font-mono"
+            >
+              <span>⚡ Top Sellers (SQL)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSendQuery("SELECT sku, itemName, SUM(quantity) AS returnedUnits, SUM(returnedValue) AS totalLoss FROM orders WHERE isReturn = 1 GROUP BY sku, itemName ORDER BY totalLoss DESC LIMIT 5")}
+              className="text-[11px] font-medium bg-cyan-50/80 dark:bg-cyan-950/40 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 px-2.5 py-1 rounded-full border border-cyan-200 dark:border-cyan-800/60 shrink-0 shadow-2xs transition-colors flex items-center gap-1 active:scale-95 cursor-pointer font-mono"
+            >
+              <span>⚡ Top Returns (SQL)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSendQuery("SELECT sipInventory, COUNT(*) AS dispatches, SUM(totalPrice) AS totalSales, SUM(isReturn) AS returns FROM orders GROUP BY sipInventory ORDER BY dispatches DESC")}
+              className="text-[11px] font-medium bg-cyan-50/80 dark:bg-cyan-950/40 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 px-2.5 py-1 rounded-full border border-cyan-200 dark:border-cyan-800/60 shrink-0 shadow-2xs transition-colors flex items-center gap-1 active:scale-95 cursor-pointer font-mono"
+            >
+              <span>⚡ SIP Inventory (SQL)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSendQuery("SELECT districtArea, COUNT(*) AS ordersCount, SUM(totalPrice) AS revenue, SUM(isReturn) AS returns FROM orders GROUP BY districtArea")}
+              className="text-[11px] font-medium bg-cyan-50/80 dark:bg-cyan-950/40 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 px-2.5 py-1 rounded-full border border-cyan-200 dark:border-cyan-800/60 shrink-0 shadow-2xs transition-colors flex items-center gap-1 active:scale-95 cursor-pointer font-mono"
+            >
+              <span>⚡ Territory (SQL)</span>
+            </button>
           </div>
 
           {previousQueries.length > 0 && (
@@ -541,6 +670,59 @@ export function CopilotDrawer({
                 >
                   {/* Rich Markdown Formatter */}
                   <AIMarkdownMessage content={m.text} isUser={isUser} />
+
+                  {/* In-Memory SQL Execution Pill & Expandable Query View */}
+                  {!isUser && m.sqlMeta && (
+                    <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-deepBlack-border">
+                      <div className="flex items-center justify-between gap-2 bg-slate-50 dark:bg-deepBlack-elevated border border-slate-200 dark:border-deepBlack-border rounded-lg px-2.5 py-1.5 text-[11px]">
+                        <div className="flex items-center gap-1.5 font-mono text-cyan-700 dark:text-cyan-300">
+                          <Database className="w-3.5 h-3.5 text-cyan-500" />
+                          <span className="font-semibold">In-Memory SQL:</span>
+                          <span>{m.sqlMeta.rowCount} rows</span>
+                          <span className="text-slate-400">({m.sqlMeta.executionTimeMs}ms)</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleSqlExpand(m.id)}
+                          className="text-[10px] font-semibold text-primary-dark dark:text-orange-400 hover:underline cursor-pointer"
+                        >
+                          {expandedSqlMsgs.has(m.id) ? 'Hide SQL' : 'View SQL'}
+                        </button>
+                      </div>
+
+                      {expandedSqlMsgs.has(m.id) && (
+                        <div className="mt-1.5 p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 text-[11px] font-mono relative group/sql">
+                          <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-800 text-[10px] text-slate-400">
+                            <span className="flex items-center gap-1.5">
+                              <Terminal className="w-3 h-3 text-cyan-400" />
+                              <span>AlaSQL Engine (Read-Only)</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyMessage(`sql-${m.id}`, m.sqlMeta!.query)}
+                              className="hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
+                              title="Copy SQL Query"
+                            >
+                              {copiedMsgId === `sql-${m.id}` ? (
+                                <>
+                                  <Check className="w-3 h-3 text-emerald-400" />
+                                  <span className="text-emerald-400">Copied!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3 h-3" />
+                                  <span>Copy SQL</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                          <pre className="overflow-x-auto whitespace-pre-wrap text-cyan-300 selection:bg-cyan-900 selection:text-white">
+                            {m.sqlMeta.query}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Applied Business Rules & Policies Badge */}
                   {!isUser && m.appliedRules && m.appliedRules.length > 0 && (

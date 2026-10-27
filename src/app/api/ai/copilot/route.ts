@@ -4,9 +4,18 @@ import { COPILOT_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import { retrieveRelevantKnowledge } from '@/lib/ai/knowledgeBase';
 import { generateQueryAnalyticalFacts, AnalyticsSlices } from '@/lib/ai/semanticAnalytics';
 import { validateApiRequest } from '@/lib/auth/apiAuth';
-import { SummaryAnalytics } from '@/types';
-import { CopilotChatMessage } from '@/lib/chatHistory';
+import { SummaryAnalytics, RawOrderRow } from '@/types';
+import { CopilotChatMessage, SqlExecutionMeta } from '@/lib/chatHistory';
 import { AIProvider } from '@/lib/byok';
+import {
+  executeInMemorySql,
+  detectDirectSql,
+  detectAnalyticalSqlIntent,
+  formatSqlResultToMarkdownTable,
+  getOrdersTableSchemaDescription,
+  SqlQueryResult,
+} from '@/lib/ai/sqlEngine';
+import baselineData from '@/data/baselineSample.json';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +30,9 @@ export async function POST(req: NextRequest) {
       activeTab,
       tabLabel,
       pageContext,
-      analyticsSlices
+      analyticsSlices,
+      orders,
+      sqlExecution,
     } = body as {
       query: string;
       summary: SummaryAnalytics;
@@ -31,10 +42,89 @@ export async function POST(req: NextRequest) {
       tabLabel?: string;
       pageContext?: string;
       analyticsSlices?: AnalyticsSlices;
+      orders?: RawOrderRow[];
+      sqlExecution?: {
+        query: string;
+        result?: SqlQueryResult;
+        markdownTable?: string;
+      };
     };
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json({ error: 'Query string required' }, { status: 400 });
+    }
+
+    // 0. Direct SQL Query Handler (Instant read-only in-memory execution)
+    const directSql = detectDirectSql(query);
+    if (directSql) {
+      const ordersToQuery = Array.isArray(orders) && orders.length > 0
+        ? orders
+        : (summary && summary.grossOrders === 0)
+          ? []
+          : ((baselineData as unknown as { orders?: RawOrderRow[] }).orders || []);
+
+      const sqlResult = executeInMemorySql(directSql, ordersToQuery);
+      const tableMarkdown = formatSqlResultToMarkdownTable(sqlResult);
+
+      if (sqlResult.success) {
+        return NextResponse.json({
+          success: true,
+          answer: `### ⚡ SQL Execution Results\n${tableMarkdown}\n\n*Executed in ${sqlResult.executionTimeMs}ms across ${ordersToQuery.length.toLocaleString()} in-memory records.*`,
+          source: 'sql_in_memory',
+          appliedRules: ['In-Memory SQL Execution Engine'],
+          sqlMeta: {
+            query: sqlResult.query,
+            rowCount: sqlResult.rowCount,
+            executionTimeMs: sqlResult.executionTimeMs,
+            columns: sqlResult.columns,
+          },
+        });
+      } else {
+        return NextResponse.json({
+          success: true,
+          answer: `### ❌ SQL Execution Error\n${tableMarkdown}\n\n*Error: ${sqlResult.error || 'Query failed'}. Note: Only read-only SELECT queries are allowed.*`,
+          source: 'sql_in_memory',
+          appliedRules: ['In-Memory SQL Execution Engine'],
+          sqlMeta: {
+            query: sqlResult.query,
+            rowCount: 0,
+            executionTimeMs: sqlResult.executionTimeMs,
+            columns: [],
+            error: sqlResult.error,
+          },
+        });
+      }
+    }
+
+    // 0.1 Analytical SQL Intent Detection (Deterministic tabular analysis)
+    let sqlMeta: SqlExecutionMeta | undefined = undefined;
+    let sqlContext = '';
+    const intentSql = (sqlExecution && typeof sqlExecution.query === 'string')
+      ? sqlExecution.query
+      : detectAnalyticalSqlIntent(query);
+
+    let executedSqlResult: SqlQueryResult | undefined = sqlExecution?.result;
+
+    if (!executedSqlResult && intentSql) {
+      const ordersToQuery = Array.isArray(orders) && orders.length > 0
+        ? orders
+        : (summary && summary.grossOrders === 0)
+          ? []
+          : ((baselineData as unknown as { orders?: RawOrderRow[] }).orders || []);
+      if (ordersToQuery.length > 0) {
+        executedSqlResult = executeInMemorySql(intentSql, ordersToQuery);
+      }
+    }
+
+    if (executedSqlResult && executedSqlResult.success) {
+      const tableMd = sqlExecution?.markdownTable || formatSqlResultToMarkdownTable(executedSqlResult);
+      sqlMeta = {
+        query: executedSqlResult.query,
+        rowCount: executedSqlResult.rowCount,
+        executionTimeMs: executedSqlResult.executionTimeMs,
+        columns: executedSqlResult.columns,
+      };
+      sqlContext = `\nVerified In-Memory SQL Ground Truth (AlaSQL Query Execution):\n- Query: \`${executedSqlResult.query}\`\n- Execution: ${executedSqlResult.executionTimeMs}ms (${executedSqlResult.rowCount} rows)\n${tableMd}\n`;
     }
 
     // 1. RAG-like Semantic Retrieval of Business Rules, SOPs & Metric Formulas
@@ -96,6 +186,8 @@ export async function POST(req: NextRequest) {
 - 7-Day Rolling Baseline: ${l.sevenDayBaseline.avg7dItems} items/day | ${l.sevenDayBaseline.avg7dOrders} orders/day | ৳${l.sevenDayBaseline.avg7dRevenue.toLocaleString()}/day (AOV: ৳${l.sevenDayBaseline.avg7dAov.toLocaleString()})\n`;
     }
 
+    const schemaContext = `\nDatabase Schema for In-Memory SQL Orders Dataset:\n${getOrdersTableSchemaDescription()}\n`;
+
     const contextPrompt = `Store Performance Facts (Reconciled by Knapsack DP Engine):
 - Gross Orders Dispatched: ${summary?.grossOrders?.toLocaleString() || 0}
 - Net Delivered Orders: ${summary?.fullDeliveredOrders?.toLocaleString() || 0}
@@ -108,22 +200,23 @@ export async function POST(req: NextRequest) {
 - Outside Dhaka Orders: ${summary?.outsideOrders?.toLocaleString() || 0} (Net: ৳${(summary?.outsideNetRevenue || 0).toLocaleString()})
 - Territory Outside Ratio: ${!summary || summary.grossOrders === 0 ? '0 : 0' : summary.insideOrders === 0 ? `${summary.outsideOrders || 0} : 0` : `~${Math.round(summary.outsideOrders / summary.insideOrders)} : 1`}
 - Exchanged Orders: ${summary?.totalExchangedOrders || 0} (COD collected: ৳${(summary?.totalExchangeCodCollected || 0).toLocaleString()})
-${liveOpsContext}${dynamicFactsContext}${knowledgeContext}${activeModuleContext}${historyContext}
+${liveOpsContext}${sqlContext}${dynamicFactsContext}${knowledgeContext}${schemaContext}${activeModuleContext}${historyContext}
 User Executive Question:
 "${query}"
 
 Instructions:
 1. Provide a crisp, analytical, executive-level answer strictly grounded in the deterministic numbers and retrieved business rules above.
-2. If business rules (like branch suffix decoding, Knapsack integer partials, or courier SLAs) are relevant, cite and explain them clearly.
-3. Ground your advice in the merchant's current page context (${tabLabel || 'Executive Overview'}), answering directly to the operational area they are inspecting.
-4. Format your response cleanly using rich GitHub Flavored Markdown:
+2. If "Verified In-Memory SQL Ground Truth" is provided above, incorporate and cite those exact tabular figures to guarantee 100% mathematical precision with zero hallucination.
+3. If business rules (like branch suffix decoding, Knapsack integer partials, or courier SLAs) are relevant, cite and explain them clearly.
+4. Ground your advice in the merchant's current page context (${tabLabel || 'Executive Overview'}), answering directly to the operational area they are inspecting.
+5. Format your response cleanly using rich GitHub Flavored Markdown:
    - Use headings (### for sections)
    - Use bullet points (- ) with bold keys (**Metric:** value)
    - Use markdown tables (| ... |) when comparing metrics or locations
    - Highlight monetary amounts with '৳' symbol
    - Avoid unformatted plain walls of text.`;
 
-    // 4. API Authentication & Token Protection
+    // 6. API Authentication & Token Protection
     const auth = validateApiRequest(req, { requiredRole: 'operator', allowDemo: true });
     const isAuthorizedOperator = auth.authenticated && (auth.role === 'admin' || auth.role === 'operator');
     const hasByok = Boolean(byok?.apiKey && String(byok.apiKey).trim().length > 5);
@@ -148,6 +241,7 @@ Instructions:
         answer: aiAnswer,
         source: byok?.provider || 'gemini',
         appliedRules: relevantKnowledge.map((k) => k.title),
+        sqlMeta,
       });
     }
 
@@ -164,6 +258,11 @@ Instructions:
       qLower.includes('reconciliation') ||
       qLower.includes('7-day') ||
       qLower.includes('baseline');
+
+    if (executedSqlResult && executedSqlResult.success && executedSqlResult.rows.length > 0) {
+      const tableMd = sqlExecution?.markdownTable || formatSqlResultToMarkdownTable(executedSqlResult);
+      fallbackText += `### ⚡ Verified Ground-Truth Query Analysis (In-Memory SQL)\n${tableMd}\n\n*Computed deterministically from in-memory orders dataset in ${executedSqlResult.executionTimeMs}ms.*\n\n`;
+    }
 
     if (isLiveOpsQuery && liveOpsSlice) {
       const l = liveOpsSlice;
@@ -200,7 +299,7 @@ Instructions:
       for (const k of relevantKnowledge) {
         fallbackText += `**${k.title}:** ${k.formulaOrRule}\n\n`;
       }
-    } else {
+    } else if (!executedSqlResult) {
       fallbackText += `*Note: For conversational AI synthesis, connect a free Gemini API key in the BYOK settings.*`;
     }
 
@@ -209,6 +308,7 @@ Instructions:
       answer: fallbackText,
       source: 'offline_knowledge_fallback',
       appliedRules: relevantKnowledge.map((k) => k.title),
+      sqlMeta,
     });
   } catch (error: unknown) {
     console.error('API /api/ai/copilot error:', error);
