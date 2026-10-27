@@ -297,4 +297,11 @@ To guarantee a best-in-class merchant and auditor experience across Desktop, Tab
 - **Mode B: Master Passcode & Quick PIN Gate**: Single-field master passcode or quick numeric PIN (`👑 2026` for Operations Admin, `📦 1234` for Dispatch Operators) enabling friction-free sign-in on warehouse packing tablets.
 - **Session Security & Edge Protection**: Cryptographic HMAC-SHA256 session tokens (`deen_session`) stored in `HttpOnly`, `SameSite=Lax` cookies, protected by Next.js Edge Middleware route guarding with zero unauthorized data exposure.
 
-
+### 4.12 Deterministic 15% Executive Order Sampling Engine
+- **Purpose**: Enables authentic, stakeholder-ready executive demonstrations with a clean 15% subset of store transactions while completely disguising the demo nature of the session.
+- **Authentic Executive Persona**: Looks and feels like a legitimate C-level executive account (`Executive Director` profile and `👑 Executive Director` badge).
+- **Credentials**:
+  - Quick PIN: `7742`
+  - Email / Password: `director@deencommerce.com` / `director2026`
+  - Passcode: `deen@director2026`
+- **Mathematical & Component Invariants**: Exactly 15% of unique orders are selected via stable FNV-1a hash, ensuring multi-item coherence, knapsack returns calculation, territory spread, and status breakdown across all dashboard components.

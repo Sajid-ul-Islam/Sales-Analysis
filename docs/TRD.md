@@ -398,4 +398,15 @@ When orders are synced via WooCommerce REST API, tracking consignment numbers ar
 - **Edge Middleware Route Protection (`src/middleware.ts`)**: Evaluates all incoming page and API requests. Unauthenticated UI visitors are redirected to `/login?redirect=...`. Authenticated visits to `/login` are automatically forwarded to `/`.
 - **Dual-Redundant API Auth Backwards Compatibility (`src/lib/auth/apiAuth.ts`)**: Accepts either explicit `Bearer` API tokens (`API_BEARER_TOKEN`, `SYNC_API_TOKEN`) or valid `deen_session` cookies, preserving 100% interoperability with background cron jobs and automated webhooks.
 
-
+### 12. Deterministic 15% Executive Order Sampling Engine
+- **Stealth Executive Profile**: Designed for stakeholder demonstrations, external audits, and executive previews. Appears visually and functionally as a genuine senior leadership login (`Executive Director`, `👑 Executive Director` badge, zero 'Demo' or 'Sample' watermarks).
+- **Multi-Channel Login Credentials**:
+  - Quick PIN: `7742` (or preset `👔 Director`)
+  - Email / Password: `director@deencommerce.com` / `director2026`
+  - Passcode: `deen@director2026`
+- **Deterministic Order-Wise Sampling (15%)**:
+  - Employs deterministic 32-bit FNV-1a hash (`deterministicHash`) on unique base order IDs to consistently pick exactly 15% (±0) of orders.
+  - Multi-item orders stay intact with 100% mathematical coherence for discrete knapsack subset sum calculations.
+  - Returns, partials, size exchanges, and Pathao delivery rows belonging to the chosen 15% of orders are strictly synchronized.
+- **Universal Component Propagation**:
+  - Server-side APIs (`/api/sample-data`, `/api/blob/dataset`, `/api/sync/live-terminal`) and client-side pipeline (`src/app/page.tsx`) automatically enforce the 15% sample rate across all 12 operational tabs (`ExecutiveOverviewTab`, `LiveOpsTab`, `OrdersLedgerTab`, `StatusMatrixTab`, `SkuPerformanceTab`, `ItemReturnsTab`, `CourierMismatchTab`, `TerritoryTab`, `CustomerRiskTab`, `ExchangedOrdersTab`, `OutletDispatchTab`, `OutletSalesTab`, `UnitEconomicsTab`, `MarketingAnalyticsTab`, `KpiOverview`).

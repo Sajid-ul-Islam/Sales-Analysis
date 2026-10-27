@@ -59,10 +59,23 @@ import {
 } from '@/lib/cacheManager';
 import { DataProvenanceInfo } from '@/lib/dataAudit';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
+import { useAuth } from '@/context/AuthContext';
+import { sampleDatasetSnapshot } from '@/lib/orderSampling';
 
 export type DataSourceMode = 'UPLOAD' | 'API';
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+  const sampleRatio = user?.sampleRate;
+
+  // Helper that applies executive sampling (15% across all components)
+  const applySampling = useCallback(<T extends DatasetSnapshot>(ds: T): T => {
+    if (sampleRatio && sampleRatio < 1 && ds && ds.orders) {
+      return sampleDatasetSnapshot(ds, sampleRatio) as T;
+    }
+    return ds;
+  }, [sampleRatio]);
+
   const [activeTab, setActiveTab] = useState('tabExecutive');
   const [ledgerStatusFilter, setLedgerStatusFilter] = useState('ALL');
   const [ledgerTerritoryFilter, setLedgerTerritoryFilter] = useState('ALL');
@@ -171,6 +184,38 @@ export default function DashboardPage() {
     }, 6000);
     return () => clearTimeout(timer);
   }, [statusMessage]);
+
+  // Reactive Executive Sampling: Samples dataset to 15% across all components
+  useEffect(() => {
+    if (sampleRatio && sampleRatio < 1 && rawOrders.length > 0) {
+      const snapshot: DatasetSnapshot = {
+        orders: rawOrders,
+        pathaoDelivery: rawPathaoDelivery,
+        returns: rawReturns,
+        partials: rawPartials,
+        exchanges: rawExchanges,
+        sourceName: dataSourceName,
+      };
+      const sampled = sampleDatasetSnapshot(snapshot, sampleRatio);
+      if (sampled.orders.length !== rawOrders.length) {
+        setRawOrders(sampled.orders);
+        setRawPathaoDelivery(sampled.pathaoDelivery);
+        setRawReturns(sampled.returns);
+        setRawPartials(sampled.partials);
+        setRawExchanges(sampled.exchanges);
+        const filtered = filterOrdersByDateScope(sampled.orders, dateScope, customDateRange);
+        computeReconciliation(
+          filtered.filteredOrders,
+          sampled.returns,
+          sampled.partials,
+          excludeAugust,
+          excludePOS,
+          sampled.exchanges,
+          sampled.pathaoDelivery
+        );
+      }
+    }
+  }, [sampleRatio, rawOrders.length, dateScope, customDateRange, excludeAugust, excludePOS, computeReconciliation, dataSourceName, rawPathaoDelivery, rawReturns, rawPartials, rawExchanges]);
 
   const [result, setResult] = useState<ReconciliationResult | null>(null);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
@@ -319,8 +364,9 @@ export default function DashboardPage() {
 
     // 1. Instant recovery from local cache unless hard refresh is requested
     if (!forceBypassCache) {
-      const cached = getCacheItem<DatasetSnapshot>(DEEN_CACHE_KEYS.ACTIVE_DATASET);
-      if (cached && cached.orders && cached.orders.length > 0) {
+      const rawCached = getCacheItem<DatasetSnapshot>(DEEN_CACHE_KEYS.ACTIVE_DATASET);
+      if (rawCached && rawCached.orders && rawCached.orders.length > 0) {
+        const cached = applySampling(rawCached);
         setUploadedDataset(cached);
         setDataSourceMode('UPLOAD');
         setRawOrders(cached.orders || []);
@@ -359,7 +405,7 @@ export default function DashboardPage() {
           setDataProvenance(data.provenance);
         }
         const dynamicTitle = getDynamicDatasetTitle(data.orders || [], 'UPLOAD', '📁 Verified Master Ledger');
-        const snapshot: DatasetSnapshot = {
+        const rawSnapshot: DatasetSnapshot = {
           orders: data.orders || [],
           pathaoDelivery: data.pathaoDelivery || [],
           returns: data.returns || [],
@@ -367,17 +413,18 @@ export default function DashboardPage() {
           exchanges: data.exchanges || [],
           sourceName: dynamicTitle
         };
+        const snapshot = applySampling(rawSnapshot);
         setUploadedDataset(snapshot);
         setDataSourceMode('UPLOAD');
 
         // Persist to local cache with 7-day TTL
         setCacheItem(DEEN_CACHE_KEYS.ACTIVE_DATASET, snapshot, { ttlMs: 7 * 24 * 3600 * 1000, tag: 'dataset' });
 
-        setRawOrders(data.orders || []);
-        setRawPathaoDelivery(data.pathaoDelivery || []);
-        setRawReturns(data.returns || []);
-        setRawPartials(data.partials || []);
-        setRawExchanges(data.exchanges || []);
+        setRawOrders(snapshot.orders || []);
+        setRawPathaoDelivery(snapshot.pathaoDelivery || []);
+        setRawReturns(snapshot.returns || []);
+        setRawPartials(snapshot.partials || []);
+        setRawExchanges(snapshot.exchanges || []);
         setDataSourceName(dynamicTitle);
         const filtered = filterOrdersByDateScope(data.orders || [], dateScope, customDateRange);
         computeReconciliation(

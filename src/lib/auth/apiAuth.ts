@@ -8,6 +8,7 @@ export interface AuthValidationResult {
   role: AuthRole;
   statusCode: number;
   message: string;
+  sampleRate?: number;
 }
 
 export interface AuthOptions {
@@ -114,6 +115,7 @@ export function validateApiRequest(
           authenticated: true,
           role: sessionUser.role,
           statusCode: 200,
+          sampleRate: sessionUser.sampleRate,
           message: `Authenticated as ${sessionUser.role} via session cookie.`,
         };
       }

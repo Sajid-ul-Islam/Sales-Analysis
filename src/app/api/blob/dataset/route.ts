@@ -3,6 +3,7 @@ import { uploadDatasetToBlob, fetchDatasetFromBlob, isBlobConfigured } from '@/l
 import { validateApiRequest } from '@/lib/auth/apiAuth';
 import { checkRateLimit } from '@/lib/auth/rateLimiter';
 import { createDataProvenance } from '@/lib/dataAudit';
+import { sampleDatasetSnapshot } from '@/lib/orderSampling';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,22 +36,25 @@ export async function GET(req: Request) {
       });
     }
 
-    const orderCount = result.dataset.orders?.length || 0;
+    const finalDataset = (auth.sampleRate && auth.sampleRate < 1)
+      ? sampleDatasetSnapshot(result.dataset, auth.sampleRate)
+      : result.dataset;
+    const orderCount = finalDataset.orders?.length || 0;
     const isPrivileged = auth.role === 'admin' || auth.role === 'operator';
     const provenance = createDataProvenance('vercel_blob', orderCount, !isPrivileged);
 
     return NextResponse.json({
       success: true,
       configured: true,
-      dataset: result.dataset,
+      dataset: finalDataset,
       provenance,
       uploadedAt: result.uploadedAt,
       size: result.size,
       ordersCount: orderCount,
-      returnsCount: result.dataset.returns?.length || 0,
-      partialsCount: result.dataset.partials?.length || 0,
-      exchangesCount: result.dataset.exchanges?.length || 0,
-      pathaoDeliveryCount: result.dataset.pathaoDelivery?.length || 0,
+      returnsCount: finalDataset.returns?.length || 0,
+      partialsCount: finalDataset.partials?.length || 0,
+      exchangesCount: finalDataset.exchanges?.length || 0,
+      pathaoDeliveryCount: finalDataset.pathaoDelivery?.length || 0,
       message: result.message,
     });
   } catch (err: unknown) {

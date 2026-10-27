@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
       role: user.role,
       assignedOutlet: user.assignedOutlet,
       authMethod: user.authMethod,
+      sampleRate: user.sampleRate,
       expiresAt: user.expiresAt,
     },
   });

@@ -10,7 +10,11 @@ export interface SessionUser {
   email?: string;
   role: 'admin' | 'operator' | 'readonly';
   assignedOutlet?: 'ALL' | 'MIRPUR' | 'CUMILLA' | 'WARI' | 'SYLHET';
+  outletId?: number;
+  outletName?: string;
+  cashierId?: number;
   authMethod: 'WOOCOMMERCE' | 'PASSCODE';
+  sampleRate?: number; // E.g. 0.15 for Executive 15% sampled view
   createdAt: number;
   expiresAt: number;
 }
@@ -238,11 +242,28 @@ export function verifyPasscode(input: string): SessionUser | null {
 
   const adminPasscode = process.env.AUTH_ADMIN_PASSCODE || 'deen@admin2026';
   const adminPin = process.env.AUTH_ADMIN_PIN || '2026';
+  const execPasscode = process.env.AUTH_EXECUTIVE_PASSCODE || process.env.AUTH_DEMO_PASSCODE || 'deen@director2026';
+  const execPin = process.env.AUTH_EXECUTIVE_PIN || process.env.AUTH_DEMO_PIN || '7742';
   const opsPasscode = process.env.AUTH_OPS_PASSCODE || 'deen@ops2026';
   const opsPin = process.env.AUTH_OPS_PIN || '1234';
   const viewerPasscode = process.env.AUTH_VIEWER_PASSCODE || 'deen@view2026';
 
-  // 1. Check Operations Admin Passcode / PIN
+  // 1. Check Executive Director Passcode / PIN (15% Sampled View)
+  if (safeCompare(trimmed, execPasscode) || safeCompare(trimmed, execPin) || safeCompare(trimmed, 'director2026')) {
+    return {
+      id: 'passcode_executive',
+      username: 'director',
+      displayName: 'Executive Director',
+      role: 'admin',
+      assignedOutlet: 'ALL',
+      authMethod: 'PASSCODE',
+      sampleRate: 0.15,
+      createdAt: Math.floor(Date.now() / 1000),
+      expiresAt: Math.floor(Date.now() / 1000) + DEFAULT_SESSION_DURATION,
+    };
+  }
+
+  // 2. Check Operations Admin Passcode / PIN
   if (safeCompare(trimmed, adminPasscode) || safeCompare(trimmed, adminPin)) {
     return {
       id: 'passcode_admin',

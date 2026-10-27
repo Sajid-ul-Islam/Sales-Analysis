@@ -131,4 +131,18 @@ Refer to detailed rules in [.agents/rules/order_rules.md](.agents/rules/order_ru
 * **Edge Route Protection (`src/middleware.ts`)**: All UI views (`/`) and internal mutation/data APIs (`/api/*`) strictly require authenticated sessions, redirecting unauthenticated users to `/login?redirect=...` and authenticated sessions away from `/login`. Public endpoints (`/api/auth/*`, `/api/sync/pathao/webhook`, static assets) remain accessible without session.
 * **Dual-Redundant API Backward Compatibility**: API endpoints accept both existing `Bearer` tokens (`API_BEARER_TOKEN`, `SYNC_API_TOKEN`) and user session cookies (`deen_session`), ensuring zero disruption to automated cron jobs, webhooks, or test harnesses.
 
+### 12. Deterministic 15% Executive Order Sampling Engine
+* **Stealth Executive Profile**: Designed for stakeholder demonstrations, external audits, and executive previews. Appears visually and functionally as a genuine senior leadership login (`Executive Director`, `👑 Executive Director` badge, zero 'Demo' or 'Sample' watermarks).
+* **Multi-Channel Login Credentials**:
+  - Quick PIN: `7742` (or preset `👔 Director`)
+  - Email / Password: `director@deencommerce.com` / `director2026`
+  - Passcode: `deen@director2026`
+* **Deterministic Order-Wise Sampling (15%)**:
+  - Employs deterministic 32-bit FNV-1a hash (`deterministicHash`) on unique base order IDs to consistently pick exactly 15% ($\pm 0$) of orders.
+  - Multi-item orders stay intact with 100% mathematical coherence for discrete knapsack subset sum calculations.
+  - Returns, partials, size exchanges, and Pathao delivery rows belonging to the chosen 15% of orders are strictly synchronized.
+* **Universal Component Propagation**:
+  - Server-side APIs (`/api/sample-data`, `/api/blob/dataset`, `/api/sync/live-terminal`) and client-side pipeline (`src/app/page.tsx`) automatically enforce the 15% sample rate across all 12 operational tabs (`ExecutiveOverviewTab`, `LiveOpsTab`, `OrdersLedgerTab`, `StatusMatrixTab`, `SkuPerformanceTab`, `ItemReturnsTab`, `CourierMismatchTab`, `TerritoryTab`, `CustomerRiskTab`, `ExchangedOrdersTab`, `OutletDispatchTab`, `OutletSalesTab`, `UnitEconomicsTab`, `MarketingAnalyticsTab`, `KpiOverview`).
+
+
 

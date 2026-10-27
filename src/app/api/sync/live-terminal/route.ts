@@ -3,6 +3,7 @@ import { validateApiRequest } from '@/lib/auth/apiAuth';
 import { checkRateLimit } from '@/lib/auth/rateLimiter';
 import { sanitizeOrdersResponse } from '@/lib/auth/dataMasking';
 import { syncLiveTerminalData } from '@/lib/sync/liveTerminalSync';
+import { sampleDatasetSnapshot } from '@/lib/orderSampling';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Allow up to 60s for multi-page order fetch and consignment tracking
@@ -49,11 +50,17 @@ export async function POST(req: Request) {
     });
 
     const isPrivileged = auth.authenticated && (auth.role === 'admin' || auth.role === 'operator');
-    const sanitizedOrders = isPrivileged ? result.orders : sanitizeOrdersResponse(result.orders);
+    let sanitizedOrders = isPrivileged ? result.orders : sanitizeOrdersResponse(result.orders);
+
+    if (auth.sampleRate && auth.sampleRate < 1) {
+      const sampled = sampleDatasetSnapshot({ orders: sanitizedOrders }, auth.sampleRate);
+      sanitizedOrders = sampled.orders;
+    }
 
     return NextResponse.json({
       ...result,
       orders: sanitizedOrders,
+      ordersCount: sanitizedOrders.length,
     });
   } catch (error: unknown) {
     console.error('Live terminal sync error:', error);

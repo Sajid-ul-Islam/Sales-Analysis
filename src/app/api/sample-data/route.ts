@@ -8,6 +8,7 @@ import { createDataProvenance } from '@/lib/dataAudit';
 import baselineData from '@/data/baselineSample.json';
 import { fetchDatasetFromBlob, isBlobConfigured } from '@/lib/blobStorage';
 import { DatasetSnapshot, RawOrderRow } from '@/types';
+import { sampleDatasetSnapshot } from '@/lib/orderSampling';
 
 function findFirstExistingFile(candidatePaths: string[]): string | null {
   try {
@@ -50,11 +51,26 @@ export async function GET(req: Request) {
         const blobResult = await fetchDatasetFromBlob();
         if (blobResult.success && blobResult.dataset && (blobResult.dataset.orders?.length || 0) > 0) {
           const ds = blobResult.dataset;
-          const sanitizedOrders = isPrivileged ? ds.orders : sanitizeOrdersResponse(ds.orders || []);
-          const sanitizedReturns = isPrivileged ? ds.returns : sanitizeOrdersResponse(ds.returns || []);
-          const sanitizedPartials = isPrivileged ? ds.partials : sanitizeOrdersResponse(ds.partials || []);
-          const sanitizedExchanges = isPrivileged ? ds.exchanges : sanitizeOrdersResponse(ds.exchanges || []);
-          const sanitizedPathao = isPrivileged ? ds.pathaoDelivery : sanitizeOrdersResponse(ds.pathaoDelivery || []);
+          let sanitizedOrders = isPrivileged ? ds.orders : sanitizeOrdersResponse(ds.orders || []);
+          let sanitizedReturns = isPrivileged ? ds.returns : sanitizeOrdersResponse(ds.returns || []);
+          let sanitizedPartials = isPrivileged ? ds.partials : sanitizeOrdersResponse(ds.partials || []);
+          let sanitizedExchanges = isPrivileged ? ds.exchanges : sanitizeOrdersResponse(ds.exchanges || []);
+          let sanitizedPathao = isPrivileged ? ds.pathaoDelivery : sanitizeOrdersResponse(ds.pathaoDelivery || []);
+
+          if (auth.sampleRate && auth.sampleRate < 1) {
+            const sampled = sampleDatasetSnapshot({
+              orders: sanitizedOrders,
+              returns: sanitizedReturns,
+              partials: sanitizedPartials,
+              exchanges: sanitizedExchanges,
+              pathaoDelivery: sanitizedPathao,
+            }, auth.sampleRate);
+            sanitizedOrders = sampled.orders;
+            sanitizedReturns = sampled.returns;
+            sanitizedPartials = sampled.partials;
+            sanitizedExchanges = sampled.exchanges;
+            sanitizedPathao = sampled.pathaoDelivery || [];
+          }
 
           const provenance = createDataProvenance('vercel_blob', sanitizedOrders.length, !isPrivileged);
 
@@ -157,11 +173,26 @@ export async function GET(req: Request) {
     console.log(`[API /api/sample-data] Loaded ${orders.length} orders, ${returns.length} returns, ${partials.length} partials, ${exchanges.length} exchanges, ${pathaoDelivery.length} pathao records (Any Fallback: ${isAnyFallbackUsed})`);
 
     // PII Sanitization across all exported sample records
-    const sanitizedOrders = isPrivileged ? orders : sanitizeOrdersResponse(orders);
-    const sanitizedReturns = isPrivileged ? returns : sanitizeOrdersResponse(returns);
-    const sanitizedPartials = isPrivileged ? partials : sanitizeOrdersResponse(partials);
-    const sanitizedExchanges = isPrivileged ? exchanges : sanitizeOrdersResponse(exchanges);
-    const sanitizedPathao = isPrivileged ? pathaoDelivery : sanitizeOrdersResponse(pathaoDelivery);
+    let sanitizedOrders = isPrivileged ? orders : sanitizeOrdersResponse(orders);
+    let sanitizedReturns = isPrivileged ? returns : sanitizeOrdersResponse(returns);
+    let sanitizedPartials = isPrivileged ? partials : sanitizeOrdersResponse(partials);
+    let sanitizedExchanges = isPrivileged ? exchanges : sanitizeOrdersResponse(exchanges);
+    let sanitizedPathao = isPrivileged ? pathaoDelivery : sanitizeOrdersResponse(pathaoDelivery);
+
+    if (auth.sampleRate && auth.sampleRate < 1) {
+      const sampled = sampleDatasetSnapshot({
+        orders: sanitizedOrders,
+        returns: sanitizedReturns,
+        partials: sanitizedPartials,
+        exchanges: sanitizedExchanges,
+        pathaoDelivery: sanitizedPathao,
+      }, auth.sampleRate);
+      sanitizedOrders = sampled.orders;
+      sanitizedReturns = sampled.returns;
+      sanitizedPartials = sampled.partials;
+      sanitizedExchanges = sampled.exchanges;
+      sanitizedPathao = sampled.pathaoDelivery || [];
+    }
 
     const provenance = createDataProvenance(
       isAnyFallbackUsed ? 'baseline_bundled' : 'disk_spreadsheet',
