@@ -81,6 +81,10 @@ Refer to detailed rules in [.agents/rules/order_rules.md](.agents/rules/order_ru
 ### 8. Everyday Dispatched Orders Ledger & Customer Delivery Rating Engine
 * **Order-Wise Ledger Default**: Everyday Dispatched Orders Ledger defaults to Order-Wise (`ledgerViewMode: 'ORDER_WISE'`). Groups multi-item orders into a single consolidated master order row showing the primary item with a multi-item counter badge (`+X more`), item count chip, aggregate order value, and expandable nested line-item breakdown.
 * **Pathao Courier Consignment Extraction**: Consignment IDs and tracking codes are extracted from WooCommerce order metadata keys (`ptc_consignment_id`, `_ptc_consignment_id`, `ptc_status`) created by the official Pathao WooCommerce plugin.
+* **Dual-Redundant Webhook & Rate-Limit Resilient Tracking**:
+  * **Zero-Pressure Rate Limiting**: Bypasses blind 404 queries to Pathao API by strictly filtering order IDs against consignment formats, eliminating API throttling. Orders with active webhook metadata (`ptc_status`) are resolved instantly without external network calls.
+  * **Asynchronous Reverse Sync**: Inbound Pathao webhook events to `/api/sync/pathao/webhook` asynchronously write `ptc_consignment_id` and `ptc_status` directly into WooCommerce order meta (`PUT /wp-json/wc/v3/orders/{id}`) without touching WordPress plugin files or stalling the webhook handshake.
+  * **Batch WooCommerce Tracking Updates**: Supports bulk synchronization (`POST /wp-json/wc/v3/orders/batch`) in chunks of 100 orders to link offline delivery reports back into WooCommerce.
 * **Dual-Tier Customer Delivery Rating**:
   * **Tier 1 (Pathao B2B Success API)**: Real-time query to Pathao User Success API (`POST /aladdin/api/v1/user/success`) using normalized Bangladeshi phone numbers (`01XXXXXXXXX`).
   * **Tier 2 (Empirical Fallback & Baseline)**: Grounded store history calculation (`getStoreHistoryIndex`) across all lifetime synced orders.

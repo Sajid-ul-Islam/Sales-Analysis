@@ -365,6 +365,8 @@ When orders are synced via WooCommerce REST API, tracking consignment numbers ar
 ### 10.3 Pathao B2B Client Credentials Grant
 - Supports B2B external client login (`POST /aladdin/api/v1/external/login`) with `client_id` + `client_secret` (90-day long-lived tokens).
 - Order tracking queries use the official endpoint: `GET /aladdin/api/v1/orders/{consignment_id}/info`.
+- **Zero-Pressure Rate Limiting**: Inbound lookups strictly filter out short numeric store IDs to prevent 404 rate-limit pressure against Pathao Hermes. Orders possessing webhook metadata (`ptc_status`) resolve without external API calls.
+- **WooCommerce REST Reverse-Sync**: `updateWooCommerceOrderTracking` and `batchUpdateWooCommerceOrderTracking` write consignment IDs back to WooCommerce (`PUT /orders/{id}` or `POST /orders/batch` in chunks of 100) using official `ptc_consignment_id` and `ptc_status` meta keys with zero WordPress plugin file modifications.
 
 ### 4.7 Smart Inventory (SIP) Deduction Engine
 - **WooCommerce Payload Parsing**: Parses `_sip_waterfall_deductions` metadata array in `formatWooCommerceToOrderRows()`:

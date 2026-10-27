@@ -262,6 +262,7 @@ To guarantee a best-in-class merchant and auditor experience across Desktop, Tab
 - **Dynamic Header Status Badges**: Pulsing green dot for WooCommerce REST API, pulsing blue dot for Pathao Hermes Courier API, showing real-time connectivity and countdown to next auto-sync.
 - **Floating Toast System**: Non-intrusive notification toasts alerting users to newly synced orders, courier status transitions, and newly detected courier discrepancies.
 - **Notification Drawer**: Central history drawer preserving the last 25 operational sync events with direct links to inspected rows.
+- **Webhook Redundancy & Zero-Pressure Tracking**: Support for dual-redundant Pathao webhook ingestion and rate-limit protected live synchronization, linking consignment IDs into WooCommerce order records with zero plugin edits.
 
 ### 6.3 Universal Date Range Engine Across All Modules
 - Global persistent header filter supporting: `Today`, `Yesterday`, `Last 7 Days`, `Last 30 Days`, `This Month (MTD)`, and `Custom Date Range`.

@@ -6,6 +6,7 @@ import {
   getLiveWebhookUpdates,
 } from '@/lib/pathaoWebhookEngine';
 import { logAuditAction } from '@/lib/settingsStore';
+import { updateWooCommerceOrderTracking } from '@/lib/woocommerceClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,6 +84,17 @@ export async function POST(req: Request) {
       const record = processPathaoWebhookEvent(evt);
       if (record) {
         processedRecords.push(record);
+
+        // Asynchronously persist consignment tracking to WooCommerce order meta without blocking response
+        if (record.merchantOrderId && record.consignmentId) {
+          updateWooCommerceOrderTracking(record.merchantOrderId, {
+            consignmentId: record.consignmentId,
+            status: record.rawStatus,
+            collectedAmount: record.collectedAmount,
+          }).catch((err) => {
+            console.warn(`[PathaoWebhook] Reverse sync to WC for order #${record.merchantOrderId} failed:`, err);
+          });
+        }
       }
     }
 

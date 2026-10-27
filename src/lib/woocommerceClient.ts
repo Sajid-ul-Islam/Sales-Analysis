@@ -1164,6 +1164,164 @@ export async function batchFetchWooCommerceOrderNotes(
   return results;
 }
 
+export interface WcOrderTrackingUpdate {
+  consignmentId?: string;
+  status?: string;
+  deliveryFee?: number;
+  collectedAmount?: number;
+}
+
+/**
+ * Updates an order's courier tracking metadata (ptc_consignment_id, ptc_status, ptc_delivery_fee)
+ * in WooCommerce via standard REST API PUT /wp-json/wc/v3/orders/{id}.
+ * Does NOT require modifying WordPress plugin files.
+ */
+export async function updateWooCommerceOrderTracking(
+  orderId: number | string,
+  tracking: WcOrderTrackingUpdate,
+  credentials?: WcCredentials
+): Promise<boolean> {
+  const cleanId = String(orderId || '').replace(/\D/g, '');
+  if (!cleanId) return false;
+
+  const { woocommerce } = getSecretsWithOverrides({ woocommerce: credentials });
+  const effectiveStoreUrl = credentials?.store_url !== undefined ? credentials.store_url : woocommerce.store_url;
+  const effectiveKey = credentials?.consumer_key !== undefined ? credentials.consumer_key : woocommerce.consumer_key;
+  const effectiveSecret = credentials?.consumer_secret !== undefined ? credentials.consumer_secret : woocommerce.consumer_secret;
+
+  if (!effectiveStoreUrl || !effectiveKey || !effectiveSecret) {
+    return false;
+  }
+
+  const cleanStoreUrl = effectiveStoreUrl.replace(/\/+$/, '');
+  const url = `${cleanStoreUrl}/wp-json/wc/v3/orders/${encodeURIComponent(cleanId)}`;
+  const authHeader = 'Basic ' + Buffer.from(`${effectiveKey}:${effectiveSecret}`).toString('base64');
+
+  const metaData: Array<{ key: string; value: unknown }> = [];
+  if (tracking.consignmentId) {
+    metaData.push({ key: 'ptc_consignment_id', value: tracking.consignmentId });
+  }
+  if (tracking.status) {
+    metaData.push({ key: 'ptc_status', value: tracking.status });
+  }
+  if (tracking.deliveryFee !== undefined && tracking.deliveryFee > 0) {
+    metaData.push({ key: 'ptc_delivery_fee', value: tracking.deliveryFee });
+  }
+  if (tracking.collectedAmount !== undefined && tracking.collectedAmount > 0) {
+    metaData.push({ key: 'ptc_collected_amount', value: tracking.collectedAmount });
+  }
+
+  if (metaData.length === 0) return false;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(url, {
+      method: 'PUT',
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': authHeader,
+        'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
+      },
+      body: JSON.stringify({ meta_data: metaData }),
+    });
+    clearTimeout(timeoutId);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Batch updates multiple orders' courier tracking metadata in WooCommerce
+ * via POST /wp-json/wc/v3/orders/batch (up to 100 orders per batch request).
+ */
+export async function batchUpdateWooCommerceOrderTracking(
+  updates: Array<{
+    orderId: number | string;
+    consignmentId?: string;
+    status?: string;
+    deliveryFee?: number;
+    collectedAmount?: number;
+  }>,
+  credentials?: WcCredentials
+): Promise<{ success: boolean; updatedCount: number; errors: string[] }> {
+  if (!updates || updates.length === 0) {
+    return { success: true, updatedCount: 0, errors: [] };
+  }
+
+  const { woocommerce } = getSecretsWithOverrides({ woocommerce: credentials });
+  const effectiveStoreUrl = credentials?.store_url !== undefined ? credentials.store_url : woocommerce.store_url;
+  const effectiveKey = credentials?.consumer_key !== undefined ? credentials.consumer_key : woocommerce.consumer_key;
+  const effectiveSecret = credentials?.consumer_secret !== undefined ? credentials.consumer_secret : woocommerce.consumer_secret;
+
+  if (!effectiveStoreUrl || !effectiveKey || !effectiveSecret) {
+    return { success: false, updatedCount: 0, errors: ['WooCommerce credentials missing'] };
+  }
+
+  const cleanStoreUrl = effectiveStoreUrl.replace(/\/+$/, '');
+  const url = `${cleanStoreUrl}/wp-json/wc/v3/orders/batch`;
+  const authHeader = 'Basic ' + Buffer.from(`${effectiveKey}:${effectiveSecret}`).toString('base64');
+
+  let updatedCount = 0;
+  const errors: string[] = [];
+
+  const chunkSize = 100;
+  for (let i = 0; i < updates.length; i += chunkSize) {
+    const chunk = updates.slice(i, i + chunkSize);
+    const updatePayload = chunk.map((u) => {
+      const cleanId = String(u.orderId).replace(/\D/g, '');
+      const metaData: Array<{ key: string; value: unknown }> = [];
+      if (u.consignmentId) metaData.push({ key: 'ptc_consignment_id', value: u.consignmentId });
+      if (u.status) metaData.push({ key: 'ptc_status', value: u.status });
+      if (u.deliveryFee) metaData.push({ key: 'ptc_delivery_fee', value: u.deliveryFee });
+      if (u.collectedAmount) metaData.push({ key: 'ptc_collected_amount', value: u.collectedAmount });
+
+      return {
+        id: parseInt(cleanId, 10),
+        meta_data: metaData,
+      };
+    }).filter((u) => !isNaN(u.id) && u.meta_data.length > 0);
+
+    if (updatePayload.length === 0) continue;
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+      const res = await fetch(url, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': authHeader,
+          'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
+        },
+        body: JSON.stringify({ update: updatePayload }),
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const json = await res.json().catch(() => ({}));
+        const count = Array.isArray(json.update) ? json.update.length : updatePayload.length;
+        updatedCount += count;
+      } else {
+        errors.push(`Batch ${i / chunkSize + 1} failed: HTTP ${res.status}`);
+      }
+    } catch (err: unknown) {
+      errors.push(err instanceof Error ? err.message : 'Batch request error');
+    }
+  }
+
+  return {
+    success: errors.length === 0,
+    updatedCount,
+    errors,
+  };
+}
+
 /**
  * Fetches real-time orders from WooCommerce REST API v3 with smart pagination, ordering, and date windowing.
  */

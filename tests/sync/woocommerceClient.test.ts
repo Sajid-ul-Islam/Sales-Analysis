@@ -12,6 +12,8 @@ import {
   detectWordPressStatusMarks,
   resolveSipOutlet,
   extractLineItemSipInventory,
+  updateWooCommerceOrderTracking,
+  batchUpdateWooCommerceOrderTracking,
 } from '@/lib/woocommerceClient';
 
 describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
@@ -720,6 +722,40 @@ describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
       expect(rows[1].branchCode).toBe('ONLINE');
       expect(rows[1]['Order Source']).toBe('Online');
       expect(rows[1].isPos).toBe(false);
+    });
+  });
+
+  describe('updateWooCommerceOrderTracking & batchUpdateWooCommerceOrderTracking', () => {
+    it('returns false when order ID or credentials are missing or invalid', async () => {
+      const res1 = await updateWooCommerceOrderTracking('', { consignmentId: 'DD123' });
+      expect(res1).toBe(false);
+
+      const res2 = await updateWooCommerceOrderTracking('invalid', {});
+      expect(res2).toBe(false);
+
+      const res3 = await updateWooCommerceOrderTracking(18991, {}, {
+        store_url: '',
+        consumer_key: '',
+        consumer_secret: '',
+      });
+      expect(res3).toBe(false);
+    });
+
+    it('batch update returns early with empty updates array', async () => {
+      const res = await batchUpdateWooCommerceOrderTracking([]);
+      expect(res.success).toBe(true);
+      expect(res.updatedCount).toBe(0);
+      expect(res.errors).toHaveLength(0);
+    });
+
+    it('handles batch update with missing credentials gracefully', async () => {
+      const res = await batchUpdateWooCommerceOrderTracking(
+        [{ orderId: 18991, consignmentId: 'DD12345678' }],
+        { store_url: '', consumer_key: '', consumer_secret: '' }
+      );
+      expect(res.success).toBe(false);
+      expect(res.updatedCount).toBe(0);
+      expect(res.errors).toContain('WooCommerce credentials missing');
     });
   });
 });

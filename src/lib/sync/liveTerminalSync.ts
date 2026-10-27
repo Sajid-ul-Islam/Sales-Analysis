@@ -815,8 +815,13 @@ export async function syncLiveTerminalData(options: {
   const courierTrackingMap: Record<string, CourierTrackingInfo> = {};
   const phoneTrackingMap = new Map<string, CourierTrackingInfo[]>();
 
-  const harvestedConsignments = Array.from(consignmentIdSet).slice(0, options.limitConsignments || 20);
-  const harvestedOrderIds = Array.from(unconsignedOrderIds).slice(0, 15);
+  // Filter harvested consignment IDs and skip purely numeric order IDs that trigger 404 rate-limiting on Pathao
+  const harvestedConsignments = Array.from(consignmentIdSet)
+    .filter((cid) => cid && cid.length >= 6 && cid !== '-' && cid !== 'null')
+    .slice(0, options.limitConsignments || 20);
+  const harvestedOrderIds = Array.from(unconsignedOrderIds)
+    .filter((id) => !/^\d{1,7}$/.test(id)) // Skip numeric short store IDs to prevent 404 rate-limit pressure
+    .slice(0, 10);
 
   if (!options.skipNetwork) {
     try {
