@@ -5,6 +5,7 @@ export { TerritoryTab } from './TerritoryTab';
 export { StatusMatrixTab } from './StatusMatrixTab';
 export { OrdersLedgerTab } from './OrdersLedgerTab';
 export { SkuPerformanceTab } from './SkuPerformanceTab';
+export { ProductAnalysisTab } from './ProductAnalysisTab';
 export { ItemReturnsTab } from './ItemReturnsTab';
 export { CustomerRiskTab } from './CustomerRiskTab';
 export { UnitEconomicsTab } from './UnitEconomicsTab';

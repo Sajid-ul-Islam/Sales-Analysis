@@ -15,6 +15,7 @@ import {
   Store,
   ShoppingBag,
   BarChart3,
+  Layers,
   X,
   User,
   Activity,
@@ -139,6 +140,7 @@ export function Sidebar({
       title: 'Intelligence & Risk',
       items: [
         { id: 'tabMarketingAnalytics', label: 'Ad Analytics', icon: BarChart3, highlight: true },
+        { id: 'tabProductAnalysis', label: 'Product Analysis', icon: Layers, highlight: true },
         { id: 'tabSku', label: 'SKU Flow', icon: Shirt },
         { id: 'tabCustomerRisk', label: 'Customer Risk', icon: ShieldAlert, highlight: true },
         { id: 'tabStatus', label: 'Status & Economics', icon: GitCompare },

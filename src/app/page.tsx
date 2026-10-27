@@ -15,6 +15,7 @@ import {
   StatusMatrixTab,
   OrdersLedgerTab,
   SkuPerformanceTab,
+  ProductAnalysisTab,
   ItemReturnsTab,
   CustomerRiskTab,
   ExchangedOrdersTab,
@@ -200,7 +201,8 @@ export default function DashboardPage() {
       if (tabParam) {
         setActiveTab(tabParam);
       } else {
-        const savedTab = getCookie(DEEN_COOKIE_KEYS.ACTIVE_TAB);
+        const urlTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
+    const savedTab = urlTab || getCookie(DEEN_COOKIE_KEYS.ACTIVE_TAB);
         if (savedTab) {
           setActiveTab(savedTab);
         }
@@ -470,7 +472,8 @@ export default function DashboardPage() {
     setCookie(DEEN_COOKIE_KEYS.LAST_VISIT, new Date().toISOString(), { days: 90 });
 
     // 2. Restore active tab, date scope, and toggles from cookies
-    const savedTab = getCookie(DEEN_COOKIE_KEYS.ACTIVE_TAB);
+    const urlTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
+    const savedTab = urlTab || getCookie(DEEN_COOKIE_KEYS.ACTIVE_TAB);
     if (savedTab) setActiveTab(savedTab);
 
     const savedScope = getCookie(DEEN_COOKIE_KEYS.DATE_SCOPE) as DateScope | null;
@@ -1366,6 +1369,14 @@ export default function DashboardPage() {
                     initialStatusFilter={ledgerStatusFilter}
                     initialTerritoryFilter={ledgerTerritoryFilter}
                     onClearAiTags={handleClearAiTags}
+                  />
+                )}
+                {activeTab === 'tabProductAnalysis' && (
+                  <ProductAnalysisTab
+                    orders={result.reconciledOrders}
+                    cogsPercent={cogsPercent}
+                    dateScopeDays={dateScope === '7d' ? 7 : dateScope === '90d' ? 90 : 30}
+                    onSelectOrder={() => setActiveTab('tabOrders')}
                   />
                 )}
                 {activeTab === 'tabSku' && (

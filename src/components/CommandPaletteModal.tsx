@@ -69,6 +69,7 @@ const ALL_TABS_CONFIG = [
   { id: 'tabTerritory', title: 'Territory Breakdown', subtitle: 'Inside Dhaka vs Outside Dhaka Logistics & Margin Ratios', icon: <MapPin className="w-4 h-4 text-teal-500" /> },
   { id: 'tabExchanges', title: 'Exchanged Orders Hub', subtitle: 'D- Prefix Consignments & Sizing Replacement Auditing', icon: <RefreshCw className="w-4 h-4 text-violet-500" /> },
   { id: 'tabMarketingAnalytics', title: 'Marketing & Ad Analytics', subtitle: 'Meta Ad Spends, ROAS, Blended CAC & Campaign Efficiency', icon: <TrendingUp className="w-4 h-4 text-pink-500" /> },
+  { id: 'tabProductAnalysis', title: 'Product Analysis', subtitle: 'Price Elasticity, Sweet Spot Pricing, Market Basket & Pareto ABC Distribution', icon: <ShoppingBag className="w-4 h-4 text-primary" /> },
   { id: 'tabSku', title: 'SKU Performance', subtitle: 'Garment Product Delivery Conversions & Return Losses', icon: <ShoppingBag className="w-4 h-4 text-cyan-500" /> },
   { id: 'tabCustomerRisk', title: 'Customer Risk Profiles', subtitle: 'Chronic Returner Identification & Advance Fee Protection', icon: <AlertTriangle className="w-4 h-4 text-red-500" /> },
   { id: 'tabStatus', title: 'Status & Economics', subtitle: 'COGS, Delivery Recovery, Sunk Losses & Contribution Margins', icon: <TrendingUp className="w-4 h-4 text-emerald-600" /> },
