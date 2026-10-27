@@ -1387,7 +1387,7 @@ export default function DashboardPage() {
                   />
                 )}
                 {activeTab === 'tabItemReturns' && (
-                  <ItemReturnsTab returnedItems={result.returnedItems} />
+                  <ItemReturnsTab returnedItems={result.returnedItems} onSelectOrder={(_orderId) => { setLedgerStatusFilter('FULL_RETURN'); setActiveTab('tabOrders'); }} />
                 )}
                 {activeTab === 'tabExchanges' && (
                   <ExchangedOrdersTab
