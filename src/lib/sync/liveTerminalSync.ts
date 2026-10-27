@@ -720,11 +720,12 @@ export async function syncLiveTerminalData(options: {
         wcConnected = true;
         const maxPagesToFetch = options.maxPages || 6; // Default to 6 pages (600 orders) to cover full 7-day rolling window
         const fetched = await fetchWooCommerceOrders({
-          perPage: 100,
-          fetchAllPages: true,
+          perPage: 50,
+          fetchAllPages: maxPagesToFetch > 1,
           maxPages: maxPagesToFetch,
           orderBy: 'date',
           order: 'desc',
+          timeoutMs: 25000,
           credentials: options.wcCredentials,
         });
         if (fetched && fetched.length > 0) {
