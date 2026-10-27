@@ -355,6 +355,7 @@ export default function DashboardPage() {
         );
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sampleRatio, rawOrders.length, dateScope, customDateRange, excludeAugust, excludePOS, computeReconciliation, dataSourceName, rawPathaoDelivery, rawReturns, rawPartials, rawExchanges]);
 
   // Fetch pre-loaded workspace dataset from local API or local cache
@@ -450,7 +451,7 @@ export default function DashboardPage() {
       setIsProcessing(false);
       setInitialLoading(false);
     }
-  }, [excludeAugust, excludePOS, computeReconciliation, dateScope, customDateRange]);
+  }, [excludeAugust, excludePOS, computeReconciliation, dateScope, customDateRange, applySampling]);
 
   // Initial mount: load saved theme, settings, session cookies, and workspace data
   const hasInitialMountedRef = useRef(false);

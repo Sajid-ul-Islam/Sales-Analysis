@@ -144,7 +144,7 @@ export async function authenticateWooCommerceUser(
         '';
 
       let extractedUsername = cleanUser;
-      let wpUserId = 'wp_user';
+      const wpUserId = 'wp_user';
 
       const match = setCookie.match(/wordpress_logged_in_[a-f0-9]+=([^%|;]+)/i);
       if (match && match[1]) {

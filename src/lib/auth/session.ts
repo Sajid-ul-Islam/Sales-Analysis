@@ -207,6 +207,7 @@ export function verifySessionTokenSync(
   try {
     const secret = getSessionSecret(customSecret);
     if (typeof Buffer !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const cryptoNode = require('crypto');
       const expectedSignature = cryptoNode
         .createHmac('sha256', secret)

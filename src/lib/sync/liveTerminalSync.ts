@@ -918,7 +918,7 @@ export async function syncLiveTerminalData(options: {
         ''
     ).trim();
     const rawPhone = row.Phone || row.phone || (row as Record<string, unknown>)['Billing Phone'] || (row as Record<string, unknown>)['Shipping Phone'] || '';
-    const cleanPhone = cleanCustomerPhone(rawPhone).displayPhone;
+    const _cleanPhone = cleanCustomerPhone(rawPhone).displayPhone;
 
     // Multi-tier Resolution Hierarchy:
     // Tier 1: Match by explicit Consignment ID
