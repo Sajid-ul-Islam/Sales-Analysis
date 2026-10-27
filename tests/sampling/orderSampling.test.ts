@@ -172,8 +172,7 @@ describe('Deterministic 15% Order Sampling Engine & Executive Auth', () => {
         assignedOutlet: 'ALL',
         authMethod: 'PASSCODE',
         sampleRate: 0.15,
-        createdAt: Math.floor(Date.now() / 1000),
-        expiresAt: Math.floor(Date.now() / 1000) + 3600
+                expiresAt: Math.floor(Date.now() / 1000) + 3600
       });
 
       const req = new NextRequest('http://localhost:3000/api/sample-data', {

@@ -429,7 +429,7 @@ export function Sidebar({
                   {user?.displayName || 'Operations Admin'}
                 </span>
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
-                  {user?.displayName?.includes('Director') ? '👑 Executive Director' : (user?.role === 'admin' || user?.role === 'ADMIN') ? '👑 Operations Admin' : user?.outletName ? `🏬 ${user.outletName}` : 'Operations Staff'}
+                  {user?.displayName?.includes('Director') ? '👑 Executive Director' : (user?.role === 'admin' ) ? '👑 Operations Admin' : user?.outletName ? `🏬 ${user.outletName}` : 'Operations Staff'}
                 </span>
               </div>
             </button>
@@ -549,7 +549,7 @@ export function Sidebar({
                       {user?.displayName || 'Operations Admin'}
                     </span>
                     <span className="text-xs text-slate-400 dark:text-slate-500 truncate">
-                      {user?.displayName?.includes('Director') ? '👑 Executive Director' : (user?.role === 'admin' || user?.role === 'ADMIN') ? '👑 Operations Admin' : user?.outletName ? `🏬 ${user.outletName}` : 'Operations Staff'}
+                      {user?.displayName?.includes('Director') ? '👑 Executive Director' : (user?.role === 'admin' ) ? '👑 Operations Admin' : user?.outletName ? `🏬 ${user.outletName}` : 'Operations Staff'}
                     </span>
                   </div>
                 </button>

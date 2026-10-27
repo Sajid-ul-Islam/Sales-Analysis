@@ -214,8 +214,7 @@ describe('Dual-Mode Authentication & Session Engine', () => {
         role: 'operator',
         assignedOutlet: 'ALL',
         authMethod: 'PASSCODE',
-        createdAt: Math.floor(Date.now() / 1000),
-        expiresAt: Math.floor(Date.now() / 1000) + 3600
+                expiresAt: Math.floor(Date.now() / 1000) + 3600
       });
 
       const req = new NextRequest('http://localhost:3000/api/auth/session', {
@@ -240,7 +239,7 @@ describe('Dual-Mode Authentication & Session Engine', () => {
 
     it('POST /api/auth/logout clears deen_session cookie with Max-Age=0', async () => {
       const req = new NextRequest('http://localhost:3000/api/auth/logout', { method: 'POST' });
-      const res = await postLogout(req);
+      const res = await postLogout();
       expect(res.status).toBe(200);
 
       const setCookie = res.headers.get('set-cookie');
@@ -259,8 +258,7 @@ describe('Dual-Mode Authentication & Session Engine', () => {
         role: 'admin',
         assignedOutlet: 'ALL',
         authMethod: 'PASSCODE',
-        createdAt: Math.floor(Date.now() / 1000),
-        expiresAt: Math.floor(Date.now() / 1000) + 3600
+                expiresAt: Math.floor(Date.now() / 1000) + 3600
       });
 
       const req = new NextRequest('http://localhost:3000/api/blob/status', {

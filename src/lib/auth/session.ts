@@ -119,7 +119,7 @@ async function getCryptoKey(secret: string): Promise<CryptoKey> {
  * Signs a session payload into a compact, tamper-proof session token.
  */
 export async function createSessionToken(
-  user: Omit<SessionUser, 'createdAt' | 'expiresAt'>,
+  user: Omit<SessionUser, 'createdAt' | 'expiresAt'> & { createdAt?: number; expiresAt?: number },
   durationSeconds: number = DEFAULT_SESSION_DURATION,
   customSecret?: string
 ): Promise<string> {

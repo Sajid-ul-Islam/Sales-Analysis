@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     let sanitizedOrders = isPrivileged ? result.orders : sanitizeOrdersResponse(result.orders);
 
     if (auth.sampleRate && auth.sampleRate < 1) {
-      const sampled = sampleDatasetSnapshot({ orders: sanitizedOrders }, auth.sampleRate);
+      const sampled = sampleDatasetSnapshot({ orders: sanitizedOrders, returns: [], partials: [], exchanges: [], pathaoDelivery: [] }, auth.sampleRate);
       sanitizedOrders = sampled.orders;
     }
 

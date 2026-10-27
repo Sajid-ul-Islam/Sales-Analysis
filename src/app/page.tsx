@@ -185,38 +185,6 @@ export default function DashboardPage() {
     return () => clearTimeout(timer);
   }, [statusMessage]);
 
-  // Reactive Executive Sampling: Samples dataset to 15% across all components
-  useEffect(() => {
-    if (sampleRatio && sampleRatio < 1 && rawOrders.length > 0) {
-      const snapshot: DatasetSnapshot = {
-        orders: rawOrders,
-        pathaoDelivery: rawPathaoDelivery,
-        returns: rawReturns,
-        partials: rawPartials,
-        exchanges: rawExchanges,
-        sourceName: dataSourceName,
-      };
-      const sampled = sampleDatasetSnapshot(snapshot, sampleRatio);
-      if (sampled.orders.length !== rawOrders.length) {
-        setRawOrders(sampled.orders);
-        setRawPathaoDelivery(sampled.pathaoDelivery);
-        setRawReturns(sampled.returns);
-        setRawPartials(sampled.partials);
-        setRawExchanges(sampled.exchanges);
-        const filtered = filterOrdersByDateScope(sampled.orders, dateScope, customDateRange);
-        computeReconciliation(
-          filtered.filteredOrders,
-          sampled.returns,
-          sampled.partials,
-          excludeAugust,
-          excludePOS,
-          sampled.exchanges,
-          sampled.pathaoDelivery
-        );
-      }
-    }
-  }, [sampleRatio, rawOrders.length, dateScope, customDateRange, excludeAugust, excludePOS, computeReconciliation, dataSourceName, rawPathaoDelivery, rawReturns, rawPartials, rawExchanges]);
-
   const [result, setResult] = useState<ReconciliationResult | null>(null);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -356,6 +324,38 @@ export default function DashboardPage() {
       setStatusMessage(`Engine error: ${errMsg}`);
     }
   }, [rawOrders.length, insideDeliveryFee, outsideDeliveryFee, packagingCost, cogsPercent, exactTolerance, metaAdCost]);
+
+  // Reactive Executive Sampling: Samples dataset to 15% across all components
+  useEffect(() => {
+    if (sampleRatio && sampleRatio < 1 && rawOrders.length > 0) {
+      const snapshot: DatasetSnapshot = {
+        orders: rawOrders,
+        pathaoDelivery: rawPathaoDelivery,
+        returns: rawReturns,
+        partials: rawPartials,
+        exchanges: rawExchanges,
+        sourceName: dataSourceName,
+      };
+      const sampled = sampleDatasetSnapshot(snapshot, sampleRatio);
+      if (sampled.orders.length !== rawOrders.length) {
+        setRawOrders(sampled.orders);
+        setRawPathaoDelivery(sampled.pathaoDelivery);
+        setRawReturns(sampled.returns);
+        setRawPartials(sampled.partials);
+        setRawExchanges(sampled.exchanges);
+        const filtered = filterOrdersByDateScope(sampled.orders, dateScope, customDateRange);
+        computeReconciliation(
+          filtered.filteredOrders,
+          sampled.returns,
+          sampled.partials,
+          excludeAugust,
+          excludePOS,
+          sampled.exchanges,
+          sampled.pathaoDelivery
+        );
+      }
+    }
+  }, [sampleRatio, rawOrders.length, dateScope, customDateRange, excludeAugust, excludePOS, computeReconciliation, dataSourceName, rawPathaoDelivery, rawReturns, rawPartials, rawExchanges]);
 
   // Fetch pre-loaded workspace dataset from local API or local cache
   const loadPreloadedBaselineData = useCallback(async (forceBypassCache = false) => {
