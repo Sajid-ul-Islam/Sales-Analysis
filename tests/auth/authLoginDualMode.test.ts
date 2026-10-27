@@ -25,7 +25,7 @@ describe('Dual-Mode Authentication & Session Engine', () => {
   });
 
   describe('1. Passcode & PIN Verification', () => {
-    it('authenticates master admin PIN (2026)', () => {
+    it('authenticates master admin PIN (2026 and Admin@2026)', () => {
       const user = verifyPasscode('2026');
       expect(user).not.toBeNull();
       expect(user?.role).toBe('admin');
@@ -33,9 +33,13 @@ describe('Dual-Mode Authentication & Session Engine', () => {
       expect(user?.username).toBe('admin');
       expect(user?.displayName).toBe('Operations Admin');
       expect(user?.assignedOutlet).toBe('ALL');
+
+      const userLabeled = verifyPasscode('Admin@2026');
+      expect(userLabeled).not.toBeNull();
+      expect(userLabeled?.role).toBe('admin');
     });
 
-    it('authenticates ops PIN (1234)', () => {
+    it('authenticates ops PIN (1234 and Ops@1234)', () => {
       const user = verifyPasscode('1234');
       expect(user).not.toBeNull();
       expect(user?.role).toBe('operator');
@@ -43,6 +47,23 @@ describe('Dual-Mode Authentication & Session Engine', () => {
       expect(user?.username).toBe('operator');
       expect(user?.displayName).toBe('Warehouse Operator');
       expect(user?.assignedOutlet).toBe('ALL');
+
+      const userLabeled = verifyPasscode('Ops@1234');
+      expect(userLabeled).not.toBeNull();
+      expect(userLabeled?.role).toBe('operator');
+    });
+
+    it('authenticates director PIN (7742 and Director@7742)', () => {
+      const user = verifyPasscode('7742');
+      expect(user).not.toBeNull();
+      expect(user?.role).toBe('admin');
+      expect(user?.username).toBe('director');
+      expect(user?.sampleRate).toBe(0.15);
+
+      const userLabeled = verifyPasscode('Director@7742');
+      expect(userLabeled).not.toBeNull();
+      expect(userLabeled?.username).toBe('director');
+      expect(userLabeled?.sampleRate).toBe(0.15);
     });
 
     it('authenticates admin passcode', () => {

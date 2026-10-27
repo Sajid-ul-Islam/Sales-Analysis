@@ -94,6 +94,26 @@ function LoginForm() {
     }
   };
 
+  // Instant 1-Click Quick PIN Login
+  const handleQuickPin = async (pinValue: string) => {
+    setPasscode(pinValue);
+    setLoading(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    const res = await loginWithPasscode(pinValue);
+    if (res.success) {
+      setSuccessMessage(res.message || 'Passcode accepted! Redirecting...');
+      setTimeout(() => {
+        router.push(redirectUrl);
+        router.refresh();
+      }, 300);
+    } else {
+      setErrorMessage(res.message || 'Invalid passcode or PIN.');
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-md mx-auto">
       {/* Brand Header */}
@@ -304,24 +324,27 @@ function LoginForm() {
               <div className="grid grid-cols-3 gap-1.5 text-xs">
                 <button
                   type="button"
-                  onClick={() => setPasscode('2026')}
-                  className="py-1.5 px-2 rounded-lg border border-slate-200 dark:border-[#222] bg-slate-50 dark:bg-[#121212] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1A1A1A] transition-colors text-left flex flex-col gap-0.5"
+                  onClick={() => handleQuickPin('2026')}
+                  className="py-1.5 px-2 rounded-lg border border-slate-200 dark:border-[#222] bg-slate-50 dark:bg-[#121212] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1A1A1A] transition-colors text-left flex flex-col gap-0.5 cursor-pointer active:scale-95"
+                  title="Click to sign in instantly as Operations Admin"
                 >
                   <span className="font-semibold text-[11px] truncate">👑 Admin</span>
                   <span className="font-mono text-slate-400 text-[10px]">Admin@2026</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPasscode('7742')}
-                  className="py-1.5 px-2 rounded-lg border border-slate-200 dark:border-[#222] bg-slate-50 dark:bg-[#121212] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1A1A1A] transition-colors text-left flex flex-col gap-0.5"
+                  onClick={() => handleQuickPin('7742')}
+                  className="py-1.5 px-2 rounded-lg border border-slate-200 dark:border-[#222] bg-slate-50 dark:bg-[#121212] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1A1A1A] transition-colors text-left flex flex-col gap-0.5 cursor-pointer active:scale-95"
+                  title="Click to sign in instantly as Executive Director (15% sample view)"
                 >
                   <span className="font-semibold text-[11px] truncate">👔 Director</span>
                   <span className="font-mono text-slate-400 text-[10px]">Director@7742</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPasscode('1234')}
-                  className="py-1.5 px-2 rounded-lg border border-slate-200 dark:border-[#222] bg-slate-50 dark:bg-[#121212] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1A1A1A] transition-colors text-left flex flex-col gap-0.5"
+                  onClick={() => handleQuickPin('1234')}
+                  className="py-1.5 px-2 rounded-lg border border-slate-200 dark:border-[#222] bg-slate-50 dark:bg-[#121212] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1A1A1A] transition-colors text-left flex flex-col gap-0.5 cursor-pointer active:scale-95"
+                  title="Click to sign in instantly as Warehouse Operator"
                 >
                   <span className="font-semibold text-[11px] truncate">📦 Ops</span>
                   <span className="font-mono text-slate-400 text-[10px]">Ops@1234</span>
