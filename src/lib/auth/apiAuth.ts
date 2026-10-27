@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { verifySessionTokenSync, SESSION_COOKIE_NAME } from './session';
 
 export type AuthRole = 'admin' | 'operator' | 'demo' | 'readonly';
 
@@ -94,7 +95,32 @@ export function validateApiRequest(
     };
   }
 
-  // 4. Handle Demo mode if explicitly requested
+    // 4. Check for deen_session cookie if no valid Bearer token provided
+  const cookieHeader = req.headers.get('cookie') || '';
+  if (cookieHeader.includes(`${SESSION_COOKIE_NAME}=`)) {
+    const match = cookieHeader.match(new RegExp(`${SESSION_COOKIE_NAME}=([^;]+)`));
+    if (match && match[1]) {
+      const sessionUser = verifySessionTokenSync(match[1].trim());
+      if (sessionUser) {
+        if (requiredRole === 'admin' && sessionUser.role !== 'admin') {
+          return {
+            authenticated: false,
+            role: sessionUser.role,
+            statusCode: 403,
+            message: 'Forbidden: Admin role required for this action.',
+          };
+        }
+        return {
+          authenticated: true,
+          role: sessionUser.role,
+          statusCode: 200,
+          message: `Authenticated as ${sessionUser.role} via session cookie.`,
+        };
+      }
+    }
+  }
+
+  // 5. Handle Demo mode if explicitly requested
   if (allowDemo) {
     // If the endpoint requires operator or admin privileges, demo role is strictly forbidden!
     if (requiredRole === 'operator' || requiredRole === 'admin') {

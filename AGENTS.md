@@ -122,3 +122,13 @@ Refer to detailed rules in [.agents/rules/order_rules.md](.agents/rules/order_ru
 * **Interactive Size / Height Adjuster**: The chart header features an interactive size control (`Auto`, `Mid`, `Tall`, `Max`, plus `-` / `+` steppers in 30px increments), persisting the user's view preference in `localStorage` (`deen_bar_chart_size_mode`, `deen_bar_chart_custom_height`).
 * **Visual Hierarchy & Overhead Labels**: The highest bar is crowned with a prominent indicator (`👑 {units} un`) and top glow. All bars render explicit overhead item counts when idle, seamlessly transitioning to detailed stack tooltips on hover.
 
+### 11. Dual-Mode Authentication & Multi-Branch Staff SSO Engine
+* **Dual Login Paradigms**:
+  - **Mode A (WooCommerce / WordPress Staff SSO)**: Direct authentication via `https://deencommerce.com/wp-login.php` or `/wp/v2/users/me` with automatic role and outlet resolution (Mirpur Outlet ID 2 / Cashier 3, Cumilla Outlet 7 / Cashier 35, Wari Outlet 8 / Cashier 69, Sylhet Outlet 9 / Cashier 572, Administrator).
+  - **Mode B (Master Passcode & Quick PIN Gate)**: Rapid ops floor access using constant-time verified environment secrets (`AUTH_ADMIN_PIN: 2026`, `AUTH_OPS_PIN: 1234`, `AUTH_ADMIN_PASSCODE`, `AUTH_OPS_PASSCODE`).
+* **Cryptographic Session Tokens**: Edge-compatible HMAC-SHA256 tokens (`deen_session`) signed via Web Crypto `SubtleCrypto` in Edge Middleware and verified synchronously via Node crypto in API routes.
+* **HttpOnly Session Cookies**: Tokens stored in strict `HttpOnly`, `SameSite=Lax`, `Path=/` cookies with 7-day TTL (`604800` seconds).
+* **Edge Route Protection (`src/middleware.ts`)**: All UI views (`/`) and internal mutation/data APIs (`/api/*`) strictly require authenticated sessions, redirecting unauthenticated users to `/login?redirect=...` and authenticated sessions away from `/login`. Public endpoints (`/api/auth/*`, `/api/sync/pathao/webhook`, static assets) remain accessible without session.
+* **Dual-Redundant API Backward Compatibility**: API endpoints accept both existing `Bearer` tokens (`API_BEARER_TOKEN`, `SYNC_API_TOKEN`) and user session cookies (`deen_session`), ensuring zero disruption to automated cron jobs, webhooks, or test harnesses.
+
+

@@ -389,3 +389,13 @@ When orders are synced via WooCommerce REST API, tracking consignment numbers ar
 - **Synchronized Symmetrical Layout**: Donut chart and bar chart cards adapt synchronously to `resolvedCardMinHeight` in `grid grid-cols-1 lg:grid-cols-2 items-stretch`.
 - **Overhead Count Labels**: Peak bar features a crowned `👑 {units}` indicator with subtle drop-shadow glow, and all bars display idle volume counts without requiring hover interaction.
 
+### 11. Dual-Mode Authentication & Multi-Branch Staff SSO Engine
+- **Dual Login Paradigms**:
+  1. **Mode A (WooCommerce / WordPress Staff SSO)**: Direct authentication against `https://deencommerce.com/wp-login.php` (form authentication with session cookie verification) or `/wp/v2/users/me` with Basic/Application passwords. Automatically maps outlet cashiers (Mirpur Outlet ID 2 / Cashier 3, Cumilla Outlet 7 / Cashier 35, Wari Outlet 8 / Cashier 69, Sylhet Outlet 9 / Cashier 572) and administrators to corresponding roles (`admin`, `operator`, `readonly`) and assigned physical outlets.
+  2. **Mode B (Master Passcode & Quick PIN Gate)**: Rapid ops floor access using constant-time verified environment secrets (`AUTH_ADMIN_PIN: 2026`, `AUTH_OPS_PIN: 1234`, `AUTH_ADMIN_PASSCODE`, `AUTH_OPS_PASSCODE`, `AUTH_VIEWER_PASSCODE`).
+- **Cryptographic Session Tokens (`src/lib/auth/session.ts`)**: Universal HMAC-SHA256 tokens using the Web Crypto API (`crypto.subtle`) for native Next.js Edge Middleware compatibility, and synchronous Node crypto (`verifySessionTokenSync`) for App Router route handlers.
+- **HttpOnly Cookies**: Emits `deen_session` cookie (`HttpOnly; SameSite=Lax; Path=/`) with a 7-day default duration or 30 days when Remember Me is enabled.
+- **Edge Middleware Route Protection (`src/middleware.ts`)**: Evaluates all incoming page and API requests. Unauthenticated UI visitors are redirected to `/login?redirect=...`. Authenticated visits to `/login` are automatically forwarded to `/`.
+- **Dual-Redundant API Auth Backwards Compatibility (`src/lib/auth/apiAuth.ts`)**: Accepts either explicit `Bearer` API tokens (`API_BEARER_TOKEN`, `SYNC_API_TOKEN`) or valid `deen_session` cookies, preserving 100% interoperability with background cron jobs and automated webhooks.
+
+

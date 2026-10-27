@@ -19,10 +19,12 @@ import {
   User,
   Activity,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  LogOut
 } from 'lucide-react';
 
 import { DeenLogo, DeenLogoMark } from './DeenLogo';
+import { useAuth } from '@/context/AuthContext';
 
 export interface SidebarProps {
   activeTab: string;
@@ -63,6 +65,7 @@ export function Sidebar({
   onToggleCollapse: propOnToggleCollapse
 }: SidebarProps) {
   // Internal collapse state with localStorage persistence
+  const { user, logout } = useAuth();
   const [internalCollapsed, setInternalCollapsed] = useState<boolean>(false);
 
   useEffect(() => {
@@ -410,24 +413,36 @@ export function Sidebar({
 
         {/* Desktop Account & Settings Footer */}
         <div className="p-3 border-t border-slate-200 dark:border-[#1F1F1F] shrink-0">
-          <button
-            type="button"
-            onClick={() => handleItemClick('tabSettings')}
-            className="w-full min-h-[44px] flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-[#161616] cursor-pointer transition-colors group text-left focus:outline-none focus:ring-2 focus:ring-primary/40"
-            title="Open System Settings & Custom Themes"
-          >
-            <div className="relative w-8 h-8 rounded-full bg-slate-100 dark:bg-[#121212] border border-slate-200 dark:border-[#262626] flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-xs shrink-0 group-hover:border-primary/50 group-hover:bg-orange-50 dark:group-hover:bg-orange-950/40 group-hover:text-primary transition-all">
-              <User className="w-4 h-4" />
-              <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-black" />
-            </div>
-            <div className="flex flex-col min-w-0 flex-1">
-              <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate group-hover:text-primary transition-colors">
-                Operations Admin
-              </span>
-              <span className="text-[10px] text-slate-400 dark:text-slate-400 truncate">Settings & Themes</span>
-            </div>
-            <Settings className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors shrink-0" />
-          </button>
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-50 dark:bg-[#0A0A0A] border border-slate-200 dark:border-[#1F1F1F]">
+            <button
+              type="button"
+              onClick={() => handleItemClick('tabSettings')}
+              className="flex-1 min-h-[38px] flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-slate-200/50 dark:hover:bg-[#161616] cursor-pointer transition-colors group text-left focus:outline-none focus:ring-2 focus:ring-primary/40 min-w-0"
+              title="Open System Settings & Custom Themes"
+            >
+              <div className="relative w-8 h-8 rounded-full bg-slate-200 dark:bg-[#141414] border border-slate-300 dark:border-[#262626] flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-xs shrink-0 group-hover:border-primary/50 group-hover:text-primary transition-all">
+                <User className="w-4 h-4" />
+                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-black" />
+              </div>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate group-hover:text-primary transition-colors">
+                  {user?.displayName || 'Operations Admin'}
+                </span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
+                  {user?.role === 'ADMIN' ? '👑 Admin' : user?.outletName ? `🏬 ${user.outletName}` : 'Store Staff'}
+                </span>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer shrink-0"
+              title="Log Out of System"
+              aria-label="Log Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -519,23 +534,35 @@ export function Sidebar({
 
             {/* Drawer Account / Settings Footer (Safe Area padded) */}
             <div className="p-3 border-t border-slate-200 dark:border-[#1F1F1F] shrink-0 pb-[max(0.875rem,env(safe-area-inset-bottom,0px))]">
-              <button
-                type="button"
-                onClick={() => handleItemClick('tabSettings')}
-                className="w-full min-h-[48px] flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-[#161616] transition-colors cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-primary/40"
-              >
-                <div className="relative w-9 h-9 rounded-full bg-slate-100 dark:bg-[#121212] border border-slate-200 dark:border-[#262626] flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-sm shrink-0">
-                  <User className="w-5 h-5" />
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-black" />
-                </div>
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
-                    Operations Admin
-                  </span>
-                  <span className="text-xs text-slate-400 dark:text-slate-400 truncate">Settings & Themes</span>
-                </div>
-                <Settings className="w-5 h-5 text-slate-400 shrink-0" />
-              </button>
+              <div className="flex items-center gap-2 p-1.5 rounded-xl bg-slate-50 dark:bg-[#0A0A0A] border border-slate-200 dark:border-[#1F1F1F]">
+                <button
+                  type="button"
+                  onClick={() => handleItemClick('tabSettings')}
+                  className="flex-1 min-h-[44px] flex items-center gap-3 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-[#161616] transition-colors cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-primary/40 min-w-0"
+                >
+                  <div className="relative w-9 h-9 rounded-full bg-slate-200 dark:bg-[#121212] border border-slate-300 dark:border-[#262626] flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-sm shrink-0">
+                    <User className="w-5 h-5" />
+                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-black" />
+                  </div>
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                      {user?.displayName || 'Operations Admin'}
+                    </span>
+                    <span className="text-xs text-slate-400 dark:text-slate-500 truncate">
+                      {user?.role === 'ADMIN' ? '👑 Admin' : user?.outletName ? `🏬 ${user.outletName}` : 'Store Staff'}
+                    </span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => logout()}
+                  className="p-2.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer shrink-0"
+                  title="Log Out of System"
+                  aria-label="Log Out"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

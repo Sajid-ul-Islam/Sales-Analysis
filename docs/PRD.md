@@ -291,3 +291,10 @@ To guarantee a best-in-class merchant and auditor experience across Desktop, Tab
 - **Adjustable Size Controls**: Real-time user sizing controls (`Auto`, `Mid`, `Tall`, `Max`, and `+`/`-` fine-tuning steppers) with localStorage persistence.
 - **Visual Intelligence**: Overhead volume counts rendered directly above all bars with a crowned badge (`👑`) on the highest-performing category.
 
+### 4.11 Dual-Mode Authentication & Multi-Branch Staff SSO Engine
+- **Purpose**: Secure access to the reconciliation dashboard with granular outlet scoping while offering rapid ops floor access for warehouse packers and cashiers.
+- **Mode A: WooCommerce / WordPress Staff SSO**: Allows store managers and branch cashiers to log in using their official store credentials. Cashier IDs automatically map to their physical retail branch (Mirpur Outlet 2 / Cashier 3, Cumilla Branch 7 / Cashier 35, Wari Branch 8 / Cashier 69, Sylhet Branch 9 / Cashier 572).
+- **Mode B: Master Passcode & Quick PIN Gate**: Single-field master passcode or quick numeric PIN (`👑 2026` for Operations Admin, `📦 1234` for Dispatch Operators) enabling friction-free sign-in on warehouse packing tablets.
+- **Session Security & Edge Protection**: Cryptographic HMAC-SHA256 session tokens (`deen_session`) stored in `HttpOnly`, `SameSite=Lax` cookies, protected by Next.js Edge Middleware route guarding with zero unauthorized data exposure.
+
+
