@@ -354,13 +354,17 @@ export interface OrderWiseGroup {
 }
 ```
 
-### 10.2 WooCommerce Pathao Courier Plugin Metadata Extraction
-When orders are synced via WooCommerce REST API, tracking consignment numbers are extracted through a 5-tier waterfall:
+### 10.2 WooCommerce Pathao Courier Plugin Metadata Extraction & Consignment Isolation
+When orders are synced via WooCommerce REST API, tracking consignment numbers are extracted through a strict 4-tier waterfall:
 1. `order.meta_data["ptc_consignment_id"]` (Standard Pathao Courier WooCommerce plugin).
 2. `order.meta_data["_ptc_consignment_id"]` (Hidden meta key variant).
 3. Courier merchant notes: regex extraction of URLs matching `merchant.pathao.com/courier/orders/(RD[A-Z0-9]+)`.
-4. Standard shipping tracking items: `order.meta_data["_wc_shipment_tracking_items"]`.
-5. Direct tracking number properties (`tracking_code`, `tracking_number`).
+4. Direct tracking properties on the specific order (`tracking_code`, `tracking_number`, `_wc_shipment_tracking_items`).
+
+**Strict Consignment-to-Order Isolation Invariant**:
+- Courier tracking codes and statuses are NEVER resolved by customer phone number.
+- Customer phone numbers represent the customer's identity across lifetime orders (used solely for Customer Delivery Rating & Store History Index in `src/lib/customerRating.ts`), NEVER for linking a parcel shipment.
+- Repeat orders in `processing` status that have not yet been dispatched by the warehouse must remain `Untracked` with empty consignment ID, preventing false matches against past orders and false `DELIVERED_BUT_PROCESSING` alerts.
 
 ### 10.3 Pathao B2B Client Credentials Grant
 - Supports B2B external client login (`POST /aladdin/api/v1/external/login`) with `client_id` + `client_secret` (90-day long-lived tokens).

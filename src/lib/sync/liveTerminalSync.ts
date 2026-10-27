@@ -934,15 +934,13 @@ export async function syncLiveTerminalData(options: {
       tracking = courierTrackingMap[`oid_${baseOid}`];
     }
 
-    // Tier 4: Match by Customer Phone Number (pick latest Pathao order for this customer)
-    if (!tracking && cleanPhone && phoneTrackingMap.has(cleanPhone)) {
-      const candidates = phoneTrackingMap.get(cleanPhone)!;
-      if (candidates.length > 0) {
-        tracking = candidates[0];
-      }
-    }
+    // STRICT INVARIANT: Consignment tracking and parcel delivery status MUST NEVER be matched
+    // by customer phone number! A customer's phone number represents their personal identity across
+    // lifetime orders, NOT a specific parcel shipment. New or repeat orders (e.g., in 'processing')
+    // must remain 'Untracked' until dispatched, and must NEVER inherit a previous order's consignment
+    // or trigger false 'DELIVERED_BUT_PROCESSING' discrepancies.
 
-    // Tier 5: Fallback to Pathao status and fee stored in WooCommerce order metadata
+    // Tier 4: Fallback to Pathao status and fee stored in WooCommerce order metadata
     const rawPathaoStatus = String(row.pathaoStatus || (row as Record<string, unknown>)['Pathao Status'] || '');
     const rawPathaoFee = parseFloat(String(row.pathaoDeliveryFee || (row as Record<string, unknown>)['Pathao Delivery Fee'] || 0)) || 0;
     if (!tracking && rawPathaoStatus && rawPathaoStatus !== '-' && rawPathaoStatus !== 'null') {

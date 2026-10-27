@@ -302,14 +302,15 @@ describe('Live Terminal Synchronization & Courier Reconciliation Engine', () => 
       expect(enrichedOrder?.['Courier Status']).toBe('Returned');
     });
 
-    it('resolves consignment tracking by customer phone when order ID mismatches', async () => {
-      // Order ID is completely different, but phone number matches baseline Pathao record (1952700500)
+    it('does not falsely link past customer consignments by phone to new unconsigned orders', async () => {
+      // Order ID is unconsigned and in processing. Even if phone number matches a past Pathao record,
+      // it must remain Untracked to prevent false 'DELIVERED_BUT_PROCESSING' discrepancies.
       const mockOrders = [
         {
-          'Order ID': 'MISMATCH-99999',
-          orderId: 'MISMATCH-99999',
-          'Order Date': '2026-10-15 10:30',
-          'Customer Name': 'Deen Customer',
+          'Order ID': '18914',
+          orderId: '18914',
+          'Order Date': '2026-10-27 10:30',
+          'Customer Name': 'Repeat Customer',
           Phone: '01952700500',
           'Item Name': 'DEEN Apparel Item',
           SKU: 'GEN-001',
@@ -328,10 +329,11 @@ describe('Live Terminal Synchronization & Courier Reconciliation Engine', () => 
       });
 
       expect(result.success).toBe(true);
-      const enrichedOrder = result.orders.find((o) => o['Order ID'] === 'MISMATCH-99999');
+      const enrichedOrder = result.orders.find((o) => o['Order ID'] === '18914');
       expect(enrichedOrder).toBeDefined();
-      expect(enrichedOrder?.consignmentId).toBe('RD260926A2ADZ2');
-      expect(enrichedOrder?.['Courier Status']).toBe('Returned');
+      expect(enrichedOrder?.consignmentId).toBe('');
+      expect(enrichedOrder?.['Courier Status']).toBe('Untracked');
+      expect(enrichedOrder?.hasDiscrepancy).toBe(false);
     });
 
     it('selects the latest Pathao order when multiple orders exist for the same customer phone', () => {
