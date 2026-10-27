@@ -16,7 +16,6 @@ import {
   Loader2,
   CheckCircle2,
   ArrowRight,
-  Store,
 } from 'lucide-react';
 
 function LoginForm() {
@@ -88,26 +87,6 @@ function LoginForm() {
         router.push(redirectUrl);
         router.refresh();
       }, 500);
-    } else {
-      setErrorMessage(res.message || 'Invalid passcode or PIN.');
-      setLoading(false);
-    }
-  };
-
-  // Instant 1-Click Quick PIN Login
-  const handleQuickPin = async (pinValue: string) => {
-    setPasscode(pinValue);
-    setLoading(true);
-    setErrorMessage(null);
-    setSuccessMessage(null);
-
-    const res = await loginWithPasscode(pinValue);
-    if (res.success) {
-      setSuccessMessage(res.message || 'Passcode accepted! Redirecting...');
-      setTimeout(() => {
-        router.push(redirectUrl);
-        router.refresh();
-      }, 300);
     } else {
       setErrorMessage(res.message || 'Invalid passcode or PIN.');
       setLoading(false);
@@ -274,13 +253,6 @@ function LoginForm() {
                 </>
               )}
             </button>
-
-            <div className="pt-2 text-center">
-              <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-center gap-1">
-                <Store className="w-3.5 h-3.5 text-slate-400" />
-                <span>Mirpur, Cumilla, Wari & Sylhet Cashiers Supported</span>
-              </div>
-            </div>
           </form>
         )}
 
@@ -316,42 +288,6 @@ function LoginForm() {
               </div>
             </div>
 
-            {/* Quick PIN Quick-Click Buttons */}
-            <div className="space-y-1.5 pt-1">
-              <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">
-                Quick Preset Shortcuts:
-              </span>
-              <div className="grid grid-cols-3 gap-1.5 text-xs">
-                <button
-                  type="button"
-                  onClick={() => handleQuickPin('2026')}
-                  className="py-1.5 px-2 rounded-lg border border-slate-200 dark:border-[#222] bg-slate-50 dark:bg-[#121212] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1A1A1A] transition-colors text-left flex flex-col gap-0.5 cursor-pointer active:scale-95"
-                  title="Click to sign in instantly as Operations Admin"
-                >
-                  <span className="font-semibold text-[11px] truncate">👑 Admin</span>
-                  <span className="font-mono text-slate-400 text-[10px]">Admin@2026</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickPin('7742')}
-                  className="py-1.5 px-2 rounded-lg border border-slate-200 dark:border-[#222] bg-slate-50 dark:bg-[#121212] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1A1A1A] transition-colors text-left flex flex-col gap-0.5 cursor-pointer active:scale-95"
-                  title="Click to sign in instantly as Executive Director (15% sample view)"
-                >
-                  <span className="font-semibold text-[11px] truncate">👔 Director</span>
-                  <span className="font-mono text-slate-400 text-[10px]">Director@7742</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickPin('1234')}
-                  className="py-1.5 px-2 rounded-lg border border-slate-200 dark:border-[#222] bg-slate-50 dark:bg-[#121212] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1A1A1A] transition-colors text-left flex flex-col gap-0.5 cursor-pointer active:scale-95"
-                  title="Click to sign in instantly as Warehouse Operator"
-                >
-                  <span className="font-semibold text-[11px] truncate">📦 Ops</span>
-                  <span className="font-mono text-slate-400 text-[10px]">Ops@1234</span>
-                </button>
-              </div>
-            </div>
-
             <button
               type="submit"
               disabled={loading}
@@ -375,7 +311,7 @@ function LoginForm() {
 
       {/* Footer Info */}
       <div className="text-center mt-6 text-[11px] text-slate-400 dark:text-slate-500">
-        <p>DEEN Commerce Analytics Platform • Encrypted HMAC-SHA256 Sessions</p>
+        <p>DEEN Commerce • Reconciliation & Operations Terminal • Encrypted HMAC-SHA256 Sessions</p>
       </div>
     </div>
   );

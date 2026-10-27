@@ -27,8 +27,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'DEEN Commerce | Sales & Return Reconciliation Engine',
-  description: 'Next.js 14 Enterprise Multi-Carrier Reconciliation & Knapsack DP Partial Item Matching Engine for DEEN Commerce',
+  title: 'DEEN Commerce | Reconciliation & Operations Terminal',
+  description: 'Enterprise Multi-Carrier Reconciliation & Real-Time Operations Terminal for DEEN Commerce',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,

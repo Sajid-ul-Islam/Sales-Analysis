@@ -36,11 +36,11 @@ export function DeenLogo({
       <DeenLogoMark className={markDimensions} />
       {showText && (
         <div className="flex flex-col">
-          <span className="font-headline font-black text-sm tracking-tight text-slate-900 leading-none">
+          <span className="font-headline font-black text-sm tracking-tight text-slate-900 dark:text-white leading-none">
             DEEN COMMERCE
           </span>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
-            Sales & Growth
+          <span className="text-[10px] font-bold text-primary dark:text-orange-400 uppercase tracking-wider mt-0.5">
+            Operations Terminal
           </span>
         </div>
       )}
