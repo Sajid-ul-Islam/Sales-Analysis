@@ -27,13 +27,14 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({}));
     const { mode, passcode, username, password, rememberMe } = body;
+    const normalizedMode = typeof mode === 'string' ? mode.toUpperCase().trim() : undefined;
 
     let user: SessionUser | null = null;
     const isRememberMe = Boolean(rememberMe);
     const duration = isRememberMe ? REMEMBER_ME_DURATION : DEFAULT_SESSION_DURATION;
 
     // 2. Mode A: Passcode / PIN Login
-    if (mode === 'PASSCODE' || (!mode && passcode)) {
+    if (normalizedMode === 'PASSCODE' || (!normalizedMode && passcode)) {
       if (!passcode || typeof passcode !== 'string') {
         return NextResponse.json(
           { success: false, message: 'Passcode or PIN is required.' },
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
       }
     }
     // 3. Mode B: WooCommerce / WordPress Staff Login
-    else if (mode === 'WOOCOMMERCE' || (!mode && username && password)) {
+    else if (normalizedMode === 'WOOCOMMERCE' || (!normalizedMode && username && password)) {
       if (!username || !password) {
         return NextResponse.json(
           { success: false, message: 'WordPress username and password are required.' },

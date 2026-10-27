@@ -282,26 +282,6 @@ export function LiveVolumeBarChart({
                   />
                 )}
 
-                {/* Overhead Value Label (Visible on top of bars when not hovered) */}
-                {!isHovered && totalVol > 0 && (
-                  <g pointerEvents="none" className="transition-opacity duration-200">
-                    <text
-                      x={x + barWidth / 2}
-                      y={Math.min(selY, regY) - 7}
-                      textAnchor="middle"
-                      dominantBaseline="auto"
-                      fontSize={isFullWidth || isModal ? (isHighestBar ? '12.5' : '11.5') : (isHighestBar ? '12' : '11')}
-                      fontWeight={isHighestBar ? '900' : 'bold'}
-                      className={
-                        isHighestBar
-                          ? 'fill-rose-600 dark:fill-rose-400 font-headline'
-                          : 'fill-slate-600 dark:fill-slate-300 font-headline'
-                      }
-                    >
-                      {isHighestBar ? `👑 ${totalVol}` : totalVol}
-                    </text>
-                  </g>
-                )}
 
                 {/* Overhead Floating Volume Pill Badge (Smoothly appears on hover) */}
                 <g

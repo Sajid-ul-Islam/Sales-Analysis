@@ -1,4 +1,3 @@
-import alasql from 'alasql';
 import { RawOrderRow, ReconciledOrderRow } from '@/types';
 import { classifyProductCategory } from '@/lib/reconciliationEngine';
 import { getCategoryForSales } from '@/lib/liveCategoryEngine';
@@ -233,7 +232,9 @@ export function executeInMemorySql(
     const sanitizedQuery = sanitizeSqlLimit(sqlQuery, 50);
     const normalizedData = normalizeRowsForSql(orders);
 
-    // Initialize AlaSQL in-memory database instance
+    // Initialize AlaSQL in-memory database instance dynamically
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const alasql = require('alasql');
     const db = new alasql.Database();
     db.exec('CREATE TABLE orders');
     (db.tables as Record<string, { data?: unknown[] }>).orders.data = normalizedData;

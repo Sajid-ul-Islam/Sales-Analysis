@@ -46,12 +46,6 @@ import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 import { getTabContext } from '@/lib/ai/contextualPrompts';
 import { detectAgenticIntent } from '@/lib/ai/agenticActions';
 import { AgenticActionProposal } from '@/types';
-import {
-  executeInMemorySql,
-  detectDirectSql,
-  detectAnalyticalSqlIntent,
-  formatSqlResultToMarkdownTable,
-} from '@/lib/ai/sqlEngine';
 
 interface CopilotDrawerProps {
   isOpen: boolean;
@@ -193,53 +187,6 @@ export function CopilotDrawer({
     setInputQuery('');
     setIsLoading(true);
 
-    // 1. Direct In-Memory SQL Execution Check
-    const directSql = detectDirectSql(q);
-    if (directSql && orderPool.length > 0) {
-      const sqlResult = executeInMemorySql(directSql, orderPool);
-      const tableMarkdown = formatSqlResultToMarkdownTable(sqlResult);
-
-      const botMsg: CopilotChatMessage = {
-        id: `bot-sql-${Date.now()}`,
-        sender: 'assistant',
-        text: sqlResult.success
-          ? `### ⚡ SQL Query Results\n${tableMarkdown}\n\n*Executed in ${sqlResult.executionTimeMs}ms across ${orderPool.length.toLocaleString()} in-memory records.*`
-          : `### ❌ SQL Execution Error\n${tableMarkdown}\n\n*Error: ${sqlResult.error || 'Query failed'}. Note: Only read-only SELECT queries are allowed.*`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        source: 'sql_in_memory',
-        appliedRules: ['In-Memory SQL Execution Engine'],
-        sqlMeta: {
-          query: sqlResult.query,
-          rowCount: sqlResult.rowCount,
-          executionTimeMs: sqlResult.executionTimeMs,
-          columns: sqlResult.columns,
-          error: sqlResult.error,
-        },
-      };
-
-      const finalMessages = [...updatedWithUser, botMsg];
-      setMessages(finalMessages);
-      saveChatHistory(finalMessages);
-      setIsLoading(false);
-      return;
-    }
-
-    // 2. Analytical Intent SQL Pre-Execution (Client-side grounding)
-    let clientSqlExecution: { query: string; result: ReturnType<typeof executeInMemorySql>; markdownTable: string } | undefined = undefined;
-    const analyticalSql = detectAnalyticalSqlIntent(q);
-    if (analyticalSql && orderPool.length > 0) {
-      try {
-        const clientSqlResult = executeInMemorySql(analyticalSql, orderPool);
-        if (clientSqlResult.success) {
-          clientSqlExecution = {
-            query: analyticalSql,
-            result: clientSqlResult,
-            markdownTable: formatSqlResultToMarkdownTable(clientSqlResult),
-          };
-        }
-      } catch {}
-    }
-
     const detectedAction = reconciliationResult ? detectAgenticIntent(q, reconciliationResult) : null;
 
     try {
@@ -256,7 +203,7 @@ export function CopilotDrawer({
           tabLabel: currentContext.label,
           pageContext: currentContext.summaryFocus,
           analyticsSlices,
-          sqlExecution: clientSqlExecution,
+          orders: orderPool && orderPool.length > 0 ? orderPool.slice(0, 3000) : undefined,
         })
       });
 
@@ -271,47 +218,22 @@ export function CopilotDrawer({
         source: data?.source || 'ai',
         appliedRules: data?.appliedRules || [],
         agenticAction: detectedAction || data?.agenticAction,
-        sqlMeta: data?.sqlMeta || (clientSqlExecution ? {
-          query: clientSqlExecution.result.query,
-          rowCount: clientSqlExecution.result.rowCount,
-          executionTimeMs: clientSqlExecution.result.executionTimeMs,
-          columns: clientSqlExecution.result.columns,
-        } : undefined),
+        sqlMeta: data?.sqlMeta,
       };
 
       const finalMessages = [...updatedWithUser, botMsg];
       setMessages(finalMessages);
       saveChatHistory(finalMessages);
     } catch {
-      if (clientSqlExecution) {
-        const botMsg: CopilotChatMessage = {
-          id: `bot-offline-sql-${Date.now()}`,
-          sender: 'assistant',
-          text: `### ⚡ In-Memory SQL Query Analysis (Client Offline Fallback)\n${clientSqlExecution.markdownTable}\n\n*Executed locally in ${clientSqlExecution.result.executionTimeMs}ms across ${orderPool.length.toLocaleString()} records.*`,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          source: 'sql_in_memory',
-          appliedRules: ['In-Memory SQL Execution Engine (Offline)'],
-          sqlMeta: {
-            query: clientSqlExecution.result.query,
-            rowCount: clientSqlExecution.result.rowCount,
-            executionTimeMs: clientSqlExecution.result.executionTimeMs,
-            columns: clientSqlExecution.result.columns,
-          },
-        };
-        const finalMessages = [...updatedWithUser, botMsg];
-        setMessages(finalMessages);
-        saveChatHistory(finalMessages);
-      } else {
-        const errMsg: CopilotChatMessage = {
-          id: `bot-err-${Date.now()}`,
-          sender: 'assistant',
-          text: 'Network error communicating with AI server. Please verify your connection or API key.',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        const finalMessages = [...updatedWithUser, errMsg];
-        setMessages(finalMessages);
-        saveChatHistory(finalMessages);
-      }
+      const errMsg: CopilotChatMessage = {
+        id: `bot-err-${Date.now()}`,
+        sender: 'assistant',
+        text: 'Network error communicating with AI server. Please verify your connection or API key.',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      const finalMessages = [...updatedWithUser, errMsg];
+      setMessages(finalMessages);
+      saveChatHistory(finalMessages);
     } finally {
       setIsLoading(false);
     }
