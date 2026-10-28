@@ -42,9 +42,10 @@
 | 18 | Universal Date Range Engine | Global temporal filter across all 12 modules with period comparison math ($\Delta \%$) | E3 | Overall Experience |
 | 19 | Table Ergonomics & Density | Selectable table density (Compact / Standard / Relaxed) and column visibility customization | E4 | Overall Experience |
 | 20 | Order-Wise Dispatched Ledger | Default consolidated master order rows, multi-item badges (`+X more`), nested breakdowns, and view toggle | M8 | ORIGINAL_REQUEST |
-| 21 | Pathao Customer Delivery Rating | Dual-tier phone rating intelligence via Pathao B2B success API & store history fallback | M8 | ORIGINAL_REQUEST |
-| 22 | WooCommerce Pathao Plugin Extraction | Auto-harvesting of `ptc_consignment_id`, `_ptc_consignment_id`, and tracking links | M8 | ORIGINAL_REQUEST |
-| 23 | Split-Screen Sales Volume Charts | Maximized side-by-side split screen (Donut + Subcategory volume, 7D avg removed) | M8 | ORIGINAL_REQUEST |
+| 24 | Month-End Net Sales Close Report (.xlsx) | Robust 7-sheet financial and operational close workbook with auto-fit column formatting | M9 | ORIGINAL_REQUEST |
+| 25 | Authenticated Operator Profile in Settings | Section 0 user avatar, role badge, assigned outlet, 8-point permission checklist, session security telemetry | M10 | ORIGINAL_REQUEST |
+| 26 | Cloud Sync & Omnichannel Hub in Settings | Relocated from Executive Overview to Settings Section 0.5 to keep Executive Overview clean | M10 | ORIGINAL_REQUEST |
+| 27 | AI Assistant Search & Header Integration | Inline Ask AI button, Enter trigger, ⌘J shortcut, dynamic command palette routing, and Copilot auto-execution | M11 | ORIGINAL_REQUEST |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
@@ -57,10 +58,13 @@
 | M6 | Live Operations & Real-Time Sync | WooCommerce REST batch sync, Pathao Hermes live tracking, status modification tracking, pack queue, 7D rolling baseline | None | COMPLETED |
 | M7 | AI Assistant Live Ops Integration | Ground DEEN Assistant in real-time orders, courier telemetry, 7D baseline, offline heuristics fallback, agentic tags | M6 | COMPLETED |
 | M8 | Order-Wise Ledger & Customer Rating Engine | Default Order-Wise dispatched ledger, expandable nested line items, dual-tier Pathao customer ratings, plugin metadata extraction, and maximized split charts | M6, M7 | COMPLETED |
-| E1 | Command Palette (`Cmd + K`) | Universal modal search across tabs, orders, customers, SKUs, and quick actions with keyboard shortcuts | None | IN PROGRESS |
-| E2 | Live Sync Notification Center | Floating toast alert pipeline for background sync events (new orders, courier updates, discrepancies) | M6 | PLANNED |
-| E3 | Universal Date Range Engine | Header date range bar applying across all 12 modules with period comparison deltas | None | PLANNED |
-| E4 | Table Density & Virtualization | Display density switcher (Compact/Standard/Relaxed), column visibility, and high-performance virtual windowing | M2 | PLANNED |
+| E1 | Command Palette (`Cmd + K`) | Universal modal search across tabs, orders, customers, SKUs, and quick actions with dynamic AI Assistant query routing | None | COMPLETED |
+| E2 | Live Sync Notification Center | Floating toast alert pipeline and event drawer for background sync events (new orders, courier updates, discrepancies) | M6 | COMPLETED |
+| E3 | Universal Date Range Engine | Header date range bar applying across all 12 modules with period comparison deltas | None | COMPLETED |
+| E4 | Table Density & Virtualization | Display density switcher (Compact/Standard/Relaxed), column visibility, and high-performance virtual windowing | M2 | COMPLETED |
+| M9 | Month-End Net Sales Close Report (.xlsx) | Complete 7-sheet financial workbook with auto-fit column algorithm across all sheets | None | COMPLETED |
+| M10 | Operator Profile & Settings Sync Hub | Authenticated profile card, 8-point permission checklist, session telemetry, and CloudSyncBar relocation to Settings | None | COMPLETED |
+| M11 | AI Assistant Search & Header Integration | Inline Ask AI search button, Enter key trigger, ⌘J shortcut, desktop toolbar trigger, dynamic command palette action | M7, E1 | COMPLETED |
 
 ## Interface Contracts
 

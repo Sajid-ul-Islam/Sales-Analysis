@@ -202,3 +202,25 @@ To guarantee that CSS rendering is blazing fast, perfectly styled, and **never b
    - Every tabular component is enclosed within `.table-container-responsive` (`overflow-x: auto`) to prevent viewport blowouts.
 7. **Explicit Inline SVG Dimensions**:
    - All SVG charts and meters specify explicit `width="44" height="44"` (or `48x48`) and `shrink-0` classes.
+
+---
+
+## 6. Search, Command Palette & Operator Settings Design Architecture
+
+### 6.1 Header Search Bar & Inline AI Action
+* **Search Input Container**: `relative flex-1 min-w-0 max-w-xs md:max-w-sm`.
+* **Dynamic Inline AI Button**:
+  * Renders an interactive `✨ Ask AI` button inside the right bounds of the search input when text is typed: `px-1.5 py-0.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-[10px] font-bold shadow-2xs`.
+  * Allows operators to type questions and immediately submit them to DEEN Assistant via click or <kbd>Enter</kbd>.
+* **Idle State Trigger**: Subtle `✨ AI` badge alongside <kbd>⌘K</kbd> to inform users of keyboard shortcuts (<kbd>⌘J</kbd> / <kbd>Ctrl+J</kbd>).
+
+### 6.2 Command Palette Modal (<kbd>⌘K</kbd>)
+* **Dynamic AI Result**: Prepend primary action `Ask DEEN Assistant: "<query>"` with pulsing `Sparkles` icon and `Ask AI ↵` badge.
+* **Filter Category Pills**: `['All', '✨ AI Assistant', 'Actions', 'Tabs', 'Orders', 'Customers', 'SKUs']` with `bg-primary text-white shadow-2xs` active tokens.
+* **Curated AI Prompts**: Pre-configured analytical templates with amber/orange badge accents for instant executive inquiries.
+
+### 6.3 Authenticated Operator Profile Card (Settings Section 0)
+* **Surface Styling**: Deep elevated card (`deepBlack.card` / `white`), subtle boundary borders (`slate-200` / `deepBlack.border`), and smooth micro-shadows.
+* **Avatar & Status**: Gradient avatar badge with green pulsing edge status dot indicating authenticated active Edge session.
+* **8-Point Access Privilege Matrix**: High-contrast grid with checkmark badges and authorization role mapping.
+* **Cloud Sync Hub Placement**: Positioned directly beneath Operator Profile in Section 0.5, consolidating all API keys, webhooks, and sync controls in Settings.

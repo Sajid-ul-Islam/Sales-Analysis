@@ -305,3 +305,29 @@ To guarantee a best-in-class merchant and auditor experience across Desktop, Tab
   - Email / Password: `director@deencommerce.com` / `director2026`
   - Passcode: `deen@director2026`
 - **Mathematical & Component Invariants**: Exactly 15% of unique orders are selected via stable FNV-1a hash, ensuring multi-item coherence, knapsack returns calculation, territory spread, and status breakdown across all dashboard components.
+
+### 4.13 Robust 7-Sheet Month-End Net Sales Close Report (.xlsx)
+- **Purpose**: Provide a comprehensive, audit-ready financial close workbook at month-end unifying P&L, category performance, SKU leaderboard, customer orders, returns, omnichannel allocations, and courier settlements.
+- **7 Cohesive Closing Worksheets**:
+  1. `Executive Summary & P&L`: High-level realized net revenue, return deductions, ~42% COGS, Meta ads, contribution margin, ROAS/CAC, and Dhaka vs Outside Dhaka breakdown.
+  2. `Category Sales & Retention`: 8 apparel categories with units dispatched/delivered/returned, retention %, net sales ৳, and % contribution.
+  3. `Master SKU Leaderboard`: Sizes stripped/consolidated, ranked by net sales with performance tags (`🌟 Top Seller`, `⚠️ High Return Risk`, `⚡ Volume Driver`).
+  4. `Commercial Orders Ledger`: Natural chronological numerical sorting (`compareOrdersByNumber`), unmasked customer names/phones, SIP inventory origin, net revenue recognized, strictly excluding walk-in POS and staff replacement exchanges.
+  5. `Item-Wise Returns & Partials`: Item-level return loss audit, return sources, SIP origins, returned quantities, loss value.
+  6. `Omnichannel & SIP Inventory`: Physical node metrics (Central Warehouse, Mirpur Outlet, Cumilla, Wari, Sylhet, Exchanges).
+  7. `Courier & COD Settlement`: Pathao gross fees, discounts, 50/90 TK customer fees collected, paid return COD, net brand burden, and discrepancy audit.
+- **Universal Auto-Fit Column Widths**: Eliminates `###` number overflow and text truncation by auto-sizing every column across all workbooks.
+
+### 4.14 Authenticated Operator Profile & Settings Omnichannel Hub Consolidation
+- **Purpose**: Deliver complete operational and authorization transparency in Settings while keeping the Executive Overview focused on high-level KPIs.
+- **Operator Profile Card**: Displays authenticated user avatar, display name, email, role badge (`👑 Executive Director`, `🏬 Branch Store Operator`, `👀 Read-Only Auditor`), assigned outlet scope, and auth paradigm.
+- **8-Point Access Privilege Checklist**: Real-time permission matrix detailing authorized capabilities.
+- **Session Security Telemetry**: Edge session diagnostics displaying signing algorithm (HMAC-SHA256), cookie storage policy, session creation timestamp, and sampling rate.
+- **Sync Hub Consolidation**: Relocated `CloudSyncBar` into Settings Section 0.5 to keep Executive Overview clean and unencumbered.
+
+### 4.15 Omnipresent AI Assistant in Search & Header Deep Linking
+- **Purpose**: Allow warehouse packers, logistics leads, and executives to query DEEN Assistant directly from the search bar, header actions, or command palette.
+- **Header Search Bar**: Dynamic inline `✨ Ask AI` button that appears when typing, <kbd>Enter</kbd> trigger, and <kbd>⌘J</kbd> / <kbd>Ctrl+J</kbd> global shortcut.
+- **Desktop & Mobile Triggers**: Glowing `✨ Ask AI` button in desktop header toolbar and top option in mobile more actions menu.
+- **Command Palette Integration**: Typing any search query dynamically generates `Ask DEEN Assistant: "<query>"` as the primary action, with `✨ AI Assistant` category filter and 5 curated prompt templates.
+- **Copilot Deep Linking**: Seamlessly receives `initialQuery` and automatically triggers query execution on drawer open.

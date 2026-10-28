@@ -132,4 +132,22 @@ Orders synchronized from WooCommerce with the official Pathao plugin store fulfi
 * Consignment tracking link: `https://merchant.pathao.com/tracking?consignment_id={consignment_id}`
 * Rendered as an external link chip in the Everyday Dispatched Orders Ledger and Order Inspector modal.
 
+---
+
+## 7. Cloud Sync & Omnichannel Hub Architectural Placement
+
+### 7.1 Location Invariant: Settings Tab Consolidation
+* The interactive Cloud Sync & Omnichannel Hub (`CloudSyncBar.tsx`) is strictly housed within `SettingsTab.tsx` under Section 0.5 (`Cloud Sync & Omnichannel Hub`).
+* **FORBIDDEN: Mounting Sync Triggers on Executive Overview**:
+  * Executive Overview (`ExecutiveOverviewTab.tsx`) is reserved strictly for high-level executive KPIs, profitability metrics, revenue breakdowns, and financial exports.
+  * Real-time sync buttons, API key inputs, webhook diagnostics, and dataset swapping must live inside `SettingsTab` to eliminate operational clutter from executive presentations.
+
+### 7.2 Synchronized Props & Dataset State
+* `SettingsTab` receives live sync bindings from `page.tsx`:
+  * `activeOrders`: Active order pool
+  * `provenance`: Active data provenance metadata
+  * `activeDataset`: Complete active bundle (orders, returns, partials, exchanges, courier delivery)
+  * `onDataSynced`: Real-time state mutation handler
+  * `onLoadFullDataset`: Executive 15% sample bypass callback
+
 

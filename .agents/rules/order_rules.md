@@ -226,5 +226,27 @@ When extracting the inventory origin for any line item, the engine resolves in t
 ### F. Mirpur POS vs Central Warehouse Inventory Separation in SIP
 * **Two Distinct Operational Inventories**:
   * **Central Warehouse Hub** (SIP Outlet ID `1`, slug: `warehouse`, cashier user ID: `1508` mohimanul, code: `ONLINE`): Fulfills standard online ecommerce orders. Even if described as "Warehouse (Mirpur)" in legacy manifests, it is strictly Central Warehouse stock.
-  * **Mirpur-12 Outlet POS** (SIP Outlet ID `2`, slug: `mirpur-12`, cashier user ID: `3` mirpur12posuser, code: `MIRPUR`, dispatch suffix `m`): Physical retail walk-in store register in Mirpur-12.
   * **Strict Invariant**: Outlet `1` and Outlet `2` are never merged, aliased, or conflated.
+
+---
+
+## 8. Month-End Net Sales Close Report (.xlsx) Engine Rules
+
+### 8.1 7-Sheet Financial Architecture
+The month-end workbook (`buildMonthlyNetSalesWorkbook` in `excelExport.ts`) generates 7 cohesive operational closing sheets:
+1. `Executive Summary & P&L`: High-level realized net revenue, return deductions, ~42% COGS, Meta ads, contribution margin, ROAS/CAC, and Dhaka vs Outside Dhaka breakdown.
+2. `Category Sales & Retention`: 8 apparel categories with units dispatched/delivered/returned, retention %, net sales ৳, and % contribution.
+3. `Master SKU Leaderboard`: Sizes stripped/consolidated, ranked by net sales with performance tags (`🌟 Top Seller`, `⚠️ High Return Risk`, `⚡ Volume Driver`).
+4. `Commercial Orders Ledger`: Natural chronological numerical sorting (`compareOrdersByNumber`), unmasked customer names/phones, SIP inventory origin, net revenue recognized, strictly excluding walk-in POS and staff replacement exchanges.
+5. `Item-Wise Returns & Partials`: Item-level return loss audit, return sources, SIP origins, returned quantities, loss value.
+6. `Omnichannel & SIP Inventory`: Physical node metrics (Central Warehouse, Mirpur Outlet, Cumilla, Wari, Sylhet, Exchanges).
+7. `Courier & COD Settlement`: Pathao gross fees, discounts, 50/90 TK customer fees collected, paid return COD, net brand burden, and discrepancy audit.
+
+### 8.2 Natural Numerical Sorting Invariant
+* Commercial orders ledger must sort by numeric order sequence via `compareOrdersByNumber(a, b)`:
+  * Multi-parcel branch suffixes (`1001`, `1001 c`, `1001 w`) remain cleanly grouped together in proper chronological order without alphabetical fragmentation (`10010` before `1002`).
+
+### 8.3 Universal Auto-Fit Sizing Algorithm
+* Every worksheet exported calculates column dimensions (`ws['!cols']`):
+  $$\text{wch} = \min(\max(\text{maxLen} + 3, \text{minW}), \text{maxW})$$
+  with $\text{minW} = 10$, $\text{maxW} = 45$. This guarantees zero `###` numeric display errors or truncated customer names across all spreadsheet viewers.

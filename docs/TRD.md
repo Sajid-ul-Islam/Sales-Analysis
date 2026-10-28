@@ -410,3 +410,38 @@ When orders are synced via WooCommerce REST API, tracking consignment numbers ar
   - Returns, partials, size exchanges, and Pathao delivery rows belonging to the chosen 15% of orders are strictly synchronized.
 - **Universal Component Propagation**:
   - Server-side APIs (`/api/sample-data`, `/api/blob/dataset`, `/api/sync/live-terminal`) and client-side pipeline (`src/app/page.tsx`) automatically enforce the 15% sample rate across all 12 operational tabs (`ExecutiveOverviewTab`, `LiveOpsTab`, `OrdersLedgerTab`, `StatusMatrixTab`, `SkuPerformanceTab`, `ItemReturnsTab`, `CourierMismatchTab`, `TerritoryTab`, `CustomerRiskTab`, `ExchangedOrdersTab`, `OutletDispatchTab`, `OutletSalesTab`, `UnitEconomicsTab`, `MarketingAnalyticsTab`, `KpiOverview`).
+
+### 13. Robust 7-Sheet Month-End Net Sales Close Report Engine (`src/lib/excelExport.ts`)
+- **Workbook Architecture (`buildMonthlyNetSalesWorkbook` & `exportMonthlyNetSalesExcel`)**:
+  - Generates 7 cohesive operational closing worksheets using SheetJS (`xlsx`):
+    1. `Executive Summary & P&L`: High-level realized net revenue, return deductions, ~42% COGS, Meta ads, contribution margin, ROAS/CAC, and Dhaka vs Outside Dhaka breakdown.
+    2. `Category Sales & Retention`: 8 apparel categories with units dispatched/delivered/returned, retention %, net sales ৳, and % contribution.
+    3. `Master SKU Leaderboard`: Sizes stripped/consolidated, ranked by net sales with performance tags (`🌟 Top Seller`, `⚠️ High Return Risk`, `⚡ Volume Driver`).
+    4. `Commercial Orders Ledger`: Natural chronological numerical sorting (`compareOrdersByNumber`), unmasked customer names/phones, SIP inventory origin, net revenue recognized, strictly excluding walk-in POS and staff replacement exchanges.
+    5. `Item-Wise Returns & Partials`: Item-level return loss audit, return sources, SIP origins, returned quantities, loss value.
+    6. `Omnichannel & SIP Inventory`: Physical node metrics (Central Warehouse, Mirpur Outlet, Cumilla, Wari, Sylhet, Exchanges).
+    7. `Courier & COD Settlement`: Pathao gross fees, discounts, 50/90 TK customer fees collected, paid return COD, net brand burden, and discrepancy audit.
+- **Natural Chronological Sorting**: Orders are sorted via `compareOrdersByNumber(a, b)`:
+  - Strips non-numeric prefixes (`D-`) and suffixes (`c`, `w`, `s`, `m`) to sort by true chronological order integer, keeping branch split parcels together.
+- **Universal Auto-Fit Column Widths**:
+  - Implements `autoFitSheetColumns(ws, rows)` and `autoFitAoaColumns(ws, data)` calculating `wch = Math.min(Math.max(maxLen + 3, minW), maxW)` with $\text{minW} = 10, \text{maxW} = 45$.
+  - Applied across all exports (`exportMonthlyNetSalesExcel`, `exportReconciledExcel`, `exportPerformanceReport`, `buildLiveShippedOrdersWorkbook`) eliminating truncated columns and `###` number errors.
+
+### 14. Authenticated Operator Profile Telemetry & Settings Consolidation
+- **Operator Profile & Access Scope in Settings (`SettingsTab.tsx`)**:
+  - Section 0 renders comprehensive authentication state: user avatar with live status indicator, display name, email, role badge (`👑 Executive Director / Superadmin`, `🏬 Branch Store Operator`, `👀 Read-Only Auditor`), assigned outlet scope, and auth paradigm (`WordPress SSO` vs `Master PIN Gate`).
+  - **8-Point Access Privilege Checklist**: Live authorization audit detailing permissions for Commercial Realization, Live Ops & Pack Queue, Real-Time Cloud Sync, Month-End Net Sales .xlsx, SIP Omnichannel Routing, Customer Risk Intelligence, AI Operations Copilot, and System Secrets & BYOK.
+  - **Cryptographic Session Telemetry**: Edge session diagnostics displaying signing algorithm (HMAC-SHA256), cookie storage policy (`HttpOnly • SameSite=Lax • Path=/`), session creation timestamp, and sampling rate.
+- **Cloud Sync & Omnichannel Hub Consolidation**:
+  - Relocated `CloudSyncBar` from `ExecutiveOverviewTab` to `SettingsTab` Section 0.5 (`Cloud Sync & Omnichannel Hub`), unifying API credentials, sync triggers, and session authentication under Settings while preserving Executive Overview as an uncluttered high-level KPI dashboard.
+
+### 15. Omnipresent AI Assistant Search & Header Deep Linking
+- **Header Search Bar AI Integration (`Header.tsx`)**:
+  - Features an inline `✨ Ask AI` button that appears dynamically when entering text in the search input. Pressing <kbd>Enter</kbd> or clicking the button passes the query directly to DEEN Assistant.
+  - Features an idle `✨ AI` trigger badge next to <kbd>⌘K</kbd>, plus global keyboard shortcut <kbd>⌘J</kbd> / <kbd>Ctrl+J</kbd>.
+  - Header desktop toolbar features a dedicated `✨ Ask AI` action button with high-contrast styling, and mobile menu includes an instant trigger.
+- **Command Palette Dynamic AI Routing (`CommandPaletteModal.tsx`)**:
+  - Typing any query dynamically generates a top-level action: `Ask DEEN Assistant: "<query>"` (`Ask AI ↵`), allowing operators to ask analytical questions from the central command palette.
+  - Includes a dedicated `✨ AI Assistant` category filter with 5 curated executive prompt templates (fulfillment pace, outlet return disparities, chronic returners, net realized revenue, courier discrepancies).
+- **Deep Linking & Automatic Execution (`CopilotDrawer.tsx`)**:
+  - Accepts `initialQuery` prop to immediately populate and trigger the query execution pipeline upon drawer open.
