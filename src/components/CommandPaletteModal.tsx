@@ -41,7 +41,7 @@ export interface CommandPaletteModalProps {
   liveOrders?: RawOrderRow[];
   onTriggerSync?: () => void;
   onToggleTheme?: () => void;
-  onToggleCopilot?: () => void;
+  onToggleCopilot?: (initialQuery?: string) => void;
   onExportExcel?: () => void;
   onExportMonthlyNetSales?: () => void;
   onInspectOrder?: (order: RawOrderRow) => void;
@@ -50,7 +50,7 @@ export interface CommandPaletteModalProps {
 
 interface PaletteItem {
   id: string;
-  category: 'Actions' | 'Tabs' | 'Orders' | 'Customers' | 'SKUs';
+  category: 'AI Assistant' | 'Actions' | 'Tabs' | 'Orders' | 'Customers' | 'SKUs';
   title: string;
   subtitle?: string;
   badge?: string;
@@ -92,7 +92,7 @@ export function CommandPaletteModal({
   onToggleSidebar
 }: CommandPaletteModalProps) {
   const [query, setQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState<'All' | 'Actions' | 'Tabs' | 'Orders' | 'Customers' | 'SKUs'>('All');
+  const [activeCategory, setActiveCategory] = useState<'All' | 'AI Assistant' | 'Actions' | 'Tabs' | 'Orders' | 'Customers' | 'SKUs'>('All');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -128,20 +128,71 @@ export function CommandPaletteModal({
   const allItems: PaletteItem[] = useMemo(() => {
     const items: PaletteItem[] = [];
 
-    // 1. Actions
+    // 1. AI Assistant Actions & Prompt Suggestions
     items.push({
-      id: 'action-copilot',
-      category: 'Actions',
+      id: 'action-copilot-general',
+      category: 'AI Assistant',
       title: 'Ask DEEN Assistant (AI Copilot)',
       subtitle: 'Analyze today sales, delivery telemetry, or returns with AI',
-      badge: 'Copilot',
+      badge: 'DEEN AI',
       badgeColor: 'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-900/60',
-      icon: <Sparkles className="w-4 h-4 text-orange-500" />,
+      icon: <Sparkles className="w-4 h-4 text-orange-500 animate-pulse" />,
       action: () => {
         onClose();
         onToggleCopilot?.();
       }
     });
+
+    const AI_PRESET_PROMPTS = [
+      {
+        id: 'ai-prompt-queue',
+        title: "Analyze today fulfillment queue and dispatch pace",
+        subtitle: 'Break down processing orders, on-hold items and 7-day rolling baseline comparison',
+        prompt: "Analyze today's fulfillment queue, warehouse pack backlog, and compare with our 7-day rolling baseline."
+      },
+      {
+        id: 'ai-prompt-returns',
+        title: 'Why is return rate fluctuating by outlet and territory?',
+        subtitle: 'Deep-dive into branch returns (Mirpur, Cumilla, Wari, Sylhet) vs central warehouse',
+        prompt: "Compare return rates between Central Warehouse and regional branches (Mirpur, Cumilla, Wari, Sylhet). What are the main drivers of return loss?"
+      },
+      {
+        id: 'ai-prompt-customers',
+        title: 'Identify top chronic returners and risky buyers',
+        subtitle: 'Review customer delivery success rates and flag advance delivery charge requirements',
+        prompt: "Identify the top chronic returners and high-risk customer phone numbers with return rates over 40%."
+      },
+      {
+        id: 'ai-prompt-net-sales',
+        title: 'Calculate net realized revenue after returns and courier costs',
+        subtitle: 'Attribution of gross orders, return deductions, COGS, and customer delivery fees',
+        prompt: "Provide an executive summary of net delivered sales, return deductions, COGS, and net brand burden."
+      },
+      {
+        id: 'ai-prompt-courier',
+        title: 'Audit Pathao courier delivery tracking and COD discrepancies',
+        subtitle: 'Detect orders delivered in courier but processing in store, or uncollected fees',
+        prompt: "Audit courier delivery discrepancies and mismatches between Pathao courier status and store orders."
+      }
+    ];
+
+    AI_PRESET_PROMPTS.forEach(p => {
+      items.push({
+        id: p.id,
+        category: 'AI Assistant',
+        title: p.title,
+        subtitle: p.subtitle,
+        badge: 'AI Prompt',
+        badgeColor: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/60',
+        icon: <Sparkles className="w-4 h-4 text-amber-500" />,
+        action: () => {
+          onClose();
+          onToggleCopilot?.(p.prompt);
+        }
+      });
+    });
+
+    // 2. Actions
 
     items.push({
       id: 'action-sync',
@@ -328,7 +379,26 @@ export function CommandPaletteModal({
   // Filter items by search query and category
   const filteredItems = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return allItems.filter((item) => {
+    const dynamicItems: PaletteItem[] = [];
+
+    // If user entered a search query, prepend a dynamic "Ask DEEN Assistant" action at the top
+    if (query.trim().length > 0 && (activeCategory === 'All' || activeCategory === 'AI Assistant')) {
+      dynamicItems.push({
+        id: 'action-dynamic-copilot',
+        category: 'AI Assistant',
+        title: `Ask DEEN Assistant: "${query.trim()}"`,
+        subtitle: `Ask AI Copilot to analyze "${query.trim()}" with live orders, returns, and delivery telemetry`,
+        badge: 'Ask AI ↵',
+        badgeColor: 'bg-primary text-white border-primary-dark shadow-xs',
+        icon: <Sparkles className="w-4 h-4 text-primary animate-pulse" />,
+        action: () => {
+          onClose();
+          onToggleCopilot?.(query.trim());
+        }
+      });
+    }
+
+    const matched = allItems.filter((item) => {
       if (activeCategory !== 'All' && item.category !== activeCategory) {
         return false;
       }
@@ -339,7 +409,9 @@ export function CommandPaletteModal({
       const badgeMatch = item.badge ? item.badge.toLowerCase().includes(q) : false;
       return titleMatch || subMatch || badgeMatch;
     });
-  }, [allItems, query, activeCategory]);
+
+    return [...dynamicItems, ...matched];
+  }, [allItems, query, activeCategory, onClose, onToggleCopilot]);
 
   // Adjust selection if filtered items change
   useEffect(() => {
@@ -402,7 +474,7 @@ export function CommandPaletteModal({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a command, order ID (#17967), customer phone, SKU, or tab..."
+            placeholder="Ask AI Copilot, or search orders (#17967), phone, SKU, or tabs..."
             className="w-full bg-transparent border-0 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm sm:text-base focus:outline-none focus:ring-0"
           />
           {query ? (
@@ -422,18 +494,18 @@ export function CommandPaletteModal({
 
         {/* Filter Category Pills */}
         <div className="px-3 sm:px-4 py-2 bg-white dark:bg-deepBlack-card border-b border-slate-100 dark:border-deepBlack-border flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
-          {(['All', 'Actions', 'Tabs', 'Orders', 'Customers', 'SKUs'] as const).map((cat) => (
+          {(['All', 'AI Assistant', 'Actions', 'Tabs', 'Orders', 'Customers', 'SKUs'] as const).map((cat) => (
             <button
               key={cat}
               type="button"
               onClick={() => setActiveCategory(cat)}
               className={`px-2.5 py-1 rounded-full text-xs font-semibold shrink-0 transition-colors cursor-pointer ${
                 activeCategory === cat
-                  ? 'bg-primary text-white shadow-2xs'
+                  ? 'bg-primary text-white shadow-2xs font-bold'
                   : 'bg-slate-100 dark:bg-deepBlack-hover text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-deepBlack-border'
               }`}
             >
-              {cat}
+              {cat === 'AI Assistant' ? '✨ AI Assistant' : cat}
             </button>
           ))}
           <span className="ml-auto text-[11px] text-slate-400 dark:text-slate-500 shrink-0 hidden sm:inline">

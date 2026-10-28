@@ -192,6 +192,15 @@ export default function DashboardPage() {
 
   const [result, setResult] = useState<ReconciliationResult | null>(null);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
+  const [copilotInitialQuery, setCopilotInitialQuery] = useState<string>('');
+
+  const handleOpenCopilot = (initialQuery?: string) => {
+    if (initialQuery) {
+      setCopilotInitialQuery(initialQuery);
+    }
+    setIsCopilotOpen(true);
+  };
+
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
@@ -1141,6 +1150,7 @@ export default function DashboardPage() {
           mobileOpen={mobileMenuOpen}
           onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
           onOpenNotificationCenter={() => setIsNotificationCenterOpen(true)}
+          onToggleCopilot={handleOpenCopilot}
           notificationCount={notificationCount}
           isDarkMode={isDarkMode}
           onToggleTheme={handleToggleTheme}
@@ -1652,7 +1662,7 @@ export default function DashboardPage() {
           liveOrders={rawOrders}
           onTriggerSync={() => handleSelectTab('tabLiveOps')}
           onToggleTheme={handleToggleTheme}
-          onToggleCopilot={() => setIsCopilotOpen(prev => !prev)}
+          onToggleCopilot={handleOpenCopilot}
           onExportExcel={handleExport}
           onExportMonthlyNetSales={handleExportMonthlyNetSales}
           onToggleSidebar={handleToggleSidebarCollapse}
@@ -1681,6 +1691,8 @@ export default function DashboardPage() {
             reconciliationResult={result}
             liveOrders={rawOrders.length > 0 ? rawOrders : ((result?.reconciledOrders as unknown as RawOrderRow[]) || [])}
             activeTab={activeTab}
+            initialQuery={copilotInitialQuery}
+            onClearInitialQuery={() => setCopilotInitialQuery('')}
             onApplyAgenticAction={handleApplyAgenticAction}
             onNavigateToTab={(targetTab) => handleSelectTab(targetTab)}
           />

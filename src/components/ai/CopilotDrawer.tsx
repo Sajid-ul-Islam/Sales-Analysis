@@ -54,6 +54,8 @@ interface CopilotDrawerProps {
   reconciliationResult?: ReconciliationResult;
   liveOrders?: RawOrderRow[];
   activeTab?: string;
+  initialQuery?: string;
+  onClearInitialQuery?: () => void;
   onApplyAgenticAction?: (proposal: AgenticActionProposal) => void;
   onNavigateToTab?: (tab: string, filter?: string) => void;
 }
@@ -65,6 +67,8 @@ export function CopilotDrawer({
   reconciliationResult,
   liveOrders,
   activeTab,
+  initialQuery,
+  onClearInitialQuery,
   onApplyAgenticAction,
   onNavigateToTab
 }: CopilotDrawerProps) {
@@ -238,6 +242,15 @@ export function CopilotDrawer({
       setIsLoading(false);
     }
   };
+
+  // Automatically execute query if triggered externally (e.g. from Header search or Command Palette)
+  useEffect(() => {
+    if (isOpen && initialQuery && initialQuery.trim()) {
+      const q = initialQuery.trim();
+      onClearInitialQuery?.();
+      handleSendQuery(q);
+    }
+  }, [isOpen, initialQuery]);
 
   const handleExecuteAgenticAction = (messageId: string, action: AgenticActionProposal) => {
     if (onApplyAgenticAction) {
