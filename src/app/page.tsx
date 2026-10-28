@@ -968,7 +968,8 @@ export default function DashboardPage() {
     } finally {
       setIsProcessing(false);
     }
-  }, [cloudApiDataset, rawOrders, rawReturns, rawPathaoDelivery, rawPartials, rawExchanges, dateScope, customDateRange, excludeAugust, excludePOS, computeReconciliation]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleLoadFullDataset = (dataset: DatasetSnapshot, provenance?: DataProvenanceInfo) => {
     setDataSourceMode('API');

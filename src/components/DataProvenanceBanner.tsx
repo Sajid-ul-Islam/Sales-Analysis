@@ -11,8 +11,6 @@ import {
   ShieldCheck,
   ChevronDown,
   ChevronUp,
-  RotateCcw,
-  Layers,
   Filter
 } from 'lucide-react';
 

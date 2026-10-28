@@ -25,15 +25,11 @@ import {
   Info,
   Activity,
   Share2,
-  User,
   ShieldCheck,
-  Lock,
   Mail,
-  Building2,
   LogOut,
   Globe,
   KeyRound,
-  FileSpreadsheet
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { CloudSyncBar } from '@/components/CloudSyncBar';
@@ -122,7 +118,7 @@ interface SettingsTabProps {
   activeOrders?: RawOrderRow[];
   provenance?: DataProvenanceInfo;
   activeDataset?: DatasetSnapshot;
-  onLoadFullDataset?: () => void;
+  onLoadFullDataset?: (dataset: DatasetSnapshot, provenance?: DataProvenanceInfo) => void;
 }
 
 export function SettingsTab({

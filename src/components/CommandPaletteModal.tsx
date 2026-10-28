@@ -374,7 +374,7 @@ export function CommandPaletteModal({
     }
 
     return items;
-  }, [reconciliationResult, liveOrders, onClose, onSelectTab, onToggleCopilot, onTriggerSync, onExportExcel, onToggleTheme, onInspectOrder, onToggleSidebar]);
+  }, [reconciliationResult, liveOrders, onClose, onSelectTab, onToggleCopilot, onTriggerSync, onExportExcel, onToggleTheme, onInspectOrder, onToggleSidebar, onExportMonthlyNetSales]);
 
   // Filter items by search query and category
   const filteredItems = useMemo(() => {

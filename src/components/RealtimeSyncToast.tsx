@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { RefreshCw, X, Radio, ArrowUpRight } from 'lucide-react';
+import { RefreshCw, X } from 'lucide-react';
 import type { SyncEvent } from '@/lib/sync/eventLog';
 
 interface RealtimeSyncToastProps {

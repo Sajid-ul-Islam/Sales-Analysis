@@ -250,6 +250,7 @@ export function CopilotDrawer({
       onClearInitialQuery?.();
       handleSendQuery(q);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialQuery]);
 
   const handleExecuteAgenticAction = (messageId: string, action: AgenticActionProposal) => {
