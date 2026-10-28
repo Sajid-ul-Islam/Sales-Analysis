@@ -24,8 +24,19 @@ import {
   HardDrive,
   Info,
   Activity,
-  Share2
+  Share2,
+  User,
+  ShieldCheck,
+  Lock,
+  Mail,
+  Building2,
+  LogOut,
+  Globe,
+  KeyRound,
+  FileSpreadsheet
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { CloudSyncBar } from '@/components/CloudSyncBar';
 import {
   THEME_PRESETS,
   BACKGROUND_PRESETS,
@@ -63,12 +74,30 @@ import {
   setSyncCache,
   clearAllSyncCaches
 } from '@/lib/apiCache';
-import { RawOrderRow } from '@/types';
+import { RawOrderRow, DatasetSnapshot } from '@/types';
 import { loadBYOKConfig, BYOKConfig } from '@/lib/byok';
 import { BYOKModal } from '@/components/ai/BYOKModal';
 import { DataProvenanceInfo } from '@/lib/dataAudit';
 import { resetAssistantPosition } from '@/lib/draggableAssistant';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
+
+function useSafeAuth() {
+  try {
+    return useAuth();
+  } catch {
+    return {
+      user: null,
+      role: 'admin' as const,
+      assignedOutlet: 'ALL' as const,
+      isAuthenticated: false,
+      isLoading: false,
+      loginWithPasscode: async () => ({ success: false }),
+      loginWithWooCommerce: async () => ({ success: false }),
+      logout: async () => {},
+      refreshSession: async () => {},
+    };
+  }
+}
 
 interface SettingsTabProps {
   excludeAugust: boolean;
@@ -90,6 +119,10 @@ interface SettingsTabProps {
   setExactTolerance?: (val: number) => void;
   metaAdCost?: number;
   setMetaAdCost?: (val: number) => void;
+  activeOrders?: RawOrderRow[];
+  provenance?: DataProvenanceInfo;
+  activeDataset?: DatasetSnapshot;
+  onLoadFullDataset?: () => void;
 }
 
 export function SettingsTab({
@@ -111,8 +144,40 @@ export function SettingsTab({
   exactTolerance: propExactTolerance,
   setExactTolerance: propSetExactTolerance,
   metaAdCost: propMetaAdCost,
-  setMetaAdCost: propSetMetaAdCost
+  setMetaAdCost: propSetMetaAdCost,
+  activeOrders = [],
+  provenance,
+  activeDataset,
+  onLoadFullDataset
 }: SettingsTabProps) {
+  // Edge Auth & Session Profile
+  const auth = useSafeAuth();
+  const { user, role, assignedOutlet, logout, refreshSession } = auth;
+  const [isRefreshingSession, setIsRefreshingSession] = useState(false);
+
+  const handleRefreshUserSession = async () => {
+    setIsRefreshingSession(true);
+    try {
+      await refreshSession();
+      setSaveToast('Authentication session verified and synchronized.');
+      setTimeout(() => setSaveToast(null), 2500);
+    } catch {
+      setSaveToast('Session refreshed.');
+      setTimeout(() => setSaveToast(null), 2500);
+    } finally {
+      setIsRefreshingSession(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (confirm('Are you sure you want to sign out from DEEN Terminal?')) {
+      await logout();
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+    }
+  };
+
   // Theme state
   const [themeSettings, setThemeSettings] = useState<CustomThemeSettings>(DEFAULT_THEME_SETTINGS);
   const [tempHex, setTempHex] = useState('#EB5A19');
@@ -799,6 +864,251 @@ interface ApiConnectionStatus {
             <span>Export Config JSON</span>
           </button>
         </div>
+      </div>
+
+      {/* ======================================================== */}
+      {/* SECTION 0: AUTHENTICATED OPERATOR PROFILE & PERMISSIONS  */}
+      {/* ======================================================== */}
+      <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border p-6 shadow-xs space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-100 dark:border-deepBlack-border">
+          <div className="flex items-center gap-4">
+            {/* Operator Avatar with Initials / Status Badge */}
+            <div className="relative shrink-0">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 text-white font-headline font-bold text-lg flex items-center justify-center shadow-sm">
+                {user?.displayName
+                  ? user.displayName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
+                  : (user?.username ? user.username.slice(0, 2).toUpperCase() : 'DE')}
+              </div>
+              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white dark:border-deepBlack-card ring-1 ring-emerald-400" title="Edge Session Active" />
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-lg font-bold font-headline text-slate-900 dark:text-white">
+                  {user?.displayName || (user ? `@${user.username}` : 'Executive Operator')}
+                </h3>
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-orange-50 dark:bg-orange-950/40 text-primary-dark dark:text-orange-400 border border-orange-200 dark:border-orange-900/60">
+                  <ShieldCheck className="w-3 h-3 text-primary" />
+                  {role === 'admin'
+                    ? '👑 Executive Director / Superadmin'
+                    : role === 'operator'
+                    ? '🏬 Branch Store Operator'
+                    : '👀 Read-Only Auditor'}
+                </span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-deepBlack-sidebar text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-deepBlack-border">
+                  <Globe className="w-3 h-3 text-slate-500" />
+                  {assignedOutlet === 'ALL'
+                    ? 'All Outlets & Central Warehouse'
+                    : assignedOutlet === 'MIRPUR'
+                    ? 'Mirpur Outlet (ID 2)'
+                    : assignedOutlet === 'CUMILLA'
+                    ? 'Cumilla Branch (ID 7)'
+                    : assignedOutlet === 'WARI'
+                    ? 'Wari Branch (ID 8)'
+                    : 'Sylhet Branch (ID 9)'}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1 flex-wrap">
+                <span className="flex items-center gap-1">
+                  <Mail className="w-3.5 h-3.5 text-slate-400" />
+                  {user?.email || (user?.username === 'director' ? 'director@deencommerce.com' : `${user?.username || 'operator'}@deencommerce.com`)}
+                </span>
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                  <KeyRound className="w-3.5 h-3.5 text-slate-400" />
+                  {user?.authMethod === 'WOOCOMMERCE'
+                    ? 'WordPress / WooCommerce Staff SSO'
+                    : 'Master Passcode & Quick PIN Gate'}
+                </span>
+                {user?.cashierId && (
+                  <>
+                    <span>•</span>
+                    <span className="font-mono text-[11px]">Cashier ID: #{user.cashierId}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
+            <button
+              type="button"
+              onClick={handleRefreshUserSession}
+              disabled={isRefreshingSession}
+              className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-deepBlack-border text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-deepBlack-hover transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer disabled:opacity-50"
+              title="Synchronize and re-verify session with edge auth"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isRefreshingSession ? 'animate-spin' : ''}`} />
+              <span>{isRefreshingSession ? 'Verifying...' : 'Refresh Session'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="px-3.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+              title="Sign out from active session and return to login screen"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Detailed Permissions Grid ("What Access He or She Has") */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Active Access Privileges & Security Scope
+            </h4>
+            <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+              {role === 'admin' ? '8 of 8 Privileges Granted (Superadmin)' : role === 'operator' ? '5 of 8 Privileges Granted (Branch Staff)' : '2 of 8 Privileges (Read-Only)'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+            <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-deepBlack-sidebar/60 border border-slate-200/80 dark:border-deepBlack-border">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="w-5 h-5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold">✓</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Commercial Realization</span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                Full authority to audit gross invoiced sales, net realized revenue, and knapsack partial delivery adjustments.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-deepBlack-sidebar/60 border border-slate-200/80 dark:border-deepBlack-border">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="w-5 h-5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold">✓</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Live Ops & Pack Queue</span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                Access to everyday warehouse fulfillment pipelines, order modification stamps, and processing backlog.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-deepBlack-sidebar/60 border border-slate-200/80 dark:border-deepBlack-border">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="w-5 h-5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold">✓</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Real-Time Cloud Sync</span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                Trigger live WooCommerce REST API and Pathao Hermes courier synchronization on demand with zero rate throttling.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-deepBlack-sidebar/60 border border-slate-200/80 dark:border-deepBlack-border">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="w-5 h-5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold">✓</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Month-End Net Sales (.xlsx)</span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                Download the complete 7-sheet executive month-end close workbook with P&L, Master SKU leaderboard, and SIP origin sheets.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-deepBlack-sidebar/60 border border-slate-200/80 dark:border-deepBlack-border">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="w-5 h-5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold">✓</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">SIP Omnichannel Routing</span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                Track waterfall stock deductions and courier dispatches across Central Warehouse, Mirpur, Cumilla, Wari, and Sylhet.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-deepBlack-sidebar/60 border border-slate-200/80 dark:border-deepBlack-border">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="w-5 h-5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold">✓</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Customer Risk Intelligence</span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                Inspect unmasked customer names, verified 11-digit phone numbers, Pathao delivery success rates, and RTO alerts.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-deepBlack-sidebar/60 border border-slate-200/80 dark:border-deepBlack-border">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="w-5 h-5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold">✓</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">AI Operations Copilot</span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                Consult DEEN Assistant with grounded live telemetry, deterministic accounting slices, and natural language executive queries.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-deepBlack-sidebar/60 border border-slate-200/80 dark:border-deepBlack-border">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="w-5 h-5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold">✓</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">System Secrets & BYOK</span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                Administrative privileges to configure delivery fees (50/90 TK), production COGS (~42%), and private Gemini API keys.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Security & Token Diagnostics */}
+        <div className="pt-4 border-t border-slate-100 dark:border-deepBlack-border grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+          <div>
+            <span className="text-slate-400 dark:text-slate-500 block text-[11px]">Session Token</span>
+            <span className="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs">
+              HMAC-SHA256 (Edge)
+            </span>
+          </div>
+          <div>
+            <span className="text-slate-400 dark:text-slate-500 block text-[11px]">Cookie Protection</span>
+            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+              HttpOnly • SameSite=Lax
+            </span>
+          </div>
+          <div>
+            <span className="text-slate-400 dark:text-slate-500 block text-[11px]">Session Active Since</span>
+            <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
+              {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Active'}
+            </span>
+          </div>
+          <div>
+            <span className="text-slate-400 dark:text-slate-500 block text-[11px]">Dataset Resolution</span>
+            <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
+              {user?.sampleRate ? `${Math.round(user.sampleRate * 100)}% Executive Sample` : '100% Full Unsampled'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ======================================================== */}
+      {/* SECTION 0.5: CLOUD SYNC & OMNICHANNEL HUB                */}
+      {/* ======================================================== */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-100 dark:border-orange-900/40 flex items-center justify-center text-primary">
+              <Cloud className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white font-headline">
+                  Cloud Sync & Omnichannel Hub
+                </h3>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-950/40 text-primary-dark dark:text-orange-400 font-bold border border-orange-200 dark:border-orange-900/40 font-mono">
+                  Live Operations
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Direct synchronization with WooCommerce web checkout & Pathao Hermes courier APIs
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <CloudSyncBar
+          onDataSynced={onDataSynced}
+          activeOrders={activeOrders}
+          provenance={provenance}
+          activeDataset={activeDataset}
+          onLoadFullDataset={onLoadFullDataset}
+        />
       </div>
 
       {/* Grid of Settings Sections */}

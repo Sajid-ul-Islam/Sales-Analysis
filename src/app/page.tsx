@@ -1185,8 +1185,8 @@ export default function DashboardPage() {
             />
           )}
 
-          {/* Cloud API Integration (WooCommerce + Pathao) - SHOWN ONLY ON EXECUTIVE OVERVIEW OR INITIAL STATE */}
-          {dataSourceMode === 'API' && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && activeTab !== 'tabLiveOps' && (!result || activeTab === 'tabExecutive') && (
+          {/* Cloud API Integration (WooCommerce + Pathao) - SHOWN ONLY ON INITIAL EMPTY STATE (WHEN NO DATA LOADED YET) */}
+          {dataSourceMode === 'API' && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && activeTab !== 'tabLiveOps' && activeTab !== 'tabExecutive' && !result && (
             <CloudSyncBar
               onDataSynced={handleLiveSyncData}
               activeOrders={rawOrders}
@@ -1354,6 +1354,17 @@ export default function DashboardPage() {
               setExcludePOS={handleToggleExcludePOS}
               onResetBaseline={handleResetBaseline}
               onDataSynced={handleLiveSyncData}
+              activeOrders={rawOrders}
+              provenance={dataProvenance || undefined}
+              activeDataset={{
+                orders: rawOrders,
+                returns: rawReturns,
+                partials: rawPartials,
+                exchanges: rawExchanges,
+                pathaoDelivery: rawPathaoDelivery,
+                sourceName: dataSourceName,
+              }}
+              onLoadFullDataset={handleLoadFullDataset}
               insideDeliveryFee={insideDeliveryFee}
               setInsideDeliveryFee={setInsideDeliveryFee}
               outsideDeliveryFee={outsideDeliveryFee}
