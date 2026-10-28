@@ -62,6 +62,9 @@ import { DataProvenanceInfo } from '@/lib/dataAudit';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 import { useAuth } from '@/context/AuthContext';
 import { sampleDatasetSnapshot } from '@/lib/orderSampling';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
+import { RealtimeSyncToast } from '@/components/RealtimeSyncToast';
+import type { SyncEvent } from '@/lib/sync/eventLog';
 
 export type DataSourceMode = 'UPLOAD' | 'API';
 
@@ -193,6 +196,22 @@ export default function DashboardPage() {
   const [notificationCount, setNotificationCount] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  // Real-time multi-source SSE sync pipeline
+  const handleRealtimeEvent = useCallback((event: SyncEvent) => {
+    dispatchSyncNotification({
+      type: event.source === 'woocommerce' ? 'orders_synced' : 'courier_updated',
+      title: event.summary,
+      description: `Live event from ${event.source === 'woocommerce' ? 'WooCommerce' : 'Pathao'}`,
+      targetTab: 'tabLiveOps',
+      targetOrderId: event.orderId,
+    });
+  }, []);
+
+  const realtimeSync = useRealtimeSync({
+    enabled: true,
+    onEvent: handleRealtimeEvent,
+  });
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -822,6 +841,31 @@ export default function DashboardPage() {
     .catch(() => {});
   };
 
+  const handleRefreshLiveData = useCallback(async () => {
+    setIsProcessing(true);
+    setStatusMessage('Syncing live data from WooCommerce & courier pipeline...');
+    try {
+      const res = await fetch('/api/sync/live-terminal', {
+        method: 'POST',
+        headers: getClientAuthHeaders(),
+        body: JSON.stringify({ limitConsignments: 35, fetchLiveWc: true }),
+      });
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json().catch(() => null);
+        if (data && data.success && data.orders && data.orders.length > 0) {
+          setRawOrders(data.orders);
+          handleLiveSyncData('orders', data.orders, data.provenance);
+          setStatusMessage(`Live sync updated: ${data.orders.length.toLocaleString()} active orders.`);
+        }
+      }
+    } catch {
+      setStatusMessage('Live sync connection error. Please retry.');
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [cloudApiDataset, rawOrders, rawReturns, rawPathaoDelivery, rawPartials, rawExchanges, dateScope, customDateRange, excludeAugust, excludePOS, computeReconciliation]);
+
   const handleLoadFullDataset = (dataset: DatasetSnapshot, provenance?: DataProvenanceInfo) => {
     setDataSourceMode('API');
     setCookie(DEEN_COOKIE_KEYS.SOURCE_MODE, 'API', { days: 30 });
@@ -956,6 +1000,7 @@ export default function DashboardPage() {
         returnCount={result ? result.returnedItems.length : 0}
         mismatchCount={result ? result.courierMismatches.filter(m => m.severity === 'CRITICAL' || m.severity === 'WARNING').length : 0}
         exchangeCount={result ? result.exchangedOrders.length : rawExchanges.length}
+        pendingEventsCount={realtimeSync.pendingCount}
         activeSourceMode={dataSourceMode}
         mobileOpen={mobileMenuOpen}
         onCloseMobile={() => setMobileMenuOpen(false)}
@@ -1504,6 +1549,17 @@ export default function DashboardPage() {
           orderCount={result ? result.reconciledOrders.length : rawOrders.length}
           activeSourceMode={dataSourceMode}
           onTriggerSync={() => handleSelectTab('tabSettings')}
+          pendingEventsCount={realtimeSync.pendingCount}
+        />
+
+        {/* Real-Time Live Sync Notification Toast */}
+        <RealtimeSyncToast
+          isConnected={realtimeSync.isConnected}
+          isReconnecting={realtimeSync.isReconnecting}
+          pendingCount={realtimeSync.pendingCount}
+          lastEvent={realtimeSync.lastEvent}
+          onRefresh={handleRefreshLiveData}
+          onClear={realtimeSync.clearPending}
         />
       </div>
     </div>

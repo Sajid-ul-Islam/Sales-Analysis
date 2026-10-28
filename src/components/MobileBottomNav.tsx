@@ -45,6 +45,10 @@ export interface MobileBottomNavProps {
    * Optional flag indicating if a cloud data synchronization is currently in progress.
    */
   isSyncing?: boolean;
+  /**
+   * Optional badge count for incoming real-time sync events.
+   */
+  pendingEventsCount?: number;
 }
 
 /**
@@ -73,7 +77,8 @@ export function MobileBottomNav({
   orderCount,
   activeSourceMode: _activeSourceMode = 'UPLOAD',
   onTriggerSync: _onTriggerSync,
-  isSyncing: _isSyncing = false
+  isSyncing: _isSyncing = false,
+  pendingEventsCount = 0
 }: MobileBottomNavProps) {
   // Check if current active tab is an extended module from the slide-over drawer
   const primaryTabIds = ['tabExecutive', 'tabLiveOps', 'tabOrders', 'tabItemReturns'];
@@ -162,6 +167,12 @@ export function MobileBottomNav({
           )}
           <div className="relative">
             <Radio className={`w-5 h-5 shrink-0 transition-transform duration-150 ${activeTab === 'tabLiveOps' ? 'scale-105' : 'group-hover:scale-105'}`} />
+            {pendingEventsCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF5500]"></span>
+              </span>
+            )}
           </div>
           <span className="text-[11px] mt-1 tracking-tight truncate max-w-[62px]">
             Live Ops

@@ -11,6 +11,7 @@ const PUBLIC_PATHS = [
   '/api/auth/session',
   '/api/auth/logout',
   '/api/sync/pathao/webhook', // Inbound courier webhook handshake
+  '/api/sync/woocommerce/webhook', // Inbound WooCommerce webhook handshake
 ];
 
 export async function middleware(req: NextRequest) {

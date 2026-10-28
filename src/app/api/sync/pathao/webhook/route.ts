@@ -7,6 +7,7 @@ import {
 } from '@/lib/pathaoWebhookEngine';
 import { logAuditAction } from '@/lib/settingsStore';
 import { updateWooCommerceOrderTracking } from '@/lib/woocommerceClient';
+import { appendSyncEvent } from '@/lib/sync/eventLog';
 
 export const dynamic = 'force-dynamic';
 
@@ -95,6 +96,29 @@ export async function POST(req: Request) {
             console.warn(`[PathaoWebhook] Reverse sync to WC for order #${record.merchantOrderId} failed:`, err);
           });
         }
+
+        // Push to unified real-time event log
+        const eventType = `pathao:${record.normalizedStatus.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+        const summary = `Consignment #${record.consignmentId || 'N/A'}${record.merchantOrderId ? ` (Order #${record.merchantOrderId})` : ''} → ${record.normalizedStatus}${record.collectedAmount > 0 ? ` (৳${record.collectedAmount.toLocaleString()})` : ''}`;
+
+        appendSyncEvent({
+          type: eventType,
+          source: 'pathao',
+          summary,
+          orderId: record.merchantOrderId,
+          consignmentId: record.consignmentId,
+          payload: {
+            consignmentId: record.consignmentId,
+            orderId: record.merchantOrderId,
+            normalizedStatus: record.normalizedStatus,
+            rawStatus: record.rawStatus,
+            collectedAmount: record.collectedAmount,
+            reason: record.reason,
+            updatedAt: record.updatedAt,
+          },
+        }).catch((err) => {
+          console.warn('[PathaoWebhook] Event log append warning:', err);
+        });
       }
     }
 

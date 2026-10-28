@@ -33,6 +33,7 @@ export interface SidebarProps {
   returnCount: number;
   mismatchCount?: number;
   exchangeCount?: number;
+  pendingEventsCount?: number;
   activeSourceMode?: 'UPLOAD' | 'API';
   mobileOpen?: boolean;
   onCloseMobile?: () => void;
@@ -59,6 +60,7 @@ export function Sidebar({
   returnCount,
   mismatchCount = 0,
   exchangeCount = 0,
+  pendingEventsCount = 0,
   activeSourceMode: _activeSourceMode = 'UPLOAD',
   mobileOpen = false,
   onCloseMobile,
@@ -121,7 +123,7 @@ export function Sidebar({
       title: 'Core Operations',
       items: [
         { id: 'tabExecutive', label: 'Executive Overview', icon: LayoutDashboard },
-        { id: 'tabLiveOps', label: 'Live Orders Terminal', icon: Activity, highlight: true },
+        { id: 'tabLiveOps', label: 'Live Orders Terminal', icon: Activity, highlight: true, countBadge: pendingEventsCount },
         { id: 'tabOrders', label: 'Orders Ledger', icon: ListOrdered },
         { id: 'tabItemReturns', label: 'Returned Items', icon: RotateCcw, countBadge: returnCount },
         { id: 'tabCourierMismatch', label: 'Courier Audit', icon: Truck, countBadge: mismatchCount, highlight: true },
