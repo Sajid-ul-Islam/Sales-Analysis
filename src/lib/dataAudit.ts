@@ -15,6 +15,12 @@ export interface DataProvenanceInfo {
   isPIISanitized: boolean;
   timestamp: string;
   recordCount: number;
+  fileNames?: string[];
+  dateFrom?: string;
+  dateTo?: string;
+  dateRangeFormatted?: string;
+  activeDatasetLabel?: string;
+  durationDays?: number;
 }
 
 /**
@@ -162,7 +168,8 @@ export function anonymizeDataset<T extends Record<string, unknown>>(records: T[]
 export function createDataProvenance(
   source: DataProvenanceInfo['source'],
   recordCount: number,
-  isPIISanitized: boolean = true
+  isPIISanitized: boolean = true,
+  extra?: Partial<DataProvenanceInfo>
 ): DataProvenanceInfo {
   return {
     source,
@@ -171,5 +178,6 @@ export function createDataProvenance(
     isPIISanitized,
     timestamp: new Date().toISOString(),
     recordCount,
+    ...extra,
   };
 }

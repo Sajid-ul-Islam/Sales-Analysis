@@ -41,7 +41,13 @@ export async function GET(req: Request) {
       : result.dataset;
     const orderCount = finalDataset.orders?.length || 0;
     const isPrivileged = auth.role === 'admin' || auth.role === 'operator';
-    const provenance = createDataProvenance('vercel_blob', orderCount, !isPrivileged);
+    const provenance = createDataProvenance('vercel_blob', orderCount, !isPrivileged, {
+      fileNames: finalDataset.fileNames,
+      dateFrom: finalDataset.dateFrom,
+      dateTo: finalDataset.dateTo,
+      dateRangeFormatted: finalDataset.dateRangeFormatted,
+      activeDatasetLabel: finalDataset.sourceName || 'Cloud Vercel Blob Snapshot',
+    });
 
     return NextResponse.json({
       success: true,

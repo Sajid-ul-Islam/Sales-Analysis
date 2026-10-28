@@ -22,6 +22,7 @@ import { loadSavedThemeSettings, saveThemeSettings, BackgroundStyleId } from '@/
 
 export interface HeaderProps {
   onExport: () => void;
+  onExportMonthlyNetSales?: () => void;
   hasData: boolean;
   onResetBaseline?: () => void;
   dataSourceName?: string;
@@ -54,6 +55,7 @@ export interface HeaderProps {
 
 export function Header({
   onExport,
+  onExportMonthlyNetSales,
   hasData,
   onResetBaseline,
   dataSourceName: _dataSourceName,
@@ -313,7 +315,7 @@ export function Header({
             </button>
           )}
 
-          {/* Export Excel Action */}
+          {/* Export Reconciled Excel Action */}
           <button
             type="button"
             onClick={onExport}
@@ -324,6 +326,20 @@ export function Header({
           >
             <Download className="w-4 h-4 shrink-0" />
           </button>
+
+          {/* Export Monthly Net Sales Report Action */}
+          {onExportMonthlyNetSales && (
+            <button
+              type="button"
+              onClick={onExportMonthlyNetSales}
+              disabled={!hasData}
+              className="inline-flex items-center justify-center p-2 min-w-[40px] min-h-[40px] rounded-xl text-slate-400 hover:text-primary-dark dark:text-slate-500 dark:hover:text-orange-400 disabled:opacity-30 hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+              title="Download Complete 7-Sheet Month-End Net Sales Close Report (.xlsx)"
+              aria-label="Download Month-End Net Sales Report (.xlsx)"
+            >
+              <FileSpreadsheet className="w-4 h-4 shrink-0" />
+            </button>
+          )}
 
           {/* Real-Time Sync Notifications Trigger */}
           {onOpenNotificationCenter && (
@@ -389,6 +405,22 @@ export function Header({
                 <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span className="flex-1 text-left">Export Reconciled (.xlsx)</span>
               </button>
+
+              {/* Monthly Net Sales Report Option */}
+              {onExportMonthlyNetSales && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMoreMenuOpen(false);
+                    onExportMonthlyNetSales();
+                  }}
+                  disabled={!hasData}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-primary-dark dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-white/10 disabled:opacity-40 transition-colors cursor-pointer"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-primary shrink-0" />
+                  <span className="flex-1 text-left">Monthly Net Sales (.xlsx)</span>
+                </button>
+              )}
 
               {/* Reload Baseline Option */}
               {onResetBaseline && (

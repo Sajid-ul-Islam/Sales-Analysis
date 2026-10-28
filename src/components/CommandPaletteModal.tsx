@@ -43,6 +43,7 @@ export interface CommandPaletteModalProps {
   onToggleTheme?: () => void;
   onToggleCopilot?: () => void;
   onExportExcel?: () => void;
+  onExportMonthlyNetSales?: () => void;
   onInspectOrder?: (order: RawOrderRow) => void;
   onToggleSidebar?: () => void;
 }
@@ -86,6 +87,7 @@ export function CommandPaletteModal({
   onToggleTheme,
   onToggleCopilot,
   onExportExcel,
+  onExportMonthlyNetSales,
   onInspectOrder,
   onToggleSidebar
 }: CommandPaletteModalProps) {
@@ -166,6 +168,20 @@ export function CommandPaletteModal({
       action: () => {
         onClose();
         onExportExcel?.();
+      }
+    });
+
+    items.push({
+      id: 'action-export-monthly',
+      category: 'Actions',
+      title: 'Export Monthly Net Sales Report (.xlsx)',
+      subtitle: 'Download complete 7-sheet month-end close workbook with P&L, SKU leaderboard & SIP origins',
+      badge: 'Month-End',
+      badgeColor: 'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-900/60',
+      icon: <FileSpreadsheet className="w-4 h-4 text-orange-500" />,
+      action: () => {
+        onClose();
+        onExportMonthlyNetSales?.();
       }
     });
 

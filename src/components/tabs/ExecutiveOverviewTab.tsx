@@ -11,15 +11,21 @@ import {
   Shirt,
   ChevronLeft,
   ChevronRight,
-  Download
+  Download,
+  FileSpreadsheet
 } from 'lucide-react';
-import { exportPerformanceReport } from '@/lib/excelExport';
+import { exportPerformanceReport, exportMonthlyNetSalesExcel } from '@/lib/excelExport';
+import { ReconciliationResult } from '@/lib/reconciliationEngine';
+import { DataProvenanceInfo } from '@/lib/dataAudit';
 import { ComparativeBarChart } from '@/components/charts';
 
 interface ExecutiveOverviewTabProps {
   summary: SummaryAnalytics;
   orders?: ReconciledOrderRow[];
   skuList?: SkuAnalytics[];
+  reconciliationResult?: ReconciliationResult | null;
+  provenance?: DataProvenanceInfo;
+  onExportMonthlyReport?: () => void;
 }
 
 /**
@@ -43,8 +49,36 @@ export function extractMasterSku(sku: string): string {
   return s.trim() || sku;
 }
 
-export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = [] }: ExecutiveOverviewTabProps) {
+export function ExecutiveOverviewTab({
+  summary,
+  orders: _orders = [],
+  skuList = [],
+  reconciliationResult,
+  provenance,
+  onExportMonthlyReport
+}: ExecutiveOverviewTabProps) {
   const s = summary;
+
+  const handleDownloadMonthlyReport = () => {
+    if (onExportMonthlyReport) {
+      onExportMonthlyReport();
+      return;
+    }
+    if (reconciliationResult) {
+      exportMonthlyNetSalesExcel(reconciliationResult, { provenance });
+      return;
+    }
+    const fallbackResult: ReconciliationResult = {
+      reconciledOrders: _orders,
+      returnedItems: [],
+      skuAnalytics: skuList,
+      customerRiskProfiles: [],
+      summary: s,
+      courierMismatches: [],
+      exchangedOrders: [],
+    };
+    exportMonthlyNetSalesExcel(fallbackResult, { provenance });
+  };
 
   // View Filter Toggle: 'CATEGORY' vs 'ITEM'
   const [viewMode, setViewMode] = useState<'CATEGORY' | 'ITEM'>('CATEGORY');
@@ -204,8 +238,6 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
 
   return (
     <div className="space-y-6">
-      {/* Dynamic Grid: If isExpanded is true, table takes full 12 cols; otherwise 8 cols */}
-    <div className="space-y-6">
       {/* Full Width Performance Table Section */}
       <div className="w-full flex flex-col gap-6">
         <div className="bg-white dark:bg-deepBlack-card rounded-xl shadow-xs border border-slate-200/80 dark:border-deepBlack-border overflow-hidden flex flex-col">
@@ -257,11 +289,22 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
                 </button>
               </div>
 
+              {/* DEDICATED MONTHLY NET SALES REPORT (7 SHEETS) BUTTON */}
+              <button
+                type="button"
+                onClick={handleDownloadMonthlyReport}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-2xs active:scale-95 bg-orange-50 hover:bg-orange-100/80 dark:bg-orange-950/40 dark:hover:bg-orange-900/50 text-primary-dark dark:text-orange-400 border-orange-200/90 dark:border-orange-800/60 hover:border-orange-300 dark:hover:border-orange-700 cursor-pointer"
+                title="Download Comprehensive Month-End Net Sales & P&L Close Report (.xlsx - 7 Sheets)"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-primary-dark dark:text-orange-400" />
+                <span>Monthly Net Sales (.xlsx)</span>
+              </button>
+
               {/* EXPORT OPTION BUTTON FOR CATEGORY & ITEM WISE PERFORMANCE */}
               <button
                 type="button"
                 onClick={() => exportPerformanceReport(categories, masterSkuItems, viewMode)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-2xs active:scale-95 bg-white dark:bg-deepBlack-card text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border-emerald-200/80 dark:border-emerald-800/60 hover:border-emerald-300 dark:hover:border-emerald-700"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-2xs active:scale-95 bg-white dark:bg-deepBlack-card text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border-emerald-200/80 dark:border-emerald-800/60 hover:border-emerald-300 dark:hover:border-emerald-700 cursor-pointer"
                 title={viewMode === 'CATEGORY' ? "Export Category Wise Performance to Excel (.xlsx)" : "Export Item Wise (Master SKU) Performance to Excel (.xlsx)"}
               >
                 <Download className="w-3.5 h-3.5 text-emerald-600" />
@@ -689,6 +732,5 @@ export function ExecutiveOverviewTab({ summary, orders: _orders = [], skuList = 
           )}
         </div>
       </div>
-    </div>
   );
 }

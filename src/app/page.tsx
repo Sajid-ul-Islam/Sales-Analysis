@@ -28,7 +28,8 @@ import {
   DraggableAssistantButton,
   CommandPaletteModal,
   SyncNotificationCenter,
-  dispatchSyncNotification
+  dispatchSyncNotification,
+  DataProvenanceBanner
 } from '@/components';
 import { CopilotDrawer } from '@/components/ai/CopilotDrawer';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
@@ -39,7 +40,7 @@ import {
   extractPartialsFromPathaoDelivery,
   extractExchangesFromPathaoDelivery
 } from '@/lib/reconciliationEngine';
-import { exportReconciledExcel } from '@/lib/excelExport';
+import { exportReconciledExcel, exportMonthlyNetSalesExcel } from '@/lib/excelExport';
 import { loadSavedThemeSettings, saveThemeSettings, applyThemeToDocument, BackgroundStyleId } from '@/lib/themeManager';
 import { loadAppSettings } from '@/lib/settingsStore';
 import { DateScope, filterOrdersByDateScope, CustomDateRange, getDynamicDatasetTitle } from '@/lib/dateFilter';
@@ -584,6 +585,57 @@ export default function DashboardPage() {
     });
   };
 
+  // Helper: Computes earliest and latest timestamps to provide 100% transparent temporal provenance
+  const extractFileDateBoundaries = (orders: RawOrderRow[]) => {
+    let minMs = Infinity;
+    let maxMs = -Infinity;
+    let minIso = '';
+    let maxIso = '';
+
+    for (const r of orders) {
+      const rawDate = r['Order Date'] || r.Date || r.date || r.date_created || r['Created at'] || r.dateModified;
+      if (!rawDate) continue;
+      const ms = new Date(String(rawDate)).getTime();
+      if (!isNaN(ms) && ms > 0) {
+        if (ms < minMs) {
+          minMs = ms;
+          minIso = new Date(ms).toISOString();
+        }
+        if (ms > maxMs) {
+          maxMs = ms;
+          maxIso = new Date(ms).toISOString();
+        }
+      }
+    }
+
+    const hasDates = minMs !== Infinity && maxMs !== -Infinity;
+    const durationDays = hasDates ? Math.max(1, Math.round((maxMs - minMs) / 86400000)) : 0;
+
+    const formatDate = (iso: string) => {
+      try {
+        const d = new Date(iso);
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) +
+          ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      } catch {
+        return iso;
+      }
+    };
+
+    const formattedRange = hasDates
+      ? `${formatDate(minIso)} → ${formatDate(maxIso)} (${durationDays} Day${durationDays === 1 ? '' : 's'})`
+      : 'No timestamps detected';
+
+    return {
+      hasDates,
+      minMs,
+      maxMs,
+      dateFrom: minIso,
+      dateTo: maxIso,
+      durationDays,
+      formattedRange,
+    };
+  };
+
   // Process user uploaded files (Single file, Multi-file, or Multi-sheet CSV/XLSX)
   const handleProcessUploadedFiles = async (customFiles?: {
     orders?: File[];
@@ -685,41 +737,86 @@ export default function DashboardPage() {
         combinedOrders = [...combinedOrders, ...extracted];
       }
 
-      let parsedPathaoDelivery: RawOrderRow[] = rawPathaoDelivery;
+      const isFreshOrderUpload = combinedOrders.length > 0;
+
+      // Strict Data Isolation: If new order files are uploaded, DO NOT blend with old baseline returns/manifests
+      let parsedPathaoDelivery: RawOrderRow[] = [];
       if (targetPathaoDeliveryFile) {
         const wb = await readFileWorkbook(targetPathaoDeliveryFile);
         parsedPathaoDelivery = extractManifestRows(wb);
+      } else if (!isFreshOrderUpload) {
+        parsedPathaoDelivery = rawPathaoDelivery;
       }
 
-      let parsedReturns: RawOrderRow[] = rawReturns;
+      let parsedReturns: RawOrderRow[] = [];
       if (targetReturnFile) {
         const wb = await readFileWorkbook(targetReturnFile);
         parsedReturns = extractManifestRows(wb);
-      } else if (targetPathaoDeliveryFile && parsedPathaoDelivery.length > 0) {
+      } else if (parsedPathaoDelivery.length > 0) {
         // Primary Courier Truth: Automatically extract returns directly from Pathao Delivery Data CSV/Excel!
         parsedReturns = extractReturnsFromPathaoDelivery(parsedPathaoDelivery);
+      } else if (!isFreshOrderUpload) {
+        parsedReturns = rawReturns;
       }
 
-      let parsedPartials: RawOrderRow[] = rawPartials;
+      let parsedPartials: RawOrderRow[] = [];
       if (targetPartialFile) {
         const wb = await readFileWorkbook(targetPartialFile);
         parsedPartials = extractManifestRows(wb);
-      } else if (targetPathaoDeliveryFile && parsedPathaoDelivery.length > 0) {
+      } else if (parsedPathaoDelivery.length > 0) {
         // Automatically extract partial deliveries from Pathao Delivery Data CSV/Excel!
         parsedPartials = extractPartialsFromPathaoDelivery(parsedPathaoDelivery);
+      } else if (!isFreshOrderUpload) {
+        parsedPartials = rawPartials;
       }
 
-      let parsedExchanges: RawOrderRow[] = rawExchanges;
+      let parsedExchanges: RawOrderRow[] = [];
       if (targetExchangeFile) {
         const wb = await readFileWorkbook(targetExchangeFile);
         parsedExchanges = extractManifestRows(wb);
-      } else if (targetPathaoDeliveryFile && parsedPathaoDelivery.length > 0) {
+      } else if (parsedPathaoDelivery.length > 0) {
         // Automatically extract size exchanges from Pathao Delivery Data CSV/Excel!
         parsedExchanges = extractExchangesFromPathaoDelivery(parsedPathaoDelivery);
+      } else if (!isFreshOrderUpload) {
+        parsedExchanges = rawExchanges;
       }
 
       const ordersToUse = combinedOrders.length > 0 ? combinedOrders : rawOrders;
-      const sourceLabel = combinedOrders.length > 0 ? `📂 Uploaded Orders (${ordersToUse.length.toLocaleString()} rows)` : dataSourceName;
+      const uploadedFileNames = [
+        ...targetOrderFiles.map(f => f.name),
+        targetPathaoDeliveryFile?.name,
+        targetReturnFile?.name,
+        targetPartialFile?.name,
+        targetExchangeFile?.name
+      ].filter(Boolean) as string[];
+
+      const fileBoundaries = extractFileDateBoundaries(ordersToUse);
+      const sourceLabel = uploadedFileNames.length > 0
+        ? `📂 ${uploadedFileNames[0]} (${ordersToUse.length.toLocaleString()} rows)`
+        : dataSourceName;
+
+      // Smart Scope Detection: If the latest date in the uploaded file is older than 30 days from today,
+      // default to 'all' so the user sees 100% of their records instead of an empty screen!
+      const daysSinceLatest = fileBoundaries.hasDates
+        ? (Date.now() - fileBoundaries.maxMs) / 86400000
+        : 0;
+
+      const chosenScope: DateScope = (!fileBoundaries.hasDates || daysSinceLatest > 30) ? 'all' : '30d';
+
+      const provenanceInfo: DataProvenanceInfo = {
+        source: 'disk_spreadsheet',
+        environment: 'client_upload',
+        isDemoMode: false,
+        isPIISanitized: true,
+        timestamp: new Date().toISOString(),
+        recordCount: ordersToUse.length,
+        fileNames: uploadedFileNames,
+        dateFrom: fileBoundaries.dateFrom,
+        dateTo: fileBoundaries.dateTo,
+        dateRangeFormatted: fileBoundaries.formattedRange,
+        activeDatasetLabel: uploadedFileNames.length > 0 ? `📂 ${uploadedFileNames[0]}` : 'Offline Spreadsheet',
+        durationDays: fileBoundaries.durationDays,
+      };
 
       const uploadedSnapshot: DatasetSnapshot = {
         orders: ordersToUse,
@@ -727,7 +824,11 @@ export default function DashboardPage() {
         returns: parsedReturns,
         partials: parsedPartials,
         exchanges: parsedExchanges,
-        sourceName: sourceLabel
+        sourceName: sourceLabel,
+        fileNames: uploadedFileNames,
+        dateFrom: fileBoundaries.dateFrom,
+        dateTo: fileBoundaries.dateTo,
+        dateRangeFormatted: fileBoundaries.formattedRange,
       };
       setUploadedDataset(uploadedSnapshot);
       setDataSourceMode('UPLOAD');
@@ -742,22 +843,16 @@ export default function DashboardPage() {
       setRawPartials(parsedPartials);
       setRawExchanges(parsedExchanges);
       setDataSourceName(sourceLabel);
-      setDataProvenance({
-        source: 'disk_spreadsheet',
-        environment: 'client_upload',
-        isDemoMode: false,
-        isPIISanitized: true,
-        timestamp: new Date().toISOString(),
-        recordCount: ordersToUse.length
-      });
-      setDateScope('30d');
-      setCustomDateRange(undefined);
-      setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, '30d', { days: 30 });
+      setDataProvenance(provenanceInfo);
 
-      const filtered = filterOrdersByDateScope(ordersToUse, '30d', undefined);
+      setDateScope(chosenScope);
+      setCustomDateRange(undefined);
+      setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, chosenScope, { days: 30 });
+
+      const filtered = filterOrdersByDateScope(ordersToUse, chosenScope, undefined);
       computeReconciliation(filtered.filteredOrders, parsedReturns, parsedPartials, excludeAugust, excludePOS, parsedExchanges, parsedPathaoDelivery);
       const pathaoInfo = parsedPathaoDelivery.length > 0 ? `, ${parsedPathaoDelivery.length.toLocaleString()} Pathao records` : '';
-      setStatusMessage(`Reconciliation active: ${filtered.matchedOrders.toLocaleString()} orders reconciled for Last 30 Days (${filtered.subLabel || 'rolling period'})${pathaoInfo}, ${parsedReturns.length.toLocaleString()} fallback returns, ${parsedPartials.length} partials, ${parsedExchanges.length} exchanges.`);
+      setStatusMessage(`📂 Offline Dataset Active: Rendering ${filtered.matchedOrders.toLocaleString()} / ${ordersToUse.length.toLocaleString()} orders [${fileBoundaries.formattedRange}]${pathaoInfo}.`);
 
       // Automated Cloud Sync: Non-blocking background persistence to Vercel Blob
       fetch('/api/blob/dataset', {
@@ -988,6 +1083,26 @@ export default function DashboardPage() {
     }
   };
 
+  const handleExportMonthlyNetSales = useCallback(() => {
+    if (!result) {
+      setStatusMessage('No reconciled data available to export.');
+      return;
+    }
+    try {
+      setStatusMessage('Generating 7-Sheet Month-End Net Sales Report (.xlsx)...');
+      exportMonthlyNetSalesExcel(result, {
+        provenance: dataProvenance || undefined,
+      });
+      setTimeout(() => {
+        setStatusMessage('✅ Month-End Net Sales Report (.xlsx) downloaded successfully.');
+      }, 1200);
+    } catch (err: unknown) {
+      console.error('Monthly Net Sales export error:', err);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setStatusMessage(`Monthly export failed: ${errMsg || 'Please check console'}`);
+    }
+  }, [result, dataProvenance]);
+
   return (
     <div
       className="flex min-h-screen font-sans text-slate-900 transition-colors duration-200"
@@ -1015,6 +1130,7 @@ export default function DashboardPage() {
       >
         <Header
           onExport={handleExport}
+          onExportMonthlyNetSales={handleExportMonthlyNetSales}
           hasData={result !== null}
           onResetBaseline={handleResetBaseline}
           dataSourceName={dataSourceName}
@@ -1052,6 +1168,21 @@ export default function DashboardPage() {
                 ✕
               </button>
             </div>
+          )}
+
+          {/* Data Provenance & Temporal Scope Transparency Banner */}
+          {result && !initialLoading && (
+            <DataProvenanceBanner
+              provenance={dataProvenance}
+              dataSourceMode={dataSourceMode}
+              totalOrders={rawOrders.length}
+              matchedOrders={dateFilterResult.matchedOrders}
+              activeScope={dateScope}
+              dateScopeLabel={dateFilterResult.label}
+              onSetScopeAll={() => handleDateScopeChange('all')}
+              onResetBaseline={handleResetBaseline}
+              onSwitchToApi={() => handleSwitchDataSource('API')}
+            />
           )}
 
           {/* Cloud API Integration (WooCommerce + Pathao) - SHOWN ONLY ON EXECUTIVE OVERVIEW OR INITIAL STATE */}
@@ -1346,6 +1477,9 @@ export default function DashboardPage() {
                     summary={result.summary}
                     orders={result.reconciledOrders}
                     skuList={result.skuAnalytics}
+                    reconciliationResult={result}
+                    provenance={dataProvenance || undefined}
+                    onExportMonthlyReport={handleExportMonthlyNetSales}
                   />
                 )}
                 {activeTab === 'tabOutletDispatch' && (
@@ -1509,6 +1643,7 @@ export default function DashboardPage() {
           onToggleTheme={handleToggleTheme}
           onToggleCopilot={() => setIsCopilotOpen(prev => !prev)}
           onExportExcel={handleExport}
+          onExportMonthlyNetSales={handleExportMonthlyNetSales}
           onToggleSidebar={handleToggleSidebarCollapse}
         />
 

@@ -282,4 +282,8 @@ export interface DatasetSnapshot {
   sourceName?: string;
   syncedAt?: string;
   version?: string;
+  fileNames?: string[];
+  dateFrom?: string;
+  dateTo?: string;
+  dateRangeFormatted?: string;
 }
