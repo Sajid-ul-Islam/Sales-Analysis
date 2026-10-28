@@ -27,13 +27,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'DEEN Commerce | Reconciliation & Operations Terminal',
-  description: 'Enterprise Multi-Carrier Reconciliation & Real-Time Operations Terminal for DEEN Commerce',
+  title: 'DEEN Commerce | Sales & Growth',
+  description: 'Enterprise Sales Analytics & Real-Time Growth Intelligence for DEEN Commerce',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'DEEN Reconcile',
+    title: 'DEEN Sales & Growth',
   },
 };
 

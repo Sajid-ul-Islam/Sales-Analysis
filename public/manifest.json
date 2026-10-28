@@ -1,7 +1,7 @@
 {
-  "name": "DEEN Commerce Reconciliation",
-  "short_name": "DEEN Reconcile",
-  "description": "Multi-Carrier Order Reconciliation & Sales Intelligence for DEEN Commerce",
+  "name": "DEEN Commerce Sales & Growth",
+  "short_name": "DEEN Sales",
+  "description": "Sales Analytics & Growth Intelligence for DEEN Commerce",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",

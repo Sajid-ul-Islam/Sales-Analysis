@@ -40,7 +40,7 @@ export function DeenLogo({
             DEEN COMMERCE
           </span>
           <span className="text-[10px] font-bold text-primary dark:text-orange-400 uppercase tracking-wider mt-0.5">
-            Operations Terminal
+            Sales & Growth
           </span>
         </div>
       )}

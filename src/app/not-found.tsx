@@ -8,13 +8,13 @@ export default function NotFound() {
       </div>
       <h2 className="text-xl font-bold font-headline text-slate-900 mb-2">Page Not Found</h2>
       <p className="text-xs text-slate-500 max-w-sm mb-6">
-        The requested dashboard view or reconciliation resource could not be found.
+        The requested dashboard view or resource could not be found.
       </p>
       <Link
         href="/"
         className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white text-xs font-bold transition-all shadow-xs"
       >
-        Return to Reconciliation Dashboard
+        Return to Dashboard
       </Link>
     </div>
   );
