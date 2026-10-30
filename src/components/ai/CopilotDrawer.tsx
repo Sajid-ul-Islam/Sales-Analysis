@@ -43,6 +43,8 @@ import {
   CopilotChatMessage,
 } from '@/lib/chatHistory';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
+import { trimOrderRowsForSql } from '@/lib/edgeCache';
+import { detectDirectSql } from '@/lib/ai/sqlEngine';
 import { getTabContext } from '@/lib/ai/contextualPrompts';
 import { detectAgenticIntent } from '@/lib/ai/agenticActions';
 import { AgenticActionProposal } from '@/types';
@@ -207,7 +209,9 @@ export function CopilotDrawer({
           tabLabel: currentContext.label,
           pageContext: currentContext.summaryFocus,
           analyticsSlices,
-          orders: orderPool && orderPool.length > 0 ? orderPool.slice(0, 3000) : undefined,
+          orders: (orderPool && orderPool.length > 0 && detectDirectSql(q))
+            ? (trimOrderRowsForSql(orderPool.slice(0, 1500) as Record<string, unknown>[]) as RawOrderRow[])
+            : undefined,
         })
       });
 

@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchFullGA4Analytics, testGA4Connection } from '@/lib/ga4Client';
 import { validateApiRequest } from '@/lib/auth/apiAuth';
 
-export const dynamic = 'force-dynamic';
+import { jsonWithEdgeCache } from '@/lib/edgeCache';
+
+// ISR (Incremental Static Regeneration): Cache GA4 analytics reports for 5 minutes
+export const revalidate = 300;
 
 export async function GET(request: NextRequest) {
   // 1. Operator Auth Check
@@ -18,11 +21,11 @@ export async function GET(request: NextRequest) {
 
     if (checkOnly) {
       const status = await testGA4Connection();
-      return NextResponse.json(status);
+      return jsonWithEdgeCache(status, 'SYSTEM_STATUS', { req: request });
     }
 
     const report = await fetchFullGA4Analytics(range);
-    return NextResponse.json(report);
+    return jsonWithEdgeCache(report, 'ANALYTICS_REPORT', { req: request });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : 'Failed to process GA4 request';
     return NextResponse.json(

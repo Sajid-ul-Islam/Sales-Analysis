@@ -5,7 +5,14 @@ import { checkRateLimit } from '@/lib/auth/rateLimiter';
 import { createDataProvenance } from '@/lib/dataAudit';
 import { sampleDatasetSnapshot } from '@/lib/orderSampling';
 
-export const dynamic = 'force-dynamic';
+import {
+  jsonWithEdgeCache,
+  isClientFresh,
+  createNotModifiedResponse,
+} from '@/lib/edgeCache';
+
+// ISR (Incremental Static Regeneration): Cache cloud dataset at the edge for 60 seconds
+export const revalidate = 60;
 
 export async function GET(req: Request) {
   try {
@@ -49,7 +56,13 @@ export async function GET(req: Request) {
       activeDatasetLabel: finalDataset.sourceName || 'Cloud Vercel Blob Snapshot',
     });
 
-    return NextResponse.json({
+    const etag = `W/"blob-${result.uploadedAt || 'v1'}-${result.size || orderCount}-${auth.sampleRate || 1}"`;
+
+    if (isClientFresh(req, etag)) {
+      return createNotModifiedResponse(etag, 'CLOUD_DATASET');
+    }
+
+    return jsonWithEdgeCache({
       success: true,
       configured: true,
       dataset: finalDataset,
@@ -62,7 +75,7 @@ export async function GET(req: Request) {
       exchangesCount: finalDataset.exchanges?.length || 0,
       pathaoDeliveryCount: finalDataset.pathaoDelivery?.length || 0,
       message: result.message,
-    });
+    }, 'CLOUD_DATASET', { req, etag });
   } catch (err: unknown) {
     console.error('[API /api/blob/dataset GET] Error:', err);
     const errorMsg = err instanceof Error ? err.message : 'Failed to fetch dataset from Vercel Blob';

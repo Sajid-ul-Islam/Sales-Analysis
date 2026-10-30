@@ -3,7 +3,10 @@ import { fetchFullGA4Analytics } from '@/lib/ga4Client';
 import { fetchFullMetaAnalytics } from '@/lib/metaClient';
 import { validateApiRequest } from '@/lib/auth/apiAuth';
 
-export const dynamic = 'force-dynamic';
+import { jsonWithEdgeCache } from '@/lib/edgeCache';
+
+// ISR (Incremental Static Regeneration): Cache combined analytics overview for 5 minutes
+export const revalidate = 300;
 
 export async function GET(request: NextRequest) {
   // 1. Operator Auth Check
@@ -30,7 +33,7 @@ export async function GET(request: NextRequest) {
     const blendedRoas = metaSpend > 0 ? parseFloat((ga4Revenue / metaSpend).toFixed(2)) : 0;
     const blendedCac = ga4Purchases > 0 && metaSpend > 0 ? Math.round(metaSpend / ga4Purchases) : 0;
 
-    return NextResponse.json({
+    return jsonWithEdgeCache({
       success: true,
       ga4: ga4Data,
       meta: metaData,
@@ -42,7 +45,7 @@ export async function GET(request: NextRequest) {
         blendedRoas,
         blendedCac,
       },
-    });
+    }, 'ANALYTICS_REPORT', { req: request });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : 'Failed to fetch combined analytics overview';
     return NextResponse.json(

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { validateApiRequest } from '@/lib/auth/apiAuth';
 import { checkRateLimit } from '@/lib/auth/rateLimiter';
 import { batchResolveCustomerRatings, resolveCustomerRating } from '@/lib/customerRating';
+import { jsonWithEdgeCache } from '@/lib/edgeCache';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -85,10 +86,10 @@ export async function GET(req: Request) {
     }
 
     const rating = await resolveCustomerRating(phone);
-    return NextResponse.json({
+    return jsonWithEdgeCache({
       success: true,
       rating,
-    });
+    }, 'CUSTOMER_RATING', { req });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Failed to retrieve customer rating';
     return NextResponse.json({

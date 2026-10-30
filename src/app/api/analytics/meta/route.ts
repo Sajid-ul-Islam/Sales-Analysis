@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchFullMetaAnalytics, testMetaConnection } from '@/lib/metaClient';
 import { validateApiRequest } from '@/lib/auth/apiAuth';
 
-export const dynamic = 'force-dynamic';
+import { jsonWithEdgeCache } from '@/lib/edgeCache';
+
+// ISR (Incremental Static Regeneration): Cache Meta analytics reports for 5 minutes
+export const revalidate = 300;
 
 export async function GET(request: NextRequest) {
   // 1. Operator Auth Check
@@ -19,11 +22,11 @@ export async function GET(request: NextRequest) {
 
     if (checkOnly) {
       const status = await testMetaConnection(customToken);
-      return NextResponse.json(status);
+      return jsonWithEdgeCache(status, 'SYSTEM_STATUS', { req: request });
     }
 
     const report = await fetchFullMetaAnalytics(preset, customToken);
-    return NextResponse.json(report);
+    return jsonWithEdgeCache(report, 'ANALYTICS_REPORT', { req: request });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : 'Failed to process Meta request';
     return NextResponse.json(

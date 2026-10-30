@@ -6,7 +6,10 @@ import { testGA4Connection } from '@/lib/ga4Client';
 import { testMetaConnection } from '@/lib/metaClient';
 import { validateApiRequest } from '@/lib/auth/apiAuth';
 
-export const dynamic = 'force-dynamic';
+import { jsonWithEdgeCache } from '@/lib/edgeCache';
+
+// ISR (Incremental Static Regeneration): Cache external connectivity status for 30s
+export const revalidate = 30;
 
 async function resolveStatus(overrides?: SecretsOverrides) {
   const secrets = getSecretsWithOverrides(overrides);
@@ -99,7 +102,7 @@ export async function GET(req: Request) {
   }
 
   const status = await resolveStatus();
-  return NextResponse.json(status);
+  return jsonWithEdgeCache(status, 'SYSTEM_STATUS', { req });
 }
 
 export async function POST(req: Request) {

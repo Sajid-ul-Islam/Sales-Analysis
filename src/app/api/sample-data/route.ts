@@ -37,7 +37,16 @@ function parseExcelFile(filePath: string): RawOrderRow[] {
   }
 }
 
-export const dynamic = 'force-dynamic';
+import {
+  jsonWithEdgeCache,
+  stripEmptyProperties,
+  generateETag,
+  isClientFresh,
+  createNotModifiedResponse,
+} from '@/lib/edgeCache';
+
+// ISR (Incremental Static Regeneration): Cache static baseline sample data for 1 hour
+export const revalidate = 3600;
 
 export async function GET(req: Request) {
   try {
@@ -74,7 +83,7 @@ export async function GET(req: Request) {
 
           const provenance = createDataProvenance('vercel_blob', sanitizedOrders.length, !isPrivileged);
 
-          return NextResponse.json({
+          const payload = {
             success: true,
             source: 'vercel_blob',
             ordersPath: 'deen_dataset_latest.json (Vercel Blob)',
@@ -93,7 +102,8 @@ export async function GET(req: Request) {
             partials: sanitizedPartials,
             exchanges: sanitizedExchanges,
             pathaoDelivery: sanitizedPathao,
-          });
+          };
+          return jsonWithEdgeCache(payload, 'STATIC_DATASET', { req, isPrivate: false });
         }
       } catch (blobErr) {
         console.warn('[API /api/sample-data] Non-fatal notice querying Vercel Blob:', blobErr);
@@ -200,7 +210,7 @@ export async function GET(req: Request) {
       true
     );
 
-    return NextResponse.json({
+    const fallbackPayload = {
       success: true,
       source: isAnyFallbackUsed ? 'baseline_bundled' : 'disk_spreadsheet',
       ordersPath: ordersPath ? path.basename(ordersPath) : (ordersFromFallback ? 'baselineSample.json (Bundled)' : null),
@@ -218,8 +228,9 @@ export async function GET(req: Request) {
       returns: sanitizedReturns,
       partials: sanitizedPartials,
       exchanges: sanitizedExchanges,
-      pathaoDelivery: sanitizedPathao
-    });
+      pathaoDelivery: sanitizedPathao,
+    };
+    return jsonWithEdgeCache(fallbackPayload, 'STATIC_DATASET', { req, isPrivate: false });
   } catch (error: unknown) {
     console.error('Error reading sample data:', error);
     const errorMsg = error instanceof Error ? error.message : 'Failed to load sample dataset';

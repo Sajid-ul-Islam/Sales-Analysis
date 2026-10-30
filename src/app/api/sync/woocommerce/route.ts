@@ -4,6 +4,7 @@ import { validateApiRequest } from '@/lib/auth/apiAuth';
 import { checkRateLimit } from '@/lib/auth/rateLimiter';
 import { sanitizeOrdersResponse } from '@/lib/auth/dataMasking';
 import { createDataProvenance } from '@/lib/dataAudit';
+import { trimWooCommerceOrder } from '@/lib/edgeCache';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Allow up to 60s for multi-page order fetches on Vercel
@@ -91,7 +92,9 @@ export async function POST(req: Request) {
       ordersCount: rawOrders.length,
       lineItemsCount: formattedRows.length,
       orders: returnRows,
-      rawOrders: isPrivileged ? rawOrders : [],
+      rawOrders: isPrivileged
+        ? rawOrders.map((o) => trimWooCommerceOrder(o as Record<string, unknown>))
+        : [],
       breakdown: {
         byStatus: statusBreakdown,
         byBranch: branchBreakdown,
