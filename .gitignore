@@ -107,6 +107,7 @@ desktop.ini
 # Subagent Scratch Runs
 .agents/*
 !.agents/rules/
+!.agents/skills/
 ORIGINAL_REQUEST.md
 TEST_INFRA.md
 TEST_READY.md
