@@ -37,13 +37,7 @@ function parseExcelFile(filePath: string): RawOrderRow[] {
   }
 }
 
-import {
-  jsonWithEdgeCache,
-  stripEmptyProperties,
-  generateETag,
-  isClientFresh,
-  createNotModifiedResponse,
-} from '@/lib/edgeCache';
+import { jsonWithEdgeCache } from '@/lib/edgeCache';
 
 // ISR (Incremental Static Regeneration): Cache static baseline sample data for 1 hour
 export const revalidate = 3600;
