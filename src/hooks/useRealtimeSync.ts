@@ -126,11 +126,42 @@ export function useRealtimeSync(options: UseRealtimeSyncOptions = {}): UseRealti
   useEffect(() => {
     if (!enabled) return;
 
-    connect();
+    // Inactivity sleep: Only establish streaming connection when tab is active/visible
+    if (typeof document !== 'undefined' && !document.hidden) {
+      connect();
+    }
+
+    const handleVisibility = () => {
+      if (typeof document === 'undefined') return;
+      if (document.hidden) {
+        // Sleep on background tab: disconnect to save Vercel serverless duration and bandwidth
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close();
+          eventSourceRef.current = null;
+          setIsConnected(false);
+        }
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+          reconnectTimeoutRef.current = null;
+        }
+      } else {
+        // Wake up on focus: reconnect and catch up on missed events
+        reconnectAttemptsRef.current = 0;
+        connect();
+      }
+    };
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibility);
+    }
 
     return () => {
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibility);
+      }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
       }
       if (eventSourceRef.current) {
         eventSourceRef.current.close();

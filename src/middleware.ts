@@ -26,18 +26,25 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 1.1 Edge Circuit Breaker: Block oversized request bodies (> 500 KB)
-  // Guarantees zero Fast Origin Transfer spikes on Vercel compute
+  // 1.1 Edge Circuit Breaker: Block oversized request bodies
+  // Automated sync/AI routes capped at 500 KB to eliminate Fast Origin Transfer spikes.
+  // Manual admin cloud dataset uploads (/api/blob/dataset) capped at Vercel function ceiling (4.5 MB).
   if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
     const contentLength = req.headers.get('content-length');
-    if (contentLength && parseInt(contentLength, 10) > 500 * 1024) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Payload Too Large: Fast Origin Transfer circuit breaker engaged (Max 500 KB).',
-        },
-        { status: 413 }
-      );
+    if (contentLength) {
+      const bytes = parseInt(contentLength, 10);
+      const isManualBlobUpload = pathname === '/api/blob/dataset';
+      const maxAllowedBytes = isManualBlobUpload ? 4.5 * 1024 * 1024 : 500 * 1024;
+
+      if (bytes > maxAllowedBytes) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Payload Too Large: Fast Origin Transfer circuit breaker engaged (Max ${isManualBlobUpload ? '4.5 MB' : '500 KB'}).`,
+          },
+          { status: 413 }
+        );
+      }
     }
   }
 

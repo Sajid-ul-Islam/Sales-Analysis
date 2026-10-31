@@ -134,6 +134,9 @@ export function setCacheItem<T = unknown>(
 
     try {
       localStorage.setItem(key, serialized);
+      if (byteSize > 250 * 1024) {
+        setIndexedDbItem(key, data, ttlMs).catch(() => {});
+      }
       return true;
     } catch (quotaErr) {
       // Storage quota exceeded — attempt emergency eviction of expired or non-critical cache
@@ -144,9 +147,10 @@ export function setCacheItem<T = unknown>(
       try {
         localStorage.setItem(key, serialized);
         return true;
-      } catch (retryErr) {
-        console.error('[CacheManager] Unable to cache even after eviction:', retryErr);
-        return false;
+      } catch {
+        console.warn('[CacheManager] LocalStorage quota still full. Persisting to IndexedDB store:', key);
+        setIndexedDbItem(key, data, ttlMs).catch(() => {});
+        return true;
       }
     }
   } catch (err) {
@@ -181,6 +185,7 @@ export function getCacheItem<T = unknown>(key: string): T | null {
         if (age > envelope.ttlMs) {
           console.info(`[CacheManager] Cache entry "${key}" expired (${age}ms > ${envelope.ttlMs}ms). Removing.`);
           localStorage.removeItem(key);
+    removeIndexedDbItem(key).catch(() => {});
           return null;
         }
       }
@@ -198,6 +203,112 @@ export function getCacheItem<T = unknown>(key: string): T | null {
 /**
  * Remove a specific cache item from localStorage.
  */
+
+// ── High-Performance Native IndexedDB Storage Engine (Zero-Dependency) ──
+const IDB_NAME = 'deen_reconciliation_store';
+const IDB_VERSION = 1;
+const IDB_STORE = 'large_cache_entries';
+
+function openIndexedDb(): Promise<IDBDatabase | null> {
+  if (typeof window === 'undefined' || !window.indexedDB) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    try {
+      const request = window.indexedDB.open(IDB_NAME, IDB_VERSION);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) {
+          db.createObjectStore(IDB_STORE, { keyPath: 'key' });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/**
+ * Stores large datasets (> 250 KB or exceeding localStorage quota) in IndexedDB.
+ */
+export async function setIndexedDbItem<T>(key: string, data: T, ttlMs = 0): Promise<boolean> {
+  const db = await openIndexedDb();
+  if (!db) return false;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      const store = tx.objectStore(IDB_STORE);
+      store.put({
+        key,
+        data,
+        timestamp: Date.now(),
+        ttlMs,
+      });
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
+/**
+ * Retrieves large cached dataset from IndexedDB with TTL verification.
+ */
+export async function getIndexedDbItem<T>(key: string): Promise<T | null> {
+  const db = await openIndexedDb();
+  if (!db) return null;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const store = tx.objectStore(IDB_STORE);
+      const req = store.get(key);
+      req.onsuccess = () => {
+        const entry = req.result;
+        if (!entry) return resolve(null);
+        if (entry.ttlMs > 0 && Date.now() - entry.timestamp > entry.ttlMs) {
+          try {
+            const delTx = db.transaction(IDB_STORE, 'readwrite');
+            delTx.objectStore(IDB_STORE).delete(key);
+          } catch {}
+          return resolve(null);
+        }
+        resolve(entry.data as T);
+      };
+      req.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/**
+ * Removes an item from IndexedDB.
+ */
+export async function removeIndexedDbItem(key: string): Promise<boolean> {
+  const db = await openIndexedDb();
+  if (!db) return false;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).delete(key);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
+/**
+ * Asynchronously retrieves item, checking localStorage first, then IndexedDB fallback.
+ */
+export async function getCacheItemAsync<T>(key: string): Promise<T | null> {
+  const local = getCacheItem<T>(key);
+  if (local !== null) return local;
+  return getIndexedDbItem<T>(key);
+}
+
 export function removeCacheItem(key: string): void {
   if (typeof window === 'undefined') return;
   try {

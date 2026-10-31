@@ -48,12 +48,14 @@ export async function POST(req: Request) {
     const cappedList = phoneList.slice(0, 50);
     const ratings = await batchResolveCustomerRatings(cappedList, { credentials });
 
-    return NextResponse.json({
+    const payload = {
       success: true,
       message: `Retrieved delivery ratings for ${Object.keys(ratings).length} customer phone numbers.`,
       count: Object.keys(ratings).length,
       ratings,
-    });
+    };
+
+    return jsonWithEdgeCache(payload, 'CUSTOMER_RATING', { req });
   } catch (error: unknown) {
     console.error('Customer rating API error:', error);
     const msg = error instanceof Error ? error.message : 'Failed to retrieve customer ratings';

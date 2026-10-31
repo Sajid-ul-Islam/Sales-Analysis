@@ -705,6 +705,8 @@ export async function syncLiveTerminalData(options: {
   fetchLiveWc?: boolean;
   skipNetwork?: boolean;
   maxPages?: number;
+  after?: string;
+  isDelta?: boolean;
 }): Promise<LiveTerminalSyncResult> {
   let wcConnected = false;
   let pathaoConnected = false;
@@ -718,7 +720,8 @@ export async function syncLiveTerminalData(options: {
       const wcTest = await testWooCommerceConnection(options.wcCredentials);
       if (wcTest.success) {
         wcConnected = true;
-        const maxPagesToFetch = options.maxPages || 6; // Default to 6 pages (600 orders) to cover full 7-day rolling window
+        const maxPagesToFetch = options.maxPages || 6; // Default to 6 pages (300-600 orders) or 2 pages on delta
+        const deltaAfter = options.after || (options.isDelta ? new Date(Date.now() - 48 * 3600 * 1000).toISOString() : undefined);
         const fetched = await fetchWooCommerceOrders({
           perPage: 50,
           fetchAllPages: maxPagesToFetch > 1,
@@ -727,6 +730,7 @@ export async function syncLiveTerminalData(options: {
           order: 'desc',
           timeoutMs: 25000,
           credentials: options.wcCredentials,
+          after: deltaAfter,
         });
         if (fetched && fetched.length > 0) {
           const liveRows = formatWooCommerceToOrderRows(fetched);

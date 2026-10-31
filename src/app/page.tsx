@@ -57,6 +57,7 @@ import {
   setCacheItem,
   getCacheItem,
   removeCacheItem,
+  getIndexedDbItem,
   DEEN_CACHE_KEYS
 } from '@/lib/cacheManager';
 import { DataProvenanceInfo } from '@/lib/dataAudit';
@@ -396,7 +397,10 @@ export default function DashboardPage() {
 
     // 1. Instant recovery from local cache unless hard refresh is requested
     if (!forceBypassCache) {
-      const rawCached = getCacheItem<DatasetSnapshot>(DEEN_CACHE_KEYS.ACTIVE_DATASET);
+      let rawCached = getCacheItem<DatasetSnapshot>(DEEN_CACHE_KEYS.ACTIVE_DATASET);
+      if (!rawCached || !rawCached.orders || rawCached.orders.length === 0) {
+        rawCached = await getIndexedDbItem<DatasetSnapshot>(DEEN_CACHE_KEYS.ACTIVE_DATASET);
+      }
       if (rawCached && rawCached.orders && rawCached.orders.length > 0) {
         const cached = applySampling(rawCached);
         setUploadedDataset(cached);

@@ -53,6 +53,7 @@ import {
   LiveTerminalStats,
   DiscrepancyAlert,
   detectFulfillmentBranch,
+  cleanOrderId,
 } from '@/lib/sync/liveTerminalSync';
 import { loadAppSettings } from '@/lib/settingsStore';
 import { getCacheItem, setCacheItem, DEEN_CACHE_KEYS } from '@/lib/cacheManager';
@@ -359,6 +360,10 @@ export function LiveOpsTab({
 
   // Live Sync & Telemetry State — Clean SSR defaults, hydrated in useEffect on mount
   const [liveOrders, setLiveOrders] = useState<RawOrderRow[]>([]);
+  const liveOrdersRef = useRef<RawOrderRow[]>(liveOrders);
+  useEffect(() => {
+    liveOrdersRef.current = liveOrders;
+  }, [liveOrders]);
   const [courierStats, setCourierStats] = useState<LiveTerminalStats | null>(null);
   const [discrepancies, setDiscrepancies] = useState<DiscrepancyAlert[]>([]);
   const [wcConnected, setWcConnected] = useState<boolean>(false);
@@ -533,9 +538,10 @@ export function LiveOpsTab({
     try {
       const appSettings = typeof window !== 'undefined' ? loadAppSettings() : null;
       const payload: Record<string, unknown> = {
-        limitConsignments: 35,
+        limitConsignments: isManual ? 35 : 15,
         fetchLiveWc: true,
-        maxPages: 6,
+        maxPages: isManual ? 6 : 2,
+        isDelta: !isManual,
         // Zero-upload architecture: Never send megabytes of client orders over the network during live sync
         activeOrders: undefined,
       };
@@ -582,7 +588,17 @@ export function LiveOpsTab({
       }
 
       if (data && data.success && data.orders && data.orders.length > 0) {
-        setLiveOrders(data.orders);
+        const incoming = data.orders;
+        const resolvedOrders = isManual
+          ? incoming
+          : (() => {
+              const prev = liveOrdersRef.current && liveOrdersRef.current.length > 0 ? liveOrdersRef.current : (ordersRef.current || []);
+              if (prev.length === 0) return incoming;
+              const newOrderIds = new Set(incoming.map((r) => cleanOrderId(r['Order ID'] || r.orderId)));
+              const older = prev.filter((r) => !newOrderIds.has(cleanOrderId(r['Order ID'] || r.orderId)));
+              return [...incoming, ...older];
+            })();
+        setLiveOrders(resolvedOrders);
         setCourierStats(data.stats);
         setDiscrepancies(data.discrepancies || []);
         setWcConnected(!!data.wcConnected);
@@ -844,30 +860,36 @@ export function LiveOpsTab({
       })
       .catch(() => {});
 
-    // 2. Asynchronous Pathao API verification in background for unverified numbers
-    const unverified = uniqueList.filter((ph) => {
-      const { full } = normalizeCustomerPhone(ph);
-      const existing = customerRatingsRef.current[full] || customerRatingsRef.current[ph];
-      return !existing || existing.source !== 'PATHAO';
-    }).slice(0, 30);
+    // 2. Asynchronous Pathao API verification in background for unverified numbers (debounced 600ms)
+    const debounceTimer = setTimeout(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
 
-    if (unverified.length > 0) {
-      fetch('/api/courier/customer-rating', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getClientAuthHeaders(),
-        },
-        body: JSON.stringify({ phones: unverified }),
-      })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data?.ratings && typeof data.ratings === 'object') {
-            setCustomerRatings((prev) => ({ ...prev, ...data.ratings }));
-          }
+      const unverified = uniqueList.filter((ph) => {
+        const { full } = normalizeCustomerPhone(ph);
+        const existing = customerRatingsRef.current[full] || customerRatingsRef.current[ph];
+        return !existing || existing.source !== 'PATHAO';
+      }).slice(0, 30);
+
+      if (unverified.length > 0) {
+        fetch('/api/courier/customer-rating', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getClientAuthHeaders(),
+          },
+          body: JSON.stringify({ phones: unverified }),
         })
-        .catch(() => {});
-    }
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data?.ratings && typeof data.ratings === 'object') {
+              setCustomerRatings((prev) => ({ ...prev, ...data.ratings }));
+            }
+          })
+          .catch(() => {});
+      }
+    }, 600);
+
+    return () => clearTimeout(debounceTimer);
   }, [filteredOrderWiseGroups, filteredOrders, report.activeOrders]);
 
   // Unique categories for table filter dropdown (respects active channel filter and branch)
