@@ -305,7 +305,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
           startDate,
           endDate,
           limit: 35,
-          activeOrders: activeOrders?.slice(0, 100),
+          consignmentIds: activeOrders?.map(o => String(o.consignmentId || o.trackingId || o['Consignment ID'] || '')).filter(Boolean).slice(0, 40),
           credentials: creds.pathao,
         }),
       });
@@ -468,7 +468,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
             startDate,
             endDate,
             limit: 35,
-            activeOrders: ordersForPathao.slice(0, 100),
+            consignmentIds: ordersForPathao.map(o => String(o.consignmentId || o.trackingId || o['Consignment ID'] || '')).filter(Boolean).slice(0, 40),
             credentials: creds.pathao,
           }),
         }).then(r => r.json());

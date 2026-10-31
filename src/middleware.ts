@@ -26,6 +26,21 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // 1.1 Edge Circuit Breaker: Block oversized request bodies (> 500 KB)
+  // Guarantees zero Fast Origin Transfer spikes on Vercel compute
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    const contentLength = req.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > 500 * 1024) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Payload Too Large: Fast Origin Transfer circuit breaker engaged (Max 500 KB).',
+        },
+        { status: 413 }
+      );
+    }
+  }
+
   // 2. Check if the path is explicitly public
   const isPublicPath = PUBLIC_PATHS.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`)

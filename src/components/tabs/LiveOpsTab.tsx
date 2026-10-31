@@ -536,7 +536,8 @@ export function LiveOpsTab({
         limitConsignments: 35,
         fetchLiveWc: true,
         maxPages: 6,
-        activeOrders: ordersRef.current && ordersRef.current.length > 0 ? ordersRef.current : undefined,
+        // Zero-upload architecture: Never send megabytes of client orders over the network during live sync
+        activeOrders: undefined,
       };
 
       if (appSettings?.wcConsumerKey) {
