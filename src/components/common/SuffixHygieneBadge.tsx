@@ -49,7 +49,7 @@ export function SuffixHygieneBadge({
   return (
     <span
       className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded border bg-rose-950/40 text-rose-300 border-rose-800/60 shadow-xs"
-      title={`Suffix Hygiene Warning: ${validation.issueDescription || 'Malformed order ID'}`}
+      title={`Suffix Hygiene Warning: Format: ${sanitizedFix}. ${validation.issueDescription || 'Malformed order ID'}`}
     >
       <AlertTriangle className="w-3 h-3 text-rose-400 shrink-0" />
       <span className="line-through opacity-70">{targetId}</span>
@@ -63,7 +63,7 @@ export function SuffixHygieneBadge({
             e.stopPropagation();
             onApplyFix(sanitizedFix);
           }}
-          className="ml-1 p-0.5 hover:bg-rose-900/60 rounded text-rose-300 hover:text-white transition-colors"
+          className="ml-1 p-0.5 hover:bg-rose-900/60 rounded text-rose-300 hover:text-white transition-colors cursor-pointer"
           title={`Auto-sanitize to ${sanitizedFix}`}
         >
           <Wand2 className="w-2.5 h-2.5" />

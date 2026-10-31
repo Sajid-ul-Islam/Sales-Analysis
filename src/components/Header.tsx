@@ -339,21 +339,7 @@ export function Header({
         <div className="hidden sm:flex items-center gap-1 shrink-0">
           <div className="h-5 w-px bg-slate-200 dark:bg-deepBlack-border mx-1" />
 
-          {/* DEEN Assistant AI Copilot Trigger */}
-          {onToggleCopilot && (
-            <button
-              type="button"
-              onClick={() => onToggleCopilot()}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 min-h-[40px] rounded-xl text-xs font-bold text-primary-dark dark:text-orange-400 bg-orange-50/80 hover:bg-orange-100 dark:bg-orange-950/30 dark:hover:bg-orange-900/40 border border-orange-200/80 dark:border-orange-800/50 active:scale-95 transition-all shadow-2xs cursor-pointer group"
-              title="Open DEEN Assistant AI Copilot (⌘J)"
-              aria-label="Open DEEN Assistant AI Copilot"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-primary group-hover:rotate-12 transition-transform shrink-0" />
-              <span className="hidden md:inline">Ask AI</span>
-            </button>
-          )}
-
-          {/* Reset Baseline Action */}
+{/* Reset Baseline Action */}
           {onResetBaseline && (
             <button
               type="button"
