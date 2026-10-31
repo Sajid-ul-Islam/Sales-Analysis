@@ -2,10 +2,10 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { ReconciledOrderRow } from '@/types';
-import { Search, ChevronLeft, ChevronRight, Eye, Copy, Check, RotateCcw } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Eye, Copy, Check } from 'lucide-react';
 import { OrderDetailModal } from '@/components/OrderDetailModal';
 import { getManualOverrides, ManualOverride } from '@/lib/overrideStore';
-import { FulfillmentBadge, StatusBadge } from '@/components/common';
+import { FulfillmentBadge, StatusBadge, SuffixHygieneBadge, NoSearchResults } from '@/components/common';
 import {
   compareOrdersByNumber,
   getExportCustomerName,
@@ -355,27 +355,7 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
               {paginatedOrders.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="py-16 text-center">
-                    <div className="flex flex-col items-center justify-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-deepBlack-elevated border border-slate-200 dark:border-deepBlack-border flex items-center justify-center text-slate-400">
-                        <Search className="w-6 h-6" />
-                      </div>
-                      <div className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                        No matching order records found
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm">
-                        Try adjusting your search query, filter criteria, or date selection to see results.
-                      </p>
-                      {hasActiveFilter && (
-                        <button
-                          type="button"
-                          onClick={handleResetFilters}
-                          className="mt-1 px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-95"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          <span>Reset All Filters</span>
-                        </button>
-                      )}
-                    </div>
+                    <NoSearchResults searchTerm={searchTerm} onReset={hasActiveFilter ? handleResetFilters : undefined} />
                   </td>
                 </tr>
               ) : (
@@ -418,6 +398,7 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="group-hover:text-primary transition-colors flex items-center gap-1 font-mono">
                             {o.orderId}
+                            <SuffixHygieneBadge orderId={o.orderId} />
                             <Eye className="w-3 h-3 text-slate-400 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                           </span>
                           <button

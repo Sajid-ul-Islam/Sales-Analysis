@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { CloudSyncBar } from '@/components/CloudSyncBar';
+import { WebhookHubSection } from '@/components/settings/WebhookHubSection';
 import {
   THEME_PRESETS,
   BACKGROUND_PRESETS,
@@ -1105,6 +1106,11 @@ interface ApiConnectionStatus {
           activeDataset={activeDataset}
           onLoadFullDataset={onLoadFullDataset}
         />
+
+        {/* Webhook Hub Section (Direct Realtime Event Ingest & Transients Hygiene) */}
+        <div className="mt-6">
+          <WebhookHubSection />
+        </div>
       </div>
 
       {/* Grid of Settings Sections */}

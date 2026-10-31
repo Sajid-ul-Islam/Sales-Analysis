@@ -18,6 +18,8 @@ import { exportPerformanceReport, exportMonthlyNetSalesExcel } from '@/lib/excel
 import { ReconciliationResult } from '@/lib/reconciliationEngine';
 import { DataProvenanceInfo } from '@/lib/dataAudit';
 import { ComparativeBarChart } from '@/components/charts';
+import { MonthEndCloseCard } from '@/components/common/MonthEndCloseCard';
+import { EmptyState } from '@/components/common/EmptyState';
 
 interface ExecutiveOverviewTabProps {
   summary: SummaryAnalytics;
@@ -236,8 +238,24 @@ export function ExecutiveOverviewTab({
   const exchangeRate = s.grossOrders > 0 ? (((s.totalExchangedOrders || 0) / s.grossOrders) * 100).toFixed(1) : '0.0';
   const partialRate = s.grossOrders > 0 ? ((s.partialOrders / s.grossOrders) * 100).toFixed(1) : '0.0';
 
+  if (_orders.length === 0 && (!skuList || skuList.length === 0)) {
+    return (
+      <EmptyState
+        title="Executive Overview Ready"
+        description="No orders loaded yet. Load the 15% executive sample dataset or sync from WooCommerce to view executive KPIs and net revenue."
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
+      <MonthEndCloseCard
+        orders={_orders}
+        summary={summary}
+        reconciliationResult={reconciliationResult}
+        onExport={handleDownloadMonthlyReport}
+      />
+
       {/* Full Width Performance Table Section */}
       <div className="w-full flex flex-col gap-6">
         <div className="bg-white dark:bg-deepBlack-card rounded-xl shadow-xs border border-slate-200/80 dark:border-deepBlack-border overflow-hidden flex flex-col">

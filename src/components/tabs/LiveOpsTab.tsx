@@ -1,5 +1,7 @@
 "use client";
 
+import { SuffixHygieneBadge, NoSearchResults } from '@/components/common';
+
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   Package,
@@ -3038,7 +3040,7 @@ export function LiveOpsTab({
                                 ) : (
                                   <span className="w-3.5 inline-block" />
                                 )}
-                                <span className="group-hover:underline">{group.orderId}</span>
+                                <span className="group-hover:underline"><SuffixHygieneBadge orderId={group.orderId} /></span>
                                 {group.hasDiscrepancy && (
                                   <span
                                     title={`Discrepancy: ${group.discrepancyType || 'Status mismatch'}`}
@@ -3372,9 +3374,16 @@ export function LiveOpsTab({
             ) : (
               filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="py-12 text-center text-slate-400 dark:text-slate-500">
-                    <Package className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                    <p className="font-semibold">No orders found matching the filter criteria.</p>
+                  <td colSpan={12} className="py-6 px-4">
+                    <NoSearchResults
+                      searchTerm={searchQuery}
+                      viewName="Live Operations Terminal"
+                      onClearFilters={() => {
+                        setSearchQuery('');
+                        setCategoryFilter('ALL');
+                        setCourierFilter('ALL');
+                      }}
+                    />
                   </td>
                 </tr>
               ) : (

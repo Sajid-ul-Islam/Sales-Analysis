@@ -46,7 +46,7 @@ import { loadAppSettings } from '@/lib/settingsStore';
 import { DateScope, filterOrdersByDateScope, CustomDateRange, getDynamicDatasetTitle } from '@/lib/dateFilter';
 import { RawOrderRow, AgenticActionProposal, DatasetSnapshot } from '@/types';
 import { applyAgenticAction, clearAgenticTags } from '@/lib/ai/agenticActions';
-import { RefreshCw, CheckCircle2, UploadCloud, Calendar, RotateCcw, Scale } from 'lucide-react';
+import { CheckCircle2, Calendar, RotateCcw, Scale } from 'lucide-react';
 import {
   getCookie,
   setCookie,
@@ -66,6 +66,13 @@ import { useAuth } from '@/context/AuthContext';
 import { sampleDatasetSnapshot } from '@/lib/orderSampling';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { RealtimeSyncToast } from '@/components/RealtimeSyncToast';
+import {
+  OfflineBanner,
+  LoadingProgress,
+  EmptyState,
+  SessionRecoveryModal,
+  SuccessCelebrationModal,
+} from '@/components/common';
 import type { SyncEvent } from '@/lib/sync/eventLog';
 
 export type DataSourceMode = 'UPLOAD' | 'API';
@@ -91,6 +98,25 @@ export default function DashboardPage() {
   const [partialFile, setPartialFile] = useState<File | null>(null);
   const [exchangeFile, setExchangeFile] = useState<File | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isSessionRecoveryOpen, setIsSessionRecoveryOpen] = useState(false);
+  const [celebrationModalData, setCelebrationModalData] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    metrics: Array<{ label: string; value: string | number }>;
+    nextActions: Array<{
+      label: string;
+      onClick: () => void;
+      icon?: 'download' | 'view' | 'sheet' | 'arrow';
+      primary?: boolean;
+    }>;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    metrics: [],
+    nextActions: [],
+  });
 
   const handleKpiCardClick = (target: string, statusFilter?: string, territoryFilter?: string) => {
     setLedgerStatusFilter(statusFilter || 'ALL');
@@ -1114,6 +1140,7 @@ export default function DashboardPage() {
         className="flex-1 flex flex-col min-w-0 transition-colors duration-200"
         style={{ backgroundColor: 'var(--bg-surface, #FFFFFF)' }}
       >
+        <OfflineBanner />
         <Header
           onExport={handleExport}
           onExportMonthlyNetSales={handleExportMonthlyNetSales}
@@ -1217,11 +1244,11 @@ export default function DashboardPage() {
 
           {/* Initial Loading State - Only shown when loading reconciliation ledger */}
           {initialLoading && activeTab !== 'tabLiveOps' && activeTab !== 'tabSettings' && (
-            <div className="py-20 flex flex-col items-center justify-center gap-3">
-              <RefreshCw className="w-8 h-8 text-primary animate-spin" />
-              <span className="text-sm font-semibold text-slate-400">
-                Initializing Next.js Knapsack DP Engine & Parsing Data...
-              </span>
+            <div className="py-12">
+              <LoadingProgress
+                isLoading={initialLoading}
+                message="Initializing Next.js Knapsack DP Engine & Parsing Data..."
+              />
             </div>
           )}
 
@@ -1581,35 +1608,40 @@ export default function DashboardPage() {
 
           {/* Empty State Guide Card when no files or data loaded yet */}
           {!result && !initialLoading && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && activeTab !== 'tabLiveOps' && (
-            <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-10 text-center flex flex-col items-center justify-center max-w-2xl mx-auto shadow-sm my-6">
-              <div className="w-14 h-14 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-primary mb-4 shadow-sm">
-                <UploadCloud className="w-7 h-7" />
-              </div>
-              <h3 className="font-headline text-base font-bold text-slate-900 mb-1">
-                Ready to Reconcile Your Store Orders
-              </h3>
-              <p className="text-xs text-slate-500 max-w-md mb-6 leading-relaxed">
-                Drag & drop your store order files and Pathao delivery manifests into the dropzones above, or sync live data directly from WooCommerce & Pathao in the Cloud toolbar.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full text-left">
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-[10px] font-bold text-primary uppercase block">1. Store Orders</span>
-                  <span className="text-xs font-bold text-slate-800 block mt-0.5">Dispatched Orders</span>
-                  <span className="text-[10px] text-slate-500">WooCommerce / Excel (.xlsx)</span>
-                </div>
-                <div className="p-3.5 rounded-xl bg-indigo-50/50 border border-indigo-100">
-                  <span className="text-[10px] font-bold text-indigo-700 uppercase block">2. Primary Truth</span>
-                  <span className="text-xs font-bold text-slate-800 block mt-0.5">Pathao Delivery Data</span>
-                  <span className="text-[10px] text-slate-500">Auto-detects returns & partials (.csv)</span>
-                </div>
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase block">3. Separate Manifests</span>
-                  <span className="text-xs font-bold text-slate-800 block mt-0.5">Optional Overrides</span>
-                  <span className="text-[10px] text-slate-500">Manual returns & exchange files</span>
-                </div>
-              </div>
-            </div>
+            <EmptyState
+              title="Ready to Reconcile Your Store Orders"
+              description="Drag & drop your store order files and Pathao delivery manifests into the dropzones above, or sync live data directly from WooCommerce & Pathao in the Cloud toolbar."
+              onLoadBaseline={handleResetBaseline}
+            />
           )}
+          {/* State 8: Session Recovery Modal (Preserves Draft State on Expiry) */}
+          <SessionRecoveryModal
+            isOpen={isSessionRecoveryOpen}
+            onSuccess={() => {
+              setIsSessionRecoveryOpen(false);
+              try {
+                const draft = localStorage.getItem('deen_session_recovery_draft');
+                if (draft) {
+                  const parsed = JSON.parse(draft);
+                  if (parsed.activeTab) setActiveTab(parsed.activeTab);
+                }
+              } catch {}
+            }}
+            onCancel={() => {
+              setIsSessionRecoveryOpen(false);
+              window.location.href = '/login';
+            }}
+          />
+
+          {/* State 10: Celebratory Success Modal */}
+          <SuccessCelebrationModal
+            isOpen={celebrationModalData.isOpen}
+            onClose={() => setCelebrationModalData(prev => ({ ...prev, isOpen: false }))}
+            title={celebrationModalData.title}
+            message={celebrationModalData.message}
+            metrics={celebrationModalData.metrics}
+            nextActions={celebrationModalData.nextActions}
+          />
         </main>
 
         {/* Dynamic Week-over-Week & Month-over-Month Performance Comparison Modal */}
