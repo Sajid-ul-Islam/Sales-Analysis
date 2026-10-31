@@ -862,20 +862,6 @@ export default function DashboardPage() {
       computeReconciliation(filtered.filteredOrders, parsedReturns, parsedPartials, excludeAugust, excludePOS, parsedExchanges, parsedPathaoDelivery);
       const pathaoInfo = parsedPathaoDelivery.length > 0 ? `, ${parsedPathaoDelivery.length.toLocaleString()} Pathao records` : '';
       setStatusMessage(`📂 Offline Dataset Active: Rendering ${filtered.matchedOrders.toLocaleString()} / ${ordersToUse.length.toLocaleString()} orders [${fileBoundaries.formattedRange}]${pathaoInfo}.`);
-
-      // Automated Cloud Sync: Non-blocking background persistence to Vercel Blob
-      fetch('/api/blob/dataset', {
-        method: 'POST',
-        headers: getClientAuthHeaders(),
-        body: JSON.stringify(uploadedSnapshot),
-      })
-      .then(r => r.json())
-      .then(d => {
-        if (d.success) {
-          setStatusMessage(prev => `${prev} ☁️ Auto-synced to Cloud Blob.`);
-        }
-      })
-      .catch(() => {});
     } catch (err: unknown) {
       console.error('File reading failed:', err);
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -929,20 +915,6 @@ export default function DashboardPage() {
       description: `Reconciled ${filtered.matchedOrders.toLocaleString()} orders with ${rows.length} ${type === 'orders' ? 'WooCommerce items' : 'Pathao records'} (${filtered.label}).`,
       targetTab: type === 'orders' ? 'tabOrders' : 'tabCourierMismatch'
     });
-
-    // Automated Cloud Sync: Non-blocking background persistence to Vercel Blob
-    fetch('/api/blob/dataset', {
-      method: 'POST',
-      headers: getClientAuthHeaders(),
-      body: JSON.stringify(snapshot),
-    })
-    .then(r => r.json())
-    .then(d => {
-      if (d.success) {
-        setStatusMessage(prev => `${prev} ☁️ Auto-synced to Cloud Blob.`);
-      }
-    })
-    .catch(() => {});
   };
 
   const handleRefreshLiveData = useCallback(async () => {

@@ -223,6 +223,7 @@ const AutoSyncCountdownButton = React.memo(function AutoSyncCountdownButton({
       return;
     }
     const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       setCountdown((prev) => {
         if (prev <= 1) {
           setTimeout(() => {
