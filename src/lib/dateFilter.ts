@@ -1,7 +1,18 @@
 import { RawOrderRow } from '@/types';
-import { getDhakaTodayIso, getDhakaIsoDate, parseDhakaMidday, getDhakaDayBoundaries } from '@/lib/timezone';
+import { getDhakaTodayIso, getDhakaIsoDate, parseDhakaMidday, getDhakaDayBoundaries, getDhakaDaysAgoIso } from '@/lib/timezone';
 
 export type DateScope = 'all' | 'today' | '7d' | '30d' | 'month' | '90d' | 'custom';
+
+export interface DateScopeBoundaries {
+  scope: DateScope;
+  startDate: string; // 'YYYY-MM-DD'
+  endDate: string;   // 'YYYY-MM-DD'
+  afterIso?: string;  // 'YYYY-MM-DDT00:00:00'
+  beforeIso?: string; // 'YYYY-MM-DDT23:59:59'
+  daysCount: number;
+  label: string;
+}
+
 
 export interface CustomDateRange {
   startDate: string; // 'YYYY-MM-DD'
@@ -850,3 +861,120 @@ export function getDynamicDatasetTitle(
   return `📁 Verified Master Ledger (${countStr} Orders)`;
 }
 
+/**
+ * Calculates authoritative, exact YYYY-MM-DD and ISO datetime boundaries for any DateScope.
+ * Guarantees zero timezone drift between client UI and WooCommerce REST API.
+ */
+export function getDateScopeBoundaries(
+  scope: DateScope,
+  customRange?: CustomDateRange,
+  analysis?: DateAnalysis
+): DateScopeBoundaries {
+  const todayIso = getDhakaTodayIso();
+
+  if (scope === 'today') {
+    return {
+      scope,
+      startDate: todayIso,
+      endDate: todayIso,
+      afterIso: `${todayIso}T00:00:00`,
+      beforeIso: `${todayIso}T23:59:59`,
+      daysCount: 1,
+      label: 'Today',
+    };
+  }
+
+  if (scope === '7d') {
+    const startIso = getDhakaDaysAgoIso(6);
+    return {
+      scope,
+      startDate: startIso,
+      endDate: todayIso,
+      afterIso: `${startIso}T00:00:00`,
+      beforeIso: `${todayIso}T23:59:59`,
+      daysCount: 7,
+      label: 'Last 7 Days',
+    };
+  }
+
+  if (scope === '30d') {
+    const startIso = getDhakaDaysAgoIso(29);
+    return {
+      scope,
+      startDate: startIso,
+      endDate: todayIso,
+      afterIso: `${startIso}T00:00:00`,
+      beforeIso: `${todayIso}T23:59:59`,
+      daysCount: 30,
+      label: 'Last 30 Days',
+    };
+  }
+
+  if (scope === 'month') {
+    // Current or active calendar month in Asia/Dhaka
+    const anchor = analysis?.anchorDay || parseDhakaMidday(todayIso);
+    const y = anchor.getFullYear();
+    const m = anchor.getMonth();
+    const start = new Date(y, m, 1);
+    const end = new Date(y, m + 1, 0);
+    const formatIso = (d: Date) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    const startIso = formatIso(start);
+    const endIso = formatIso(end);
+    const monthName = start.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    const daysCount = end.getDate();
+    return {
+      scope,
+      startDate: startIso,
+      endDate: endIso,
+      afterIso: `${startIso}T00:00:00`,
+      beforeIso: `${endIso}T23:59:59`,
+      daysCount,
+      label: monthName,
+    };
+  }
+
+  if (scope === '90d') {
+    const startIso = getDhakaDaysAgoIso(89);
+    return {
+      scope,
+      startDate: startIso,
+      endDate: todayIso,
+      afterIso: `${startIso}T00:00:00`,
+      beforeIso: `${todayIso}T23:59:59`,
+      daysCount: 90,
+      label: 'Last 90 Days',
+    };
+  }
+
+  if (scope === 'custom' && customRange?.startDate && customRange?.endDate) {
+    const sDate = new Date(`${customRange.startDate}T00:00:00`);
+    const eDate = new Date(`${customRange.endDate}T00:00:00`);
+    const diffMs = Math.max(0, eDate.getTime() - sDate.getTime());
+    const daysCount = Math.round(diffMs / 86400000) + 1;
+    return {
+      scope,
+      startDate: customRange.startDate,
+      endDate: customRange.endDate,
+      afterIso: `${customRange.startDate}T00:00:00`,
+      beforeIso: `${customRange.endDate}T23:59:59`,
+      daysCount,
+      label: customRange.label || `${customRange.startDate} – ${customRange.endDate}`,
+    };
+  }
+
+  // 'all' scope: full historical ledger with no date boundaries
+  return {
+    scope,
+    startDate: '',
+    endDate: '',
+    afterIso: undefined,
+    beforeIso: undefined,
+    daysCount: 0,
+    label: 'All Records',
+  };
+}

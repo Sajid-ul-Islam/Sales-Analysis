@@ -32,7 +32,7 @@ import {
   getExportPhoneNumber
 } from '@/lib/excelExport';
 import { DateRangeSelector } from '@/components/DateRangeSelector';
-import { DateScope, CustomDateRange, parseOrderDate } from '@/lib/dateFilter';
+import { DateScope, CustomDateRange, parseOrderDate, getDateScopeBoundaries } from '@/lib/dateFilter';
 import { classifyProductCategory } from '@/lib/reconciliationEngine';
 import { cleanProductMainName, extractMasterSku } from './ExecutiveOverviewTab';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
@@ -450,42 +450,30 @@ export function OutletSalesTab({
     }));
   }, []);
 
-  // Pull live orders from WooCommerce REST API with optional date filtering & bulletproof HTML protection
+  // Pull live orders from WooCommerce REST API with exact date filtering & bulletproof HTML protection
   const handlePullFromWooCommerce = useCallback(async (
     perPage: number = 100, 
     maxPagesOverride?: number,
-    depthOverride?: SyncDepth
+    depthOverride?: SyncDepth,
+    targetScope?: DateScope,
+    targetCustomRange?: CustomDateRange
   ) => {
     const activeDepth = depthOverride || syncDepth;
     const pagesToFetch = maxPagesOverride || SYNC_DEPTH_CONFIG[activeDepth].pages;
     const orderCap = pagesToFetch * perPage;
 
+    const effScope = targetScope || dateScope;
+    const effRange = targetCustomRange !== undefined ? targetCustomRange : customRange;
+    const bounds = getDateScopeBoundaries(effScope, effRange);
+
     setIsLoading(true);
-    setSyncStatusMsg(`Connecting to WooCommerce REST API (Scanning up to ${orderCap.toLocaleString()} orders)...`);
+    setSyncStatusMsg(
+      bounds.afterIso && bounds.beforeIso
+        ? `Connecting to WooCommerce REST API for ${bounds.label} (${bounds.startDate} to ${bounds.endDate})...`
+        : `Connecting to WooCommerce REST API (Scanning up to ${orderCap.toLocaleString()} orders)...`
+    );
 
     try {
-      let afterIso: string | undefined;
-      let beforeIso: string | undefined;
-
-      if (dateScope === 'today') {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        afterIso = today.toISOString();
-      } else if (dateScope === '7d') {
-        afterIso = new Date(Date.now() - 7 * 86400000).toISOString();
-      } else if (dateScope === '30d') {
-        afterIso = new Date(Date.now() - 30 * 86400000).toISOString();
-      } else if (dateScope === '90d') {
-        afterIso = new Date(Date.now() - 90 * 86400000).toISOString();
-      } else if (dateScope === 'custom' && customRange?.startDate) {
-        afterIso = new Date(customRange.startDate).toISOString();
-        if (customRange?.endDate) {
-          const end = new Date(customRange.endDate);
-          end.setHours(23, 59, 59, 999);
-          beforeIso = end.toISOString();
-        }
-      }
-
       const res = await fetch('/api/sync/woocommerce', {
         method: 'POST',
         headers: getClientAuthHeaders(),
@@ -494,8 +482,8 @@ export function OutletSalesTab({
           maxPages: pagesToFetch,
           fetchAllPages: true,
           status: 'any',
-          after: afterIso,
-          before: beforeIso
+          after: bounds.afterIso,
+          before: bounds.beforeIso
         })
       });
 
@@ -1260,7 +1248,7 @@ export function OutletSalesTab({
 
         {/* Action Controls: Local Date Selector, Pull Button, View Toggle, Export */}
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* 1. Local Date Range Selector */}
+          {/* 1. Local Date Range Selector - Synchronized Live with WooCommerce */}
           <DateRangeSelector
             activeScope={dateScope}
             customRange={customRange}
@@ -1269,7 +1257,16 @@ export function OutletSalesTab({
               setCustomRange(newRange);
               setCurrentPage(1);
               setItemCurrentPage(1);
+              // Immediately sync live with WooCommerce for the exact date range!
+              handlePullFromWooCommerce(100, SYNC_DEPTH_CONFIG[syncDepth].pages, syncDepth, newScope, newRange);
             }}
+            onSyncWooCommerce={(boundaries) => {
+              const customR = { startDate: boundaries.startDate, endDate: boundaries.endDate, label: boundaries.label };
+              setDateScope('custom');
+              setCustomRange(customR);
+              handlePullFromWooCommerce(100, SYNC_DEPTH_CONFIG[syncDepth].pages, syncDepth, 'custom', customR);
+            }}
+            isSyncing={isLoading}
             counts={dateCounts}
             subLabel={dateSubLabel}
             minDateIso={dateBounds.minDateIso}

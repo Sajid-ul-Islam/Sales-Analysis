@@ -43,7 +43,7 @@ import {
 import { exportReconciledExcel, exportMonthlyNetSalesExcel } from '@/lib/excelExport';
 import { loadSavedThemeSettings, saveThemeSettings, applyThemeToDocument, BackgroundStyleId } from '@/lib/themeManager';
 import { loadAppSettings } from '@/lib/settingsStore';
-import { DateScope, filterOrdersByDateScope, CustomDateRange, getDynamicDatasetTitle } from '@/lib/dateFilter';
+import { DateScope, filterOrdersByDateScope, CustomDateRange, getDynamicDatasetTitle, DateScopeBoundaries } from '@/lib/dateFilter';
 import { RawOrderRow, AgenticActionProposal, DatasetSnapshot } from '@/types';
 import { applyAgenticAction, clearAgenticTags } from '@/lib/ai/agenticActions';
 import { CheckCircle2, Calendar, RotateCcw, Scale } from 'lucide-react';
@@ -901,11 +901,25 @@ export default function DashboardPage() {
     }
   };
 
-  const handleLiveSyncData = (type: 'orders' | 'returns', rows: RawOrderRow[], provenance?: DataProvenanceInfo) => {
+  const handleLiveSyncData = useCallback((
+    type: 'orders' | 'returns',
+    rows: RawOrderRow[],
+    provenance?: DataProvenanceInfo,
+    targetScope?: DateScope,
+    targetCustomRange?: CustomDateRange | null
+  ) => {
     setDataSourceMode('API');
     setCookie(DEEN_COOKIE_KEYS.SOURCE_MODE, 'API', { days: 30 });
     if (provenance) {
       setDataProvenance(provenance);
+    }
+    const activeDateScope = targetScope || dateScope;
+    const activeCustomRange = targetCustomRange !== undefined ? targetCustomRange : customDateRange;
+    if (targetScope && targetScope !== dateScope) {
+      setDateScope(targetScope);
+    }
+    if (targetCustomRange !== undefined && targetCustomRange !== customDateRange) {
+      setCustomDateRange(targetCustomRange);
     }
     const updatedOrders = type === 'orders' ? rows : (cloudApiDataset?.orders || rawOrders);
     const updatedReturns = type === 'returns' ? rows : (cloudApiDataset?.returns || rawReturns);
@@ -935,7 +949,7 @@ export default function DashboardPage() {
     setRawOrders(updatedOrders);
     setRawReturns(updatedReturns);
     setDataSourceName(sourceLabel);
-    const filtered = filterOrdersByDateScope(updatedOrders, dateScope, customDateRange);
+    const filtered = filterOrdersByDateScope(updatedOrders, activeDateScope, activeCustomRange);
     computeReconciliation(filtered.filteredOrders, updatedReturns, updatedPartials, excludeAugust, excludePOS, updatedExchanges, updatedDelivery);
     setStatusMessage(`Live Cloud API Active: reconciled ${filtered.matchedOrders.toLocaleString()} orders (${filtered.label}) with ${rows.length} ${type === 'orders' ? 'WooCommerce items' : 'Pathao records'}.`);
 
@@ -945,7 +959,44 @@ export default function DashboardPage() {
       description: `Reconciled ${filtered.matchedOrders.toLocaleString()} orders with ${rows.length} ${type === 'orders' ? 'WooCommerce items' : 'Pathao records'} (${filtered.label}).`,
       targetTab: type === 'orders' ? 'tabOrders' : 'tabCourierMismatch'
     });
-  };
+  }, [cloudApiDataset, rawOrders, rawReturns, rawPathaoDelivery, rawPartials, rawExchanges, dateScope, customDateRange, computeReconciliation, excludeAugust, excludePOS]);
+
+  const handleSyncWooCommerceForScope = useCallback(async (boundaries: DateScopeBoundaries) => {
+    setIsProcessing(true);
+    setStatusMessage(`Connecting to WooCommerce REST API (${boundaries.startDate} to ${boundaries.endDate})...`);
+    const targetCustom: CustomDateRange | null = boundaries.scope === 'custom'
+      ? { startDate: boundaries.startDate, endDate: boundaries.endDate, label: boundaries.label }
+      : null;
+    setDateScope(boundaries.scope);
+    setCustomDateRange(targetCustom);
+
+    try {
+      const res = await fetch('/api/sync/woocommerce', {
+        method: 'POST',
+        headers: getClientAuthHeaders(),
+        body: JSON.stringify({
+          after: boundaries.afterIso,
+          before: boundaries.beforeIso,
+          status: 'any',
+          perPage: 100,
+          fetchAllPages: true,
+          maxPages: 4,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (data && data.success && Array.isArray(data.orders) && data.orders.length > 0) {
+        handleLiveSyncData('orders', data.orders, data.provenance, boundaries.scope, targetCustom);
+        setStatusMessage(`Successfully synced ${data.ordersCount || data.orders.length} WooCommerce orders for ${boundaries.label}.`);
+      } else {
+        setStatusMessage(data?.message || `WooCommerce returned 0 orders for ${boundaries.label}.`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Connection failed';
+      setStatusMessage(`WooCommerce sync error: ${msg}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [handleLiveSyncData]);
 
   const handleRefreshLiveData = useCallback(async () => {
     setIsProcessing(true);
@@ -1270,6 +1321,8 @@ export default function DashboardPage() {
                   activeScope={dateScope}
                   customRange={customDateRange}
                   onScopeChange={handleDateScopeChange}
+                  onSyncWooCommerce={handleSyncWooCommerceForScope}
+                  isSyncing={isProcessing}
                   counts={dateFilterResult.counts}
                   subLabel={dateFilterResult.subLabel}
                   minDateIso={dateFilterResult.minDateIso}
@@ -1460,6 +1513,8 @@ export default function DashboardPage() {
                   onSwitchSourceMode={handleSwitchDataSource}
                   hasCloudData={cloudApiDataset !== null && cloudApiDataset.orders.length > 0}
                   onKpiClick={handleKpiCardClick}
+                  onSyncWooCommerce={handleSyncWooCommerceForScope}
+                  isSyncing={isProcessing}
                   activeDateScope={dateScope}
                   customDateRange={customDateRange}
                   dateScopeCounts={dateFilterResult.counts}

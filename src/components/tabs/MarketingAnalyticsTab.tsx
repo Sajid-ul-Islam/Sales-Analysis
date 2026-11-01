@@ -60,23 +60,27 @@ export function MarketingAnalyticsTab({
   minDateIso,
   maxDateIso,
 }: MarketingAnalyticsTabProps) {
-  // Map global activeScope to GA4/Meta range
-  const mapScopeToRange = (scope?: DateScope): 'today' | '7d' | '30d' | '90d' => {
+  // Map global activeScope to GA4/Meta range (including custom ranges and 'month')
+  const mapScopeToRange = (scope?: DateScope, custom?: CustomDateRange): string => {
     if (scope === 'today') return 'today';
     if (scope === '7d') return '7d';
+    if (scope === 'month') return 'month';
     if (scope === '90d') return '90d';
-    return '30d'; // Default 30-day baseline for 'all', 'month', '30d', 'custom'
+    if (scope === 'custom' && custom?.startDate && custom?.endDate) {
+      return `${custom.startDate}:${custom.endDate}`;
+    }
+    return '30d'; // Default 30-day baseline for 'all', '30d'
   };
 
-  const [dateRange, setDateRange] = useState<'today' | '7d' | '30d' | '90d'>(
-    mapScopeToRange(activeScope)
+  const [dateRange, setDateRange] = useState<string>(
+    mapScopeToRange(activeScope, customRange)
   );
 
   useEffect(() => {
     if (activeScope) {
-      setDateRange(mapScopeToRange(activeScope));
+      setDateRange(mapScopeToRange(activeScope, customRange));
     }
-  }, [activeScope]);
+  }, [activeScope, customRange]);
 
   const [trendMetric, setTrendMetric] = useState<'traffic' | 'revenue' | 'orders'>('traffic');
   const [refreshing, setRefreshing] = useState(false);

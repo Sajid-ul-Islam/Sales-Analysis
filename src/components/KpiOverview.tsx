@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { SummaryAnalytics, ReconciledOrderRow } from '@/types';
-import { DateScope, DateScopeCounts, CustomDateRange, FileWeek, AvailableMonth } from '@/lib/dateFilter';
+import { DateScope, DateScopeCounts, CustomDateRange, FileWeek, AvailableMonth, DateScopeBoundaries } from '@/lib/dateFilter';
 import { DateRangeSelector } from '@/components/DateRangeSelector';
 import {
   ShoppingBag,
@@ -37,6 +37,8 @@ export interface KpiOverviewProps {
   customDateRange?: CustomDateRange;
   onDateRangeSelect?: (range: DateScope) => void;
   onScopeChange?: (scope: DateScope, customRange?: CustomDateRange) => void;
+  onSyncWooCommerce?: (boundaries: DateScopeBoundaries) => void;
+  isSyncing?: boolean;
   dateScopeCounts?: DateScopeCounts;
   dateScopeLabel?: string;
   dateScopeSubLabel?: string;
@@ -67,6 +69,8 @@ export function KpiOverview({
   customDateRange,
   onDateRangeSelect,
   onScopeChange,
+  onSyncWooCommerce,
+  isSyncing = false,
   dateScopeCounts,
   dateScopeLabel: _dateScopeLabel,
   dateScopeSubLabel,
@@ -228,6 +232,8 @@ export function KpiOverview({
                   onDateRangeSelect(scope);
                 }
               }}
+              onSyncWooCommerce={onSyncWooCommerce}
+              isSyncing={isSyncing}
               counts={dateScopeCounts}
               subLabel={dateScopeSubLabel}
               minDateIso={minDateIso}

@@ -19,9 +19,17 @@ export async function GET(request: NextRequest) {
   const range = searchParams.get('range') || '30d';
 
   try {
+    // Map GA4 range to Meta Graph API date preset
+    const metaPreset =
+      range === 'today' ? 'today' :
+      range === '7d' ? 'last_7d' :
+      range === '90d' ? 'last_90d' :
+      range === 'month' ? 'this_month' :
+      'last_30d';
+
     const [ga4Data, metaData] = await Promise.all([
       fetchFullGA4Analytics(range),
-      fetchFullMetaAnalytics(range === '7d' ? 'last_7d' : 'last_30d'),
+      fetchFullMetaAnalytics(metaPreset),
     ]);
 
     // Calculate blended omnichannel cross-metrics

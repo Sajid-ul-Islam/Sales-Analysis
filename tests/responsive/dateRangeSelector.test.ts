@@ -86,8 +86,10 @@ describe('Smart Date Range & Scope Engine', () => {
     expect(augMonth).toBeDefined();
     expect(augMonth?.orderCount).toBe(1);
 
-    // Latest month (October) should be sorted first
-    expect(months[0].label).toContain('October');
+    // Latest month with orders should be sorted before earlier months with orders
+    const monthsWithOrders = months.filter(m => m.orderCount > 0);
+    expect(monthsWithOrders[0].label).toContain('October');
+    expect(monthsWithOrders[1].label).toContain('August');
   });
 
   it('filters accurately when October 2026 custom month range is selected', () => {
@@ -108,8 +110,8 @@ describe('Smart Date Range & Scope Engine', () => {
     const months = computeAvailableMonths(sampleOrders, analysis);
     expect(months.length).toBeGreaterThanOrEqual(2);
 
-    const oct = months[0];
-    const aug = months[1];
+    const oct = months.find(m => m.label.includes('October 2026'))!;
+    const aug = months.find(m => m.label.includes('August 2026'))!;
 
     const comparison = comparePeriods(
       sampleOrders,
