@@ -69,6 +69,7 @@ const ALL_TABS_CONFIG = [
   { id: 'tabOutletSales', title: 'Outlet Sales (WooCommerce Live)', subtitle: 'Physical In-Store POS Registers vs Online Store Web Revenue', icon: <Store className="w-4 h-4 text-purple-500" /> },
   { id: 'tabTerritory', title: 'Territory Breakdown', subtitle: 'Inside Dhaka vs Outside Dhaka Logistics & Margin Ratios', icon: <MapPin className="w-4 h-4 text-teal-500" /> },
   { id: 'tabExchanges', title: 'Exchanged Orders Hub', subtitle: 'D- Prefix Consignments & Sizing Replacement Auditing', icon: <RefreshCw className="w-4 h-4 text-violet-500" /> },
+  { id: 'tabCampaigns', title: 'Campaign Intelligence', subtitle: 'Winter Upgrade 2026-2027, Promotions, Bundles, Opportunities & Budget Simulator', icon: <Sparkles className="w-4 h-4 text-orange-500" /> },
   { id: 'tabMarketingAnalytics', title: 'Marketing & Ad Analytics', subtitle: 'Meta Ad Spends, ROAS, Blended CAC & Campaign Efficiency', icon: <TrendingUp className="w-4 h-4 text-pink-500" /> },
   { id: 'tabProductAnalysis', title: 'Product Analysis', subtitle: 'Price Elasticity, Sweet Spot Pricing, Market Basket & Pareto ABC Distribution', icon: <ShoppingBag className="w-4 h-4 text-primary" /> },
   { id: 'tabSku', title: 'SKU Performance', subtitle: 'Garment Product Delivery Conversions & Return Losses', icon: <ShoppingBag className="w-4 h-4 text-cyan-500" /> },

@@ -200,6 +200,18 @@ export function exportReconciledExcel(
 ) {
   const wb = XLSX.utils.book_new();
   const s = result.summary;
+  const ueRec = s.unitEconomics || {
+    netRealizedSales: s.netDeliveredRevenue || 0,
+    estimatedCogs: (s.netDeliveredRevenue || 0) * 0.42,
+    grossMargin: (s.netDeliveredRevenue || 0) * 0.58,
+    totalCourierExpense: (s as { pathaoTotalCourierCharge?: number }).pathaoTotalCourierCharge || 0,
+    packagingLoss: 0,
+    metaAdCost: 0,
+    netContributionMargin: (s.netDeliveredRevenue || 0) * 0.58,
+    netMarginPercentage: 58.0,
+    roas: 0,
+    cac: 0,
+  };
 
   // 1. Executive Summary Sheet
   const summaryAoa = [
@@ -227,16 +239,16 @@ export function exportReconciledExcel(
     ['Net Shipping Expense Burden', Math.round(s.courierCost.netCourierBurden), 'Net delivery cost absorbed by brand'],
     [],
     ['UNIT ECONOMICS & CONTRIBUTION MARGIN'],
-    ['Net Realized Sales', Math.round(s.unitEconomics.netRealizedSales), 'Recognized top-line revenue'],
-    ['Estimated COGS (Production & Fabric ~42%)', Math.round(s.unitEconomics.estimatedCogs), 'Direct cost of delivered goods'],
-    ['Gross Margin', Math.round(s.unitEconomics.grossMargin), 'Revenue minus product manufacturing costs'],
-    ['Courier Logistics Cost', Math.round(s.unitEconomics.totalCourierExpense), 'Courier payable for dispatched deliveries & returns'],
-    ['Packaging & Unboxing Depreciation (৳25/ret)', Math.round(s.unitEconomics.packagingLoss), 'Polybag, hangtag & quality check loss per returned order'],
-    ['Meta Ad Performance Spend (BDT)', Math.round(s.unitEconomics.metaAdCost), 'Performance marketing budget on Facebook & Instagram'],
-    ['True Net Contribution Margin (BDT)', Math.round(s.unitEconomics.netContributionMargin), 'Bottom-line cash yield after COGS, logistics, packaging, and Meta ads'],
-    ['Net Contribution Margin (%)', s.unitEconomics.netMarginPercentage.toFixed(2) + '%', 'Margin percentage on realized sales'],
-    ['Blended ROAS (x)', s.unitEconomics.roas.toFixed(2) + 'x', 'Return on Ad Spend: Realized Sales / Meta Ad Spend'],
-    ['Blended CAC (BDT / Kept Order)', Math.round(s.unitEconomics.cac), 'Customer Acquisition Cost per delivered order'],
+    ['Net Realized Sales', Math.round(ueRec.netRealizedSales), 'Recognized top-line revenue'],
+    ['Estimated COGS (Production & Fabric ~42%)', Math.round(ueRec.estimatedCogs), 'Direct cost of delivered goods'],
+    ['Gross Margin', Math.round(ueRec.grossMargin), 'Revenue minus product manufacturing costs'],
+    ['Courier Logistics Cost', Math.round(ueRec.totalCourierExpense), 'Courier payable for dispatched deliveries & returns'],
+    ['Packaging & Unboxing Depreciation (৳25/ret)', Math.round(ueRec.packagingLoss), 'Polybag, hangtag & quality check loss per returned order'],
+    ['Meta Ad Performance Spend (BDT)', Math.round(ueRec.metaAdCost), 'Performance marketing budget on Facebook & Instagram'],
+    ['True Net Contribution Margin (BDT)', Math.round(ueRec.netContributionMargin), 'Bottom-line cash yield after COGS, logistics, packaging, and Meta ads'],
+    ['Net Contribution Margin (%)', ueRec.netMarginPercentage.toFixed(2) + '%', 'Margin percentage on realized sales'],
+    ['Blended ROAS (x)', ueRec.roas.toFixed(2) + 'x', 'Return on Ad Spend: Realized Sales / Meta Ad Spend'],
+    ['Blended CAC (BDT / Kept Order)', Math.round(ueRec.cac), 'Customer Acquisition Cost per delivered order'],
     [],
     ['GEOGRAPHICAL RECONCILIATION BREAKDOWN'],
     ['Territory / Area', 'Gross Orders', 'Full Returns', 'Partial Orders', 'Net Orders', 'Return Rate', 'Net Delivered Sales (BDT)'],
@@ -742,8 +754,37 @@ export function buildMonthlyNetSalesWorkbook(
   const realizedAov = Math.max(1, s.fullDeliveredOrders + s.partialOrders) > 0
     ? Math.round(s.netDeliveredRevenue / Math.max(1, s.fullDeliveredOrders + s.partialOrders))
     : 0;
-  const grossMarginRatio = s.unitEconomics.netRealizedSales > 0
-    ? (s.unitEconomics.grossMargin / s.unitEconomics.netRealizedSales) * 100
+  const sExt = s as {
+    pathaoTotalCourierCharge?: number;
+    pathaoNetPayable?: number;
+    insideDhakaOrdersCount?: number;
+    outsideDhakaOrdersCount?: number;
+    overallReturnRate?: number;
+  };
+  const ue = s.unitEconomics || {
+    netRealizedSales: s.netDeliveredRevenue || 0,
+    estimatedCogs: (s.netDeliveredRevenue || 0) * 0.42,
+    grossMargin: (s.netDeliveredRevenue || 0) * 0.58,
+    totalCourierExpense: sExt.pathaoTotalCourierCharge || 0,
+    packagingLoss: 0,
+    metaAdCost: 0,
+    netContributionMargin: (s.netDeliveredRevenue || 0) * 0.58,
+    netMarginPercentage: 58.0,
+    roas: 0,
+    cac: 0,
+  };
+  const cc = s.courierCost || {
+    grossCharge: sExt.pathaoTotalCourierCharge || 0,
+    discount: 0,
+    netCharge: sExt.pathaoNetPayable || sExt.pathaoTotalCourierCharge || 0,
+    customerDeliveryFeeCollected: 0,
+    collectedInsideCount: sExt.insideDhakaOrdersCount || 0,
+    collectedOutsideCount: sExt.outsideDhakaOrdersCount || 0,
+    paidReturnCollectedCod: 0,
+    netCourierBurden: sExt.pathaoNetPayable || 0,
+  };
+  const grossMarginRatio = ue.netRealizedSales > 0
+    ? (ue.grossMargin / ue.netRealizedSales) * 100
     : 0;
 
   // ==========================================
@@ -764,17 +805,17 @@ export function buildMonthlyNetSalesWorkbook(
     ['Realized Average Order Value (AOV)', realizedAov, 'Average net realized revenue per successfully delivered order'],
     [],
     ['UNIT ECONOMICS & BOTTOM-LINE CASH YIELD', 'VALUE', 'DESCRIPTION / FORMULA'],
-    ['Net Realized Sales', Math.round(s.unitEconomics.netRealizedSales), 'Top-line realized revenue baseline'],
-    ['Estimated COGS (Production & Fabric ~42%)', Math.round(s.unitEconomics.estimatedCogs), 'Direct manufacturing & fabric costs of delivered apparel'],
-    ['Gross Product Margin', Math.round(s.unitEconomics.grossMargin), 'Realized Sales minus direct manufacturing COGS'],
+    ['Net Realized Sales', Math.round(ue.netRealizedSales), 'Top-line realized revenue baseline'],
+    ['Estimated COGS (Production & Fabric ~42%)', Math.round(ue.estimatedCogs), 'Direct manufacturing & fabric costs of delivered apparel'],
+    ['Gross Product Margin', Math.round(ue.grossMargin), 'Realized Sales minus direct manufacturing COGS'],
     ['Gross Product Margin Ratio (%)', grossMarginRatio.toFixed(2) + '%', 'Gross profit margin as percentage of realized sales'],
-    ['Courier Logistics Expense', Math.round(s.unitEconomics.totalCourierExpense), 'Courier payable for dispatched parcel deliveries & returns'],
-    ['Packaging & Return QC Depreciation (৳25/ret)', Math.round(s.unitEconomics.packagingLoss), 'Polybag, hangtag & quality check handling loss per returned parcel'],
-    ['Meta Ad Performance Marketing Spend', Math.round(s.unitEconomics.metaAdCost), 'Performance advertising investment on Facebook & Instagram'],
-    ['True Net Contribution Margin (Cash Flow)', Math.round(s.unitEconomics.netContributionMargin), 'Bottom-line operational cash yield after COGS, Courier, Packaging & Meta Ads'],
-    ['Net Contribution Margin Rate (%)', s.unitEconomics.netMarginPercentage.toFixed(2) + '%', 'Net contribution margin percentage on realized sales'],
-    ['Blended ROAS (Return on Ad Spend)', s.unitEconomics.roas.toFixed(2) + 'x', 'Realized Sales divided by Meta Ad Spend'],
-    ['Blended CAC (Cost Per Delivered Order)', Math.round(s.unitEconomics.cac) + ' BDT', 'Customer acquisition cost per successfully kept order'],
+    ['Courier Logistics Expense', Math.round(ue.totalCourierExpense), 'Courier payable for dispatched parcel deliveries & returns'],
+    ['Packaging & Return QC Depreciation (৳25/ret)', Math.round(ue.packagingLoss), 'Polybag, hangtag & quality check handling loss per returned parcel'],
+    ['Meta Ad Performance Marketing Spend', Math.round(ue.metaAdCost), 'Performance advertising investment on Facebook & Instagram'],
+    ['True Net Contribution Margin (Cash Flow)', Math.round(ue.netContributionMargin), 'Bottom-line operational cash yield after COGS, Courier, Packaging & Meta Ads'],
+    ['Net Contribution Margin Rate (%)', ue.netMarginPercentage.toFixed(2) + '%', 'Net contribution margin percentage on realized sales'],
+    ['Blended ROAS (Return on Ad Spend)', ue.roas.toFixed(2) + 'x', 'Realized Sales divided by Meta Ad Spend'],
+    ['Blended CAC (Cost Per Delivered Order)', Math.round(ue.cac) + ' BDT', 'Customer acquisition cost per successfully kept order'],
     [],
     ['FULFILLMENT PIPELINE & VOLUME METRICS', 'COUNT', 'PERCENTAGE / BREAKDOWN'],
     ['Gross Commercial Orders Dispatched', s.grossOrders, '100.0%'],
@@ -783,18 +824,18 @@ export function buildMonthlyNetSalesWorkbook(
     ['Full Returned Orders (RTO)', s.fullReturnedOrders, ((s.fullReturnedOrders / Math.max(1, s.grossOrders)) * 100).toFixed(1) + '%'],
     ['Staff Exchange Replacements (Non-Commercial)', s.totalExchangedOrders || 0, 'Cleanly isolated replacement orders with 0 BDT new revenue'],
     ['Delivered Fulfillment Realization Rate (%)', ((s.fullDeliveredOrders / Math.max(1, s.grossOrders)) * 100).toFixed(2) + '%', 'Percentage of orders fully accepted by customers'],
-    ['Overall Return & Partial Incidence (%)', s.returnRate.toFixed(2) + '%', 'Combined return and partial incidence rate'],
+    ['Overall Return & Partial Incidence (%)', (s.returnRate ?? sExt.overallReturnRate ?? 0).toFixed(2) + '%', 'Combined return and partial incidence rate'],
     ['Total Apparel Units Dispatched', totalUnitsDispatched, 'Gross garment units dispatched from warehouse & branches'],
     ['Total Apparel Units Delivered / Kept', totalUnitsDelivered, ((totalUnitsDelivered / Math.max(1, totalUnitsDispatched)) * 100).toFixed(1) + '% retained in customer possession'],
     ['Total Apparel Units Returned', totalUnitsReturned, ((totalUnitsReturned / Math.max(1, totalUnitsDispatched)) * 100).toFixed(1) + '% returned to inventory'],
     [],
     ['PATHAO LOGISTICS & COD SETTLEMENT', 'AMOUNT (BDT)', 'OPERATIONAL BASIS'],
-    ['Gross Pathao Delivery Charges', Math.round(s.courierCost.grossCharge), 'Sum of charges from courier shipping manifest'],
-    ['Courier Shipping Discounts', Math.round(s.courierCost.discount), 'Commercial shipping volume discounts applied by Pathao'],
-    ['Net Delivery Fee Payable to Pathao', Math.round(s.courierCost.netCharge), 'Actual payable delivery fee to courier'],
-    ['Customer Delivery Fee Collected (৳50 Dhaka / ৳90 Outside)', Math.round(s.courierCost.customerDeliveryFeeCollected), `${s.courierCost.collectedInsideCount} Inside Dhaka (৳50) + ${s.courierCost.collectedOutsideCount} Outside Dhaka (৳90) from unique completed orders`],
-    ['Paid Return COD Collected on Refusals', Math.round(s.courierCost.paidReturnCollectedCod), 'Advance/COD delivery fee recovered from customers upon parcel refusal'],
-    ['Net Courier Expense Burden Absorbed by DEEN', Math.round(s.courierCost.netCourierBurden), 'Final delivery cost absorbed by DEEN brand (Net Payable minus Collections)'],
+    ['Gross Pathao Delivery Charges', Math.round(cc.grossCharge), 'Sum of charges from courier shipping manifest'],
+    ['Courier Shipping Discounts', Math.round(cc.discount), 'Commercial shipping volume discounts applied by Pathao'],
+    ['Net Delivery Fee Payable to Pathao', Math.round(cc.netCharge), 'Actual payable delivery fee to courier'],
+    ['Customer Delivery Fee Collected (৳50 Dhaka / ৳90 Outside)', Math.round(cc.customerDeliveryFeeCollected), `${cc.collectedInsideCount} Inside Dhaka (৳50) + ${cc.collectedOutsideCount} Outside Dhaka (৳90) from unique completed orders`],
+    ['Paid Return COD Collected on Refusals', Math.round(cc.paidReturnCollectedCod), 'Advance/COD delivery fee recovered from customers upon parcel refusal'],
+    ['Net Courier Expense Burden Absorbed by DEEN', Math.round(cc.netCourierBurden), 'Final delivery cost absorbed by DEEN brand (Net Payable minus Collections)'],
     [],
     ['GEOGRAPHICAL PERFORMANCE REALIZATION', 'GROSS ORDERS', 'DELIVERED ORDERS', 'FULL RETURNS', 'PARTIAL ORDERS', 'RETURN RATE (%)', 'NET REALIZED SALES (BDT)', 'AVG REALIZED TICKET (BDT)'],
     [
@@ -823,12 +864,12 @@ export function buildMonthlyNetSalesWorkbook(
       s.grossOrders - s.fullReturnedOrders,
       s.fullReturnedOrders,
       s.partialOrders,
-      s.returnRate.toFixed(1) + '%',
+      (s.returnRate ?? sExt.overallReturnRate ?? 0).toFixed(1) + '%',
       Math.round(s.netDeliveredRevenue),
       realizedAov
     ],
     [],
-    ['Outside to Inside Dhaka Order Ratio', s.outsideRatio + ' : 1', `${s.outsideOrders} Outside vs ${s.insideOrders} Inside Dhaka orders`]
+    ['Outside to Inside Dhaka Order Ratio', (s.outsideRatio ?? '0.00') + ' : 1', `${s.outsideOrders} Outside vs ${s.insideOrders} Inside Dhaka orders`]
   ];
 
   const wsSummary = XLSX.utils.aoa_to_sheet(summaryAoa);
@@ -854,7 +895,20 @@ export function buildMonthlyNetSalesWorkbook(
     categoryGroups[cat] = { dispatched: 0, delivered: 0, returned: 0, revenue: 0, loss: 0 };
   }
 
-  for (const it of result.skuAnalytics) {
+  const skuSource = (result.skuAnalytics && result.skuAnalytics.length > 0)
+    ? result.skuAnalytics
+    : result.reconciledOrders.map((o) => ({
+        sku: o.sku || 'GENERAL',
+        itemName: o.itemName || 'Apparel Item',
+        category: (o as { category?: string }).category || getCategoryForSales(o.itemName || ''),
+        grossQty: Number(o.quantity || 1),
+        deliveredQty: o.orderDeliveryStatus === 'Delivered' ? Number(o.quantity || 1) : 0,
+        returnedQty: (o.orderDeliveryStatus === 'Paid Return' || o.orderDeliveryStatus === 'Not Paid Return' || o.itemDeliveryStatus === 'Returned') ? Number(o.quantity || 1) : 0,
+        deliveredRevenue: o.orderDeliveryStatus === 'Delivered' ? (Number(o.quantity || 1) * Number(o.itemCost || 0)) : 0,
+        totalLossFromReturns: (o.orderDeliveryStatus === 'Paid Return' || o.orderDeliveryStatus === 'Not Paid Return' || o.itemDeliveryStatus === 'Returned') ? (Number(o.quantity || 1) * Number(o.itemCost || 0)) : 0,
+      }));
+
+  for (const it of skuSource) {
     const rawCat = it.category || getCategoryForSales(it.itemName);
     const cat = categoryGroups[rawCat] ? rawCat : 'Apparel & Accessories';
     categoryGroups[cat].dispatched += it.grossQty;
@@ -933,7 +987,7 @@ export function buildMonthlyNetSalesWorkbook(
     returnLoss: number;
   }>();
 
-  for (const it of result.skuAnalytics) {
+  for (const it of skuSource) {
     const masterSku = extractMasterSku(it.sku);
     const mainName = cleanProductMainName(it.itemName);
     const category = it.category || getCategoryForSales(it.itemName);
@@ -1216,13 +1270,13 @@ export function buildMonthlyNetSalesWorkbook(
     ['Reporting Scope: ' + reportPeriodLabel],
     [],
     ['COURIER FINANCIAL METRIC', 'AMOUNT (BDT)', 'DESCRIPTION & DETAILS'],
-    ['Gross Pathao Delivery Charges', Math.round(s.courierCost.grossCharge), 'Total charge from Pathao courier invoices'],
-    ['Courier Shipping Discount', Math.round(s.courierCost.discount), 'Commercial shipping volume discounts applied by Pathao'],
-    ['Net Pathao Payable (Post-Discount)', Math.round(s.courierCost.netCharge), 'Actual payable delivery fee to Pathao Courier'],
-    ['Customer Delivery Fee Collected', Math.round(s.courierCost.customerDeliveryFeeCollected), `${s.courierCost.collectedInsideCount} Inside Dhaka (50 TK) + ${s.courierCost.collectedOutsideCount} Outside Dhaka (90 TK)`],
-    ['Paid Return COD Collected on Refusals', Math.round(s.courierCost.paidReturnCollectedCod), 'Advance/COD delivery fee recovered from customers on parcel refusal'],
-    ['Net Courier Expense Burden Absorbed by Brand', Math.round(s.courierCost.netCourierBurden), 'Final delivery cost absorbed by DEEN (Net Charge - Customer Collections)'],
-    ['Average Net Courier Cost Per Delivered Order', Math.round(s.courierCost.netCourierBurden / Math.max(1, s.fullDeliveredOrders + s.partialOrders)), 'Average delivery overhead per successfully kept order'],
+    ['Gross Pathao Delivery Charges', Math.round(cc.grossCharge), 'Total charge from Pathao courier invoices'],
+    ['Courier Shipping Discount', Math.round(cc.discount), 'Commercial shipping volume discounts applied by Pathao'],
+    ['Net Pathao Payable (Post-Discount)', Math.round(cc.netCharge), 'Actual payable delivery fee to Pathao Courier'],
+    ['Customer Delivery Fee Collected', Math.round(cc.customerDeliveryFeeCollected), `${cc.collectedInsideCount} Inside Dhaka (50 TK) + ${cc.collectedOutsideCount} Outside Dhaka (90 TK)`],
+    ['Paid Return COD Collected on Refusals', Math.round(cc.paidReturnCollectedCod), 'Advance/COD delivery fee recovered from customers on parcel refusal'],
+    ['Net Courier Expense Burden Absorbed by Brand', Math.round(cc.netCourierBurden), 'Final delivery cost absorbed by DEEN (Net Charge - Customer Collections)'],
+    ['Average Net Courier Cost Per Delivered Order', Math.round(cc.netCourierBurden / Math.max(1, s.fullDeliveredOrders + s.partialOrders)), 'Average delivery overhead per successfully kept order'],
     [],
     ['COURIER COD & STATUS MISMATCH AUDIT']
   ];

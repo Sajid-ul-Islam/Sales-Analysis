@@ -21,6 +21,7 @@ import {
   Activity,
   PanelLeftClose,
   PanelLeftOpen,
+  Sparkles,
   LogOut
 } from 'lucide-react';
 
@@ -141,6 +142,7 @@ export function Sidebar({
     {
       title: 'Intelligence & Risk',
       items: [
+        { id: 'tabCampaigns', label: 'Campaign Intelligence', icon: Sparkles, highlight: true },
         { id: 'tabMarketingAnalytics', label: 'Ad Analytics', icon: BarChart3, highlight: true },
         { id: 'tabProductAnalysis', label: 'Product Analysis', icon: Layers, highlight: true },
         { id: 'tabSku', label: 'SKU Flow', icon: Shirt },

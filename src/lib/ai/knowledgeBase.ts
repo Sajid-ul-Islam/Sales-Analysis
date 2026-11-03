@@ -11,7 +11,7 @@
 
 export interface KnowledgeEntry {
   id: string;
-  category: 'branch' | 'reconciliation' | 'courier' | 'risk' | 'metric' | 'policy' | 'live_ops';
+  category: 'branch' | 'reconciliation' | 'courier' | 'risk' | 'metric' | 'policy' | 'live_ops' | 'marketing';
   title: string;
   summary: string;
   formulaOrRule: string;
@@ -195,6 +195,88 @@ export const KNOWLEDGE_BASE_ENTRIES: KnowledgeEntry[] = [
       'Volume & Revenue Delta (%) = Math.round(((Today - 7D Daily Avg) / 7D Daily Avg) * 100).',
     operationalSOP: 'Use the 7-day rolling average baseline to detect warehouse bottlenecks, courier handover slowdowns, and daily sales spikes.',
     keywords: ['7-day', '7 day', 'rolling average', 'baseline', 'daily reconciliation', 'reconciliation update', '7-day avg', 'daily trend', 'executive briefing']
+  },
+
+  // 6. Marketing & Campaign Intelligence (Winter 2026-2027)
+  {
+    id: 'marketing_winter_upgrade_strategy',
+    category: 'marketing',
+    title: 'DEEN Winter Upgrade Campaign Strategy & Economics',
+    summary: 'Flagship winter marketing campaign rules, spending threshold tiers, and margin protection.',
+    formulaOrRule:
+      'Core Principle: Optimize for profitable delivered revenue, not gross order volume or vanity ROAS.\n' +
+      'Spending Thresholds: ৳2,500+ (Free Shipping), ৳3,500+ (Flat ৳150 Off + Free Delivery), ৳5,000+ (Flat ৳350 Off + Free Delivery), ৳7,000+ (Flat ৳600 Off + Free Delivery).\n' +
+      'Net Margin Floor: All promotional discounts must preserve a minimum 22% net contribution margin after 42% COGS and courier costs.',
+    operationalSOP: 'Never stack site sale discounts with coupon codes and bundle discounts. Ensure stretch order volume covers fixed ad acquisition expense.',
+    keywords: ['winter upgrade', 'campaign', 'marketing', 'buy more save more', 'threshold', 'spending tier', 'bundle', 'winter', 'ad spend', 'roas', 'promotion']
+  },
+  {
+    id: 'marketing_delivered_roas_principle',
+    category: 'marketing',
+    title: 'Delivered ROAS vs Vanity Placed ROAS Calculation',
+    summary: 'Authoritative rule for calculating realized marketing efficiency after returns and cancellations.',
+    formulaOrRule:
+      'Delivered ROAS = Net Realized Revenue from Successfully Delivered Orders / Total Ad Spend.\n' +
+      'Vanity ROAS = Gross Placed Order Value / Total Ad Spend (Misleading in Bangladesh due to COD returns).\n' +
+      'Customer Acquisition Cost (CAC) = Total Ad Spend / Successfully Delivered Orders.\n' +
+      'Contribution Margin = Delivered Revenue - Product COGS (approx 42%) - Ad Spend - Courier Net Burden - Packaging & Return Loss.',
+    operationalSOP: 'Always present Delivered ROAS alongside Placed ROAS to show the true bottom-line cash impact of paid acquisition.',
+    keywords: ['delivered roas', 'roas', 'vanity roas', 'cac', 'customer acquisition cost', 'contribution margin', 'ad efficiency', 'marketing roi']
+  },
+  {
+    id: 'marketing_bundle_synergy_rules',
+    category: 'marketing',
+    title: 'Product Bundling Economics & Co-Purchase Affinity',
+    summary: 'Apriori market basket pairing rules and winter outfit bundle combinations.',
+    formulaOrRule:
+      'Bundle Net Contribution = Final Bundle Price - Total Item COGS - Blended Courier & Packaging (৳135).\n' +
+      'Bundle Status Classification: PROFITABLE if Net Margin >= 26%; BORDERLINE if 15%-25%; MARGIN_DILUTING if < 15%.\n' +
+      'Primary Winter Bundles: Complete Winter Look (Denim Jacket + Jeans at 20% bundle discount), Urban Combo (Hoodie + Tee at 16% off), Cozy Weekend Set (Sweatshirt + Jeans at 18% off).',
+    operationalSOP: 'Combine top velocity anchors with high-margin companions to lift AOV by 20-30% without eroding unit cash yield.',
+    keywords: ['bundle', 'outfit', 'jacket jeans', 'hoodie tee', 'co-purchase', 'lift', 'bundle discount', 'basket size', 'apriori']
+  },
+  {
+    id: 'marketing_product_opportunity_rules',
+    category: 'marketing',
+    title: 'Product Opportunity Classification & Promotion Priority',
+    summary: 'Rules for identifying which products deserve paid ad investment vs liquidation.',
+    formulaOrRule:
+      'BEST_SELLER: High delivered units with return rate < 18% and healthy margin (scale cold traffic).\n' +
+      'HIGH_MARGIN: Gross margin >= 60% with low return rate (supports higher target CAC).\n' +
+      'HIGH_RETURN: Return rate >= 28% with >= 5 returns (audit sizing specs, restrict broad ads).\n' +
+      'SLOW_MOVING: Daily velocity < 0.25 units/day (feature in weekend flash sale or bundle companion).\n' +
+      'CLEARANCE: End-of-season inventory requiring liquidation (flat 25% off or Buy 2 Get 1).',
+    operationalSOP: 'Review the Product Opportunity Finder weekly. Never allocate top ad spend to items with >25% return rate.',
+    keywords: ['product opportunity', 'best seller', 'high margin', 'slow moving', 'high return', 'clearance', 'promote', 'product recommendation']
+  },
+  {
+    id: 'marketing_customer_retention_rfm',
+    category: 'marketing',
+    title: 'Customer Segmentation & Retention Playbook',
+    summary: 'Actionable customer RFM segments and targeted seasonal campaign mappings.',
+    formulaOrRule:
+      'High-Value VIPs (৳6,500+ spend): Exclusive VIP Winter Collection Preview + ৳500 voucher.\n' +
+      'First-Time Delivered: Second Purchase Incentive with 10% coupon (SECONDLOOK) within 14 days.\n' +
+      'Repeat Buyers: Winter Wardrobe Upgrade with ৳350 off ৳5,000 cart threshold.\n' +
+      'Lapsed Buyers (>60 days): Win-Back Reactivation with ৳200 flat voucher on new jackets.\n' +
+      'High Return-Risk (>=45% returns): Strict COD phone verification call or advance delivery charge.',
+    operationalSOP: 'Protect customer privacy in marketing reports. Use masked identifiers and deliver targeted audience segments via SMS and Meta Custom Audiences.',
+    keywords: ['customer segment', 'rfm', 'retention', 'high value', 'vip', 'repeat customer', 'win back', 'first delivered', 'sms campaign']
+  },
+  {
+    id: 'marketing_seasonal_calendar_bd',
+    category: 'marketing',
+    title: 'Bangladesh Winter E-Commerce Seasonal Calendar (2026-2027)',
+    summary: 'Local seasonal periods, promotional milestones, and weather-responsive triggers.',
+    formulaOrRule:
+      'Nov 3-15: Winter Is Coming (Early bird awareness & acquisition)\n' +
+      'Nov 16-30: Winter Upgrade Sale (Conversion & AOV expansion)\n' +
+      'Dec 1-15: The Winter Drop (Heavyweight fleece & quilted jackets)\n' +
+      'Dec 16-31: Victory Day & Year-End Winter Deals (Sales acceleration)\n' +
+      'Jan 1-20: Cold Wave Flash Sale (Weather-triggered when temp < 14°C)\n' +
+      'Jan 21-Feb 15: Winter Clearance (Inventory liquidation before spring)',
+    operationalSOP: 'Activate Cold Wave Flash creative when regional meteorological forecasts confirm temperatures dropping below 14°C.',
+    keywords: ['seasonal calendar', 'winter calendar', 'victory day', 'cold wave', 'december sale', 'clearance', 'weather responsive']
   }
 ];
 
@@ -239,6 +321,7 @@ export function retrieveRelevantKnowledge(query: string, activeTab?: string, max
       if (tab.includes('risk') && entry.category === 'risk') score += 10;
       if (tab.includes('territory') && entry.id.includes('territory')) score += 10;
       if (tab.includes('orders') && entry.category === 'reconciliation') score += 5;
+      if ((tab.includes('campaign') || tab.includes('marketing')) && entry.category === 'marketing') score += 15;
       if ((tab.includes('live') || tab.includes('liveops')) && (entry.category === 'live_ops' || entry.category === 'courier' || entry.category === 'reconciliation')) score += 12;
     }
 

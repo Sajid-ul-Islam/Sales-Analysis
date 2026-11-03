@@ -1,288 +1,143 @@
-# Deen Commerce Reconciliation Engine
+# DEEN Commerce Reconciliation Engine
 
 [![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
-[![CI Pipeline](https://github.com/Sajid-ul-Islam/Sales-Analysis/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-14.2-black.svg)](https://nextjs.org/)
+[![Next.js 14.2](https://img.shields.io/badge/Next.js-14.2-black.svg)](https://nextjs.org/)
+[![TypeScript 5.6](https://img.shields.io/badge/TypeScript-5.6-blue.svg)](https://www.typescriptlang.org/)
+[![Tailwind CSS 3.4](https://img.shields.io/badge/Tailwind-3.4-38bdf8.svg)](https://tailwindcss.com/)
+[![Vitest](https://img.shields.io/badge/Vitest-5.0-6e9f18.svg)](https://vitest.dev/)
+[![Status](https://img.shields.io/badge/Status-Production--Ready-emerald.svg)](#)
 
-A unified, real-time analytics & reconciliation dashboard reconciling Pathao courier deliveries and WooCommerce e-commerce sales (returns, partials, exchanges), featuring a Live Operations Terminal, AI copilot intelligence, and automated accounting audit exports.
+A high-performance, client-first analytics & reconciliation engine reconciling **Pathao courier deliveries** and **WooCommerce e-commerce sales** (returns, partial deliveries, branch splits, exchanges, and POS counter sales) for **DEEN Commerce** ([deencommerce.com](https://deencommerce.com)).
 
-## Overview
+Features an in-browser 0/1 knapsack dynamic programming solver, a real-time Live Operations Terminal, an AI semantic copilot powered by Google Gemini, and automated 7-sheet closing Excel workbooks.
 
-This application helps Deen Commerce track and reconcile:
-- **Order fulfillment status** across multiple warehouses and branch locations
-- **Returns** (paid vs. non-paid) with proper accounting
-- **Partial orders** with mixed delivery/return statuses
-- **Exchanges** and multi-parcel shipments
+---
 
-## Features
+## 🌟 Executive Overview & Key Capabilities
 
-- **Live Operations Terminal**: Real-time warehouse fulfillment stream synced directly with WooCommerce REST API and Pathao Hermes Courier API, status modification tracking (`Date Modified`), pack queue (`processing` + `hold`), today's orders, 7-day rolling history with date picker, integer-only 7-day daily baseline, and one-click WhatsApp/Slack executive briefing.
-- **Everyday Dispatched Orders Ledger**: Default consolidated **Order-Wise** table view with multi-item basket counters (`+X more`), item breakdown summaries, and expandable rows, paired with a seamless **Line Items (Item-Wise)** toggle.
-- **Pathao Customer Delivery Rating & Phone Intelligence**: Grounded phone-number delivery success rate and fraud risk scoring combining Pathao network API queries (`/aladdin/api/v1/user/success`) with empirical store history indexing, rendering color-coded rating badges (🌟 Excellent, 👍 Good, ⚖️ Moderate, ⚠️ High Risk, 🌱 New Buyer) across ledger tables, order details modal, and Excel exports.
-- **WooCommerce Pathao Plugin Consignment Extraction**: Automatic extraction of tracking numbers from WooCommerce Pathao plugin metadata (`ptc_consignment_id`, `_ptc_consignment_id`, `ptc_status`, merchant order tracking URLs) alongside Pathao B2B Client Credentials (`client_id` + `client_secret`) with 90-day token support.
-- **Sales Volume by Category Split View**: Maximized side-by-side layout displaying Category Donut Chart and Subcategory Bar Chart simultaneously with responsive grid containment and streamlined bar metrics.
-- **Month-End Net Sales Close Report (.xlsx)**: Complete 7-sheet executive and operational closing workbook featuring `Executive Summary & P&L`, `Category Sales & Retention`, `Master SKU Leaderboard`, `Commercial Orders Ledger` (with natural numerical order sorting), `Item-Wise Returns & Partials`, `Omnichannel & SIP Inventory`, and `Courier & COD Settlement` with universal auto-fitting column widths (`wch` auto-calculation).
-- **Authenticated Operator Profile & Security Telemetry**: Dedicated profile card in Settings displaying authenticated user avatar, display name, email, role badge (`👑 Executive Director`, `🏬 Branch Store Operator`, `👀 Read-Only Auditor`), assigned outlet scope, 8-point permission checklist, and HMAC-SHA256 session diagnostics.
-- **Cloud Sync & Omnichannel Hub**: Centralized inside Settings (Section 0.5) to provide a unified API credentials and sync command station while preserving Executive Overview as an uncluttered high-level KPI dashboard.
-- **Omnipresent AI Assistant in Search & Header**: Inline `✨ Ask AI` button inside the header search input, <kbd>Enter</kbd> trigger, global <kbd>⌘J</kbd> / <kbd>Ctrl+J</kbd> shortcut, desktop toolbar trigger, and Command Palette (<kbd>⌘K</kbd>) dynamic query routing with preset prompt discovery.
-- **KPI Overview**: Key metrics at a glance with live delivery retention, courier cost recovery, and return loss.
-- **Outlet Dispatch (Hub)**: Courier parcel dispatches, delivery retention rates, and returned consignment values across Online Store (Central Warehouse) and retail branch outlets (Mirpur POS `m`, Cumilla `c`, Wari `w`, Sylhet `s`).
-- **Outlet Sales (WooCommerce Live)**: Real-time sales revenue, units sold, and channel breakdown comparing the Online Store (Website) against in-store physical POS registers.
-- **Status Matrix**: Visual grid of order statuses across delivery outcomes.
-- **SKU Performance**: Distinct categories for Polo, T-shirt, Jacket, and Sweatshirt with Excel export.
-- **Territory Breakdown**: Regional performance (Inside Dhaka vs Outside Dhaka).
-- **Unit Economics**: Profitability analysis per order and transaction.
-- **Orders Ledger**: Searchable, filterable master order ledger with parcel badges and modal inspector.
-- **Excel Export**: Multi-sheet formatted Excel reports with strict business status columns and customer rating intelligence.
+- **Mathematical Knapsack DP Reconciliation (`subsetSum.ts`)**: Reverse-engineers partial order customer acceptances from courier COD remittances using 0/1 knapsack dynamic programming with a **strict integer quantity invariant (zero floating items allowed)**.
+- **Omnichannel Channel Segregation**:
+  - **Online Store (Central Warehouse)**: Standard web checkout orders.
+  - **Branch Split Courier Dispatches**: Regional courier consignments dispatched from store inventory (`17263 c` Cumilla, `17263 w` Wari, `17263 s` Sylhet, `17263 m` Mirpur).
+  - **Retail POS Register Walk-Ins**: Physical store counter sales (`_sip_outlet_id`: `2`, `7`, `8`, `9`). Filtered exclusively to `OutletSalesTab` and completely hidden from online delivery reports.
+  - **Exchanged Orders Hub**: Size and color exchange replacements (`D-` and `DD-` prefix orders) isolated from new commercial revenue.
+- **Live Operations Terminal (`LiveOpsTab`)**: Real-time warehouse pack stream, live connection telemetry, 7-day rolling baseline, and one-click WhatsApp/Slack executive dispatch briefing.
+- **Pathao Customer Fraud Scoring & Intelligence**: Instant delivery success rating badges (🌟 Excellent, 👍 Good, ⚖️ Moderate, ⚠️ High Risk, 🌱 New Buyer) queried from Pathao network API (`/aladdin/api/v1/user/success`).
+- **Multi-Month Statements Hub (`MonthlyStatementsHub`)**: Unified closing statements consolidating September 2026, October 2026, and November 2026 with month-over-month trajectory analysis.
+- **Campaign Intelligence Tab (`CampaignIntelligenceTab`)**: Full-funnel ad spend attribution for Meta Ads, Google Ads, and SMS with real-time **Delivered ROAS** calculations.
+- **Native Super White Aesthetics**: Pure `#FFFFFF` default canvas background with dynamic CSS custom properties (`--bg-surface`, `--card-surface`, `--border-surface`) and one-click theme presets in `SettingsTab`.
+- **Month-End 7-Sheet Excel Export**: Generates audit-grade `.xlsx` workbooks via SheetJS with auto-fitted columns and dynamic accounting formulas.
 
-## Tech Stack
+---
 
-- **Frontend**: Next.js 14 + React 18 + TypeScript
-- **Styling**: Tailwind CSS
-- **Backend**: Python (server.py) for data processing
-- **Data Processing**: Excel (xlsx) for reports
+## 🏗️ Tech Stack & Architecture
 
-## Getting Started
+- **Framework**: Next.js 14.2 (App Router)
+- **Frontend Core**: React 18 · TypeScript 5.6 · Tailwind CSS 3.4
+- **In-Memory Analytics**: AlaSQL 4.21 (in-browser relational OLAP engine)
+- **AI Copilot**: Google GenAI SDK (`@google/genai` 2.29.1, Gemini 2.5 Flash)
+- **Export Engine**: SheetJS (XLSX 0.20.3)
+- **Testing**: Vitest 5.0
+- **Deployment**: Vercel Serverless / Edge & Docker Alpine
+
+---
+
+## 🚀 Quickstart Guide
 
 ### Prerequisites
-
-- Node.js 18+
-- Python 3.x (for server.py)
-
-### Installation
+- Node.js `18.18.0` or higher
+- npm `10.0.0` or higher
 
 ```bash
+# 1. Clone repository
+git clone https://github.com/Sajid-ul-Islam/Sales-Analysis.git
+cd Sales-Analysis
+
+# 2. Install dependencies
 npm install
-```
 
-### Environment Setup
-
-Copy `.env.example` to `.env.local` and configure:
-
-```bash
+# 3. Setup environment variables
 cp .env.example .env.local
-```
 
-Configure secrets in `secrets.toml` (copy from `secrets.example.toml`).
-
-### Running the Dashboard
-
-**Option 1: Using the launcher (Windows)**
-```bash
-Launch_Dashboard.bat
-```
-
-**Option 2: Manual start**
-```bash
+# 4. Start local development server
 npm run dev
 ```
 
-The dashboard will be available at `http://localhost:3000`.
+Visit [http://localhost:3000](http://localhost:3000) to view the active application.
 
-## Documentation Architecture & Business Rules
+---
 
-Detailed architectural and business specifications:
-- **[Product Requirements Document (PRD)](./docs/PRD.md)**: Product features, 14 analysis modules, persona requirements, and operational workflows
-- **[Technical Requirements Document (TRD)](./docs/TRD.md)**: System topology, algorithms (Knapsack DP solver), API integrations, and data contracts
-- **[Design System & CSS Architecture (DESIGN.md)](./docs/DESIGN.md)**: Color tokens, typography, component blueprints, and unbreakable CSS guarantees
-- **[Order Tracking Business Rules](./.agents/rules/order_rules.md)**: Branch suffixes (`c`, `w`, `s`, `m`), paid return propagation, and integer-only return rule
-- **[Unbreakable CSS & Styling Rules](./.agents/rules/css_and_styling_rules.md)**: PostCSS configuration, table overflow safety, and SVG dimension standards
-- **[Workspace Guidelines](./AGENTS.md)**: High-level reconciliation overview and agent rules
+## 📋 Available npm Scripts
 
-## Project Structure
+```bash
+npm run dev          # Start Next.js App Router dev server on port 3000
+npm run build        # Build production bundle (.next)
+npm run start        # Start production build server
+npm run type-check   # Run static TypeScript verification (tsc --noEmit)
+npm run lint         # Run ESLint validation
+npm test             # Run automated Vitest test suites
+```
+
+---
+
+## 📁 Repository Directory Structure
 
 ```
-├── .github/workflows/ # GitHub Actions CI pipeline (ci.yml)
+.
+├── .agents/                    # Agent behavioral guidelines & system rules
+├── docs/                       # Complete engineering documentation suite (23 files)
+├── public/                     # Static branding assets and icons
+├── scripts/                    # Automation scripts (Multi-month dataset generators)
 ├── src/
-│   ├── app/           # Next.js app router pages & API routes
-│   ├── components/    # React components (tabs, CommandPalette, notifications)
-│   ├── lib/           # Business logic (reconciliation, clients, security, export)
-│   └── types/         # TypeScript interfaces and contracts
-├── public/            # Static assets (logos, images)
-├── scripts/           # Utility and anonymization scripts
-├── legacy/            # Archived pre-v2.0 vanilla JS and Python prototypes
-└── docs/              # Architectural PRD, TRD, and deployment guides
+│   ├── app/                    # Next.js App Router (pages, layout, globals.css, API routes)
+│   │   ├── api/                # Serverless endpoints (/api/sync/..., /api/campaigns, etc.)
+│   │   ├── globals.css         # Unbreakable base styles & theme resets
+│   │   └── page.tsx            # Master single-page app containing all 16 tab modules
+│   ├── components/             # React presentation components
+│   │   ├── common/             # Atomic widgets, badges & MonthlyStatementsHub
+│   │   ├── tabs/               # 16 specialized analytical modules
+│   │   ├── Header.tsx          # Omni search, Ask AI button & Command palette
+│   │   ├── KpiOverview.tsx     # Hero KPI cards with clamped mini-donuts
+│   │   └── Sidebar.tsx         # Collapsible responsive navigation
+│   ├── data/                   # Offline datasets & webhook event logs
+│   ├── lib/                    # Algorithmic engine, knapsack DP & business services
+│   └── types/                  # TypeScript interfaces and contracts
+└── tests/                      # Automated Vitest suites
 ```
 
-## API Routes
+---
 
-| Route | Method | Description |
-|-------|--------|-------------|
-| `/api/sync/live-terminal` | POST | High-speed dual-stream sync fetching WooCommerce orders & Pathao Hermes telemetry |
-| `/api/ai/copilot` | POST | AI copilot inference engine with live ops grounding, offline fallback, and BYOK |
-| `/api/sync/pathao` | POST | Fetch live consignments from Pathao Hermes API, cross-check returns & COD |
-| `/api/sync/woocommerce` | POST | Fetch orders from WooCommerce REST API (paginated, up to 5 pages) |
-| `/api/courier/customer-rating` | GET/POST | Query customer delivery rating, success rate, and fraud risk by phone via Pathao & store history |
-| `/api/sync/status` | GET/POST | Health-check & sync status diagnostics |
-| `/api/sample-data` | GET | Load pre-built September workspace dataset for demo/testing |
+## 📚 Canonical Documentation Index
 
-## Reconciliation Engine
+All technical, operational, and architectural specifications are maintained in the repository:
 
-The core `reconciliationEngine.ts` processes:
-
-1. **Pathao Master Delivery Report** (primary status source) - maps consignments to orders
-2. **Courier Return Log** (fallback) - captures RTO/paid returns with COD amounts
-3. **Partial Delivery File** - handles split shipments with partial collections
-4. **Exchanged Orders Log** - handles D-17263 / DD-17263 prefixed exchanges
-
-### Subset-Sum Knapsack Solver
-
-For **partial orders**, the engine uses `subsetSum.ts` to solve which items were kept vs returned:
-- Flattens multi-quantity items into discrete garment units
-- Tries delivery fee deductions (50 TK Dhaka, 90 TK outside, 60/100/120 TK variants)
-- Searches for exact match (<=2 BDT), tolerance match (<=25 BDT), or closest discrete match
-- **Enforces integer-only returned quantities** (no 0.5 allowed)
-
-### Business Rules Implemented
-
-| Rule | Implementation |
-|------|---------------|
-| Split multi-parcel delivered | If ALL parcels delivered -> mark DELIVERED |
-| Paid return propagation | If any parcel is Paid Return, all returned parcels count as paid |
-| Branch suffix detection | IDs like `17263 c`, `17263 w`, `17263 s` map to Cumilla/Wari/Sylhet |
-| Geographic classification | 200+ district/thana names for Inside/Outside Dhaka |
-| COGS calculation | ~42% of delivered item cost |
-| Packaging loss | ৳25 per returned/partial order |
-| Customer risk tiers | LOW (<30% return rate), MEDIUM (30-60%), HIGH_RISK (>60%) |
-
-## Development
-
-### Install dependencies
-```bash
-npm install
-```
-
-### Development server
-```bash
-npm run dev    # Starts on http://localhost:3000
-```
-
-### Build for production
-```bash
-npm run build
-npm start      # Production server on port 3000
-```
-
-### Python fallback server
-```bash
-python server.py   # Serves static files on http://localhost:8085
-```
-
-## Configuration
-
-Create `.env.local` from `.env.example` and `secrets.toml` from `secrets.example.toml`.
-
-### Required secrets (secrets.toml)
-
-```toml
-[woocommerce]
-store_url = "https://your-store.com"
-consumer_key = "ck_..."
-consumer_secret = "cs_..."
-
-[pathao]
-base_url = "https://api.pathao.com"
-client_id = "..."
-client_secret = "..."
-username = "..."
-password = "..."
-```
-
-## Excel Export
-
-The `Export` button generates a multi-sheet workbook:
-
-1. **Executive Summary** - KPI metrics & unit economics
-2. **Reconciled Orders** - Full ledger with Order Delivery Status & Item Delivery Status columns
-3. **SKU Performance** - Product-level retention & return analytics
-4. **Item-Wise Returns** - Full returns + partial returns detail
-5. **Customer Risk Intelligence** - Risk tiers & recommendations
-6. **Exchanged Orders** - Exchange log with COD & courier fees
-7. **Courier Mismatches** - Pathao vs Excel status/COD discrepancies
-
-## Project Structure
-
-```
-├── src/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── sample-data/   # Demo dataset loader
-│   │   │   ├── sync/
-│   │   │   │   ├── pathao/    # Pathao Hermes API sync
-│   │   │   │   ├── woocommerce/ # WooCommerce REST API sync
-│   │   │   │   └── status/   # Status update endpoint
-│   │   │   └── ...
-│   │   ├── globals.css        # Tailwind imports + custom styles
-│   │   ├── layout.tsx         # Root layout with fonts & metadata
-│   │   └── page.tsx           # Main dashboard (client component)
-│   ├── components/
-│   │   ├── CloudSyncBar.tsx   # Live API sync toolbar
-│   │   ├── FileDropzone.tsx   # Multi-file upload dropzones
-│   │   ├── Header.tsx         # Export/reset/switch mode controls
-│   │   ├── KpiOverview.tsx    # 8 KPI cards + hero metric
-│   │   ├── Sidebar.tsx        # Tab navigation
-│   │   ├── tabs/              # 12 analysis tabs:
-│   │   │   ├── CourierMismatchTab.tsx
-│   │   │   ├── CustomerRiskTab.tsx
-│   │   │   ├── ExchangedOrdersTab.tsx
-│   │   │   ├── ExecutiveOverviewTab.tsx
-│   │   │   ├── ItemReturnsTab.tsx
-│   │   │   ├── OrdersLedgerTab.tsx
-│   │   │   ├── OutletDispatchTab.tsx   # Courier parcel dispatches by outlet
-│   │   │   ├── OutletSalesTab.tsx      # WooCommerce sales across web & POS
-│   │   │   ├── SkuPerformanceTab.tsx
-│   │   │   ├── StatusMatrixTab.tsx
-│   │   │   ├── TerritoryTab.tsx
-│   │   │   └── UnitEconomicsTab.tsx
-│   │   └── ...
-│   ├── lib/
-│   │   ├── reconciliationEngine.ts  # Core orchestration (1,500+ lines)
-│   │   ├── subsetSum.ts              # Knapsack/subset-sum solver
-│   │   ├── excelExport.ts           # Multi-sheet Excel generator
-│   │   ├── pathaoClient.ts          # Pathao Aladdin API client
-│   │   ├── woocommerceClient.ts    # WooCommerce REST client
-│   │   ├── geo.ts                   # Geocoding dictionary (200+ locations)
-│   │   ├── secrets.ts              # Config and env reader
-│   │   ├── discrepancyAuditor.ts   # Mismatch detection logic
-│   │   ├── overrideStore.ts        # State override utilities
-│   │   └── ...
-│   └── types/
-│       └── index.ts                # All TypeScript interfaces
-├── legacy/                   # Archived pre-v2.0 vanilla JS & Python prototypes
-├── secrets.example.toml      # Configuration template
-├── .env.example              # Environment variables template
-└── package.json              # Next.js 14 + dependencies
-```
-
-## Vercel & Production Deployment
-
-The project is built on Next.js 14 (App Router) and is ready for Vercel deployment.
-
-### 1. Build Verification
-```bash
-npm run build
-```
-Generates optimized static pages and serverless API endpoints with zero build errors.
-
-### 2. Environment Variables on Vercel
-In your **Vercel Project Settings → Environment Variables**, add the variables defined in `.env.example`:
-
-| Variable | Description |
+| Document | Description |
 |---|---|
-| `WOOCOMMERCE_STORE_URL` | Store URL (e.g. `https://deencommerce.com`) |
-| `WOOCOMMERCE_CONSUMER_KEY` | WooCommerce REST API Consumer Key (`ck_...`) |
-| `WOOCOMMERCE_CONSUMER_SECRET` | WooCommerce REST API Consumer Secret (`cs_...`) |
-| `PATHAO_BASE_URL` | Hermes API URL (`https://api-hermes.pathao.com`) |
-| `PATHAO_CLIENT_ID` | Pathao Client ID |
-| `PATHAO_CLIENT_SECRET` | Pathao Client Secret |
-| `PATHAO_USERNAME` | Pathao Merchant Email |
-| `PATHAO_PASSWORD` | Pathao Merchant Password |
+| [AGENTS.md](AGENTS.md) | Autonomous agent behavioral contracts, business rules & invariants |
+| [API.md](API.md) | Complete REST API & webhook specifications for WooCommerce and Pathao |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture, component graph, state stores & data pipelines |
+| [AUDIT.md](AUDIT.md) | Reconciliation algorithms, COD leakage audit & accounting proofs |
+| [AUDIT_REPORT.md](AUDIT_REPORT.md) | Historical audit reports, empirical data findings & closed-month validations |
+| [BUGS_AND_FIXES.md](BUGS_AND_FIXES.md) | Incident log, regression mitigations & architectural bug fixes |
+| [CHANGELOG.md](CHANGELOG.md) | Semantic version history & detailed release notes |
+| [CONTEXT.md](CONTEXT.md) | Domain context, Bangladesh logistics realities & retail ecosystem |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Developer onboarding, Git conventions & PR guidelines |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | Vercel deployment, Docker setup, edge proxies & CDN configs |
+| [DESIGN.md](DESIGN.md) | Unbreakable UI design system, color tokens & 10 Golden Rules |
+| [OPERATIONS.md](OPERATIONS.md) | Warehouse, retail branch & finance department standard SOPs |
+| [PRD.md](PRD.md) | Product Requirements Document (features, personas & scope) |
+| [R&D.md](R&D.md) | Research & development roadmap, ML RTO models & innovations |
+| [SECURITY.md](SECURITY.md) | Threat modeling, HMAC signatures, RBAC & vulnerability management |
+| [SKILLS.md](SKILLS.md) | Machine & agent skill definitions, schemas & triggers |
+| [TESTING.md](TESTING.md) | Vitest testing suites, mock pipelines & mathematical verification |
+| [TODO.md](TODO.md) | Living roadmap, completed milestones & sprint backlog |
+| [TRD.md](TRD.md) | Technical Requirements Document (data structures & APIs) |
+| [WEBMCP.md](WEBMCP.md) | Web Model Context Protocol specifications & agent interfaces |
+| [WORKFLOW.md](WORKFLOW.md) | End-to-end data pipelines & developer release workflows |
 
-### 3. Serverless File Handling
-- The serverless API routes (`/api/sample-data`, `/api/sync/pathao`) are hardened against missing filesystem assets in cloud sandboxes.
-- When deployed without local Excel spreadsheets, the frontend automatically initiates in **Dropzone / Upload Mode**, allowing drag-and-drop ingestion of current courier sheets or direct live synchronization via WooCommerce and Pathao APIs.
+---
 
-## License
+## 🛡️ License & Copyright
 
-Private - Deen Commerce internal tool.
+Proprietary Software. © 2026 DEEN Commerce. All rights reserved.
+Unauthorized copying, distribution, or decompilation is strictly prohibited.

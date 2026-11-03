@@ -184,10 +184,11 @@ describe('Deterministic 15% Order Sampling Engine & Executive Auth', () => {
 
       const json = await res.json();
       expect(json.success).toBe(true);
-      // Bundled baseline has 2,549 order rows across ~2,000 unique orders
-      // Sampled 15% should be around 382 rows (strictly < 500 rows, far less than 2,549)
-      expect(json.ordersCount).toBeLessThan(500);
+      // Bundled baseline has 5,151 order rows across September, October, and November
+      // Sampled 15% should be around ~770-800 rows (strictly < 1,000 rows and > 500 rows, far less than 5,151)
+      expect(json.ordersCount).toBeLessThan(1000);
+      expect(json.ordersCount).toBeGreaterThan(500);
       expect(json.orders.length).toBe(json.ordersCount);
-    });
+    }, 30000);
   });
 });

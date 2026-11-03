@@ -19,15 +19,22 @@ import { ReconciliationResult } from '@/lib/reconciliationEngine';
 import { DataProvenanceInfo } from '@/lib/dataAudit';
 import { ComparativeBarChart } from '@/components/charts';
 import { MonthEndCloseCard } from '@/components/common/MonthEndCloseCard';
+import { MonthlyStatementsHub } from '@/components/common/MonthlyStatementsHub';
 import { EmptyState } from '@/components/common/EmptyState';
+import { AvailableMonth } from '@/lib/dateFilter';
 
-interface ExecutiveOverviewTabProps {
+export interface ExecutiveOverviewTabProps {
   summary: SummaryAnalytics;
   orders?: ReconciledOrderRow[];
   skuList?: SkuAnalytics[];
   reconciliationResult?: ReconciliationResult | null;
   provenance?: DataProvenanceInfo;
   onExportMonthlyReport?: () => void;
+  availableMonths?: AvailableMonth[];
+  selectedMonthId?: string;
+  onSelectMonth?: (month: AvailableMonth | null) => void;
+  onSyncLiveMonth?: () => void;
+  isSyncingLive?: boolean;
 }
 
 /**
@@ -57,7 +64,12 @@ export function ExecutiveOverviewTab({
   skuList = [],
   reconciliationResult,
   provenance,
-  onExportMonthlyReport
+  onExportMonthlyReport,
+  availableMonths = [],
+  selectedMonthId,
+  onSelectMonth,
+  onSyncLiveMonth,
+  isSyncingLive = false,
 }: ExecutiveOverviewTabProps) {
   const s = summary;
 
@@ -249,6 +261,19 @@ export function ExecutiveOverviewTab({
 
   return (
     <div className="space-y-6">
+      {/* 📁 Automated Executive Monthly Statements Engine */}
+      <MonthlyStatementsHub
+        orders={_orders}
+        summary={summary}
+        reconciliationResult={reconciliationResult}
+        availableMonths={availableMonths}
+        selectedMonthId={selectedMonthId}
+        onSelectMonth={onSelectMonth}
+        onSyncLiveMonth={onSyncLiveMonth}
+        isSyncingLive={isSyncingLive}
+        onExportReport={handleDownloadMonthlyReport}
+      />
+
       <MonthEndCloseCard
         orders={_orders}
         summary={summary}

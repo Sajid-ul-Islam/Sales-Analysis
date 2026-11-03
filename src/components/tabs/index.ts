@@ -14,3 +14,4 @@ export { OutletDispatchTab } from './OutletDispatchTab';
 export { OutletSalesTab } from './OutletSalesTab';
 export { LiveOpsTab } from './LiveOpsTab';
 export { SettingsTab } from './SettingsTab';
+export { CampaignIntelligenceTab } from './CampaignIntelligenceTab';

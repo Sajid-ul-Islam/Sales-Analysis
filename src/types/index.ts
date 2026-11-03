@@ -290,3 +290,5 @@ export interface DatasetSnapshot {
   dateTo?: string;
   dateRangeFormatted?: string;
 }
+
+export * from './campaign';

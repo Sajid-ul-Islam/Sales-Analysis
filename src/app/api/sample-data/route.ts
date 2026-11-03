@@ -28,7 +28,7 @@ function parseExcelFile(filePath: string): RawOrderRow[] {
     }
     const buf = fs.readFileSync(filePath);
     const wb = XLSX.read(buf, { type: 'buffer' });
-    const targetSheet = wb.Sheets['Checkout Line Items'] || (wb.SheetNames[0] ? wb.Sheets[wb.SheetNames[0]] : null);
+    const targetSheet = wb.Sheets['All Orders (Multi-Month)'] || wb.Sheets['Checkout Line Items'] || (wb.SheetNames[0] ? wb.Sheets[wb.SheetNames[0]] : null);
     if (!targetSheet) return [];
     return XLSX.utils.sheet_to_json(targetSheet, { defval: '' });
   } catch (err) {
@@ -108,6 +108,8 @@ export async function GET(req: Request) {
     const cwd = process.cwd();
 
     const orderCandidates = [
+      path.join(cwd, 'Sample Docs', 'DEEN Multi-Month Master Orders (Sept-Oct-Nov).xlsx'),
+      path.join(cwd, 'DEEN Multi-Month Master Orders (Sept-Oct-Nov).xlsx'),
       path.join(cwd, 'Sample Docs', 'October 2026 Checkout Orders List.xlsx'),
       path.join(cwd, 'October 2026 Checkout Orders List.xlsx'),
       path.join(cwd, 'Sample Docs', '7-30 Sept.xlsx'),
@@ -169,7 +171,9 @@ export async function GET(req: Request) {
     const exchangesFromFallback = exchanges.length === 0;
     const pathaoFromFallback = pathaoDelivery.length === 0;
 
-    if (ordersFromFallback) orders = fallback.orders || [];
+    if (ordersFromFallback || (fallback.orders && fallback.orders.length > orders.length)) {
+      orders = fallback.orders || orders;
+    }
     if (returnsFromFallback) returns = fallback.returns || [];
     if (partialsFromFallback) partials = fallback.partials || [];
     if (exchangesFromFallback) exchanges = fallback.exchanges || [];

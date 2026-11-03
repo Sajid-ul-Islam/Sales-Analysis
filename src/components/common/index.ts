@@ -16,3 +16,5 @@ export { FormFieldError } from './FormFieldError';
 export { SuccessCelebrationModal } from './SuccessCelebrationModal';
 export { SuffixHygieneBadge } from './SuffixHygieneBadge';
 export { MonthEndCloseCard } from './MonthEndCloseCard';
+export { MonthlyStatementsHub } from './MonthlyStatementsHub';
+export type { MonthlyStatementsHubProps } from './MonthlyStatementsHub';

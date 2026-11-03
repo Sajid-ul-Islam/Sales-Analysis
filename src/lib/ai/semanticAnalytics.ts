@@ -581,5 +581,38 @@ export function generateQueryAnalyticalFacts(
     }
   }
 
-  return facts.join('\n');
+  // 7. Campaign Intelligence & Winter Marketing Strategy
+  const mentionsMarketing =
+    q.includes('campaign') ||
+    q.includes('marketing') ||
+    q.includes('winter') ||
+    q.includes('upgrade') ||
+    q.includes('promo') ||
+    q.includes('promotion') ||
+    q.includes('bundle') ||
+    q.includes('threshold') ||
+    q.includes('roas') ||
+    q.includes('discount') ||
+    q.includes('ad spend') ||
+    q.includes('budget') ||
+    q.includes('opportunity') ||
+    q.includes('promote') ||
+    q.includes('segment') ||
+    activeTab?.includes('Campaign');
+
+  if (mentionsMarketing) {
+    facts.push("Deterministic Campaign Intelligence & Winter Strategy:");
+    facts.push("- **Active Season Campaign:** DEEN Winter Upgrade 2026–2027 (\"Buy More. Save More.\")");
+    facts.push("- **Configured Threshold Tiers:** ৳2,500+ (Free Shipping), ৳3,500+ (৳150 Off + Free Delivery), ৳5,000+ (৳350 Off + Free Delivery), ৳7,000+ (৳600 Off + Free Delivery)");
+    facts.push("- **Recommended Winter Bundles:** Complete Winter Look (Denim Jacket + Jeans at 20% discount), Urban Combo (Hoodie + Tee at 16% off), Cozy Weekend Set (Sweatshirt + Jeans at 18% off)");
+    facts.push("- **Sustainability Floor:** 22% Net Contribution Margin floor after ~42% COGS, ৳135 courier/packing, and ad costs.");
+    if (summary?.unitEconomics) {
+      const ue = summary.unitEconomics;
+      facts.push(`- **Delivered Realized Sales:** ৳${Math.round(ue.netRealizedSales).toLocaleString()} (Delivered ROAS: ${ue.roas.toFixed(2)}x on ৳${Math.round(ue.metaAdCost).toLocaleString()} ad spend)`);
+      facts.push(`- **Current Net Margin:** ${ue.netMarginPercentage}% (Contribution Margin: ৳${Math.round(ue.netContributionMargin).toLocaleString()})`);
+      facts.push(`- **Blended CAC:** ৳${Math.round(ue.cac).toLocaleString()} per delivered customer`);
+    }
+  }
+
+return facts.join('\n');
 }

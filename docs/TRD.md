@@ -1,27 +1,29 @@
-# Technical Requirements Document (TRD)
+# Technical Requirements Document (TRD): DEEN Commerce
+
 ## DEEN Commerce — Sales & Return Reconciliation Engine
 
 **Version:** 2.4.0  
-**Stack:** Next.js 14 (App Router) · React 18 · TypeScript 5.6 · Tailwind CSS 3.4  
-**Runtime:** Node.js 18+ (Vercel Serverless / Edge compatible)  
-**Last Updated:** October 2026 (Live Ops, AI Copilot & Experience Enhancements)  
+**Stack:** Next.js 14.2 (App Router) · React 18 · TypeScript 5.6 · Tailwind CSS 3.4 · AlaSQL 4.21 · SheetJS 0.20 · Google GenAI SDK 2.29  
+**Runtime:** Node.js 18+ (Vercel Serverless / Edge & Docker Alpine compatible)  
+**Last Updated:** November 2026  
 
 ---
 
-## 1. System Architecture Overview
+## 1. System Architecture & Component Graph
 
-The **DEEN Commerce Reconciliation Engine** is designed as a high-performance, client-first Next.js 14 web application with serverless API proxy routes.
+The **DEEN Commerce Reconciliation Engine** is implemented as a client-first, zero-latency analytical web application with serverless edge API proxy routes.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              CLIENT BROWSER                                 │
 │  ┌───────────────────────────────────────────────────────────────────────┐  │
 │  │   UI Shell & Analysis Views (React 18 / Tailwind CSS)                 │  │
-│  │   - Executive Overview       - Outlet Dispatch       - Outlet Sales   │  │
+│  │   - Executive Overview       - Live Ops Terminal     - Outlet Dispatch│  │
 │  │   - Status Matrix            - SKU Performance       - Item Returns   │  │
 │  │   - Courier Mismatch Audit   - Territory Breakdown   - Customer Risk  │  │
-│  │   - Unit Economics           - Exchanged Hub         - Orders Ledger  │  │
-│  │   - System Settings & Themes (SettingsTab.tsx)                        │  │
+│  │   - Unit Economics           - Exchanged Orders Hub  - Orders Ledger  │  │
+│  │   - Outlet Sales (POS)       - Monthly Statements    - Campaign Intel │  │
+│  │   - System Settings & Theme Manager (SettingsTab.tsx)                 │  │
 │  └───────────────────────────────────▲───────────────────────────────────┘  │
 │                                      │                                      │
 │  ┌───────────────────────────────────┴───────────────────────────────────┐  │
@@ -30,418 +32,168 @@ The **DEEN Commerce Reconciliation Engine** is designed as a high-performance, c
 │  │   - Discrepancy Auditor (discrepancyAuditor.ts)                       │  │
 │  │   - Reconciler & Geo Engine (reconciliationEngine.ts, geo.ts)         │  │
 │  │   - Multi-Sheet Export Engine (excelExport.ts)                        │  │
-│  │   - Theme Manager & Customizer (themeManager.ts)                      │  │
+│  │   - Dynamic Theme Manager (themeManager.ts)                           │  │
 │  │   - Local Override State Store (overrideStore.ts)                     │  │
+│  │   - Campaign Attribution Engine (campaignEngine.ts)                   │  │
+│  │   - Date Filter & Calendar Boundaries (dateFilter.ts)                 │  │
 │  └───────────────────▲───────────────────────────────────▲───────────────┘  │
+│                      │                                   │                  │
+│                      │ In-Memory AlaSQL                  │ IndexedDB / Local│
+│                      │ Relational Cache                  │ State Storage    │
 └──────────────────────┼───────────────────────────────────┼──────────────────┘
-                       │ Local XLSX / CSV                  │ JSON Payloads
-                       │ Dropzone Pipeline                 │
+                       │ Local XLSX / CSV Dropzone         │ JSON Payloads
+                       │ Pipeline                          │
 ┌──────────────────────┴───────────────────────────────────┴──────────────────┐
 │                         NEXT.JS APP ROUTER API LAYER                        │
 │  ┌───────────────────────┐ ┌───────────────────────┐ ┌───────────────────┐  │
 │  │ /api/sync/woocommerce │ │   /api/sync/pathao    │ │ /api/sample-data  │  │
-│  │ (WooCommerce v3 REST) │ │  (Pathao Hermes API)  │ │ (Serverless Safe) │  │
+│  │ (WooCommerce v3 REST) │ │  (Pathao Hermes API)  │ │ (Offline Ready)   │  │
 │  └───────────▲───────────┘ └───────────▲───────────┘ └───────────────────┘  │
 │              │                         │                                    │
-│              │                         │ ┌───────────────────────────────┐  │
-│              │                         │ │       /api/sync/status        │  │
-│              │                         │ │ (Connectivity & Health Audit) │  │
-│              │                         │ └───────────────────────────────┘  │
-└──────────────┼─────────────────────────┼────────────────────────────────────┘
-               │ HTTPS / OAuth 1.0a      │ Bearer Token / Hermes REST
-┌──────────────┴───────────┐ ┌───────────┴───────────┐
-│     WooCommerce Store    │ │   Pathao Courier API  │
-│ (https://deencommerce.com)│ │(api-hermes.pathao.com)│
-└──────────────────────────┘ └───────────────────────┘
+│  ┌───────────┴───────────┐ ┌───────────┴───────────┐ ┌───────────────────┐  │
+│  │    /api/sync/status   │ │    /api/campaigns     │ │   /api/ai/query   │  │
+│  │ (Health & Telemetry)  │ │ (Ad Spend & Tracking) │ │ (Gemini Copilot)  │  │
+│  └───────────────────────┘ └───────────────────────┘ └───────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Technology Stack & Key Dependencies
+## 2. Core TypeScript Contracts & Data Models
 
-| Component | Library / Framework | Version | Technical Justification |
-|---|---|---|---|
-| **Framework** | Next.js (App Router) | `14.2.15` | Hybrid SSR/Static client execution with serverless API route handlers |
-| **Language** | TypeScript | `5.6.3` | Strict compile-time type safety across order schemas and reconciliation types |
-| **Styling** | Tailwind CSS + PostCSS | `3.4.14` | Utility-first CSS with customized design system tokens and immutable layout guarantees |
-| **Icons** | Lucide React | `0.453.0` | Feather-style SVG icons for clean operational iconography |
-| **Spreadsheet Engine** | XLSX (SheetJS) | `0.18.5` | In-memory binary parsing and multi-sheet Excel generation |
-| **Utility** | `clsx` & `tailwind-merge` | `^2.1.1` | Conflict-free conditional CSS class composition |
-
----
-
-## 3. Core Modules & Algorithmic Specifications
-
-### 3.1 Knapsack / Subset-Sum Partial Matching (`subsetSum.ts`)
-When couriers accept partial item returns, the collected COD amount reflects:
-$$\text{Collected COD} = \sum_{i \in \text{Kept}} \text{ItemPrice}_i + \text{DeliveryCharge}$$
-
-The dynamic programming algorithm executes the following sequence:
-1. **Garment Unit Flattening**: Expands multi-quantity order line items into discrete items with single quantity (`qty = 1`).
-2. **Delivery Charge Variations**: Iterates candidate shipping fees based on territory:
-   - Inside Dhaka: ৳50 (candidate variants: ৳60, ৳0)
-   - Outside Dhaka: ৳90 (candidate variants: ৳100, ৳120, ৳0)
-3. **Exact & Tolerance Subset Solver**:
-   - `exactMatch`: Finds a combination whose total is within $\pm ৳2$ of $\text{COD} - \text{DeliveryCharge}$.
-   - `toleranceMatch`: Evaluates candidate subsets within $\pm ৳25$.
-   - `closestMatch`: Fallback choosing the closest discrete subset sum.
-4. **Strict Integer Constraint**:
-   Returned items quantity must always evaluate to whole positive integer values:
-   $$\text{QuantityReturned} \in \mathbb{Z}_{\ge 0}$$
-   **Fractional quantities (e.g. 0.5) are strictly prohibited and discarded.**
-
-### 3.2 Fulfillment Branch & Outlet Detection (`reconciliationEngine.ts`)
-Branch attribution uses a deterministic multi-stage waterfall:
-1. **Store Name Check**:
-   - Contains `cumilla` / `comilla` $\rightarrow$ `Cumilla Branch` (`c`)
-   - Contains `wari` $\rightarrow$ `Wari Branch` (`w`)
-   - Contains `sylhet` $\rightarrow$ `Sylhet Branch` (`s`)
-   - Contains `mirpur` $\rightarrow$ `Mirpur Outlet POS` (`m`)
-2. **Order ID Suffix Regex Check**:
-   - `/\b\d+\s*c\b|[-_\s]c$/i` or `/\d+c$/i` $\rightarrow$ `Cumilla Branch`
-   - `/\b\d+\s*w\b|[-_\s]w$/i` or `/\d+w$/i` $\rightarrow$ `Wari Branch`
-   - `/\b\d+\s*s\b|[-_\s]s$/i` or `/\d+s$/i` $\rightarrow$ `Sylhet Branch`
-   - `/\b\d+\s*m\b|[-_\s]m$/i` or `/\d+m$/i` $\rightarrow$ `Mirpur Outlet POS`
-3. **Order Notes & Fallback**:
-   - Inspects customer notes for outlet keywords.
-   - Base orders with no suffix default to `Online Store (Central Warehouse)` with suffix `""`.
-
-### 3.3 Paid Return Propagation Rule
-If an order contains split consignments across multiple branches:
-$$\text{isPaidReturn}_{\text{order}} = \bigvee_{p \in \text{parcels}} \text{isPaidReturn}_p$$
-If at least one parcel is marked `Paid Return`, all returned parcels within that order inherit `Paid Return` accounting. Otherwise, they are classified as `Non-Paid Return`.
-
-### 3.4 Split Multi-Parcel Delivery Rule
-If an order is split into multiple branch shipments:
-$$\text{isDelivered}_{\text{order}} = \bigwedge_{p \in \text{parcels}} \text{isDelivered}_p$$
-An order is marked `DELIVERED` only if **every** branch parcel was successfully delivered. If some are delivered and some returned, the order status becomes `PARTIAL`.
-
-### 3.5 Discrepancy Auditor (`discrepancyAuditor.ts`)
-Audits differences between courier records and merchant order records:
-- **Status Mismatch**: Courier shows `Delivered` while merchant record is `Returned`, or courier shows `Returned to Merchant` while merchant record is `Delivered`.
-- **COD Mismatch**: Pathao collected cash diverges from expected collected amount by $> ৳10$.
-- **Missing In Courier**: Merchant order marked fulfilled but absent from courier dispatch manifests.
-- **Unlogged Return**: Courier marks parcel returned, but merchant system still flags order as open.
-
-### 3.6 Financial Unit Economics Waterfall
-- $\text{Gross Invoiced Sales} = \sum \text{Dispatched Gross Amount}$
-- $\text{Net Realized Sales} = \sum \text{Delivered Items Value} + \sum \text{Partial Kept Items Value}$
-- $\text{Estimated COGS} = 42\% \times \text{Net Realized Sales}$
-- $\text{Gross Margin} = \text{Net Realized Sales} - \text{Estimated COGS}$
-- $\text{Net Courier Burden} = \text{Pathao Gross Charges} - \text{Paid Return Recoveries} - \text{Customer Delivery Fees}$
-- $\text{Packaging Loss} = (\text{Total Full Returns} + \text{Total Partials}) \times ৳25$
-- $\text{Net Contribution Margin} = \text{Gross Margin} - \text{Net Courier Burden} - \text{Packaging Loss}$
-
----
-
-## 4. API Endpoints & Serverless Integrations
-
-### 4.1 `/api/sync/pathao` (POST)
-- Authenticates against Pathao Aladdin / Hermes API using client credentials.
-- Endpoint: `POST https://api-hermes.pathao.com/aladdin/api/v1/issue-token`
-- Caches Bearer tokens in memory for 1 hour (`expires_in - 60s`).
-- Fetches parcel details in parallel worker queues (concurrency: 5).
-- Returns normalized `RawOrderRow[]` ready for reconciliation.
-- **Serverless Resilience**: Wrapped in try/catch with safe filesystem guards; never throws uncaught 500 exceptions if local fallback files are absent.
-
-### 4.2 `/api/sync/woocommerce` (POST)
-- Queries WooCommerce REST API `/wp-json/wc/v3/orders`.
-- Uses HTTP Basic Authentication (`consumer_key:consumer_secret`).
-- Fetches orders in paginated batches (`per_page: 100`, up to 5 pages / 500 orders).
-- Extracts in-store POS register metadata:
-  - `_sip_outlet_id`: `2` (Mirpur), `7` (Cumilla), `8` (Wari), `9` (Sylhet).
-  - `_sip_created_by`: Cashier user IDs (`3` Mirpur, `35` Cumilla, `69` Wari, `572` Sylhet).
-
-### 4.3 `/api/sync/status` (GET)
-- Health-check endpoint verifying configuration status and live connectivity for Pathao and WooCommerce.
-- Returns `{ pathao: { configured, connected }, woocommerce: { configured, connected } }`.
-
-### 4.4 `/api/sample-data` (GET)
-- Loads local workspace Excel spreadsheets when available on local developer machines.
-- In serverless cloud environments (Vercel), detects absent files gracefully and returns empty arrays without throwing errors, prompting the user for drag-and-drop file ingestion.
-
-### 4.5 `/api/sync/live-terminal` (POST)
-- High-velocity dual-stream operational endpoint.
-- Fetches recent order batches (up to 300 orders / 400+ line items) directly from WooCommerce REST API, maps in-store POS register metadata, and resolves real-time consignment delivery telemetry from Pathao Hermes API.
-- Non-blocking error isolation: If courier lookup fails for a parcel, the order stream remains healthy with status marked as `Untracked`.
-- Prevents redundant calls by accepting live datasets directly into client state.
-
-### 4.6 `/api/ai/copilot` (POST)
-- Executive AI analyst and natural language reconciliation engine.
-- Supports multi-provider inference: Google Gemini 1.5/2.0 Flash (default server key) and client BYOK (OpenAI, Anthropic, Groq, OpenRouter).
-- Injects ground-truth `LiveOpsAnalyticsSlice` and focused analytical query facts, ensuring zero hallucinations for today's sales, queue depth, courier telemetry, and 7-day rolling baselines.
-- Heuristic fallback engine: Generates structured markdown executive briefings completely offline if no LLM key is configured.
-
----
-
-## 5. Security & Environment Configuration
-
-Configuration variables are resolved through `src/lib/secrets.ts` via standard environment variables:
-
-| Variable | Environment | Default / Fallback |
-|---|---|---|
-| `WOOCOMMERCE_STORE_URL` | Server | `https://deencommerce.com` |
-| `WOOCOMMERCE_CONSUMER_KEY` | Server | `""` |
-| `WOOCOMMERCE_CONSUMER_SECRET`| Server | `""` |
-| `PATHAO_BASE_URL` | Server | `https://api-hermes.pathao.com` |
-| `PATHAO_CLIENT_ID` | Server | `""` |
-| `PATHAO_CLIENT_SECRET` | Server | `""` |
-| `PATHAO_USERNAME` | Server | `""` |
-| `PATHAO_PASSWORD` | Server | `""` |
-
----
-
-## 6. CSS & Layout Rendering Resilience
-
-To guarantee that CSS rendering **never breaks**:
-1. **Dual PostCSS Specification**: Both `postcss.config.js` (CommonJS `module.exports`) and `postcss.config.mjs` (ES Module `export default`) are maintained. This eliminates build tool loader ambiguities between Next.js webpack, Turbopack, and Tailwind CLI.
-2. **Intrinsic CSS Tokens & Resets**: `globals.css` injects CSS root custom properties (`--primary: #EB5A19`, `--brand-navy: #0F172A`) and universal `box-sizing: border-box`, ensuring structural styling remains intact even if utility stylesheets experience loading delays.
-3. **Responsive Container Contracts**: All tables and matrices utilize `.table-container-responsive` (`overflow-x: auto`) and `.min-w-0` to prevent flexbox blowouts on narrow displays.
-4. **Explicit SVG Sizing**: All inline SVG charts and donut meters must have hardcoded `width="44" height="44"` (or `48x48`) and `shrink-0` classes to prevent SVG viewports from distorting or expanding under flex layouts.
-
----
-
-## 7. System Settings & Customization Hub Architecture
-
-Version 2.6 introduces the centralized `SettingsTab.tsx` and `settingsStore.ts` engine:
-1. **Dynamic Financial Modeling**:
-   - `insideDeliveryFee` (default ৳50) and `outsideDeliveryFee` (default ৳90) wire into knapsack net-COD deduction and courier burden calculations.
-   - `cogsPercent` (default 42%) dynamically determines COGS deductions across delivered and kept items.
-   - `packagingCost` (default ৳25) accounts for unboxing depreciation on returned parcels.
-   - `exactTolerance` (default ৳2) defines the dynamic programming Knapsack tolerance window.
-2. **Live Theme Customizer (`themeManager.ts`)**:
-   - 8 curated brand presets + real-time 6-digit hex color picker.
-   - Automatic generation of `--primary`, `--primary-hover`, `--primary-subtle`, and RGB channel variables applied live to `:root`.
-   - Dark canvas toggle and compact density mode.
-3. **Configuration & Audit Management**:
-   - One-click JSON diagnostic export and JSON configuration file import.
-   - In-memory & `localStorage` Activity Audit Log tracking timestamped modifications.
-   - Safe credential editing with masked client secrets and live status connectivity testing.
-
----
-
-## 8. Experience Architecture & Technical Contracts
-
-### 8.1 Command Palette (`Cmd + K`) Indexing Contract
+### 2.1 The Master Reconciled Order (`src/types/index.ts`)
 ```typescript
-export interface CommandPaletteItem {
-  id: string;
-  category: 'tabs' | 'orders' | 'customers' | 'skus' | 'actions';
-  title: string;
-  subtitle?: string;
-  badge?: string;
-  icon?: string;
-  action: () => void;
-}
-```
-- In-memory trie and normalized string index built on dataset load/refresh.
-- Sub-5ms search latency across 5,000+ items with keyboard navigation handlers (`ArrowUp`, `ArrowDown`, `Enter`, `Escape`).
+export type DeliveryStatus = 
+  | 'Delivered' 
+  | 'Paid Return' 
+  | 'Return' 
+  | 'Partial' 
+  | 'Exchanged' 
+  | 'In-Transit';
 
-### 8.2 Real-Time Sync Observability & Toast Event Pipeline
-```typescript
-export interface SyncToastEvent {
-  id: string;
-  type: 'orders_synced' | 'courier_updated' | 'discrepancy_detected' | 'error';
-  title: string;
-  description: string;
-  timestamp: string;
-  targetTab?: string;
-  targetOrderId?: string;
-}
-```
-- Light event-bus triggering non-intrusive floating toasts that auto-dismiss after 4 seconds.
-- Historical log persisted in `localStorage` / `sessionStorage` (last 25 entries).
-
-### 8.3 Universal Date Range Engine
-- Standard ISO 8601 interval filter: `[startDate: string, endDate: string]`.
-- Date range normalization handles both WooCommerce ISO dates (`2026-10-16T10:00:00`) and Excel serial integers (`45560.5`).
-- Period-over-period comparison calculates:
-  $$\Delta \% = \left(\frac{\text{Metric}_{\text{Current}} - \text{Metric}_{\text{Prior}}}{\text{Metric}_{\text{Prior}}}\right) \times 100$$
-
-### 8.4 IndexedDB Client Persistence Architecture
-- Stores order records and reconciliation outcomes in browser IndexedDB (`deen_analytics_db`).
-- Enables instant dashboard boot (<150ms) on page reload without waiting for remote server roundtrips.
-
----
-
-## 9. Pathao Customer Rating & Phone Intelligence Technical Contract
-
-### 9.1 Data Interface & Rating Types (`src/lib/customerRating.ts`)
-```typescript
-export type CustomerRatingTier = 'EXCELLENT' | 'GOOD' | 'MODERATE' | 'RISKY' | 'NEW';
-
-export interface CustomerRatingData {
-  phone: string;
-  normalizedPhone: string;
-  ratingTier: CustomerRatingTier;
-  ratingLabel: string;
-  successRate: number; // 0 - 100 percentage
-  totalOrders: number;
-  deliveredOrders: number;
-  returnedOrders: number;
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
-  source: 'PATHAO' | 'STORE_HISTORY' | 'COMBINED';
-  rawPathaoRating?: string;
-  courierNotes?: string;
-}
-```
-
-### 9.2 Phone Normalization Algorithm
-- Input: String, number, or raw field from WooCommerce / courier manifests.
-- Cleans non-digits; strips international country codes `+880` and `880`.
-- Prepends `0` to 10-digit mobile numbers; extracts canonical 11-digit `01...` representation and 10-digit suffix (`suffix10`) for resilient fuzzy matching.
-
-### 9.3 Dual-Tier Grounded Resolution Architecture
-```
-                  ┌──────────────────────────────┐
-                  │    Incoming Customer Phone   │
-                  └──────────────┬───────────────┘
-                                 │
-                 ┌───────────────┴───────────────┐
-                 │  Normalize Phone (01XXXXXXXXX) │
-                 └───────────────┬───────────────┘
-                                 │
-          ┌──────────────────────┴──────────────────────┐
-          ▼                                             ▼
-  [Tier 1: Store History]                     [Tier 2: Pathao B2B API]
-  - Instant 0ms Local Index                   - POST /aladdin/api/v1/user/success
-  - Baseline 2,500+ Orders                    - 90-day OAuth token authentication
-  - Delivered / Total %                       - Network delivery rate & tags
-          │                                             │
-          └──────────────────────┬──────────────────────┘
-                                 │
-                                 ▼
-                     ┌───────────────────────┐
-                     │ Combined Ground Truth │
-                     │ - Excellent (>=90%)   │
-                     │ - Good (80% - 89%)    │
-                     │ - Moderate (60% - 79%)│
-                     │ - Risky (<60% RTO)    │
-                     │ - New Customer (0 ord)│
-                     └───────────────────────┘
-```
-
-### 9.4 Serverless Route Contract (`POST /api/courier/customer-rating`)
-- **Request Body**: `{ phone?: string, phones?: string[] }`
-- **Rate Limit**: 120 requests/minute via `checkRateLimit`.
-- **Response**: `{ success: true, count: number, ratings: Record<string, CustomerRatingData> }`
-
----
-
-## 10. Order-Wise Ledger Technical Architecture & WooCommerce Pathao Extraction
-
-### 10.1 Order Grouping Contract (`src/lib/orderGrouping.ts`)
-```typescript
-export interface OrderWiseGroup {
-  orderId: string;
-  baseOrderId: string;
-  orderDate: string;
-  dateModified?: string;
+export interface ReconciledOrder {
+  id: number | string;
+  orderNumber: string;
+  orderPrefix?: string; // e.g. "D-" or "DD-"
+  orderSuffix?: string; // e.g. "c", "w", "s", "m"
   customerName: string;
   phone: string;
   city: string;
-  wcStatus: string;
-  courierStatus: string;
-  consignmentId: string;
-  consignmentIds: string[];
-  items: OrderWiseItem[];
-  totalQuantity: number;
-  totalAmount: number;
-  collectionType: 'SELECTS' | 'REGULAR' | 'MIXED';
-  hasDiscrepancy: boolean;
-  branch: FulfillmentBranchInfo;
-  exchangeInfo: ExchangeInfo;
+  territory: 'Inside Dhaka' | 'Outside Dhaka';
+  channel: 'Online Store' | 'Mirpur POS' | 'Cumilla Branch' | 'Wari Branch' | 'Sylhet Branch';
+  isPos: boolean;
+  isOrderOnline: boolean;
+  status: DeliveryStatus;
+  
+  // Financial breakdown
+  orderTotal: number;
+  customerShippingFee: number;
+  courierChargedFee: number;
+  codCollectedAmount: number;
+  netRecognizedRevenue: number;
+  returnLossAmount: number;
+  packagingLossAmount: number; // Fixed 25 BDT for returns/partials
+  
+  // Consignment & Delivery
+  consignmentId?: string;
+  courierName: 'Pathao';
+  customerRating?: '🌟 Excellent' | '👍 Good' | '⚖️ Moderate' | '⚠️ High Risk' | '🌱 New Buyer';
+  
+  // Line items
+  lineItems: ReconciledLineItem[];
+  dateCreated: string;
+  dateModified?: string;
+}
+
+export interface ReconciledLineItem {
+  id: number;
+  sku: string;
+  name: string;
+  category: 'Polo' | 'Oxford Shirt' | 'Outerwear' | 'Trousers' | 'Panjabi' | 'Other';
+  quantity: number;
+  unitPrice: number;
+  deliveredQty: number; // MUST BE INTEGER
+  returnedQty: number;  // MUST BE INTEGER
+  itemStatus: 'Delivered' | 'Returned';
 }
 ```
 
-### 10.2 WooCommerce Pathao Courier Plugin Metadata Extraction & Consignment Isolation
-When orders are synced via WooCommerce REST API, tracking consignment numbers are extracted through a strict 4-tier waterfall:
-1. `order.meta_data["ptc_consignment_id"]` (Standard Pathao Courier WooCommerce plugin).
-2. `order.meta_data["_ptc_consignment_id"]` (Hidden meta key variant).
-3. Courier merchant notes: regex extraction of URLs matching `merchant.pathao.com/courier/orders/(RD[A-Z0-9]+)`.
-4. Direct tracking properties on the specific order (`tracking_code`, `tracking_number`, `_wc_shipment_tracking_items`).
+---
 
-**Strict Consignment-to-Order Isolation Invariant**:
-- Courier tracking codes and statuses are NEVER resolved by customer phone number.
-- Customer phone numbers represent the customer's identity across lifetime orders (used solely for Customer Delivery Rating & Store History Index in `src/lib/customerRating.ts`), NEVER for linking a parcel shipment.
-- Repeat orders in `processing` status that have not yet been dispatched by the warehouse must remain `Untracked` with empty consignment ID, preventing false matches against past orders and false `DELIVERED_BUT_PROCESSING` alerts.
+## 3. Algorithmic Specifications
 
-### 10.3 Pathao B2B Client Credentials Grant
-- Supports B2B external client login (`POST /aladdin/api/v1/external/login`) with `client_id` + `client_secret` (90-day long-lived tokens).
-- Order tracking queries use the official endpoint: `GET /aladdin/api/v1/orders/{consignment_id}/info`.
-- **Zero-Pressure Rate Limiting**: Inbound lookups strictly filter out short numeric store IDs to prevent 404 rate-limit pressure against Pathao Hermes. Orders possessing webhook metadata (`ptc_status`) resolve without external API calls.
-- **WooCommerce REST Reverse-Sync**: `updateWooCommerceOrderTracking` and `batchUpdateWooCommerceOrderTracking` write consignment IDs back to WooCommerce (`PUT /orders/{id}` or `POST /orders/batch` in chunks of 100) using official `ptc_consignment_id` and `ptc_status` meta keys with zero WordPress plugin file modifications.
+### 3.1 0/1 Knapsack Subset-Sum DP Solver (`src/lib/subsetSum.ts`)
+```typescript
+export function findSubsetSum(
+  items: { id: number; price: number; qty: number }[],
+  targetSum: number
+): { deliveredItemIds: Set<number>; success: boolean } {
+  // 1. Expand items into unit instances
+  const unitList: { id: number; price: number }[] = [];
+  for (const item of items) {
+    for (let q = 0; q < item.qty; q++) {
+      unitList.push({ id: item.id, price: item.price });
+    }
+  }
 
-### 4.7 Smart Inventory (SIP) Deduction Engine
-- **WooCommerce Payload Parsing**: Parses `_sip_waterfall_deductions` metadata array in `formatWooCommerceToOrderRows()`:
-  - Outlet ID 1 (`warehouse`): Central Warehouse (`ONLINE`)
-  - Outlet ID 2 (`mirpur-12`): Mirpur Outlet (`MIRPUR`)
-  - Outlet ID 7 (`cumilla`): Cumilla Branch (`CUMILLA`)
-  - Outlet ID 8 (`wari`): Wari Branch (`WARI`)
-  - Outlet ID 9 (`sylhet`): Sylhet Branch (`SYLHET`)
-- **Waterfall Resolution**: Falls back through line item `meta_data`, order-level POS outlet/cashier IDs, and courier suffix codes before defaulting to Central Warehouse.
-- **Group Aggregation**: Attached to `OrderWiseItem` in `src/lib/orderGrouping.ts` with omni-search matching in `filterOrderWiseGroups()`.
-- **Export Manifest Integration**: Standardized `SIP Inventory` column in all Excel (`.xlsx`) workbooks and CSV files (`buildOrderWiseWorkbook`, `buildLiveShippedOrdersWorkbook`, `exportReconciledExcel`, `handleExportOutletReport`, and `handleExportCsv`). Shows item-level stock origin or comma-separated branch sources for multi-item orders.
+  const n = unitList.length;
+  // DP table: dp[i][w] = boolean
+  const dp: boolean[][] = Array.from({ length: n + 1 }, () => 
+    new Array(targetSum + 1).fill(false)
+  );
+  
+  for (let i = 0; i <= n; i++) dp[i][0] = true;
 
-### 10.4 Category Analytics Bar Chart Dynamic Sizing & Scale Adjuster
-- **Highest Bar Scaling**: `LiveVolumeBarChart` dynamically scales its viewBox and card container height in `AUTO` mode based on `maxCategoryVol` (peak bar volume: $\ge 16 \rightarrow 540\text{px}$, $\ge 10 \rightarrow 500\text{px}$, $\ge 5 \rightarrow 460\text{px}$, $< 5 \rightarrow 420\text{px}$).
-- **Interactive Size Controls**: Toolbar in `LiveOpsTab` provides 4 preset sizing modes (`AUTO`, `STANDARD` at 480px, `TALL` at 580px, `MAX` at 680px) and continuous $\pm 30\text{px}$ stepper adjustment, persisted in `localStorage` (`deen_bar_chart_size_mode`, `deen_bar_chart_custom_height`).
-- **Synchronized Symmetrical Layout**: Donut chart and bar chart cards adapt synchronously to `resolvedCardMinHeight` in `grid grid-cols-1 lg:grid-cols-2 items-stretch`.
-- **Overhead Count Labels**: Peak bar features a crowned `👑 {units}` indicator with subtle drop-shadow glow, and all bars display idle volume counts without requiring hover interaction.
+  for (let i = 1; i <= n; i++) {
+    const val = unitList[i - 1].price;
+    for (let w = 1; w <= targetSum; w++) {
+      if (val <= w) {
+        dp[i][w] = dp[i - 1][w] || dp[i - 1][w - val];
+      } else {
+        dp[i][w] = dp[i - 1][w];
+      }
+    }
+  }
 
-### 11. Dual-Mode Authentication & Multi-Branch Staff SSO Engine
-- **Dual Login Paradigms**:
-  1. **Mode A (WooCommerce / WordPress Staff SSO)**: Direct authentication against `https://deencommerce.com/wp-login.php` (form authentication with session cookie verification) or `/wp/v2/users/me` with Basic/Application passwords. Automatically maps outlet cashiers (Mirpur Outlet ID 2 / Cashier 3, Cumilla Outlet 7 / Cashier 35, Wari Outlet 8 / Cashier 69, Sylhet Outlet 9 / Cashier 572) and administrators to corresponding roles (`admin`, `operator`, `readonly`) and assigned physical outlets.
-  2. **Mode B (Master Passcode & Quick PIN Gate)**: Rapid ops floor access using constant-time verified environment secrets (`AUTH_ADMIN_PIN: 2026`, `AUTH_OPS_PIN: 1234`, `AUTH_ADMIN_PASSCODE`, `AUTH_OPS_PASSCODE`, `AUTH_VIEWER_PASSCODE`).
-- **Cryptographic Session Tokens (`src/lib/auth/session.ts`)**: Universal HMAC-SHA256 tokens using the Web Crypto API (`crypto.subtle`) for native Next.js Edge Middleware compatibility, and synchronous Node crypto (`verifySessionTokenSync`) for App Router route handlers.
-- **HttpOnly Cookies**: Emits `deen_session` cookie (`HttpOnly; SameSite=Lax; Path=/`) with a 7-day default duration or 30 days when Remember Me is enabled.
-- **Edge Middleware Route Protection (`src/middleware.ts`)**: Evaluates all incoming page and API requests. Unauthenticated UI visitors are redirected to `/login?redirect=...`. Authenticated visits to `/login` are automatically forwarded to `/`.
-- **Dual-Redundant API Auth Backwards Compatibility (`src/lib/auth/apiAuth.ts`)**: Accepts either explicit `Bearer` API tokens (`API_BEARER_TOKEN`, `SYNC_API_TOKEN`) or valid `deen_session` cookies, preserving 100% interoperability with background cron jobs and automated webhooks.
+  if (!dp[n][targetSum]) {
+    return { deliveredItemIds: new Set(), success: false };
+  }
 
-### 12. Deterministic 15% Executive Order Sampling Engine
-- **Stealth Executive Profile**: Designed for stakeholder demonstrations, external audits, and executive previews. Appears visually and functionally as a genuine senior leadership login (`Executive Director`, `👑 Executive Director` badge, zero 'Demo' or 'Sample' watermarks).
-- **Multi-Channel Login Credentials**:
-  - Quick PIN: `7742` (or preset `👔 Director`)
-  - Email / Password: `director@deencommerce.com` / `director2026`
-  - Passcode: `deen@director2026`
-- **Deterministic Order-Wise Sampling (15%)**:
-  - Employs deterministic 32-bit FNV-1a hash (`deterministicHash`) on unique base order IDs to consistently pick exactly 15% (±0) of orders.
-  - Multi-item orders stay intact with 100% mathematical coherence for discrete knapsack subset sum calculations.
-  - Returns, partials, size exchanges, and Pathao delivery rows belonging to the chosen 15% of orders are strictly synchronized.
-- **Universal Component Propagation**:
-  - Server-side APIs (`/api/sample-data`, `/api/blob/dataset`, `/api/sync/live-terminal`) and client-side pipeline (`src/app/page.tsx`) automatically enforce the 15% sample rate across all 12 operational tabs (`ExecutiveOverviewTab`, `LiveOpsTab`, `OrdersLedgerTab`, `StatusMatrixTab`, `SkuPerformanceTab`, `ItemReturnsTab`, `CourierMismatchTab`, `TerritoryTab`, `CustomerRiskTab`, `ExchangedOrdersTab`, `OutletDispatchTab`, `OutletSalesTab`, `UnitEconomicsTab`, `MarketingAnalyticsTab`, `KpiOverview`).
+  // Backtrack to find exact delivered item instances
+  let currentTarget = targetSum;
+  const deliveredIndices = new Set<number>();
+  for (let i = n; i > 0 && currentTarget > 0; i--) {
+    if (!dp[i - 1][currentTarget]) {
+      deliveredIndices.add(i - 1);
+      currentTarget -= unitList[i - 1].price;
+    }
+  }
 
-### 13. Robust 7-Sheet Month-End Net Sales Close Report Engine (`src/lib/excelExport.ts`)
-- **Workbook Architecture (`buildMonthlyNetSalesWorkbook` & `exportMonthlyNetSalesExcel`)**:
-  - Generates 7 cohesive operational closing worksheets using SheetJS (`xlsx`):
-    1. `Executive Summary & P&L`: High-level realized net revenue, return deductions, ~42% COGS, Meta ads, contribution margin, ROAS/CAC, and Dhaka vs Outside Dhaka breakdown.
-    2. `Category Sales & Retention`: 8 apparel categories with units dispatched/delivered/returned, retention %, net sales ৳, and % contribution.
-    3. `Master SKU Leaderboard`: Sizes stripped/consolidated, ranked by net sales with performance tags (`🌟 Top Seller`, `⚠️ High Return Risk`, `⚡ Volume Driver`).
-    4. `Commercial Orders Ledger`: Natural chronological numerical sorting (`compareOrdersByNumber`), unmasked customer names/phones, SIP inventory origin, net revenue recognized, strictly excluding walk-in POS and staff replacement exchanges.
-    5. `Item-Wise Returns & Partials`: Item-level return loss audit, return sources, SIP origins, returned quantities, loss value.
-    6. `Omnichannel & SIP Inventory`: Physical node metrics (Central Warehouse, Mirpur Outlet, Cumilla, Wari, Sylhet, Exchanges).
-    7. `Courier & COD Settlement`: Pathao gross fees, discounts, 50/90 TK customer fees collected, paid return COD, net brand burden, and discrepancy audit.
-- **Natural Chronological Sorting**: Orders are sorted via `compareOrdersByNumber(a, b)`:
-  - Strips non-numeric prefixes (`D-`) and suffixes (`c`, `w`, `s`, `m`) to sort by true chronological order integer, keeping branch split parcels together.
-- **Universal Auto-Fit Column Widths**:
-  - Implements `autoFitSheetColumns(ws, rows)` and `autoFitAoaColumns(ws, data)` calculating `wch = Math.min(Math.max(maxLen + 3, minW), maxW)` with $\text{minW} = 10, \text{maxW} = 45$.
-  - Applied across all exports (`exportMonthlyNetSalesExcel`, `exportReconciledExcel`, `exportPerformanceReport`, `buildLiveShippedOrdersWorkbook`) eliminating truncated columns and `###` number errors.
+  const deliveredItemIds = new Set<number>();
+  deliveredIndices.forEach(idx => deliveredItemIds.add(unitList[idx].id));
 
-### 14. Authenticated Operator Profile Telemetry & Settings Consolidation
-- **Operator Profile & Access Scope in Settings (`SettingsTab.tsx`)**:
-  - Section 0 renders comprehensive authentication state: user avatar with live status indicator, display name, email, role badge (`👑 Executive Director / Superadmin`, `🏬 Branch Store Operator`, `👀 Read-Only Auditor`), assigned outlet scope, and auth paradigm (`WordPress SSO` vs `Master PIN Gate`).
-  - **8-Point Access Privilege Checklist**: Live authorization audit detailing permissions for Commercial Realization, Live Ops & Pack Queue, Real-Time Cloud Sync, Month-End Net Sales .xlsx, SIP Omnichannel Routing, Customer Risk Intelligence, AI Operations Copilot, and System Secrets & BYOK.
-  - **Cryptographic Session Telemetry**: Edge session diagnostics displaying signing algorithm (HMAC-SHA256), cookie storage policy (`HttpOnly • SameSite=Lax • Path=/`), session creation timestamp, and sampling rate.
-- **Cloud Sync & Omnichannel Hub Consolidation**:
-  - Relocated `CloudSyncBar` from `ExecutiveOverviewTab` to `SettingsTab` Section 0.5 (`Cloud Sync & Omnichannel Hub`), unifying API credentials, sync triggers, and session authentication under Settings while preserving Executive Overview as an uncluttered high-level KPI dashboard.
+  return { deliveredItemIds, success: true };
+}
+```
 
-### 15. Omnipresent AI Assistant Search & Header Deep Linking
-- **Header Search Bar AI Integration (`Header.tsx`)**:
-  - Features an inline `✨ Ask AI` button that appears dynamically when entering text in the search input. Pressing <kbd>Enter</kbd> or clicking the button passes the query directly to DEEN Assistant.
-  - Features an idle `✨ AI` trigger badge next to <kbd>⌘K</kbd>, plus global keyboard shortcut <kbd>⌘J</kbd> / <kbd>Ctrl+J</kbd>.
-  - Header desktop toolbar features a dedicated `✨ Ask AI` action button with high-contrast styling, and mobile menu includes an instant trigger.
-- **Command Palette Dynamic AI Routing (`CommandPaletteModal.tsx`)**:
-  - Typing any query dynamically generates a top-level action: `Ask DEEN Assistant: "<query>"` (`Ask AI ↵`), allowing operators to ask analytical questions from the central command palette.
-  - Includes a dedicated `✨ AI Assistant` category filter with 5 curated executive prompt templates (fulfillment pace, outlet return disparities, chronic returners, net realized revenue, courier discrepancies).
-- **Deep Linking & Automatic Execution (`CopilotDrawer.tsx`)**:
-  - Accepts `initialQuery` prop to immediately populate and trigger the query execution pipeline upon drawer open.
+---
+
+## 4. State Management & Storage Architecture
+
+1. **`settingsStore.ts`**:
+   - Manages active theme preset (`super-white`, `slate-subtle`, `zinc-cool`, `cream-warm`, `dark-canvas`).
+   - Stores encrypted Pathao API client credentials and WooCommerce keys in browser `localStorage`.
+   - Exports configuration JSON and handles file imports.
+2. **`overrideStore.ts`**:
+   - Stores manual reconciliation status overrides indexed by order ID.
+3. **`campaignStore.ts`**:
+   - Manages marketing ad spend records for attribution calculation.
+
+---
+
+## 5. Non-Functional & Performance Budgets
+
+- **First Contentful Paint (FCP):** $<0.8\text{s}$ on 3G.
+- **Client Search & Filter Latency:** $<15\text{ms}$ for 20,000 orders using AlaSQL in-memory indexing.
+- **TypeScript Strictness:** Zero implicit `any`, zero unhandled null assertions.
+- **Max Bundle Size:** $<250\text{KB}$ gzip for initial entrypoint.

@@ -16,6 +16,7 @@ import {
   OrdersLedgerTab,
   SkuPerformanceTab,
   ProductAnalysisTab,
+  CampaignIntelligenceTab,
   ItemReturnsTab,
   CustomerRiskTab,
   ExchangedOrdersTab,
@@ -1251,7 +1252,7 @@ export default function DashboardPage() {
           )}
 
           {/* Cloud API Integration (WooCommerce + Pathao) - SHOWN ONLY ON INITIAL EMPTY STATE (WHEN NO DATA LOADED YET) */}
-          {dataSourceMode === 'API' && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && activeTab !== 'tabLiveOps' && activeTab !== 'tabExecutive' && !result && (
+          {dataSourceMode === 'API' && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && activeTab !== 'tabLiveOps' && activeTab !== 'tabCampaigns' && activeTab !== 'tabExecutive' && !result && (
             <CloudSyncBar
               onDataSynced={handleLiveSyncData}
               activeOrders={rawOrders}
@@ -1398,6 +1399,20 @@ export default function DashboardPage() {
           )}
 
           {/* GA4 & Meta Marketing Intelligence Tab */}
+          
+          {/* Campaign Intelligence & Marketing Strategy Tab */}
+          {activeTab === 'tabCampaigns' && (
+            <CampaignIntelligenceTab
+              orders={result?.reconciledOrders || []}
+              summary={result?.summary}
+              onOpenAssistantWithQuery={(q) => {
+                setCopilotInitialQuery(q);
+                setIsCopilotOpen(true);
+              }}
+              configuredMetaCost={metaAdCost}
+            />
+          )}
+
           {activeTab === 'tabMarketingAnalytics' && (
             <MarketingAnalyticsTab
               summary={result?.summary}
@@ -1560,6 +1575,40 @@ export default function DashboardPage() {
                     reconciliationResult={result}
                     provenance={dataProvenance || undefined}
                     onExportMonthlyReport={handleExportMonthlyNetSales}
+                    availableMonths={dateFilterResult.availableMonths}
+                    selectedMonthId={
+                      customDateRange
+                        ? dateFilterResult.availableMonths.find(
+                            (m) => m.startDate === customDateRange.startDate && m.endDate === customDateRange.endDate
+                          )?.id
+                        : undefined
+                    }
+                    onSelectMonth={(month) => {
+                      if (!month) {
+                        handleDateScopeChange('all');
+                      } else {
+                        handleDateScopeChange('custom', {
+                          startDate: month.startDate,
+                          endDate: month.endDate,
+                          label: month.label,
+                        });
+                      }
+                    }}
+                    onSyncLiveMonth={() => {
+                      const curMonth = dateFilterResult.availableMonths.find((m) => m.isCurrentMonth);
+                      if (curMonth) {
+                        handleSyncWooCommerceForScope({
+                          scope: 'custom',
+                          startDate: curMonth.startDate,
+                          endDate: curMonth.endDate,
+                          afterIso: `${curMonth.startDate}T00:00:00`,
+                          beforeIso: `${curMonth.endDate}T23:59:59`,
+                          daysCount: 30,
+                          label: curMonth.label,
+                        });
+                      }
+                    }}
+                    isSyncingLive={isProcessing}
                   />
                 )}
                 {activeTab === 'tabOutletDispatch' && (
