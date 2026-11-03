@@ -28,9 +28,9 @@ function parseExcelFile(filePath: string): RawOrderRow[] {
     }
     const buf = fs.readFileSync(filePath);
     const wb = XLSX.read(buf, { type: 'buffer' });
-    const sheetName = wb.SheetNames[0];
-    if (!sheetName || !wb.Sheets[sheetName]) return [];
-    return XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: '' });
+    const targetSheet = wb.Sheets['Checkout Line Items'] || (wb.SheetNames[0] ? wb.Sheets[wb.SheetNames[0]] : null);
+    if (!targetSheet) return [];
+    return XLSX.utils.sheet_to_json(targetSheet, { defval: '' });
   } catch (err) {
     console.warn(`[API /api/sample-data] Non-fatal notice reading ${filePath}:`, err);
     return [];
@@ -108,6 +108,8 @@ export async function GET(req: Request) {
     const cwd = process.cwd();
 
     const orderCandidates = [
+      path.join(cwd, 'Sample Docs', 'October 2026 Checkout Orders List.xlsx'),
+      path.join(cwd, 'October 2026 Checkout Orders List.xlsx'),
       path.join(cwd, 'Sample Docs', '7-30 Sept.xlsx'),
       path.join(cwd, '7-30 Sept.xlsx'),
       path.join(cwd, 'Sample Docs', 'Merged - 27 Aug - 30 Sept.xlsx'),
