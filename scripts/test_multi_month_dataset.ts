@@ -139,3 +139,4 @@ console.log(`Total Combined Multi-Month Rows: ${combinedOrders.length}`);
 // Test date filter
 const filterRes = filterOrdersByDateScope(combinedOrders, 'all');
 console.log(`Detected available months:`, filterRes.availableMonths.map((m) => `${m.label} (${m.orderCount} rows, isCurrent: ${m.isCurrentMonth})`));
+

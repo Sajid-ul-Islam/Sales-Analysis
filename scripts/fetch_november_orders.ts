@@ -41,3 +41,4 @@ async function fetchAllNovemberOrders() {
 }
 
 fetchAllNovemberOrders().catch(console.error);
+
