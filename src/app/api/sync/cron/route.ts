@@ -60,14 +60,20 @@ export async function GET(req: Request) {
       log.push(`Loaded base from bundled baseline: ${baseDataset.orders.length} orders`);
     }
 
-    // 3. Step A: Incremental WooCommerce Sync (Recent 7 days in Asia/Dhaka)
+    // 3. Step A: Incremental WooCommerce Sync
+    const url = new URL(req.url);
+    const daysParam = parseInt(url.searchParams.get('days') || '7', 10);
+    const syncDays = Math.min(Math.max(isNaN(daysParam) ? 7 : daysParam, 1), 90);
+    const maxPagesParam = parseInt(url.searchParams.get('max_pages') || (syncDays > 7 ? '10' : '2'), 10);
+
     let newWcOrdersCount = 0;
     try {
-      const sevenDaysAgo = getDhakaDaysAgoIso(7);
+      const daysAgo = getDhakaDaysAgoIso(syncDays);
+      log.push(`Sync window: Last ${syncDays} days (after ${daysAgo}T00:00:00)`);
       const rawWc = await fetchWooCommerceOrders({
-        after: `${sevenDaysAgo}T00:00:00`,
+        after: `${daysAgo}T00:00:00`,
         perPage: 50,
-        maxPages: 2,
+        maxPages: maxPagesParam,
         fetchAllPages: true,
       });
 
@@ -168,7 +174,19 @@ export async function GET(req: Request) {
       blobSaved = upload.success;
       log.push(`Saved merged dataset to Vercel Blob: ${upload.message}`);
     } else {
-      log.push('Vercel Blob not configured; skipping cloud persistence');
+      log.push('Vercel Blob not configured; attempting local file persistence fallback');
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const localPath = path.join(process.cwd(), 'src', 'data', 'baselineSample.json');
+        if (fs.existsSync(path.dirname(localPath))) {
+          fs.writeFileSync(localPath, JSON.stringify(baseDataset, null, 2), 'utf-8');
+          log.push(`Saved updated dataset to local filesystem: ${localPath}`);
+        }
+      } catch {
+        // Read-only serverless environment is expected and non-fatal
+        log.push('Local filesystem write skipped (serverless environment)');
+      }
     }
 
     const durationMs = Date.now() - startTime;

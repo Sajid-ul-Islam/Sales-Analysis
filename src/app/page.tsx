@@ -17,10 +17,9 @@ import {
 
   ProductAnalysisTab,
   CampaignIntelligenceTab,
-  ItemReturnsTab,
   CustomerRiskTab,
-  ExchangedOrdersTab,
   OmnichannelOutletsTab,
+  AfterSalesHub,
   LiveOpsTab,
 
   SettingsTab,
@@ -1675,13 +1674,13 @@ export default function DashboardPage() {
                     onSelectOrder={() => setActiveTab('tabOrders')}
                   />
                 )}
-                {activeTab === 'tabItemReturns' && (
-                  <ItemReturnsTab returnedItems={result.returnedItems} onSelectOrder={(_orderId) => { setLedgerStatusFilter('FULL_RETURN'); setActiveTab('tabOrders'); }} />
-                )}
-                {activeTab === 'tabExchanges' && (
-                  <ExchangedOrdersTab
+                {(activeTab === 'tabAfterSales' || activeTab === 'tabItemReturns' || activeTab === 'tabExchanges') && (
+                  <AfterSalesHub
+                    returnedItems={result.returnedItems}
                     exchangedOrders={result.exchangedOrders || []}
                     summary={result.summary}
+                    initialMode={activeTab === 'tabExchanges' ? 'exchanges' : 'returns'}
+                    onSelectOrder={(_orderId) => { setLedgerStatusFilter('FULL_RETURN'); setActiveTab('tabOrders'); }}
                   />
                 )}
                 {activeTab === 'tabCustomerRisk' && (

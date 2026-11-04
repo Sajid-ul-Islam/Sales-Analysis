@@ -3,15 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
-  GitCompare,
-  MapPin,
   ListOrdered,
 
   RotateCcw,
-  ShieldAlert,
-  Settings,
   Truck,
-  ArrowRightLeft,
   Store,
 
 
@@ -118,7 +113,28 @@ export function Sidebar({
     top: number;
   } | null>(null);
 
-  // Grouped Navigation Structure
+  // Helper to determine active state across consolidated and legacy tabs
+  const isNavActive = (itemId: string): boolean => {
+    if (activeTab === itemId) return true;
+    if (itemId === 'tabItemReturns') {
+      return activeTab === 'tabItemReturns' || activeTab === 'tabExchanges' || activeTab === 'tabAfterSales';
+    }
+    if (itemId === 'tabOutlets') {
+      return activeTab === 'tabOutlets' || activeTab === 'tabOutletDispatch' || activeTab === 'tabOutletSales';
+    }
+    if (itemId === 'tabProductAnalysis') {
+      return activeTab === 'tabProductAnalysis' || activeTab === 'tabSku';
+    }
+    if (itemId === 'tabCampaigns') {
+      return activeTab === 'tabCampaigns' || activeTab === 'tabMarketingAnalytics';
+    }
+    if (itemId === 'tabStatus') {
+      return activeTab === 'tabStatus' || activeTab === 'tabUnitEconomics';
+    }
+    return false;
+  };
+
+  // Grouped Navigation Structure - Streamlined Core Operations
   const navGroups: NavGroupConfig[] = [
     {
       title: 'Core Operations',
@@ -126,33 +142,16 @@ export function Sidebar({
         { id: 'tabExecutive', label: 'Executive Overview', icon: LayoutDashboard },
         { id: 'tabLiveOps', label: 'Live Orders Terminal', icon: Activity, highlight: true, countBadge: pendingEventsCount },
         { id: 'tabOrders', label: 'Orders Ledger', icon: ListOrdered },
-        { id: 'tabItemReturns', label: 'Returned Items', icon: RotateCcw, countBadge: returnCount },
+        { id: 'tabItemReturns', label: 'Returns & Exchanges', icon: RotateCcw, countBadge: (returnCount + exchangeCount), highlight: true },
         { id: 'tabCourierMismatch', label: 'Courier Audit', icon: Truck, countBadge: mismatchCount, highlight: true },
       ]
     },
     {
-      title: 'Omni-Channel Outlets',
+      title: 'Commercial & Retail',
       items: [
         { id: 'tabOutlets', label: 'Omnichannel Outlets', icon: Store, highlight: true },
-
-        { id: 'tabTerritory', label: 'Territory Distribution', icon: MapPin },
-        { id: 'tabExchanges', label: 'Exchanges', icon: ArrowRightLeft, countBadge: exchangeCount, highlight: true },
-      ]
-    },
-    {
-      title: 'Intelligence & Risk',
-      items: [
-        { id: 'tabCampaigns', label: 'Campaign & Ad Intelligence', icon: Sparkles, highlight: true },
         { id: 'tabProductAnalysis', label: 'Product & SKU Intelligence', icon: Layers, highlight: true },
-
-        { id: 'tabCustomerRisk', label: 'Customer Risk', icon: ShieldAlert, highlight: true },
-        { id: 'tabStatus', label: 'Status & Economics', icon: GitCompare },
-      ]
-    },
-    {
-      title: 'Configuration',
-      items: [
-        { id: 'tabSettings', label: 'Settings & Themes', icon: Settings, highlight: true },
+        { id: 'tabCampaigns', label: 'Campaign & Ad Intelligence', icon: Sparkles, highlight: true },
       ]
     }
   ];
@@ -242,7 +241,7 @@ export function Sidebar({
                 )}
                 {group.items.map((item) => {
                   const Icon = item.icon;
-                  const isActive = activeTab === item.id || (item.id === 'tabStatus' && activeTab === 'tabUnitEconomics');
+                  const isActive = isNavActive(item.id);
                   return (
                     <button
                       key={item.id}
@@ -368,7 +367,7 @@ export function Sidebar({
                 </div>
                 {group.items.map((item) => {
                   const Icon = item.icon;
-                  const isActive = activeTab === item.id || (item.id === 'tabStatus' && activeTab === 'tabUnitEconomics');
+                  const isActive = isNavActive(item.id);
                   return (
                     <button
                       key={item.id}
@@ -494,7 +493,7 @@ export function Sidebar({
                     </div>
                     {group.items.map((item) => {
                       const Icon = item.icon;
-                      const isActive = activeTab === item.id || (item.id === 'tabStatus' && activeTab === 'tabUnitEconomics');
+                      const isActive = isNavActive(item.id);
                       return (
                         <button
                           key={item.id}

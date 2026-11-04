@@ -10,7 +10,8 @@
     "lint": "next lint",
     "test": "vitest run --fileParallelism=false",
     "test:watch": "vitest",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "sync:cron": "npx tsx scripts/trigger_cron_sync.ts"
   },
   "dependencies": {
     "@google/genai": "^2.29.1",
