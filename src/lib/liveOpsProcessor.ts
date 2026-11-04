@@ -609,39 +609,61 @@ export function parseOrderDateValue(val: unknown): Date | null {
   return null;
 }
 
+/**
+ * Safely evaluates an ordered list of candidate date values and returns the first non-empty,
+ * valid Date object. Skips null, undefined, empty strings (""), and whitespace.
+ */
+export function getFirstValidDate(candidates: unknown[]): Date | null {
+  for (const c of candidates) {
+    if (c === null || c === undefined || c === '' || (typeof c === 'string' && !c.trim())) continue;
+    const d = parseOrderDateValue(c);
+    if (d && !isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
 export function getStatusModificationDate(order: RawOrderRow): Date | null {
   const o = order as Record<string, unknown>;
   const status = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
   const isCompleted = SHIPPED_STATUSES.has(status);
 
-  // If order is completed/shipped, its true shipped/completed date is 'Date Completed' if present!
-  // In WooCommerce REST API, Date Completed reflects the exact moment the status transitioned to completed,
-  // whereas Date Modified gets bumped on subsequent edits (such as staff tagging an order as "Exchanged").
-  const rawDate = isCompleted
-    ? (o['Date Completed'] ??
-       o.date_completed ??
-       o.dateCompleted ??
-       o['Status Modified Date'] ??
-       o.status_modified_date ??
-       o['Date Modified'] ??
-       o.dateModified ??
-       o.date_modified ??
-       o.date_modified_gmt ??
-       order['Order Date'] ??
-       o.orderDate)
-    : (o['Date Modified'] ??
-       o.dateModified ??
-       o.date_modified ??
-       o.date_modified_gmt ??
-       o['Status Modified Date'] ??
-       o.status_modified_date ??
-       o['Date Completed'] ??
-       o.date_completed ??
-       o.dateCompleted ??
-       order['Order Date'] ??
-       o.orderDate);
+  // If order is completed/shipped, its true shipped/completed date is 'Date Completed' if present and non-empty.
+  // In WooCommerce REST API, Date Completed reflects the exact moment the status transitioned to completed.
+  // When an order is marked with custom status 'shipped', Date Completed is empty (""), so Date Modified is the authoritative timestamp.
+  // We strictly skip empty strings/falsy values so that Date Modified or courier dispatch date is reliably used.
+  if (isCompleted) {
+    return getFirstValidDate([
+      o['Date Completed'],
+      o.date_completed,
+      o.dateCompleted,
+      o['Status Modified Date'],
+      o.status_modified_date,
+      o['Date Modified'],
+      o.dateModified,
+      o.date_modified,
+      o.date_modified_gmt,
+      o.courierUpdatedAt,
+      o['Courier Updated At'],
+      o['Order status updated at'],
+      o.order_status_updated_at,
+      order['Order Date'],
+      o.orderDate,
+    ]);
+  }
 
-  return parseOrderDateValue(rawDate);
+  return getFirstValidDate([
+    o['Date Modified'],
+    o.dateModified,
+    o.date_modified,
+    o.date_modified_gmt,
+    o['Status Modified Date'],
+    o.status_modified_date,
+    o['Date Completed'],
+    o.date_completed,
+    o.dateCompleted,
+    order['Order Date'],
+    o.orderDate,
+  ]);
 }
 
 export function parseOrderDate(order: RawOrderRow): Date | null {
@@ -1235,8 +1257,10 @@ export function processLiveOpsData(
     const dMod = (oRec['Date Modified'] as string) || (oRec.dateModified as string) || (oRec.date_modified as string);
     const dOrder = (order['Order Date'] as string) || (oRec.orderDate as string);
     const dIso = d ? formatDateToIsoDay(d) : '';
-    const dModIso = dMod ? formatDateToIsoDay(new Date(dMod)) : '';
-    const dOrderIso = dOrder ? formatDateToIsoDay(new Date(dOrder)) : '';
+    const dModDate = dMod ? parseOrderDateValue(dMod) : null;
+    const dOrderDate = dOrder ? parseOrderDateValue(dOrder) : null;
+    const dModIso = dModDate ? formatDateToIsoDay(dModDate) : '';
+    const dOrderIso = dOrderDate ? formatDateToIsoDay(dOrderDate) : '';
     return dIso === targetIso || dModIso === targetIso || dOrderIso === targetIso;
   };
 

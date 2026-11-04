@@ -722,17 +722,71 @@ export async function syncLiveTerminalData(options: {
         wcConnected = true;
         const maxPagesToFetch = options.maxPages || 6; // Default to 6 pages (300-600 orders) or 2 pages on delta
         const deltaAfter = options.after || (options.isDelta ? new Date(Date.now() - 48 * 3600 * 1000).toISOString() : undefined);
-        const fetched = await fetchWooCommerceOrders({
-          perPage: 50,
-          fetchAllPages: maxPagesToFetch > 1,
-          maxPages: maxPagesToFetch,
-          orderBy: 'date',
-          order: 'desc',
-          timeoutMs: 25000,
-          credentials: options.wcCredentials,
-          after: deltaAfter,
-        });
-        if (fetched && fetched.length > 0) {
+
+        // Multi-stream WooCommerce Synchronization:
+        // 1. Fetch newly created orders (ordered by date_created desc)
+        // 2. Fetch recently modified/completed orders (ordered by date_modified desc)
+        //    CRITICAL: Old orders from last month or 7+ days ago shipped/completed today
+        //    have date_modified = today! Fetching by modified ensures they appear on Page 1.
+        // 3. Fetch active processing/hold queue orders awaiting fulfillment
+        const [recentByDate, recentByModified, queueOrders] = await Promise.all([
+          fetchWooCommerceOrders({
+            perPage: 50,
+            fetchAllPages: maxPagesToFetch > 1,
+            maxPages: maxPagesToFetch,
+            orderBy: 'date',
+            order: 'desc',
+            timeoutMs: 25000,
+            credentials: options.wcCredentials,
+            after: deltaAfter,
+          }).catch((err) => {
+            console.warn('[liveTerminalSync] WooCommerce fetch by date notice:', err);
+            return [];
+          }),
+          fetchWooCommerceOrders({
+            perPage: 50,
+            fetchAllPages: true,
+            maxPages: Math.min(maxPagesToFetch, 4),
+            orderBy: 'modified',
+            order: 'desc',
+            timeoutMs: 25000,
+            credentials: options.wcCredentials,
+            modifiedAfter: deltaAfter,
+          }).catch((err) => {
+            console.warn('[liveTerminalSync] WooCommerce fetch by modified notice:', err);
+            return [];
+          }),
+          fetchWooCommerceOrders({
+            perPage: 50,
+            fetchAllPages: false,
+            maxPages: 2,
+            status: ['processing', 'on-hold'],
+            orderBy: 'date',
+            order: 'desc',
+            timeoutMs: 15000,
+            credentials: options.wcCredentials,
+          }).catch(() => []),
+        ]);
+
+        const mergedWcMap = new Map<string, typeof recentByDate[0]>();
+        // 1. Base queue orders
+        for (const ord of queueOrders) {
+          const id = String(ord.id || ord.number || '').trim();
+          if (id) mergedWcMap.set(id, ord);
+        }
+        // 2. Overlay recently created orders
+        for (const ord of recentByDate) {
+          const id = String(ord.id || ord.number || '').trim();
+          if (id) mergedWcMap.set(id, ord);
+        }
+        // 3. Overlay recently modified/completed orders (highest priority for fresh fulfillment status)
+        for (const ord of recentByModified) {
+          const id = String(ord.id || ord.number || '').trim();
+          if (id) mergedWcMap.set(id, ord);
+        }
+
+        const fetched = Array.from(mergedWcMap.values());
+        if (fetched.length > 0) {
           const liveRows = formatWooCommerceToOrderRows(fetched);
           if (Array.isArray(options.activeOrders) && options.activeOrders.length > 0) {
             const liveOrderIds = new Set(liveRows.map((r) => cleanOrderId(r['Order ID'] || r.orderId)));
@@ -1048,6 +1102,8 @@ export async function syncLiveTerminalData(options: {
       discrepancyMessage: discCheck.message,
       collectedAmount,
       courierDeliveryFee: fee,
+      courierUpdatedAt: tracking?.updatedAt,
+      'Courier Updated At': tracking?.updatedAt,
       fulfillmentBranch: branchInfo.branchName,
       branchCode: branchInfo.branchCode,
       isBranchFulfillment: branchInfo.branchCode !== 'ONLINE' && !Boolean(

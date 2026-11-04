@@ -45,6 +45,7 @@ import {
   parseOrderDate,
   formatDateToIsoDay,
   parseOrderDateValue,
+  getStatusModificationDate,
 } from '@/lib/liveOpsProcessor';
 import { LiveRevenueDonutChart } from '@/components/charts/LiveRevenueDonutChart';
 import { LiveVolumeBarChart, BarChartSizeMode } from '@/components/charts/LiveVolumeBarChart';
@@ -591,15 +592,13 @@ export function LiveOpsTab({
 
       if (data && data.success && data.orders && data.orders.length > 0) {
         const incoming = data.orders;
-        const resolvedOrders = isManual
-          ? incoming
-          : (() => {
-              const prev = liveOrdersRef.current && liveOrdersRef.current.length > 0 ? liveOrdersRef.current : (ordersRef.current || []);
-              if (prev.length === 0) return incoming;
-              const newOrderIds = new Set(incoming.map((r) => cleanOrderId(r['Order ID'] || r.orderId)));
-              const older = prev.filter((r) => !newOrderIds.has(cleanOrderId(r['Order ID'] || r.orderId)));
-              return [...incoming, ...older];
-            })();
+        const prev = liveOrdersRef.current && liveOrdersRef.current.length > 0 ? liveOrdersRef.current : (ordersRef.current || []);
+        const resolvedOrders = (() => {
+          if (prev.length === 0) return incoming;
+          const newOrderIds = new Set(incoming.map((r) => cleanOrderId(r['Order ID'] || r.orderId)));
+          const older = prev.filter((r) => !newOrderIds.has(cleanOrderId(r['Order ID'] || r.orderId)));
+          return [...incoming, ...older];
+        })();
         setLiveOrders(resolvedOrders);
         setCourierStats(data.stats);
         setDiscrepancies(data.discrepancies || []);
@@ -3111,7 +3110,28 @@ export function LiveOpsTab({
 
                           {/* Date & Time */}
                           <td className="py-2.5 px-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap text-[11px] font-sans">
-                            {formatOrderDateTime(group.orderDate)}
+                            <div className="flex flex-col gap-0.5">
+                              <span>{formatOrderDateTime(group.orderDate)}</span>
+                              {(() => {
+                                const oDate = parseOrderDateValue(group.orderDate);
+                                const mDate = parseOrderDateValue(group.dateModified);
+                                if (oDate && mDate) {
+                                  const diffDays = Math.round((mDate.getTime() - oDate.getTime()) / (1000 * 60 * 60 * 24));
+                                  if (diffDays >= 3 && (group.wcStatus === 'completed' || group.wcStatus === 'shipped' || group.wcStatus === 'delivered')) {
+                                    return (
+                                      <span
+                                        className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800 self-start"
+                                        title={`Original order created ${diffDays} days ago, fulfilled/shipped today`}
+                                      >
+                                        <span>⚡</span>
+                                        <span>Backlog Shipped ({diffDays}d)</span>
+                                      </span>
+                                    );
+                                  }
+                                }
+                                return null;
+                              })()}
+                            </div>
                           </td>
 
                           {/* Customer & Phone */}
@@ -3485,7 +3505,29 @@ export function LiveOpsTab({
                           </div>
                         </td>
                         <td className="py-2.5 px-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap text-[11px] font-sans">
-                          {formatOrderDateTime(row['Order Date'])}
+                          <div className="flex flex-col gap-0.5">
+                            <span>{formatOrderDateTime(row['Order Date'])}</span>
+                            {(() => {
+                              const oDate = parseOrderDateValue(row['Order Date']);
+                              const mDate = getStatusModificationDate(row);
+                              if (oDate && mDate) {
+                                const diffDays = Math.round((mDate.getTime() - oDate.getTime()) / (1000 * 60 * 60 * 24));
+                                const st = String(row['Delivery Status'] || (row as Record<string, unknown>).status || '').toLowerCase();
+                                if (diffDays >= 3 && (st === 'completed' || st === 'shipped' || st === 'delivered')) {
+                                  return (
+                                    <span
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800 self-start"
+                                      title={`Original order created ${diffDays} days ago, fulfilled/shipped today`}
+                                    >
+                                      <span>⚡</span>
+                                      <span>Backlog Shipped ({diffDays}d)</span>
+                                    </span>
+                                  );
+                                }
+                              }
+                              return null;
+                            })()}
+                          </div>
                         </td>
                         <td className="py-2.5 px-3.5">
                           <div className="font-bold text-slate-800 dark:text-white truncate max-w-[140px]" title={String(getExportCustomerName(row) || row['Customer Name'] || '')}>
@@ -3655,7 +3697,12 @@ export function LiveOpsTab({
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Placed on {String(selectedDetailOrder['Order Date'] || '')} • Customer: {String(getExportCustomerName(selectedDetailOrder) || selectedDetailOrder['Customer Name'] || '')}
+                  Placed on {String(selectedDetailOrder['Order Date'] || '')}
+                  {Boolean(selectedDetailOrder['Date Completed'] || selectedDetailOrder['Date Modified']) &&
+                   String(selectedDetailOrder['Date Completed'] || selectedDetailOrder['Date Modified']) !== String(selectedDetailOrder['Order Date']) && (
+                    <span> • Fulfilled: {String(selectedDetailOrder['Date Completed'] || selectedDetailOrder['Date Modified'])}</span>
+                  )}
+                  <span> • Customer: {String(getExportCustomerName(selectedDetailOrder) || selectedDetailOrder['Customer Name'] || '')}</span>
                 </p>
               </div>
 

@@ -174,6 +174,8 @@ export interface WcFetchOptions {
   status?: string | string[];
   after?: string;
   before?: string;
+  modifiedAfter?: string;
+  modifiedBefore?: string;
   fetchAllPages?: boolean;
   maxPages?: number;
   credentials?: WcCredentials;
@@ -1359,6 +1361,14 @@ export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Prom
     if (options.before) {
       const beforeStr = options.before.includes('T') ? options.before : `${options.before}T23:59:59`;
       url.searchParams.set('before', beforeStr);
+    }
+    if (options.modifiedAfter) {
+      const modAfterStr = options.modifiedAfter.includes('T') ? options.modifiedAfter : `${options.modifiedAfter}T00:00:00`;
+      url.searchParams.set('modified_after', modAfterStr);
+    }
+    if (options.modifiedBefore) {
+      const modBeforeStr = options.modifiedBefore.includes('T') ? options.modifiedBefore : `${options.modifiedBefore}T23:59:59`;
+      url.searchParams.set('modified_before', modBeforeStr);
     }
     if (options.search) {
       url.searchParams.set('search', options.search.trim());

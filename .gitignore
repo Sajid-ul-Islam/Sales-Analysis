@@ -108,6 +108,7 @@ desktop.ini
 .agents/*
 !.agents/rules/
 !.agents/skills/
+scratch/
 ORIGINAL_REQUEST.md
 TEST_INFRA.md
 TEST_READY.md

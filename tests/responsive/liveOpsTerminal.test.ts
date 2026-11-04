@@ -8,6 +8,11 @@ import {
   generateWhatsAppConfirmationUrl,
   isOrderExchange,
   extractExchangeInfo,
+  getStatusModificationDate,
+  getFirstValidDate,
+  isOrderShippedOnDate,
+  isOrderShippedToday,
+  isTodayOrdersEligible,
 } from '@/lib/liveOpsProcessor';
 import { RawOrderRow } from '@/types';
 import { normalizePhone, normalizeEmail, normalizeName, normalizeCity } from '@/lib/customerRegistry';
@@ -1306,6 +1311,150 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(calculateAutoHeight(14)).toBe(500);
       expect(calculateAutoHeight(8)).toBe(460);
       expect(calculateAutoHeight(3)).toBe(420);
+    });
+  });
+
+  describe('Old Orders from Last Month Shipped / Completed Today (Backlog Fulfillment)', () => {
+    it('getFirstValidDate correctly skips null, undefined, empty strings and resolves valid dates', () => {
+      const d = getFirstValidDate([null, undefined, '', '   ', '2026-11-04 14:30:00']);
+      expect(d).not.toBeNull();
+      expect(d?.toISOString()).toContain('2026-11-04');
+    });
+
+    it('detects an order placed 14 days ago in previous month when marked shipped today', () => {
+      const oldShippedOrder: RawOrderRow = {
+        'Order ID': '16280',
+        orderId: '16280',
+        'Order Date': '2026-10-21 11:30:00',
+        orderDate: '2026-10-21 11:30:00',
+        'Date Completed': '',
+        dateCompleted: '',
+        'Date Modified': '2026-11-04 15:45:00',
+        dateModified: '2026-11-04 15:45:00',
+        'Delivery Status': 'shipped',
+        status: 'shipped',
+        'Order Amount': 2450,
+        orderAmount: 2450,
+        Quantity: 2,
+        quantity: 2,
+        'Created Via': 'checkout',
+        created_via: 'checkout',
+        'Customer Name': 'Rahim Uddin',
+        Phone: '01711223344',
+      };
+
+      // In Dhaka (+06:00), target date is 2026-11-04
+      expect(isOrderShippedToday(oldShippedOrder, '2026-11-04')).toBe(true);
+      expect(isOrderShippedOnDate(oldShippedOrder, '2026-11-04')).toBe(true);
+      expect(isTodayOrdersEligible(oldShippedOrder, '2026-11-04')).toBe(true);
+    });
+
+    it('detects an order placed last month when marked completed today via Date Completed', () => {
+      const oldCompletedOrder: RawOrderRow = {
+        'Order ID': '16310',
+        orderId: '16310',
+        'Order Date': '2026-10-24 16:00:00',
+        orderDate: '2026-10-24 16:00:00',
+        'Date Completed': '2026-11-04 11:15:00',
+        dateCompleted: '2026-11-04 11:15:00',
+        'Date Modified': '2026-11-04 11:15:00',
+        dateModified: '2026-11-04 11:15:00',
+        'Delivery Status': 'completed',
+        status: 'completed',
+        'Order Amount': 3200,
+        orderAmount: 3200,
+        Quantity: 1,
+        quantity: 1,
+        'Created Via': 'checkout',
+        created_via: 'checkout',
+        'Customer Name': 'Karim Mia',
+        Phone: '01811223344',
+      };
+
+      expect(isOrderShippedToday(oldCompletedOrder, '2026-11-04')).toBe(true);
+      expect(isTodayOrdersEligible(oldCompletedOrder, '2026-11-04')).toBe(true);
+    });
+
+    it('does NOT count an order completed last month as shipped today even if modified today for notes', () => {
+      const pastMonthShippedOrder: RawOrderRow = {
+        'Order ID': '15900',
+        orderId: '15900',
+        'Order Date': '2026-10-15 10:00:00',
+        orderDate: '2026-10-15 10:00:00',
+        'Date Completed': '2026-10-18 14:00:00',
+        dateCompleted: '2026-10-18 14:00:00',
+        'Date Modified': '2026-11-04 09:00:00', // Customer service note edit today
+        dateModified: '2026-11-04 09:00:00',
+        'Delivery Status': 'completed',
+        status: 'completed',
+        'Order Amount': 1800,
+        Quantity: 1,
+        'Created Via': 'checkout',
+      };
+
+      // Since Date Completed is in October, it must NOT be counted as a new shipment today
+      expect(isOrderShippedToday(pastMonthShippedOrder, '2026-11-04')).toBe(false);
+    });
+
+    it('keeps older orders in processing queue eligible under Todays Orders and Queue views', () => {
+      const oldQueueOrder: RawOrderRow = {
+        'Order ID': '16400',
+        orderId: '16400',
+        'Order Date': '2026-10-26 12:00:00',
+        orderDate: '2026-10-26 12:00:00',
+        'Delivery Status': 'processing',
+        status: 'processing',
+        'Created Via': 'checkout',
+        created_via: 'checkout',
+      };
+
+      expect(isTodayOrdersEligible(oldQueueOrder, '2026-11-04')).toBe(true);
+    });
+
+    it('aggregates old orders shipped today into processLiveOpsData activeOrders and revenue KPIs', () => {
+      const targetDate = '2026-11-04';
+      const orders: RawOrderRow[] = [
+        // Fresh order placed and shipped today
+        {
+          'Order ID': '17001',
+          orderId: '17001',
+          'Order Date': `${targetDate} 10:00:00`,
+          'Date Modified': `${targetDate} 11:00:00`,
+          'Delivery Status': 'shipped',
+          status: 'shipped',
+          'Item Cost': 1500,
+          'Order Amount': 1500,
+          Quantity: 1,
+          'Item Name': 'DEEN Casual Shirt',
+          'Created Via': 'checkout',
+        },
+        // Old order placed 14 days ago in October, shipped today
+        {
+          'Order ID': '16280',
+          orderId: '16280',
+          'Order Date': '2026-10-21 14:00:00',
+          'Date Completed': '',
+          'Date Modified': `${targetDate} 15:30:00`,
+          'Delivery Status': 'shipped',
+          status: 'shipped',
+          'Item Cost': 2500,
+          'Order Amount': 2500,
+          Quantity: 1,
+          'Item Name': 'DEEN High-End Jeans',
+          'Created Via': 'checkout',
+        },
+      ];
+
+      const report = processLiveOpsData(orders, {
+        view: 'Today Shipped',
+        anchorDate: targetDate,
+        customDate: targetDate,
+      });
+
+      expect(report.activeOrders).toHaveLength(2);
+      expect(report.shippedOrders.rawValue).toBe(2);
+      expect(report.shippedItems.rawValue).toBe(2);
+      expect(report.salesRevenue.rawValue).toBe(4000); // 1500 + 2500
     });
   });
 });
