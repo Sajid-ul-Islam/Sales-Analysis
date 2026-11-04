@@ -8,7 +8,6 @@ export { SkuPerformanceTab } from './SkuPerformanceTab';
 export { ProductAnalysisTab } from './ProductAnalysisTab';
 export { ItemReturnsTab } from './ItemReturnsTab';
 export { CustomerRiskTab } from './CustomerRiskTab';
-export { UnitEconomicsTab } from './UnitEconomicsTab';
 export { ExchangedOrdersTab } from './ExchangedOrdersTab';
 export { OutletDispatchTab } from './OutletDispatchTab';
 export { OutletSalesTab } from './OutletSalesTab';

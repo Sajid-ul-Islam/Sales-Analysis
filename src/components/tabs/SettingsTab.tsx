@@ -97,8 +97,8 @@ function useSafeAuth() {
 }
 
 interface SettingsTabProps {
-  excludeAugust: boolean;
-  setExcludeAugust: (val: boolean) => void;
+  excludeAugust?: boolean;
+  setExcludeAugust?: (val: boolean) => void;
   excludePOS: boolean;
   setExcludePOS: (val: boolean) => void;
   onResetBaseline?: () => void;
@@ -1456,8 +1456,8 @@ interface ApiConnectionStatus {
                   </div>
                   <input
                     type="checkbox"
-                    checked={excludeAugust}
-                    onChange={(e) => setExcludeAugust(e.target.checked)}
+                    checked={!!excludeAugust}
+                    onChange={(e) => setExcludeAugust?.(e.target.checked)}
                     className="w-4 h-4 accent-primary rounded cursor-pointer"
                   />
                 </div>
