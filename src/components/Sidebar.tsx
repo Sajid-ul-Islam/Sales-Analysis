@@ -6,15 +6,15 @@ import {
   GitCompare,
   MapPin,
   ListOrdered,
-  Shirt,
+
   RotateCcw,
   ShieldAlert,
   Settings,
   Truck,
   ArrowRightLeft,
   Store,
-  ShoppingBag,
-  BarChart3,
+
+
   Layers,
   X,
   User,
@@ -133,8 +133,8 @@ export function Sidebar({
     {
       title: 'Omni-Channel Outlets',
       items: [
-        { id: 'tabOutletDispatch', label: 'Outlet Dispatch', icon: Store, highlight: true },
-        { id: 'tabOutletSales', label: 'Outlet Sales', icon: ShoppingBag, highlight: true },
+        { id: 'tabOutlets', label: 'Omnichannel Outlets', icon: Store, highlight: true },
+
         { id: 'tabTerritory', label: 'Territory Distribution', icon: MapPin },
         { id: 'tabExchanges', label: 'Exchanges', icon: ArrowRightLeft, countBadge: exchangeCount, highlight: true },
       ]
@@ -142,10 +142,9 @@ export function Sidebar({
     {
       title: 'Intelligence & Risk',
       items: [
-        { id: 'tabCampaigns', label: 'Campaign Intelligence', icon: Sparkles, highlight: true },
-        { id: 'tabMarketingAnalytics', label: 'Ad Analytics', icon: BarChart3, highlight: true },
-        { id: 'tabProductAnalysis', label: 'Product Analysis', icon: Layers, highlight: true },
-        { id: 'tabSku', label: 'SKU Flow', icon: Shirt },
+        { id: 'tabCampaigns', label: 'Campaign & Ad Intelligence', icon: Sparkles, highlight: true },
+        { id: 'tabProductAnalysis', label: 'Product & SKU Intelligence', icon: Layers, highlight: true },
+
         { id: 'tabCustomerRisk', label: 'Customer Risk', icon: ShieldAlert, highlight: true },
         { id: 'tabStatus', label: 'Status & Economics', icon: GitCompare },
       ]

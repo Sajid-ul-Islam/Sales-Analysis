@@ -11,6 +11,7 @@ export { CustomerRiskTab } from './CustomerRiskTab';
 export { ExchangedOrdersTab } from './ExchangedOrdersTab';
 export { OutletDispatchTab } from './OutletDispatchTab';
 export { OutletSalesTab } from './OutletSalesTab';
+export { OmnichannelOutletsTab } from './OmnichannelOutletsTab';
 export { LiveOpsTab } from './LiveOpsTab';
 export { SettingsTab } from './SettingsTab';
 export { CampaignIntelligenceTab } from './CampaignIntelligenceTab';

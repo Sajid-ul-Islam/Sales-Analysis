@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { ReconciledOrderRow } from '@/types';
+import { ReconciledOrderRow, SkuAnalytics } from '@/types';
 import {
   computeProductAnalytics,
   ProductAnalyticsItem,
@@ -19,29 +19,35 @@ import {
   Tag,
   X,
   ChevronRight,
-  Scale
+  Scale,
+  Shirt,
 } from 'lucide-react';
+import { SkuPerformanceTab } from './SkuPerformanceTab';
 
 interface ProductAnalysisTabProps {
   orders: ReconciledOrderRow[];
+  skuList?: SkuAnalytics[];
   cogsPercent?: number;
   dateScopeDays?: number;
+  initialViewMode?: AnalysisViewMode;
   onSelectOrder?: (orderId: string) => void;
 }
 
-type AnalysisViewMode = 'matrix' | 'elasticity' | 'basket' | 'fit' | 'pareto';
+type AnalysisViewMode = 'matrix' | 'sku_flow' | 'elasticity' | 'basket' | 'fit' | 'pareto';
 
 export function ProductAnalysisTab({
   orders,
+  skuList = [],
   cogsPercent = 42,
   dateScopeDays = 30,
-  onSelectOrder: _onSelectOrder,
+  initialViewMode,
+  onSelectOrder,
 }: ProductAnalysisTabProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedTier, setSelectedTier] = useState<string>('ALL');
   const [selectedAbc, setSelectedAbc] = useState<string>('ALL');
-  const [viewMode, setViewMode] = useState<AnalysisViewMode>('matrix');
+  const [viewMode, setViewMode] = useState<AnalysisViewMode>(initialViewMode || 'matrix');
   const [sortBy, setSortBy] = useState<
     'deliveredRevenue' | 'totalGrossUnits' | 'returnRate' | 'avgSellingPrice' | 'dailyVelocity' | 'totalReturnLoss'
   >('deliveredRevenue');
@@ -212,6 +218,18 @@ export function ProductAnalysisTab({
           >
             <Layers className="w-3.5 h-3.5 text-primary" />
             <span>Product Matrix</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('sku_flow')}
+            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+              viewMode === 'sku_flow'
+                ? 'bg-white dark:bg-[#1F1F1F] text-slate-900 dark:text-white shadow-2xs font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Shirt className="w-3.5 h-3.5 text-blue-500" />
+            <span>SKU Flow</span>
           </button>
           <button
             type="button"
@@ -727,7 +745,18 @@ export function ProductAnalysisTab({
         </div>
       )}
 
-      {/* VIEW 2: PRICE ELASTICITY & DISCOUNT SENSITIVITY */}
+      {/* VIEW 2: SKU FLOW & SIZING BREAKDOWN */}
+      {viewMode === 'sku_flow' && (
+        <div className="pt-2">
+          <SkuPerformanceTab
+            skuList={skuList}
+            allOrderItems={orders}
+            onSelectOrder={onSelectOrder}
+          />
+        </div>
+      )}
+
+      {/* VIEW 3: PRICE ELASTICITY & DISCOUNT SENSITIVITY */}
       {viewMode === 'elasticity' && (
         <div className="space-y-4">
           <div className="bg-white dark:bg-[#0A0A0A] p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-[#1F1F1F] shadow-2xs">

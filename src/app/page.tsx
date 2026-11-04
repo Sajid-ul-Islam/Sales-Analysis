@@ -14,16 +14,15 @@ import {
   TerritoryTab,
   StatusMatrixTab,
   OrdersLedgerTab,
-  SkuPerformanceTab,
+
   ProductAnalysisTab,
   CampaignIntelligenceTab,
   ItemReturnsTab,
   CustomerRiskTab,
   ExchangedOrdersTab,
-  OutletDispatchTab,
-  OutletSalesTab,
+  OmnichannelOutletsTab,
   LiveOpsTab,
-  MarketingAnalyticsTab,
+
   SettingsTab,
   WeekComparisonModal,
   DraggableAssistantButton,
@@ -1400,8 +1399,8 @@ export default function DashboardPage() {
 
           {/* GA4 & Meta Marketing Intelligence Tab */}
           
-          {/* Campaign Intelligence & Marketing Strategy Tab */}
-          {activeTab === 'tabCampaigns' && (
+          {/* Unified Campaign & Ad Intelligence Hub */}
+          {(activeTab === 'tabCampaigns' || activeTab === 'tabMarketingAnalytics') && (
             <CampaignIntelligenceTab
               orders={result?.reconciledOrders || []}
               summary={result?.summary}
@@ -1410,14 +1409,7 @@ export default function DashboardPage() {
                 setIsCopilotOpen(true);
               }}
               configuredMetaCost={metaAdCost}
-            />
-          )}
-
-          {activeTab === 'tabMarketingAnalytics' && (
-            <MarketingAnalyticsTab
-              summary={result?.summary}
-              onSelectOrder={() => setActiveTab('tabOrders')}
-              configuredMetaCost={metaAdCost}
+              initialSubView={activeTab === 'tabMarketingAnalytics' ? 'live_ads' : undefined}
               activeScope={dateScope}
               customRange={customDateRange}
               counts={dateFilterResult.counts}
@@ -1611,20 +1603,14 @@ export default function DashboardPage() {
                     isSyncingLive={isProcessing}
                   />
                 )}
-                {activeTab === 'tabOutletDispatch' && (
-                  <OutletDispatchTab
-                    orders={result.reconciledOrders}
-                    summary={result.summary}
-                    onSelectOrder={() => setActiveTab('tabOrders')}
-                  />
-                )}
-                {activeTab === 'tabOutletSales' && (
-                  <OutletSalesTab
+                {(activeTab === 'tabOutlets' || activeTab === 'tabOutletDispatch' || activeTab === 'tabOutletSales') && (
+                  <OmnichannelOutletsTab
                     orders={result.reconciledOrders}
                     summary={result.summary}
                     onSelectOrder={() => setActiveTab('tabOrders')}
                     dateScope={dateScope}
                     customRange={customDateRange}
+                    initialMode={activeTab === 'tabOutletDispatch' ? 'dispatch' : 'pos'}
                   />
                 )}
                 {activeTab === 'tabCourierMismatch' && (
@@ -1679,18 +1665,13 @@ export default function DashboardPage() {
                     onClearAiTags={handleClearAiTags}
                   />
                 )}
-                {activeTab === 'tabProductAnalysis' && (
+                {(activeTab === 'tabProductAnalysis' || activeTab === 'tabSku') && (
                   <ProductAnalysisTab
                     orders={result.reconciledOrders}
+                    skuList={result.skuAnalytics}
                     cogsPercent={cogsPercent}
                     dateScopeDays={dateScope === '7d' ? 7 : dateScope === '90d' ? 90 : 30}
-                    onSelectOrder={() => setActiveTab('tabOrders')}
-                  />
-                )}
-                {activeTab === 'tabSku' && (
-                  <SkuPerformanceTab
-                    skuList={result.skuAnalytics}
-                    allOrderItems={result.reconciledOrders}
+                    initialViewMode={activeTab === 'tabSku' ? 'sku_flow' : undefined}
                     onSelectOrder={() => setActiveTab('tabOrders')}
                   />
                 )}

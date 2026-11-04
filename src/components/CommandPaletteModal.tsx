@@ -65,6 +65,7 @@ const ALL_TABS_CONFIG = [
   { id: 'tabOrders', title: 'Orders Ledger', subtitle: 'Searchable Master Order Database with Suffix Decoders', icon: <FileSpreadsheet className="w-4 h-4 text-blue-500" /> },
   { id: 'tabItemReturns', title: 'Item Returns Deep-Dive', subtitle: 'Granular Inspection of Full & Partial Return Causes', icon: <RotateCcw className="w-4 h-4 text-amber-500" /> },
   { id: 'tabCourierMismatch', title: 'Courier Mismatch Audit', subtitle: 'Pathao Delivery Tracking & COD Reconciliation Discrepancies', icon: <Truck className="w-4 h-4 text-rose-500" /> },
+  { id: 'tabOutlets', title: 'Omnichannel Outlets Hub', subtitle: 'In-Store POS Walk-Ins & Regional Branch Split Couriers (c, w, s, m)', icon: <Store className="w-4 h-4 text-purple-500" /> },
   { id: 'tabOutletDispatch', title: 'Outlet Dispatch Hub', subtitle: 'Regional Branch Logistics & Parcel Dispatch Allocations', icon: <Layers className="w-4 h-4 text-indigo-500" /> },
   { id: 'tabOutletSales', title: 'Outlet Sales (WooCommerce Live)', subtitle: 'Physical In-Store POS Registers vs Online Store Web Revenue', icon: <Store className="w-4 h-4 text-purple-500" /> },
   { id: 'tabTerritory', title: 'Territory Breakdown', subtitle: 'Inside Dhaka vs Outside Dhaka Logistics & Margin Ratios', icon: <MapPin className="w-4 h-4 text-teal-500" /> },

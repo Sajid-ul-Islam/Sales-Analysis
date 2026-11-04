@@ -24,8 +24,11 @@ import {
   Info,
   CalendarDays,
   FileSpreadsheet,
+  Globe,
 } from 'lucide-react';
 import { ReconciledOrderRow, SummaryMetrics } from '@/types';
+import { DateScope, CustomDateRange, DateScopeCounts } from '@/lib/dateFilter';
+import { MarketingAnalyticsTab } from './MarketingAnalyticsTab';
 import {
   Campaign,
   SpendingThresholdTier,
@@ -60,9 +63,17 @@ export interface CampaignIntelligenceTabProps {
   summary?: SummaryMetrics;
   onOpenAssistantWithQuery?: (query: string) => void;
   configuredMetaCost?: number;
+  initialSubView?: SubView;
+  activeScope?: DateScope;
+  customRange?: CustomDateRange;
+  onScopeChange?: (scope: DateScope, customRange?: CustomDateRange) => void;
+  counts?: DateScopeCounts;
+  subLabel?: string;
+  minDateIso?: string;
+  maxDateIso?: string;
 }
 
-type SubView =
+export type SubView =
   | 'overview'
   | 'planner'
   | 'promotions'
@@ -71,6 +82,7 @@ type SubView =
   | 'simulator'
   | 'calendar'
   | 'attribution'
+  | 'live_ads'
   | 'creative_studio';
 
 export function CampaignIntelligenceTab({
@@ -78,8 +90,16 @@ export function CampaignIntelligenceTab({
   summary: _summary,
   onOpenAssistantWithQuery,
   configuredMetaCost = 185000,
+  initialSubView,
+  activeScope,
+  customRange,
+  onScopeChange,
+  counts,
+  subLabel,
+  minDateIso,
+  maxDateIso,
 }: CampaignIntelligenceTabProps) {
-  const [activeSubView, setActiveSubView] = useState<SubView>('overview');
+  const [activeSubView, setActiveSubView] = useState<SubView>(initialSubView || 'overview');
   const [campaigns, setCampaigns] = useState<Campaign[]>(INITIAL_WINTER_CAMPAIGNS);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('camp-winter-upgrade-flagship');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -275,6 +295,7 @@ export function CampaignIntelligenceTab({
     { id: 'simulator', label: 'Budget Simulator', icon: DollarSign },
     { id: 'calendar', label: 'Seasonal Calendar', icon: CalendarDays },
     { id: 'attribution', label: 'Attribution & Channels', icon: TrendingUp },
+    { id: 'live_ads', label: 'Live Ads & Traffic (GA4 / Meta)', icon: Globe },
     { id: 'creative_studio', label: 'Creative Studio (EN/বাংলা)', icon: Sparkles },
   ];
 
@@ -1330,7 +1351,25 @@ export function CampaignIntelligenceTab({
         </div>
       )}
 
-      {/* SUBVIEW 9: CAMPAIGN CREATIVE STUDIO */}
+      {/* SUBVIEW 9: LIVE ADS & WEB TELEMETRY (GA4 / META) */}
+      {activeSubView === 'live_ads' && (
+        <div className="pt-2">
+          <MarketingAnalyticsTab
+            summary={_summary}
+            onSelectOrder={() => setActiveSubView('overview')}
+            configuredMetaCost={configuredMetaCost}
+            activeScope={activeScope}
+            customRange={customRange}
+            onScopeChange={onScopeChange}
+            counts={counts}
+            subLabel={subLabel}
+            minDateIso={minDateIso}
+            maxDateIso={maxDateIso}
+          />
+        </div>
+      )}
+
+      {/* SUBVIEW 10: CAMPAIGN CREATIVE STUDIO */}
       {activeSubView === 'creative_studio' && (
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
