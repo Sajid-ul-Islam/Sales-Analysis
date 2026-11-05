@@ -42,7 +42,6 @@ import {
   isOrderPos,
   extractExchangeInfo,
   generateWhatsAppConfirmationUrl,
-  parseOrderDate,
   formatDateToIsoDay,
   parseOrderDateValue,
   getStatusModificationDate,

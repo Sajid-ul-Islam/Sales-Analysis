@@ -189,9 +189,10 @@ export function groupOrdersByOrderId(rows: RawOrderRow[]): OrderWiseGroup[] {
     const sipOutletSlug = String(row.sipOutletSlug || resolvedItemSip.outletSlug || '').trim();
     const branchCode = (row.branchCode as 'ONLINE' | 'MIRPUR' | 'CUMILLA' | 'WARI' | 'SYLHET' | 'EXCHANGE') || resolvedItemSip.inventoryCode || group.branch?.branchCode || 'ONLINE';
 
+    const rowRec = row as unknown as Record<string, unknown>;
     const cogsInfo = getItemCogsInfo(sku, itemCost, {
-      productId: (row as any).productId || (row as any)['Product ID'] || (row as any).product_id,
-      variationId: (row as any).variationId || (row as any)['Variation ID'] || (row as any).variation_id,
+      productId: (rowRec.productId || rowRec['Product ID'] || rowRec.product_id) as string | number | undefined,
+      variationId: (rowRec.variationId || rowRec['Variation ID'] || rowRec.variation_id) as string | number | undefined,
     });
 
     group.items.push({

@@ -13,6 +13,7 @@
 
 import { ReconciledOrderRow } from '@/types';
 import { classifyProductCategory } from './reconciliationEngine';
+import { WcCogsData } from './woocommerceClient';
 import wcSkuCogsData from '@/data/wc-sku-cogs.json';
 
 export interface ProductPricePoint {
@@ -209,7 +210,7 @@ export function computeProductAnalytics(
 ): ProductAnalysisResult {
   const cogsRate = (options.cogsPercent !== undefined ? options.cogsPercent : 42) / 100;
   const daysInScope = Math.max(1, options.dateScopeDays || 30);
-  const activeCogsData = options.wcCogsData || (wcSkuCogsData as any);
+  const activeCogsData = options.wcCogsData || (wcSkuCogsData as unknown as WcCogsData);
 
   if (!orders || orders.length === 0) {
     return {
@@ -437,8 +438,9 @@ export function computeProductAnalytics(
       } else if (activeCogsData?.bySku && sku && activeCogsData.bySku[sku]?.cogs) {
         unitCogs = activeCogsData.bySku[sku].cogs;
       } else if (activeCogsData?.byId) {
-        const prodId = String((r as any).productId || '').trim();
-        const varId = String((r as any).variationId || '').trim();
+        const rRec = r as unknown as Record<string, unknown>;
+        const prodId = String(rRec.productId || '').trim();
+        const varId = String(rRec.variationId || '').trim();
         if (prodId && varId && activeCogsData.byId[`${prodId}:${varId}`]?.cogs) {
           unitCogs = activeCogsData.byId[`${prodId}:${varId}`].cogs;
         } else if (varId && activeCogsData.byId[varId]?.cogs) {

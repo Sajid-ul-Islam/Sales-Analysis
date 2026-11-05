@@ -1972,7 +1972,7 @@ export async function fetchWooCommerceCogsMap(
       const parentBuyingPrice = parentBuyingMeta ? parseFloat(String(parentBuyingMeta.value)) : 0;
 
       for (const v of variations) {
-        const vBuyingMeta = v.meta_data?.find((m: any) => m.key === '_sip_buying_price');
+        const vBuyingMeta = v.meta_data?.find((m: { key?: string; value?: unknown }) => m.key === '_sip_buying_price');
         let vBuyingPrice = vBuyingMeta ? parseFloat(String(vBuyingMeta.value)) : NaN;
         if (isNaN(vBuyingPrice) || vBuyingPrice <= 0) {
           if (!isNaN(parentBuyingPrice) && parentBuyingPrice > 0) {
@@ -1985,7 +1985,7 @@ export async function fetchWooCommerceCogsMap(
 
         if (!isNaN(vBuyingPrice) && vBuyingPrice > 0) {
           const margin = regularPrice > 0 ? ((regularPrice - vBuyingPrice) / regularPrice) * 100 : 0;
-          const attrText = Array.isArray(v.attributes) ? v.attributes.map((a: any) => a.option).join(' ') : '';
+          const attrText = Array.isArray(v.attributes) ? v.attributes.map((a: { option?: string }) => a.option || '').join(' ') : '';
           const record: SkuCogsRecord = {
             sku: sku || `VAR-${v.id}`,
             productId: p.id,

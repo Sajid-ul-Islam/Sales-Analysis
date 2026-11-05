@@ -39,8 +39,9 @@ function persistCogsData(data: WcCogsData): void {
   try {
     const filePath = path.join(process.cwd(), 'src', 'data', 'wc-sku-cogs.json');
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (err: any) {
-    console.error('Failed to persist wc-sku-cogs.json to disk:', err?.message);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('Failed to persist wc-sku-cogs.json to disk:', msg);
   }
 }
 
@@ -76,12 +77,13 @@ export async function GET(req: Request) {
       statusCode: 200,
       data: cached,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Internal server error while fetching COGS map.';
     return NextResponse.json(
       {
         success: false,
         statusCode: 500,
-        message: err?.message || 'Internal server error while fetching COGS map.',
+        message: msg,
       },
       { status: 500 }
     );
@@ -131,12 +133,13 @@ export async function POST(req: Request) {
       message: `Successfully synchronized ${freshData.totalSkusWithCogs} SKUs with exact WooCommerce COGS from ${freshData.totalProducts} catalog products.`,
       data: freshData,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Failed to sync COGS from WooCommerce REST API.';
     return NextResponse.json(
       {
         success: false,
         statusCode: 500,
-        message: err?.message || 'Failed to sync COGS from WooCommerce REST API.',
+        message: msg,
       },
       { status: 500 }
     );
