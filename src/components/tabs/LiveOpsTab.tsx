@@ -843,6 +843,77 @@ export function LiveOpsTab({
     return grouped[0] || null;
   }, [selectedDetailOrder, report.activeOrders]);
 
+  // AI Pre-Dispatch RTO Risk Predictor State & Handlers
+  const [aiRtoLoading, setAiRtoLoading] = useState(false);
+  const [aiRtoResult, setAiRtoResult] = useState<{
+    riskScore: number;
+    riskTier: string;
+    reasonBn: string;
+    reasonEn: string;
+    recommendedAction: string;
+    source?: string;
+  } | null>(null);
+
+  // Reset AI RTO assessment whenever a new order is opened in the modal
+  useEffect(() => {
+    setAiRtoResult(null);
+    setAiRtoLoading(false);
+  }, [selectedDetailOrder]);
+
+  const handleRunAiRtoCheck = useCallback(async () => {
+    if (!selectedDetailOrder) return;
+    setAiRtoLoading(true);
+    try {
+      const phone = String(getExportPhoneNumber(selectedDetailOrder) || selectedDetailOrder.Phone || '');
+      const orderId = String(selectedDetailOrder['Order ID'] || selectedDetailOrder.orderId || '');
+      const customerName = String(getExportCustomerName(selectedDetailOrder) || selectedDetailOrder['Customer Name'] || '');
+      const city = String(selectedDetailOrder.City || 'Dhaka');
+      const address = String(selectedDetailOrder.Address || selectedDetailOrder['Shipping Address'] || '');
+      const customerNote = String(selectedDetailOrder['Order Notes'] || selectedDetailOrder.customerNote || '');
+      const orderAmount = Number(selectedDetailOrder['Total Amount'] || selectedDetailOrder.totalAmount || 0);
+
+      const items = modalOrderGroup?.items?.length
+        ? modalOrderGroup.items.map((it) => ({
+            itemName: it.itemName,
+            size: String(it.row?.Size || ''),
+            quantity: it.quantity || 1,
+          }))
+        : [
+            {
+              itemName: String(selectedDetailOrder['Item Name'] || selectedDetailOrder['Product Name'] || 'Apparel Item'),
+              size: String(selectedDetailOrder.Size || ''),
+              quantity: Number(selectedDetailOrder.Quantity || 1),
+            },
+          ];
+
+      const res = await fetch('/api/ai/predict-risk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order: {
+            orderId,
+            customerName,
+            phone,
+            city,
+            address,
+            customerNote,
+            orderAmount,
+            items,
+          },
+        }),
+      });
+
+      const data = await res.json();
+      if (data?.aiEvaluation) {
+        setAiRtoResult(data.aiEvaluation);
+      }
+    } catch (err) {
+      console.error('Failed to run AI RTO check:', err);
+    } finally {
+      setAiRtoLoading(false);
+    }
+  }, [selectedDetailOrder, modalOrderGroup]);
+
   // Batch resolve customer delivery ratings & fraud risk for displayed ledger orders
   useEffect(() => {
     const rawPhones: string[] = [];
@@ -3149,8 +3220,21 @@ export function LiveOpsTab({
                               {group.phone || 'N/A'}
                             </div>
                             {group.phone && (
-                              <div className="mt-1">
+                              <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                                 <CustomerRatingBadge rating={getRatingForPhone(group.phone)} phone={group.phone} />
+                                {(() => {
+                                  const r = getRatingForPhone(group.phone);
+                                  const isHighRisk = r && (r.ratingTier === 'RISKY' || r.riskLevel === 'HIGH' || (r.totalOrders >= 2 && r.deliveredOrders / r.totalOrders < 0.5));
+                                  if (!isHighRisk) return null;
+                                  return (
+                                    <span
+                                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
+                                      title={`High Return Risk: ${r.deliveredOrders}/${r.totalOrders} delivered (${r.successRate}% delivery rate)`}
+                                    >
+                                      ⚠️ High Risk
+                                    </span>
+                                  );
+                                })()}
                               </div>
                             )}
                             {group.city && (
@@ -3581,11 +3665,24 @@ export function LiveOpsTab({
                             {String(getExportPhoneNumber(row) || row.Phone || 'N/A')}
                           </div>
                           {Boolean(getExportPhoneNumber(row) || row.Phone) && (
-                            <div className="mt-1">
+                            <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                               <CustomerRatingBadge
                                 rating={getRatingForPhone(getExportPhoneNumber(row) || row.Phone)}
                                 phone={String(getExportPhoneNumber(row) || row.Phone)}
                               />
+                              {(() => {
+                                const r = getRatingForPhone(getExportPhoneNumber(row) || row.Phone);
+                                const isHighRisk = r && (r.ratingTier === 'RISKY' || r.riskLevel === 'HIGH' || (r.totalOrders >= 2 && r.deliveredOrders / r.totalOrders < 0.5));
+                                if (!isHighRisk) return null;
+                                return (
+                                  <span
+                                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
+                                    title={`High Return Risk: ${r.deliveredOrders}/${r.totalOrders} delivered (${r.successRate}% delivery rate)`}
+                                  >
+                                    ⚠️ High Risk
+                                  </span>
+                                );
+                              })()}
                             </div>
                           )}
                         </td>
@@ -3950,6 +4047,117 @@ export function LiveOpsTab({
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Pre-Dispatch Predictive RTO Advisory Banner */}
+            {(() => {
+              const detailPhone = String(getExportPhoneNumber(selectedDetailOrder) || selectedDetailOrder.Phone || '');
+              const r = getRatingForPhone(detailPhone);
+              const isHighRisk = r && (r.ratingTier === 'RISKY' || r.riskLevel === 'HIGH' || (r.totalOrders >= 2 && r.deliveredOrders / r.totalOrders < 0.5));
+              if (!isHighRisk) return null;
+              return (
+                <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800/80 rounded-2xl flex items-start gap-3">
+                  <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5 animate-pulse" />
+                  <div className="text-xs space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-rose-900 dark:text-rose-200">
+                        ⚠️ High Return (RTO) Risk Advisory ({r.successRate}% Delivery Success)
+                      </h4>
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-200 text-rose-800 dark:bg-rose-900 dark:text-rose-200">
+                        High RTO Probability
+                      </span>
+                    </div>
+                    <p className="text-rose-800 dark:text-rose-300 text-[11px] leading-relaxed">
+                      This customer has a history of order cancellations or low courier delivery rate ({r.deliveredOrders} delivered of {r.totalOrders} total parcels).
+                      <strong className="block sm:inline sm:ml-1">Recommended Action:</strong> Contact the customer via WhatsApp or phone call to verify sizing, address, and availability before dispatching parcel.
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* AI Pre-Dispatch RTO Predictor Hub (Gemini AI + Empirical Heuristics) */}
+            <div className="p-4 bg-slate-50/80 dark:bg-deepBlack-sidebar border border-slate-200/90 dark:border-deepBlack-border rounded-2xl space-y-3 text-xs">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 dark:text-white uppercase text-[10px] tracking-wider">
+                      Gemini Pre-Dispatch RTO Predictor
+                    </h4>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                      Predicts return likelihood using order size bracketing, notes, and delivery telemetry.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRunAiRtoCheck}
+                  disabled={aiRtoLoading}
+                  className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-2xs cursor-pointer"
+                >
+                  {aiRtoLoading ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Analyzing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{aiRtoResult ? 'Re-run AI Assessment' : 'Run AI RTO Check'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {aiRtoResult && (
+                <div className="p-3 bg-white dark:bg-deepBlack-card border border-purple-200 dark:border-purple-900/50 rounded-xl space-y-2 text-xs">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs">
+                        Predicted RTO Risk Score:
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
+                        aiRtoResult.riskScore >= 70
+                          ? 'bg-rose-100 text-rose-700 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-300'
+                          : aiRtoResult.riskScore >= 40
+                          ? 'bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300'
+                          : 'bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300'
+                      }`}>
+                        {aiRtoResult.riskScore}% — {aiRtoResult.riskTier}
+                      </span>
+                    </div>
+                    {aiRtoResult.source && (
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        via {aiRtoResult.source}
+                      </span>
+                    )}
+                  </div>
+
+                  {aiRtoResult.reasonBn && (
+                    <div className="text-[11px] text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-900/40 p-2.5 rounded-lg font-medium leading-relaxed">
+                      🇧🇩 {aiRtoResult.reasonBn}
+                    </div>
+                  )}
+
+                  <div className="text-[11px] text-slate-600 dark:text-slate-400">
+                    {aiRtoResult.reasonEn}
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Action:</span>
+                    <span className="font-semibold text-[11px] text-purple-700 dark:text-purple-300">
+                      {aiRtoResult.recommendedAction === 'CALL_TO_VERIFY_SIZE'
+                        ? '📞 Call customer to confirm size before packaging'
+                        : aiRtoResult.recommendedAction === 'ADVANCE_REQUIRED'
+                        ? '💰 Request bKash delivery fee advance'
+                        : '🚀 Instant dispatch approved (Standard low-risk)'}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 1-Click WhatsApp Quick Action Hub inside Modal */}
