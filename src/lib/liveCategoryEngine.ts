@@ -34,7 +34,6 @@ export const CATEGORY_COLOR_MAP: Record<string, string> = {
   'Mask': '#14b8a6',
   'Belt': '#b45309',
   'Water Bottle': '#06b6d4',
-  'Mug': '#78716c',
   'Others': '#94a3b8',
 
   // Jeans Sub-Categories (Differentiated shades of rose/crimson/coral)

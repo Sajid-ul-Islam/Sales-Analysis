@@ -1036,6 +1036,10 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(briefing.clipboardText).toContain('🔄 *Exchange:* 1');
       expect(briefing.clipboardText).toContain('🚀 *Ecom + Outlet dispatch:* 1 + 0');
       expect(briefing.clipboardText).not.toContain('🏪 *Outlet:*');
+      // Collection split header must be omitted
+      expect(briefing.clipboardText).not.toContain('🏷️ *Collection Split:*');
+      // Trailing exchange footer must be omitted
+      expect(briefing.clipboardText).not.toContain('🔄 Exchanges Dispatched:');
     });
 
     it('strictly excludes POS and non-checkout exchange orders from commercial Excel export sheet', () => {

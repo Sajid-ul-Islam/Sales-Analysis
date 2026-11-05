@@ -1786,16 +1786,31 @@ export function processLiveOpsData(
 
   // Detect branch split / outlet courier dispatches on reference date
   const isBranchDispatchOrder = (o: RawOrderRow): boolean => {
-    const rawOid = String(o['Order ID'] || (o as Record<string, unknown>).orderId || '').trim();
-    const paymentMethod = String(o['Payment Method'] || (o as Record<string, unknown>).paymentMethod || (o as Record<string, unknown>).payment_method || '').toLowerCase().trim();
-    const paymentTitle = String((o as Record<string, unknown>).payment_method_title || (o as Record<string, unknown>).paymentMethodTitle || '').toLowerCase().trim();
+    const oRec = o as Record<string, unknown>;
+    const paymentMethod = String(o['Payment Method'] || oRec.paymentMethod || oRec.payment_method || '').toLowerCase().trim();
+    const paymentTitle = String(oRec.payment_method_title || oRec.paymentMethodTitle || '').toLowerCase().trim();
 
+    // 1. Explicit ecom payment method on branch outlet records (sip_ecom / ecom)
     if (isEcomPaymentMethod(paymentMethod, paymentTitle)) return true;
-    if (/[-_\s]?[cwsm]$/i.test(rawOid) || /\b\d+\s*[cwsm]\b/i.test(rawOid)) return true;
 
+    // Walk-in POS register sales without ecom payment or courier dispatch are NEVER courier dispatches
+    if (isOrderPos(o)) return false;
+
+    // 2. Branch split courier dispatch suffix (e.g. 19688 c, 19688 w, 19688 s, 19688 m)
+    const rawOid = String(o['Order ID'] || oRec.orderId || '').trim();
+    if (/[-_\s]?[cwsm]$/i.test(rawOid) || /\b\d+\s*[cwsm]\b/i.test(rawOid)) {
+      const branch = detectFulfillmentBranch(o);
+      return branch.branchCode !== 'ONLINE' && branch.branchCode !== 'EXCHANGE';
+    }
+
+    // 3. Branch fulfillment location with courier tracking or dispatch marker
     const branch = detectFulfillmentBranch(o);
     if (branch.isBranchFulfillment && branch.branchCode !== 'ONLINE' && branch.branchCode !== 'EXCHANGE') {
-      return true;
+      const loc = String(oRec.fulfillmentLocation || oRec.fulfillmentBranch || '').toLowerCase();
+      const hasCourier = Boolean(o['Consignment ID'] || oRec.consignmentId || oRec.tracking_number);
+      if (loc.includes('dispatch') || loc.includes('split') || hasCourier) {
+        return true;
+      }
     }
     return false;
   };
@@ -1803,10 +1818,10 @@ export function processLiveOpsData(
   const seenOutletDispatchIds = new Set<string>();
   for (const o of orders) {
     if (isOrderExchange(o)) continue;
-    const isTargetDay = isOrderShippedOnDate(o, refDateIso) || isPosOrderOnDate(o, refDateIso) || isTargetDate(o, refDateIso);
+    const isTargetDay = isOrderShippedOnDate(o, refDateIso) || isTargetDate(o, refDateIso);
     if (!isTargetDay) continue;
 
-    if (isBranchDispatchOrder(o) || isOrderOutlet(o)) {
+    if (isBranchDispatchOrder(o)) {
       const oid = String(o['Order ID'] || (o as Record<string, unknown>).orderId || '').trim();
       if (oid) seenOutletDispatchIds.add(oid);
     }
@@ -1862,7 +1877,7 @@ export function processLiveOpsData(
       totalOrders: activeOrdersCount,
       exchangeCount: exchangeStats.count,
       ecomCount: activeOrdersCount,
-      outletCount: computedOutletDispatchCount,
+      outletCount: 0,
       outletDispatchCount: computedOutletDispatchCount,
     },
     top3Products: topProducts.slice(0, 3).map((p) => ({
