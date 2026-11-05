@@ -32,6 +32,7 @@ export const CATEGORY_COLOR_MAP: Record<string, string> = {
   'Bundles': '#6366f1',
   'Accessories': '#0d9488',
   'Mask': '#14b8a6',
+  'Belt': '#b45309',
   'Others': '#94a3b8',
 
   // Jeans Sub-Categories (Differentiated shades of rose/crimson/coral)
@@ -114,7 +115,7 @@ export function getShortCategoryLabel(name: string): string {
   if (lower.includes('trouser') || lower.includes('jogger')) return 'Trousers';
   if (lower.includes('full sleeve') || lower === 'fs shirt') return 'FS Shirt';
   if (lower.includes('half sleeve') || lower === 'hs shirt') return 'HS Shirt';
-  if (lower.includes('mask') || lower.includes('accessor')) return 'Accessories';
+  if (lower.includes('mask') || lower.includes('accessor') || lower.includes('belt')) return 'Accessories';
 
   const prefixes = ['FS Shirt - ', 'HS Shirt - ', 'FS T-Shirt - ', 'HS T-Shirt - ', 'FS Shirt ', 'HS Shirt ', 'FS ', 'HS '];
   for (const prefix of prefixes) {
@@ -175,7 +176,7 @@ export function getCategoryForSales(name?: string | null): string {
   if (hasAny(['wallet', 'card holder', 'passport holder'], nameStr)) return 'Wallet';
   if (hasAny(['bag', 'backpack', 'tote'], nameStr)) return 'Leather Bag';
   if (nameStr.includes('bottle')) return 'Water Bottle';
-  if (hasAny(['mask', 'face mask', 'accessor'], nameStr)) return 'Accessories';
+  if (hasAny(['mask', 'face mask', 'accessor', 'belt'], nameStr)) return 'Accessories';
 
   return 'Others';
 }
@@ -239,8 +240,9 @@ export function getSubCategoryForSales(name?: string | null, parentCategory?: st
     return 'Sweatshirt';
   }
 
-  if (category === 'Accessories' || nameStr.includes('mask')) {
+  if (category === 'Accessories' || hasAny(['mask', 'belt'], nameStr)) {
     if (nameStr.includes('mask')) return 'Mask';
+    if (nameStr.includes('belt')) return 'Belt';
     return 'Accessories';
   }
 
@@ -295,6 +297,7 @@ export function getShortSubCategoryLabel(subCategory?: string | null): string {
 
   // 9. Accessories sub-categories
   if (lower === 'mask' || lower.includes('face mask') || lower.includes('breathable face mask')) return 'Mask';
+  if (lower === 'belt' || lower.includes('leather belt') || lower.includes('belt')) return 'Belt';
 
   return trimmed;
 }
