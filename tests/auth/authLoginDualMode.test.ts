@@ -121,6 +121,23 @@ describe('Dual-Mode Authentication & Session Engine', () => {
       const mapped = mapWcUserToOutletAndRole(1, 'sajid_admin', ['administrator']);
       expect(mapped.role).toBe('admin');
       expect(mapped.assignedOutlet).toBe('ALL');
+      expect(mapped.displayName).toBe('Sajid Islam');
+    });
+
+    it('maps sazid and sazid@deencommerce.com to Sajid Islam with admin role', () => {
+      const mappedUsername = mapWcUserToOutletAndRole('wp_user', 'sazid');
+      expect(mappedUsername.role).toBe('admin');
+      expect(mappedUsername.displayName).toBe('Sajid Islam');
+      expect(mappedUsername.assignedOutlet).toBe('ALL');
+
+      const mappedEmail = mapWcUserToOutletAndRole('wp_user', 'sazid@deencommerce.com');
+      expect(mappedEmail.role).toBe('admin');
+      expect(mappedEmail.displayName).toBe('Sajid Islam');
+      expect(mappedEmail.assignedOutlet).toBe('ALL');
+
+      const mappedSajid = mapWcUserToOutletAndRole('wp_user', 'sajid');
+      expect(mappedSajid.role).toBe('admin');
+      expect(mappedSajid.displayName).toBe('Sajid Islam');
     });
 
     it('identifies outlet from username slug if cashier ID is unmapped', () => {

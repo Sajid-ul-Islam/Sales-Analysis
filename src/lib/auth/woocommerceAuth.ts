@@ -67,23 +67,45 @@ export function mapWcUserToOutletAndRole(
     };
   }
 
-  // 5. Store Administrator & Central Leadership
+  // 5. Store Founder & Administrator (Sajid Islam: sazid / sajid / sazid@deencommerce.com)
+  const isSajid =
+    u === 'sazid' ||
+    u === 'sajid' ||
+    u === 'sazid islam' ||
+    u === 'sajid islam' ||
+    u.startsWith('sazid@') ||
+    u.startsWith('sajid@') ||
+    u.includes('sazid@deencommerce.com') ||
+    u.includes('sajid@deencommerce.com') ||
+    u.startsWith('sazid_') ||
+    u.startsWith('sajid_') ||
+    u === 'sazid.islam' ||
+    u === 'sajid.islam';
+
+  if (isSajid) {
+    return {
+      role: 'admin',
+      assignedOutlet: 'ALL',
+      displayName: 'Sajid Islam',
+    };
+  }
+
+  // 6. Central Leadership & Store Administrator
   const isAdmin =
     roles.includes('administrator') ||
     roles.includes('shop_manager') ||
     u.includes('admin') ||
-    u === 'sajid' ||
     u.includes('tajastore');
 
   if (isAdmin) {
     return {
       role: 'admin',
       assignedOutlet: 'ALL',
-      displayName: u === 'sajid' ? 'Sajid (Store Admin)' : 'Operations Admin',
+      displayName: 'Operations Admin',
     };
   }
 
-  // 6. Generic Staff
+  // 7. Generic Staff
   return {
     role: 'operator',
     assignedOutlet: 'ALL',
@@ -153,13 +175,27 @@ export async function authenticateWooCommerceUser(
         } catch {}
       }
 
-      const mapping = mapWcUserToOutletAndRole(wpUserId, extractedUsername);
+      let mapping = mapWcUserToOutletAndRole(wpUserId, extractedUsername);
+      // If extracted username mapped to operator but input username/email was admin/sajid, prefer the higher role
+      if (mapping.role === 'operator' && cleanUser.toLowerCase() !== extractedUsername.toLowerCase()) {
+        const altMapping = mapWcUserToOutletAndRole(wpUserId, cleanUser);
+        if (altMapping.role === 'admin') {
+          mapping = altMapping;
+        }
+      }
       const now = Math.floor(Date.now() / 1000);
+
+      const resolvedEmail = cleanUser.includes('@')
+        ? cleanUser.toLowerCase()
+        : mapping.displayName === 'Sajid Islam'
+        ? 'sazid@deencommerce.com'
+        : undefined;
 
       const sessionUser: SessionUser = {
         id: `wp_${extractedUsername.toLowerCase()}`,
         username: extractedUsername,
         displayName: mapping.displayName,
+        email: resolvedEmail,
         role: mapping.role,
         assignedOutlet: mapping.assignedOutlet,
         authMethod: 'WOOCOMMERCE',
@@ -193,11 +229,16 @@ export async function authenticateWooCommerceUser(
       );
       const now = Math.floor(Date.now() / 1000);
 
+      const resolvedName =
+        wpUser.name && wpUser.name.toLowerCase() !== String(wpUser.slug || '').toLowerCase()
+          ? wpUser.name
+          : mapping.displayName;
+
       const sessionUser: SessionUser = {
         id: `wp_${wpUser.id || cleanUser}`,
         username: wpUser.slug || cleanUser,
-        displayName: wpUser.name || mapping.displayName,
-        email: wpUser.email || undefined,
+        displayName: resolvedName,
+        email: wpUser.email || (mapping.displayName === 'Sajid Islam' ? 'sazid@deencommerce.com' : undefined),
         role: mapping.role,
         assignedOutlet: mapping.assignedOutlet,
         authMethod: 'WOOCOMMERCE',
