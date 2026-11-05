@@ -48,6 +48,7 @@ import {
   getStatusModificationDate,
 } from '@/lib/liveOpsProcessor';
 import { LiveRevenueDonutChart } from '@/components/charts/LiveRevenueDonutChart';
+import { getItemCogsInfo } from '@/lib/woocommerceClient';
 import { LiveVolumeBarChart, BarChartSizeMode } from '@/components/charts/LiveVolumeBarChart';
 import { KpiSparkline } from '@/components/charts/KpiSparkline';
 import { classifyProductLine } from '@/lib/selectsAnalytics';
@@ -457,22 +458,14 @@ export function LiveOpsTab({
   // Active dataset for processing (prefer live synced orders if available)
   const activeDataset = liveOrders.length > 0 ? liveOrders : orders;
 
-  // Determine current operational baseline anchor date from the dataset
+  // Anchor date for the 7-day strip is ALWAYS today (Asia/Dhaka).
+  // The strip must show the last 7 calendar days ending TODAY, not the last date present in the dataset.
+  // Sliding back to the latest order modification date caused the strip to show stale historical weeks
+  // when old orders were completed today (their date_created is old but date_modified is today).
   const snapshotAnchorDate = useMemo(() => {
-    const ordersWithDates = (activeDataset || [])
-      .map((o) => ({ order: o, date: parseOrderDate(o) }))
-      .filter((x): x is { order: RawOrderRow; date: Date } => x.date !== null);
-
     const now = new Date();
-    const todayIso = formatDateToIsoDay(now);
-    const hasOrdersToday = ordersWithDates.some((x) => formatDateToIsoDay(x.date) === todayIso);
-    if (hasOrdersToday) return todayIso;
-    if (ordersWithDates.length > 0) {
-      const sorted = [...ordersWithDates].sort((a, b) => b.date.getTime() - a.date.getTime());
-      return formatDateToIsoDay(sorted[0].date);
-    }
-    return todayIso;
-  }, [activeDataset]);
+    return formatDateToIsoDay(now);
+  }, []);
 
   // Process live operational data
   const report: LiveOpsReport = useMemo(() => {
@@ -754,6 +747,17 @@ export function LiveOpsTab({
           courierFilter === 'DOUBLE_COLLECTION_RISK'
         ) {
           if (!o.hasDiscrepancy || o.discrepancyType !== courierFilter) return false;
+        } else if (courierFilter === 'Returned') {
+          const cStatus = o['Courier Status'] || o.courierStatus || 'Untracked';
+          const oRec = o as Record<string, unknown>;
+          const isRet =
+            cStatus === 'Returned' ||
+            Boolean(o.isReturnFromWp) ||
+            Boolean(oRec.isPaidReturnFromWp) ||
+            String(o['Delivery Status'] || oRec.wpDeliveryStatus || '').toLowerCase().includes('return') ||
+            String(oRec.status || '').toLowerCase().includes('return') ||
+            String(cStatus).toLowerCase().includes('return');
+          if (!isRet) return false;
         } else {
           const cStatus = o['Courier Status'] || o.courierStatus || 'Untracked';
           if (cStatus !== courierFilter) return false;
@@ -3333,7 +3337,9 @@ export function LiveOpsTab({
                                         <th className="py-2 px-3 text-center">Collection</th>
                                         <th className="py-2 px-3 text-center">SIP Inventory</th>
                                         <th className="py-2 px-3 text-center">Qty</th>
-                                        <th className="py-2 px-3 text-right">Unit Price</th>
+                                        <th className="py-2 px-3 text-right">Sale Price</th>
+                                        <th className="py-2 px-3 text-right">COGS</th>
+                                        <th className="py-2 px-3 text-right">Margin %</th>
                                         <th className="py-2 px-3 text-right">Subtotal</th>
                                       </tr>
                                     </thead>
@@ -3366,8 +3372,47 @@ export function LiveOpsTab({
                                           <td className="py-2 px-3 text-center font-bold text-slate-900 dark:text-white">
                                             {item.quantity}
                                           </td>
-                                          <td className="py-2 px-3 text-right text-slate-600 dark:text-slate-400 font-mono">
+                                          <td className="py-2 px-3 text-right text-slate-800 dark:text-slate-200 font-mono font-semibold">
                                             ৳ {item.itemCost.toLocaleString()}
+                                          </td>
+                                          <td className="py-2 px-3 text-right font-mono text-slate-600 dark:text-slate-400">
+                                            {(() => {
+                                              const cInfo = getItemCogsInfo(item.sku, item.itemCost);
+                                              const itemCogs = item.cogs > 0 ? item.cogs : cInfo.cogs;
+                                              const isExact = item.isExactCogs || cInfo.isExact;
+                                              return (
+                                                <span className="inline-flex items-center justify-end gap-1">
+                                                  <span className="font-medium">৳ {itemCogs.toLocaleString()}</span>
+                                                  {isExact && (
+                                                    <span
+                                                      className="text-[8.5px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded px-1"
+                                                      title="Exact buying price from WooCommerce REST API"
+                                                    >
+                                                      WC
+                                                    </span>
+                                                  )}
+                                                </span>
+                                              );
+                                            })()}
+                                          </td>
+                                          <td className="py-2 px-3 text-right font-mono">
+                                            {(() => {
+                                              const cInfo = getItemCogsInfo(item.sku, item.itemCost);
+                                              const itemMargin = item.marginPercent > 0 ? item.marginPercent : cInfo.marginPercent;
+                                              return (
+                                                <span
+                                                  className={`text-[11px] font-bold ${
+                                                    itemMargin >= 50
+                                                      ? 'text-emerald-600 dark:text-emerald-400'
+                                                      : itemMargin >= 35
+                                                      ? 'text-blue-600 dark:text-blue-400'
+                                                      : 'text-amber-600 dark:text-amber-400'
+                                                  }`}
+                                                >
+                                                  {itemMargin}%
+                                                </span>
+                                              );
+                                            })()}
                                           </td>
                                           <td className="py-2 px-3 text-right font-black text-slate-900 dark:text-white font-mono">
                                             ৳ {item.amount.toLocaleString()}
@@ -3576,7 +3621,28 @@ export function LiveOpsTab({
                           {qty}
                         </td>
                         <td className="py-2.5 px-3.5 text-right font-medium text-slate-600 dark:text-slate-300">
-                          ৳ {itemCost.toLocaleString()}
+                          <div className="font-bold text-slate-800 dark:text-white">
+                            ৳ {itemCost.toLocaleString()}
+                          </div>
+                          {(() => {
+                            const cInfo = getItemCogsInfo(sku, itemCost);
+                            return (
+                              <div className="text-[10px] text-slate-400 font-mono flex items-center justify-end gap-1 mt-0.5">
+                                <span>COGS: ৳{cInfo.cogs.toLocaleString()}</span>
+                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                                  ({cInfo.marginPercent}%)
+                                </span>
+                                {cInfo.isExact && (
+                                  <span
+                                    className="text-[8px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded px-0.5"
+                                    title="Exact buying price from WooCommerce REST API"
+                                  >
+                                    WC
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="py-2.5 px-3.5 text-right font-black text-slate-900 dark:text-white">
                           ৳ {orderAmt.toLocaleString()}

@@ -247,5 +247,85 @@ describe('Product Analytics Engine', () => {
       expect(result.summary.totalProducts).toBe(0);
       expect(result.summary.totalOrdersCount).toBe(0);
     });
+
+    it('computes exact COGS and gross profit when WooCommerce COGS map is provided', () => {
+      const orderWithExactSku: ReconciledOrderRow[] = [
+        {
+          orderId: '2001',
+          lineStatus: 'Primary Item',
+          deliveryStatus: 'Delivered',
+          orderCategory: 'DELIVERED',
+          orderDate: new Date('2026-10-01'),
+          customerName: 'Test Buyer',
+          phone: '01700000000',
+          city: 'Dhaka',
+          districtArea: 'Inside Dhaka',
+          sku: '109-0102-085', // DEEN Black Bifold Wallet
+          itemName: 'DEEN Black Bifold Wallet',
+          quantity: 2,
+          itemCost: 950,
+          orderAmount: 1900,
+          netRevenueImpact: 1900,
+          paymentMethod: 'COD',
+          hasSplitSuffix: false,
+          cogsEstimate: 800,
+        },
+      ];
+
+      // Provide exact COGS (৳450 per wallet, so 2 units = ৳900 COGS)
+      const result = computeProductAnalytics(orderWithExactSku, {
+        cogsMap: {
+          '109-0102-085': 450,
+        },
+      });
+
+      const wallet = result.products.find((p) => p.title === 'DEEN Black Bifold Wallet');
+      expect(wallet).toBeDefined();
+      expect(wallet!.deliveredRevenue).toBe(1900);
+      expect(wallet!.estimatedCogs).toBe(900); // 2 * 450 = 900
+      expect(wallet!.grossProfit).toBe(1000); // 1900 - 900 = 1000
+      expect(wallet!.grossMarginPercent).toBe(52.6); // (1000 / 1900) * 100 = 52.6%
+      expect(wallet!.hasExactCogs).toBe(true);
+      expect(wallet!.cogsSource).toBe('EXACT_WOOCOMMERCE');
+    });
+
+    it('falls back cleanly to default cogsPercent when SKU is not in COGS map', () => {
+      const orderWithoutSku: ReconciledOrderRow[] = [
+        {
+          orderId: '2002',
+          lineStatus: 'Primary Item',
+          deliveryStatus: 'Delivered',
+          orderCategory: 'DELIVERED',
+          orderDate: new Date('2026-10-01'),
+          customerName: 'Test Buyer 2',
+          phone: '01700000001',
+          city: 'Dhaka',
+          districtArea: 'Inside Dhaka',
+          sku: 'UNKNOWN-LEGACY-SKU',
+          itemName: 'DEEN Legacy Shirt - M',
+          quantity: 1,
+          itemCost: 1000,
+          orderAmount: 1000,
+          netRevenueImpact: 1000,
+          paymentMethod: 'COD',
+          hasSplitSuffix: false,
+          cogsEstimate: 420,
+        },
+      ];
+
+      const result = computeProductAnalytics(orderWithoutSku, {
+        cogsPercent: 40,
+        cogsMap: {},
+      });
+
+      const shirt = result.products.find((p) => p.title === 'DEEN Legacy Shirt');
+      expect(shirt).toBeDefined();
+      expect(shirt!.deliveredRevenue).toBe(1000);
+      expect(shirt!.estimatedCogs).toBe(400); // 1000 * 0.40 = 400
+      expect(shirt!.grossProfit).toBe(600); // 1000 - 400 = 600
+      expect(shirt!.grossMarginPercent).toBe(60);
+      expect(shirt!.hasExactCogs).toBe(false);
+      expect(shirt!.cogsSource).toBe('ESTIMATED_BASELINE');
+    });
   });
 });

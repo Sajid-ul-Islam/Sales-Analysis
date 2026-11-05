@@ -132,6 +132,12 @@ export function setCacheItem<T = unknown>(
 
     const serialized = JSON.stringify(envelope);
 
+    // Items larger than 1 MB exceed standard LocalStorage quotas and should persist directly to IndexedDB
+    if (byteSize > 1024 * 1024) {
+      setIndexedDbItem(key, data, ttlMs).catch(() => {});
+      return true;
+    }
+
     try {
       localStorage.setItem(key, serialized);
       if (byteSize > 250 * 1024) {

@@ -457,11 +457,49 @@ export default function DashboardPage() {
 
     // 2. Fetch baseline from local API and cache in browser memory
     try {
+      const storedEtag = typeof window !== 'undefined' ? localStorage.getItem('deen_dataset_etag') : null;
       const res = await fetch('/api/sample-data', {
-        headers: getClientAuthHeaders(),
+        headers: getClientAuthHeaders(storedEtag ? { 'If-None-Match': storedEtag } : undefined),
       });
+
+      // HTTP 304 Not Modified: Cloud dataset is identical to browser cache (0 bytes transferred)
+      if (res.status === 304) {
+        const existingCached = await getIndexedDbItem<DatasetSnapshot>(DEEN_CACHE_KEYS.ACTIVE_DATASET);
+        if (existingCached && existingCached.orders && existingCached.orders.length > 0) {
+          const cached = applySampling(existingCached);
+          setUploadedDataset(cached);
+          setDataSourceMode('UPLOAD');
+          setRawOrders(cached.orders || []);
+          setRawPathaoDelivery(cached.pathaoDelivery || []);
+          setRawReturns(cached.returns || []);
+          setRawPartials(cached.partials || []);
+          setRawExchanges(cached.exchanges || []);
+          const dynamicTitle = cached.sourceName || getDynamicDatasetTitle(cached.orders, 'UPLOAD');
+          setDataSourceName(dynamicTitle);
+          const filtered = filterOrdersByDateScope(cached.orders || [], dateScope, customDateRange);
+          computeReconciliation(
+            filtered.filteredOrders,
+            cached.returns || [],
+            cached.partials || [],
+            excludeAugust,
+            excludePOS,
+            cached.exchanges || [],
+            cached.pathaoDelivery || []
+          );
+          const pathaoInfo = (cached.pathaoDelivery || []).length ? `, ${cached.pathaoDelivery.length} Pathao records` : '';
+          setStatusMessage(`⚡ Restored (304 Verified Fresh): ${filtered.filteredOrders.length.toLocaleString()} orders (${filtered.label})${pathaoInfo}.`);
+          setIsProcessing(false);
+          setInitialLoading(false);
+          return;
+        }
+      }
+
       const data = await res.json();
       if (data.success && data.ordersCount > 0) {
+        const newEtag = res.headers.get('ETag');
+        if (newEtag && typeof window !== 'undefined') {
+          try { localStorage.setItem('deen_dataset_etag', newEtag); } catch {}
+        }
         if (data.provenance) {
           setDataProvenance(data.provenance);
         }

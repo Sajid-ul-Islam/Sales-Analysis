@@ -170,6 +170,19 @@ export function parseOrderDate(val: unknown): Date | null {
       return isNaN(d.getTime()) ? null : d;
     }
 
+    // Pin unzoned ISO date & time strings to Asia/Dhaka (+06:00) to prevent serverless UTC boundary shift
+    if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2})?/.test(trimmed) && !trimmed.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(trimmed)) {
+      const normalized = trimmed.replace(' ', 'T');
+      const d = new Date(`${normalized}+06:00`);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    // Date-only YYYY-MM-DD: parse at midday Dhaka (+06:00) to keep day intact across timezones
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      const d = new Date(`${trimmed}T12:00:00+06:00`);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
     // Standard ISO / JS string parse fallback
     const parsed = new Date(trimmed);
     return isNaN(parsed.getTime()) ? null : parsed;
@@ -184,6 +197,7 @@ export function parseOrderDate(val: unknown): Date | null {
 export function getOrderDate(row: RawOrderRow): Date | null {
   const val = findCol(row, [
     'orderdate', 'order_date', 'date', 'createdat', 'created_at',
+    'date_created', 'datecreated', 'date_modified', 'datemodified',
     'creationdate', 'creation_date', 'ordercreatedat', 'order_created_at',
     'Order Date', 'Date', 'Creation Date'
   ]);
@@ -307,12 +321,13 @@ export function getScopeRange(
     };
   }
 
-  const anchorMs = analysis.anchorDay.getTime();
+  const anchorIso = getDhakaIsoDate(analysis.anchorDay);
+  const { startMs: anchorDayStartMs, endMs: anchorDayEndMs } = getDhakaDayBoundaries(anchorIso);
 
   if (scope === 'today') {
-    const startMs = anchorMs;
-    const endMs = anchorMs + 86400000;
-    const dayStr = analysis.anchorDay.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const startMs = anchorDayStartMs;
+    const endMs = anchorDayEndMs;
+    const dayStr = analysis.anchorDay.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dhaka' });
     return {
       startMs,
       endMs,
@@ -322,10 +337,10 @@ export function getScopeRange(
   }
 
   if (scope === '7d') {
-    const startMs = anchorMs - 6 * 86400000;
-    const endMs = anchorMs + 86400000;
-    const sStr = new Date(startMs).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-    const eStr = analysis.anchorDay.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const startMs = anchorDayStartMs - 6 * 86400000;
+    const endMs = anchorDayEndMs;
+    const sStr = new Date(startMs).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Dhaka' });
+    const eStr = analysis.anchorDay.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dhaka' });
     return {
       startMs,
       endMs,
@@ -335,10 +350,10 @@ export function getScopeRange(
   }
 
   if (scope === '30d') {
-    const startMs = anchorMs - 29 * 86400000;
-    const endMs = anchorMs + 86400000;
-    const sStr = new Date(startMs).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-    const eStr = analysis.anchorDay.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const startMs = anchorDayStartMs - 29 * 86400000;
+    const endMs = anchorDayEndMs;
+    const sStr = new Date(startMs).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Dhaka' });
+    const eStr = analysis.anchorDay.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dhaka' });
     return {
       startMs,
       endMs,
@@ -350,22 +365,26 @@ export function getScopeRange(
   if (scope === 'month') {
     const target = analysis.activeYearMonth || analysis.dominantYearMonth;
     const { year, month } = target;
-    const mStart = new Date(year, month, 1);
-    const mEnd = new Date(year, month + 1, 1);
-    const monthName = mStart.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    const mStartIso = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+    const mStartMs = new Date(`${mStartIso}T00:00:00+06:00`).getTime();
+    const nextYear = month === 11 ? year + 1 : year;
+    const nextMonth = month === 11 ? 0 : month + 1;
+    const mNextIso = `${nextYear}-${String(nextMonth + 1).padStart(2, '0')}-01`;
+    const mEndMs = new Date(`${mNextIso}T00:00:00+06:00`).getTime();
+    const monthName = new Date(year, month, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'Asia/Dhaka' });
     return {
-      startMs: mStart.getTime(),
-      endMs: mEnd.getTime(),
+      startMs: mStartMs,
+      endMs: mEndMs,
       label: 'This Month',
       subLabel: monthName,
     };
   }
 
   if (scope === '90d') {
-    const startMs = anchorMs - 89 * 86400000;
-    const endMs = anchorMs + 86400000;
-    const sStr = new Date(startMs).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-    const eStr = analysis.anchorDay.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const startMs = anchorDayStartMs - 89 * 86400000;
+    const endMs = anchorDayEndMs;
+    const sStr = new Date(startMs).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Dhaka' });
+    const eStr = analysis.anchorDay.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dhaka' });
     return {
       startMs,
       endMs,
@@ -376,15 +395,15 @@ export function getScopeRange(
 
   if (scope === 'custom') {
     if (customRange?.startDate && customRange?.endDate) {
-      const sDate = new Date(`${customRange.startDate}T00:00:00`);
-      const eDate = new Date(`${customRange.endDate}T23:59:59.999`);
+      const sDate = new Date(`${customRange.startDate}T00:00:00+06:00`);
+      const eDate = new Date(`${customRange.endDate}T23:59:59.999+06:00`);
       const startMs = isNaN(sDate.getTime()) ? 0 : sDate.getTime();
       const endMs = isNaN(eDate.getTime()) ? Infinity : eDate.getTime() + 1;
       const sStr = !isNaN(sDate.getTime())
-        ? sDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+        ? sDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Dhaka' })
         : customRange.startDate;
       const eStr = !isNaN(eDate.getTime())
-        ? eDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+        ? eDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dhaka' })
         : customRange.endDate;
       return {
         startMs,

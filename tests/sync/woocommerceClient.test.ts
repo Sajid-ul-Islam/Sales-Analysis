@@ -468,13 +468,23 @@ describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
   });
 
   describe('detectWordPressStatusMarks', () => {
-    it('detects return status from core WooCommerce statuses (returned, refunded, rto, failed)', () => {
+    it('detects return status from core WooCommerce statuses (returned, refunded, rto)', () => {
       expect(detectWordPressStatusMarks({ status: 'returned' }).isReturnFromWp).toBe(true);
       expect(detectWordPressStatusMarks({ status: 'wc-returned' }).isReturnFromWp).toBe(true);
       expect(detectWordPressStatusMarks({ status: 'refunded' }).isReturnFromWp).toBe(true);
-      expect(detectWordPressStatusMarks({ status: 'failed' }).isReturnFromWp).toBe(true);
-      expect(detectWordPressStatusMarks({ status: 'cancelled' }).isReturnFromWp).toBe(true);
       expect(detectWordPressStatusMarks({ status: 'rto' }).isReturnFromWp).toBe(true);
+    });
+
+    it('identifies cancelled orders as Cancelled and strictly not as returns', () => {
+      const resCancelled = detectWordPressStatusMarks({ status: 'cancelled' });
+      expect(resCancelled.isReturnFromWp).toBe(false);
+      expect(resCancelled.isCancelledFromWp).toBe(true);
+      expect(resCancelled.wpDeliveryStatus).toBe('Cancelled');
+
+      const resWcCancelled = detectWordPressStatusMarks({ status: 'wc-cancelled' });
+      expect(resWcCancelled.isReturnFromWp).toBe(false);
+      expect(resWcCancelled.isCancelledFromWp).toBe(true);
+      expect(resWcCancelled.wpDeliveryStatus).toBe('Cancelled');
     });
 
     it('detects partial delivery from WooCommerce status and Pathao plugin meta', () => {
@@ -503,6 +513,64 @@ describe('WooCommerce Real-Time Order Client & Data Transformation', () => {
       );
       expect(res2.isExchangeFromWp).toBe(true);
       expect(res2.wpDeliveryStatus).toBe('Exchange');
+    });
+
+    it('detects SIP plugin exchange replacement orders and original replaced orders', () => {
+      // 1. Replacement order created via sip_exchange
+      const resReplacement = detectWordPressStatusMarks(
+        { status: 'completed', created_via: 'sip_exchange' },
+        [
+          { key: '_sip_exchange_code', value: 'RET-CBB79D' },
+          { key: '_sip_exchange_of', value: '19437' },
+          { key: '_sip_exchange_order', value: '1' },
+        ]
+      );
+      expect(resReplacement.isExchangeFromWp).toBe(true);
+      expect(resReplacement.wpDeliveryStatus).toBe('Exchange');
+      expect(resReplacement.wpMarkSource).toBe('custom_status_meta');
+      expect(resReplacement.wpMarkReason).toContain('19437');
+
+      // 2. Parent original order marked with _sip_replacement_orders
+      const resOriginal = detectWordPressStatusMarks(
+        { status: 'completed', created_via: 'checkout' },
+        [
+          { key: '_sip_replacement_orders', value: [19525] },
+        ]
+      );
+      expect(resOriginal.isExchangeFromWp).toBe(true);
+      expect(resOriginal.wpDeliveryStatus).toBe('Exchange');
+      expect(resOriginal.wpMarkSource).toBe('custom_status_meta');
+      expect(resOriginal.wpMarkReason).toContain('19525');
+
+      // 3. Online exchange walk-in note
+      const resPosExchange = detectWordPressStatusMarks({
+        status: 'completed',
+        customer_note: 'Online exchange - 18437',
+      });
+      expect(resPosExchange.isExchangeFromWp).toBe(true);
+      expect(resPosExchange.wpDeliveryStatus).toBe('Exchange');
+    });
+
+    it('detects full and partial order refunds from WooCommerce refunds array', () => {
+      // Full refund
+      const resFullRefund = detectWordPressStatusMarks({
+        status: 'completed',
+        total: '3500',
+        refunds: [{ id: 1, total: '-3500' }],
+      });
+      expect(resFullRefund.isReturnFromWp).toBe(true);
+      expect(resFullRefund.wpDeliveryStatus).toBe('Not Paid Return');
+      expect(resFullRefund.wpMarkReason).toContain('Fully refunded in WooCommerce');
+
+      // Partial refund
+      const resPartialRefund = detectWordPressStatusMarks({
+        status: 'completed',
+        total: '3500',
+        refunds: [{ id: 2, total: '-1500' }],
+      });
+      expect(resPartialRefund.isPartialFromWp).toBe(true);
+      expect(resPartialRefund.wpDeliveryStatus).toBe('Partial');
+      expect(resPartialRefund.wpMarkReason).toContain('Partially refunded in WooCommerce');
     });
 
     it('detects return and partial from staff order notes', () => {

@@ -433,7 +433,7 @@ export function detectCourierDiscrepancy(
   }
 ): { hasDiscrepancy: boolean; type: CourierDiscrepancyType; message?: string } {
   const normWc = String(wcStatus || '').toLowerCase().trim();
-  const isWpReturn = options?.isReturnFromWp || /^(returned|refunded|failed|cancelled|canceled|rto)$/i.test(normWc);
+  const isWpReturn = options?.isReturnFromWp || /^(returned|refunded|rto)$/i.test(normWc);
 
   // 1. Critical Discrepancy: WooCommerce considers the parcel shipped/completed, but Pathao returned it!
   if (
@@ -1022,7 +1022,19 @@ export async function syncLiveTerminalData(options: {
       };
     }
 
-    const courierStatus: StandardCourierStatus = tracking ? tracking.courierStatus : 'Untracked';
+    const rowRec = row as Record<string, unknown>;
+    const isWpReturn = Boolean(
+      row.isReturnFromWp ||
+      rowRec.isPaidReturnFromWp ||
+      rowRec.wpDeliveryStatus === 'Paid Return' ||
+      rowRec.wpDeliveryStatus === 'Not Paid Return' ||
+      String(row['Delivery Status'] || rowRec.status || '').toLowerCase().includes('return')
+    );
+
+    let courierStatus: StandardCourierStatus = tracking ? tracking.courierStatus : 'Untracked';
+    if (courierStatus === 'Untracked' && isWpReturn) {
+      courierStatus = 'Returned';
+    }
     const effectiveConsId = tracking?.consignmentId || consId || '';
     const collectedAmount = tracking?.collectedAmount || 0;
     const fee = tracking?.deliveryFee || 0;
@@ -1036,7 +1048,6 @@ export async function syncLiveTerminalData(options: {
 
     const wcStatus = String(row['Delivery Status'] || row.status || 'shipped');
     const orderAmount = Number(row['Order Amount'] || row['Item Cost'] || 0);
-    const rowRec = row as Record<string, unknown>;
     const paymentMethod = String(
       row['Payment Method'] ||
       rowRec.payment_method ||

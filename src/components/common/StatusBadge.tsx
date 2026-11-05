@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { CheckCircle2, RotateCcw, Split, ArrowRightLeft } from 'lucide-react';
+import { CheckCircle2, RotateCcw, Split, ArrowRightLeft, XCircle } from 'lucide-react';
 
 export type StandardDeliveryStatus =
   | 'Delivered'
@@ -10,6 +10,7 @@ export type StandardDeliveryStatus =
   | 'Partial'
   | 'Exchange'
   | 'Returned'
+  | 'Cancelled'
   | string;
 
 interface StatusBadgeProps {
@@ -61,6 +62,10 @@ export function StatusBadge({
     label = 'Returned';
     badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
     Icon = RotateCcw;
+  } else if (norm.includes('cancel')) {
+    label = 'Cancelled';
+    badgeColor = 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+    Icon = XCircle;
   } else if (norm.includes('deliver') || norm.includes('kept')) {
     label = 'Delivered';
     badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';

@@ -13,6 +13,7 @@
 
 import { ReconciledOrderRow } from '@/types';
 import { classifyProductCategory } from './reconciliationEngine';
+import wcSkuCogsData from '@/data/wc-sku-cogs.json';
 
 export interface ProductPricePoint {
   price: number;
@@ -84,6 +85,9 @@ export interface ProductAnalyticsItem {
   estimatedCogs: number;
   grossProfit: number;
   grossMarginPercent: number;
+  cogsSource?: 'EXACT_WOOCOMMERCE' | 'ESTIMATED_BASELINE' | 'HYBRID';
+  hasExactCogs?: boolean;
+  exactCogsUnits?: number;
   pricePoints: ProductPricePoint[];
   sizes: ProductSizeDistribution[];
   variationsCount: number;
@@ -189,18 +193,23 @@ export function extractProductAndSize(itemName: string): { parentTitle: string; 
   return { parentTitle: clean, size: '' };
 }
 
+export interface ComputeProductAnalyticsOptions {
+  cogsPercent?: number;
+  dateScopeDays?: number;
+  cogsMap?: Record<string, number>;
+  wcCogsData?: typeof wcSkuCogsData;
+}
+
 /**
  * Core Product Analytics Calculation Engine
  */
 export function computeProductAnalytics(
   orders: ReconciledOrderRow[],
-  options: {
-    cogsPercent?: number;
-    dateScopeDays?: number;
-  } = {}
+  options: ComputeProductAnalyticsOptions = {}
 ): ProductAnalysisResult {
   const cogsRate = (options.cogsPercent !== undefined ? options.cogsPercent : 42) / 100;
   const daysInScope = Math.max(1, options.dateScopeDays || 30);
+  const activeCogsData = options.wcCogsData || (wcSkuCogsData as any);
 
   if (!orders || orders.length === 0) {
     return {
@@ -276,6 +285,9 @@ export function computeProductAnalytics(
     deliveredRevenue: number;
     totalGrossRevenue: number;
     totalReturnLoss: number;
+    exactDeliveredCogs: number;
+    estimatedDeliveredCogs: number;
+    exactCogsUnits: number;
     orderIds: Set<string>;
   }
 
@@ -348,6 +360,9 @@ export function computeProductAnalytics(
         deliveredRevenue: 0,
         totalGrossRevenue: 0,
         totalReturnLoss: 0,
+        exactDeliveredCogs: 0,
+        estimatedDeliveredCogs: 0,
+        exactCogsUnits: 0,
         orderIds: new Set<string>(),
       });
     }
@@ -410,6 +425,35 @@ export function computeProductAnalytics(
       retUnits = qty;
       p.totalReturnedUnits += qty;
       p.totalReturnLoss += qty * price;
+    }
+
+    // COGS & Gross Profit Accounting (Exact WooCommerce Buying Price with Fallback)
+    if (delUnits > 0) {
+      let unitCogs: number | null = null;
+      const sku = (r.sku || '').trim();
+
+      if (options.cogsMap && sku && options.cogsMap[sku] !== undefined) {
+        unitCogs = options.cogsMap[sku];
+      } else if (activeCogsData?.bySku && sku && activeCogsData.bySku[sku]?.cogs) {
+        unitCogs = activeCogsData.bySku[sku].cogs;
+      } else if (activeCogsData?.byId) {
+        const prodId = String((r as any).productId || '').trim();
+        const varId = String((r as any).variationId || '').trim();
+        if (prodId && varId && activeCogsData.byId[`${prodId}:${varId}`]?.cogs) {
+          unitCogs = activeCogsData.byId[`${prodId}:${varId}`].cogs;
+        } else if (varId && activeCogsData.byId[varId]?.cogs) {
+          unitCogs = activeCogsData.byId[varId].cogs;
+        } else if (prodId && activeCogsData.byId[prodId]?.cogs) {
+          unitCogs = activeCogsData.byId[prodId].cogs;
+        }
+      }
+
+      if (unitCogs !== null && unitCogs > 0) {
+        p.exactDeliveredCogs += delUnits * unitCogs;
+        p.exactCogsUnits += delUnits;
+      } else {
+        p.estimatedDeliveredCogs += Math.round(netRev * cogsRate);
+      }
     }
 
     // Price point indexing
@@ -630,9 +674,17 @@ export function computeProductAnalytics(
     const returnRate = p.totalGrossUnits > 0 ? Number(((p.totalReturnedUnits / p.totalGrossUnits) * 100).toFixed(1)) : 0;
 
     // COGS & Gross Profit
-    const estimatedCogs = Math.round(p.deliveredRevenue * cogsRate);
-    const grossProfit = p.deliveredRevenue - estimatedCogs;
+    const estimatedCogs = p.exactCogsUnits > 0 || p.estimatedDeliveredCogs > 0
+      ? Math.round(p.exactDeliveredCogs + p.estimatedDeliveredCogs)
+      : Math.round(p.deliveredRevenue * cogsRate);
+    const grossProfit = Math.round(p.deliveredRevenue - estimatedCogs);
     const grossMarginPercent = p.deliveredRevenue > 0 ? Number(((grossProfit / p.deliveredRevenue) * 100).toFixed(1)) : 0;
+    const hasExactCogs = p.exactCogsUnits > 0;
+    const cogsSource = p.exactCogsUnits === p.totalDeliveredUnits && p.totalDeliveredUnits > 0
+      ? 'EXACT_WOOCOMMERCE'
+      : p.exactCogsUnits > 0
+      ? 'HYBRID'
+      : 'ESTIMATED_BASELINE';
 
     // Sales Velocity
     const dailyVelocity = Number((p.totalGrossUnits / daysInScope).toFixed(2));
@@ -658,6 +710,9 @@ export function computeProductAnalytics(
       estimatedCogs,
       grossProfit,
       grossMarginPercent,
+      hasExactCogs,
+      cogsSource,
+      exactCogsUnits: p.exactCogsUnits,
       pricePoints,
       sizes,
       variationsCount: sizes.length,

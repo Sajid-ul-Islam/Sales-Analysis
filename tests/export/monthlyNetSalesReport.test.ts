@@ -362,4 +362,53 @@ describe('Monthly Net Sales Report (.xlsx) Export Engine', () => {
     expect(cumillaNode).toBeDefined();
     expect(cumillaNode!['Net Realized Sales (BDT)']).toBe(1400);
   });
+
+  it('orders columns according to canonical sequence: Headers -> Category -> Sub-Category -> SIP -> Collection -> Item Name -> SKU -> Qty -> Unit Price -> Total Price -> Unit COGS -> Total COGS -> Unit MRP', () => {
+    const mockResult = createMockReconciliationResult();
+    const wb = buildMonthlyNetSalesWorkbook(mockResult, { monthLabel: 'October 2026' });
+
+    const commercialSheet = wb.Sheets['Commercial Orders Ledger'];
+    const rows = XLSX.utils.sheet_to_json(commercialSheet);
+    expect(rows.length).toBeGreaterThan(0);
+
+    const firstRow = rows[0];
+    const keys = Object.keys(firstRow);
+
+    const catIdx = keys.indexOf('Category');
+    const subCatIdx = keys.indexOf('Sub-Category');
+    const sipIdx = keys.indexOf('SIP Inventory Origin');
+    const colLineIdx = keys.indexOf('Collection Line');
+    const itemIdx = keys.indexOf('Product Description');
+    const skuIdx = keys.indexOf('SKU');
+    const qtyIdx = keys.indexOf('Quantity');
+    const unitPriceIdx = keys.indexOf('Unit Price (BDT)');
+    const totalPriceIdx = keys.indexOf('Total Price (BDT)');
+    const unitCogsIdx = keys.indexOf('Unit COGS (BDT)');
+    const totalCogsIdx = keys.indexOf('Total COGS (BDT)');
+    const unitMrpIdx = keys.indexOf('Unit MRP (BDT)');
+
+    // 1. Category -> Sub-Category -> SIP Inventory -> Collection Line -> Item Name
+    expect(catIdx).toBeGreaterThan(-1);
+    expect(subCatIdx).toBe(catIdx + 1);
+    expect(sipIdx).toBe(subCatIdx + 1);
+    expect(colLineIdx).toBe(sipIdx + 1);
+    expect(itemIdx).toBe(colLineIdx + 1);
+
+    // 2. SKU immediately followed by Quantity
+    expect(skuIdx).toBe(itemIdx + 1);
+    expect(qtyIdx).toBe(skuIdx + 1);
+
+    // 3. Unit Price -> Total Price -> Unit COGS -> Total COGS -> Unit MRP
+    expect(unitPriceIdx).toBe(qtyIdx + 1);
+    expect(totalPriceIdx).toBe(unitPriceIdx + 1);
+    expect(unitCogsIdx).toBe(totalPriceIdx + 1);
+    expect(totalCogsIdx).toBe(unitCogsIdx + 1);
+    expect(unitMrpIdx).toBe(totalCogsIdx + 1);
+
+    expect(firstRow['Unit Price (BDT)']).toBeDefined();
+    expect(firstRow['Total Price (BDT)']).toBeDefined();
+    expect(firstRow['Unit COGS (BDT)']).toBeDefined();
+    expect(firstRow['Total COGS (BDT)']).toBeDefined();
+    expect(firstRow['Unit MRP (BDT)']).toBeDefined();
+  });
 });

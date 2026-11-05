@@ -1456,6 +1456,58 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(report.shippedItems.rawValue).toBe(2);
       expect(report.salesRevenue.rawValue).toBe(4000); // 1500 + 2500
     });
+
+    it('detects returned marked orders in live terminal and everyday dispatch ledger', () => {
+      const targetDate = '2026-11-04';
+      const returnedOrder: RawOrderRow = {
+        'Order ID': '16048',
+        orderId: '16048',
+        'Order Date': '2026-10-22 10:00:00',
+        'Date Completed': '2026-10-25 12:00:00',
+        'Date Modified': `${targetDate} 12:52:00`,
+        'Delivery Status': 'Paid Return',
+        status: 'cancelled',
+        wpDeliveryStatus: 'Paid Return',
+        isReturnFromWp: true,
+        'Courier Status': 'Returned',
+        courierStatus: 'Returned',
+        'Consignment ID': 'RD290926W5BWHU',
+        consignmentId: 'RD290926W5BWHU',
+        'Created Via': 'checkout',
+        'Item Cost': 2100,
+        Quantity: 1,
+      };
+
+      // 1. Shipped/returned on date matching
+      expect(isOrderShippedToday(returnedOrder, targetDate)).toBe(true);
+      expect(isOrderShippedOnDate(returnedOrder, targetDate)).toBe(true);
+      // Historical original dispatch date
+      expect(isOrderShippedOnDate(returnedOrder, '2026-10-25')).toBe(true);
+      expect(isTodayOrdersEligible(returnedOrder, targetDate)).toBe(true);
+
+      // 2. Pre-dispatch cancellation without return marks or consignment should NOT be eligible
+      const preDispatchCancelledOrder: RawOrderRow = {
+        'Order ID': '17050',
+        orderId: '17050',
+        'Order Date': `${targetDate} 09:00:00`,
+        'Date Modified': `${targetDate} 09:30:00`,
+        'Delivery Status': 'cancelled',
+        status: 'cancelled',
+        'Created Via': 'checkout',
+      };
+      expect(isOrderShippedToday(preDispatchCancelledOrder, targetDate)).toBe(false);
+      expect(isTodayOrdersEligible(preDispatchCancelledOrder, targetDate)).toBe(false);
+
+      // 3. Process in LiveOps report
+      const report = processLiveOpsData([returnedOrder], {
+        view: 'Today Shipped',
+        anchorDate: targetDate,
+        customDate: targetDate,
+      });
+
+      expect(report.activeOrders).toHaveLength(1);
+      expect(report.activeOrders[0].orderId).toBe('16048');
+    });
   });
 });
 

@@ -56,7 +56,7 @@ export function DateRangeSelector({
   minDateIso,
   maxDateIso,
   fileWeeks: _fileWeeks,
-  availableMonths: _availableMonths,
+  availableMonths,
   onOpenComparison,
   onSyncWooCommerce,
   isSyncing = false,
@@ -366,6 +366,48 @@ export function DateRangeSelector({
                 </div>
               )}
 
+              {/* 1-Click Selectable Calendar Months from Dataset */}
+              {availableMonths && availableMonths.length > 0 && (
+                <div className="pt-2 mt-2 border-t border-slate-200/60 dark:border-[#1F1F1F]">
+                  <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 py-1 select-none flex items-center justify-between">
+                    <span>Months</span>
+                    <span className="text-[8px] font-mono font-bold text-slate-400">{availableMonths.length}</span>
+                  </div>
+                  <div className="space-y-0.5">
+                    {availableMonths.slice(0, 4).map((m) => {
+                      const isMonthActive = activeScope === 'custom' && customRange?.startDate === m.startDate && customRange?.endDate === m.endDate;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => {
+                            onScopeChange('custom', { startDate: m.startDate, endDate: m.endDate, label: m.label });
+                            setIsOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left text-xs transition-colors cursor-pointer ${
+                            isMonthActive
+                              ? 'bg-primary text-white font-bold shadow-xs'
+                              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#161616] font-medium'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 truncate">
+                            {isMonthActive ? (
+                              <Check className="w-3.5 h-3.5 text-white shrink-0" />
+                            ) : (
+                              <span className="w-3.5 h-3.5 shrink-0" />
+                            )}
+                            <span className="truncate">{m.shortLabel}</span>
+                          </div>
+                          <span className={`text-[10px] font-mono px-1 rounded shrink-0 ${isMonthActive ? 'text-white/80' : 'text-slate-400'}`}>
+                            {m.orderCount.toLocaleString()}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Compare Periods Button (if enabled) */}
               {onOpenComparison && (
                 <div className="pt-2 mt-2 border-t border-slate-200/60 dark:border-[#1F1F1F]">
@@ -428,6 +470,21 @@ export function DateRangeSelector({
                   >
                     This Month
                   </button>
+                  {availableMonths && availableMonths.length > 0 && availableMonths.slice(0, 2).map((m) => (
+                    <button
+                      key={`chip-${m.id}`}
+                      type="button"
+                      onClick={() => {
+                        setStartInput(m.startDate);
+                        setEndInput(m.endDate);
+                        setCustomError(null);
+                      }}
+                      className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/60 text-primary transition-colors cursor-pointer border border-orange-200/60 dark:border-orange-800/60"
+                      title={`Quick fill ${m.label} (${m.orderCount} orders)`}
+                    >
+                      {m.shortLabel}
+                    </button>
+                  ))}
                 </div>
 
                 {/* Form Inputs: Start Date & End Date */}

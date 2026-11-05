@@ -1,6 +1,6 @@
 export type LocationType = 'Inside Dhaka' | 'Outside Dhaka' | 'Outlet / POS';
 
-export type DeliveryCategory = 'DELIVERED' | 'PARTIAL' | 'FULL_RETURN' | 'EXCHANGE';
+export type DeliveryCategory = 'DELIVERED' | 'PARTIAL' | 'FULL_RETURN' | 'EXCHANGE' | 'CANCELLED';
 
 export type UserRole = 'ADMIN' | 'MANAGER' | 'STAFF' | 'OPERATOR' | 'AUDITOR';
 export type OutletScope = 'ALL' | 'MIRPUR' | 'CUMILLA' | 'WARI' | 'SYLHET' | 'ONLINE';
@@ -14,8 +14,8 @@ export interface ReconciledOrderRow {
   lineStatus: string; // 'Primary Item (Unique Order)' | 'Additional Item (Multi-Item Order)'
   deliveryStatus: string;
   orderCategory: DeliveryCategory;
-  orderDeliveryStatus?: 'Delivered' | 'Paid Return' | 'Not Paid Return' | 'Exchange' | 'Partial';
-  itemDeliveryStatus?: 'Delivered' | 'Returned' | 'Exchange';
+  orderDeliveryStatus?: 'Delivered' | 'Paid Return' | 'Not Paid Return' | 'Exchange' | 'Partial' | 'Cancelled';
+  itemDeliveryStatus?: 'Delivered' | 'Returned' | 'Exchange' | 'Cancelled';
   orderDate: Date | null;
   customerName: string;
   phone: string;
@@ -42,7 +42,7 @@ export interface ReconciledOrderRow {
   decisionEvidence?: import('@/lib/subsetSumAuditor').DecisionEvidence; // Explainable evidence trail for the reconciliation outcome
   rawCustomerName?: string;
   rawPhone?: string;
-  wpDeliveryStatus?: 'Delivered' | 'Paid Return' | 'Not Paid Return' | 'Exchange' | 'Partial';
+  wpDeliveryStatus?: 'Delivered' | 'Paid Return' | 'Not Paid Return' | 'Exchange' | 'Partial' | 'Cancelled';
   wpMarkSource?: 'wc_status' | 'pathao_plugin' | 'custom_status_meta' | 'order_note' | 'webhook' | null;
   pathaoPluginStatus?: string;
   pathaoCollectedAmount?: number;
@@ -54,6 +54,7 @@ export interface ReconciledOrderRow {
   isExchangeFromWp?: boolean;
   /** True when the return is paid (collected_amount > 0 or status notes indicate paid return) */
   isPaidReturnFromWp?: boolean;
+  isCancelledFromWp?: boolean;
 }
 
 export interface ReturnedItemRow {
@@ -137,6 +138,7 @@ export interface SummaryAnalytics {
   netDeliveredOrders?: number;
   partialOrders: number;
   fullReturnedOrders: number;
+  cancelledOrders?: number;
   totalReturnedOrders: number;
   totalPartialProducts: number;
   regularReturnedQty: number;

@@ -304,8 +304,8 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
         body: JSON.stringify({
           startDate,
           endDate,
-          limit: 35,
-          consignmentIds: activeOrders?.map(o => String(o.consignmentId || o.trackingId || o['Consignment ID'] || '')).filter(Boolean).slice(0, 40),
+          limit: 100,
+          consignmentIds: activeOrders?.map(o => String(o.consignmentId || o.trackingId || o['Consignment ID'] || '')).filter(Boolean).slice(0, 100),
           credentials: creds.pathao,
         }),
       });
@@ -359,7 +359,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
           status: orderStatus,
           perPage: 100,
           fetchAllPages: true,
-          maxPages: 3,
+          maxPages: 15,
           credentials: creds.wc,
         }),
       });
@@ -438,7 +438,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
             status: orderStatus,
             perPage: 100,
             fetchAllPages: true,
-            maxPages: 3,
+            maxPages: 15,
             credentials: creds.wc,
           }),
         }).then(r => r.json());
@@ -467,8 +467,8 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
           body: JSON.stringify({
             startDate,
             endDate,
-            limit: 35,
-            consignmentIds: ordersForPathao.map(o => String(o.consignmentId || o.trackingId || o['Consignment ID'] || '')).filter(Boolean).slice(0, 40),
+            limit: 100,
+            consignmentIds: ordersForPathao.map(o => String(o.consignmentId || o.trackingId || o['Consignment ID'] || '')).filter(Boolean).slice(0, 100),
             credentials: creds.pathao,
           }),
         }).then(r => r.json());

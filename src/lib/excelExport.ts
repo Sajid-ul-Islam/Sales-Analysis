@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import { ReconciliationResult } from './reconciliationEngine';
-import { cleanCustomerPhone } from './woocommerceClient';
+import { cleanCustomerPhone, getItemCogsInfo } from './woocommerceClient';
 import { RawOrderRow } from '@/types';
 import {
   isOrderExchange,
@@ -287,6 +287,22 @@ export function exportReconciledExcel(
       'Delivered'
     );
 
+    const cat = getCategoryForSales(r.itemName);
+    const subCat = getSubCategoryForSales(r.itemName, cat);
+    const collectionLine = classifyProductLine(r.itemName, r.sku, cat) === 'DEEN Selects' ? 'DEEN Selects' : 'DEEN Regular';
+    const sipInventory = String(r.sipInventory || r.fulfillmentLocation || 'Central Warehouse');
+    const rRec = r as unknown as Record<string, unknown>;
+    const unitPrice = Number(r.itemCost) || 0;
+    const cogsInfo = getItemCogsInfo(r.sku, unitPrice, {
+      productId: (rRec.productId || rRec['Product ID'] || rRec.product_id) as string | number,
+      variationId: (rRec.variationId || rRec['Variation ID'] || rRec.variation_id) as string | number,
+    });
+    const qty = Number(r.quantity) || 1;
+    const unitCogs = cogsInfo.cogs;
+    const totalCogs = unitCogs * qty;
+    const totalPrice = unitPrice * qty;
+    const unitMrp = cogsInfo.mrp;
+
     return {
       'Order ID': r.orderId,
       'Order Delivery Status': orderDeliveryStatus,
@@ -298,11 +314,18 @@ export function exportReconciledExcel(
       'Phone': getExportPhoneNumber(r),
       'City': r.city,
       'Territory': r.districtArea,
-      'SKU': r.sku,
+      'Category': cat,
+      'Sub-Category': subCat,
+      'SIP Inventory': sipInventory,
+      'Collection Line': collectionLine,
       'Product Description': r.itemName,
-      'SIP Inventory': String(r.sipInventory || r.fulfillmentLocation || 'Central Warehouse'),
+      'SKU': r.sku,
       'Quantity': r.quantity,
-      'Unit Cost (BDT)': r.itemCost,
+      'Unit Price (BDT)': unitPrice,
+      'Total Price (BDT)': totalPrice,
+      'Unit COGS (BDT)': unitCogs,
+      'Total COGS (BDT)': totalCogs,
+      'Unit MRP (BDT)': unitMrp,
       'Order Total (BDT)': r.orderAmount,
       'Net Revenue Recognized': Math.round(r.netRevenueImpact),
       'Payment Method': r.paymentMethod,
@@ -317,38 +340,72 @@ export function exportReconciledExcel(
   XLSX.utils.book_append_sheet(wb, wsDetails, 'Reconciled Orders');
 
   // 3. SKU Performance Sheet
-  const skuData = result.skuAnalytics.map(i => ({
-    'SKU': i.sku,
-    'Item Name': i.itemName,
-    'Gross Qty Sold': i.grossQty,
-    'Delivered Qty': Math.round(i.deliveredQty),
-    'Returned Qty': Math.round(i.returnedQty),
-    'Return Rate (%)': i.returnRate.toFixed(1) + '%',
-    'Net Delivered Revenue (BDT)': Math.round(i.deliveredRevenue),
-    'Total Return Loss (BDT)': Math.round(i.totalLossFromReturns)
-  }));
+  const skuData = result.skuAnalytics.map(i => {
+    const cat = getCategoryForSales(i.itemName);
+    const unitPrice = i.deliveredQty > 0 ? Math.round(i.deliveredRevenue / i.deliveredQty) : 0;
+    const cogsInfo = getItemCogsInfo(i.sku, unitPrice);
+    const unitCogs = cogsInfo.cogs;
+    const unitMrp = cogsInfo.mrp;
+
+    return {
+      'Category': cat,
+      'Item Name': i.itemName,
+      'SKU': i.sku,
+      'Gross Qty Sold': i.grossQty,
+      'Delivered Qty': Math.round(i.deliveredQty),
+      'Returned Qty': Math.round(i.returnedQty),
+      'Return Rate (%)': i.returnRate.toFixed(1) + '%',
+      'Unit Price (BDT)': unitPrice,
+      'Net Delivered Revenue (BDT)': Math.round(i.deliveredRevenue),
+      'Unit COGS (BDT)': unitCogs,
+      'Total Delivered COGS (BDT)': Math.round(unitCogs * i.deliveredQty),
+      'Unit MRP (BDT)': unitMrp,
+      'Total Return Loss (BDT)': Math.round(i.totalLossFromReturns)
+    };
+  });
   const wsSku = XLSX.utils.json_to_sheet(skuData);
   autoFitSheetColumns(wsSku, skuData);
   XLSX.utils.book_append_sheet(wb, wsSku, 'SKU Performance');
 
   // 4. Item-Wise Returns Sheet (Full Returns + Partial Returned Products - Sorted by Order Number)
   const sortedReturnedItems = [...result.returnedItems].sort(compareOrdersByNumber);
-  const retData = sortedReturnedItems.map(i => ({
-    'Order ID': i.orderId,
-    'Return Source': i.returnSource,
-    'Delivery Status': i.deliveryStatus,
-    'Order Date': i.orderDate ? i.orderDate.toISOString().slice(0, 19).replace('T', ' ') : '',
-    'Customer Name': getExportCustomerName(i),
-    'Phone': getExportPhoneNumber(i),
-    'Territory': i.districtArea,
-    'SKU': i.sku,
-    'Product Description': i.itemName,
-    'SIP Inventory': String(i.sipInventory || 'Central Warehouse'),
-    'Returned Qty': i.quantity,
-    'Unit Price (BDT)': i.itemCost,
-    'Total Returned Value (BDT)': Math.round(i.returnedValue),
-    'Order Total (BDT)': i.orderAmount
-  }));
+  const retData = sortedReturnedItems.map(i => {
+    const cat = getCategoryForSales(i.itemName);
+    const subCat = getSubCategoryForSales(i.itemName, cat);
+    const collectionLine = classifyProductLine(i.itemName, i.sku, cat) === 'DEEN Selects' ? 'DEEN Selects' : 'DEEN Regular';
+    const sipInventory = String(i.sipInventory || 'Central Warehouse');
+    const unitPrice = Number(i.itemCost) || 0;
+    const cogsInfo = getItemCogsInfo(i.sku, unitPrice);
+    const qty = Number(i.quantity) || 1;
+    const unitCogs = cogsInfo.cogs;
+    const totalCogs = unitCogs * qty;
+    const totalPrice = unitPrice * qty;
+    const unitMrp = cogsInfo.mrp;
+
+    return {
+      'Order ID': i.orderId,
+      'Return Source': i.returnSource,
+      'Delivery Status': i.deliveryStatus,
+      'Order Date': i.orderDate ? i.orderDate.toISOString().slice(0, 19).replace('T', ' ') : '',
+      'Customer Name': getExportCustomerName(i),
+      'Phone': getExportPhoneNumber(i),
+      'Territory': i.districtArea,
+      'Category': cat,
+      'Sub-Category': subCat,
+      'SIP Inventory': sipInventory,
+      'Collection Line': collectionLine,
+      'Product Description': i.itemName,
+      'SKU': i.sku,
+      'Returned Qty': i.quantity,
+      'Unit Price (BDT)': unitPrice,
+      'Total Price (BDT)': totalPrice,
+      'Unit COGS (BDT)': unitCogs,
+      'Total COGS (BDT)': totalCogs,
+      'Unit MRP (BDT)': unitMrp,
+      'Total Returned Value (BDT)': Math.round(i.returnedValue),
+      'Order Total (BDT)': i.orderAmount
+    };
+  });
   const wsRet = XLSX.utils.json_to_sheet(retData);
   autoFitSheetColumns(wsRet, retData);
   XLSX.utils.book_append_sheet(wb, wsRet, 'Item-Wise Returns');
@@ -373,23 +430,49 @@ export function exportReconciledExcel(
   // 6. Exchanged Orders Sheet (Sorted by Order Number)
   if (result.exchangedOrders && result.exchangedOrders.length > 0) {
     const sortedExchanges = [...result.exchangedOrders].sort(compareOrdersByNumber);
-    const exchangeData = sortedExchanges.map(e => ({
-      'Order ID': e.orderId,
-      'Raw Order ID': e.rawOrderId,
-      'Consignment ID': e.consignmentId,
-      'Recipient Name': getExportCustomerName(e),
-      'Phone': getExportPhoneNumber(e),
-      'Destination / Address': e.address,
-      'Delivery Status': e.deliveryStatus,
-      'Items Quantity': e.quantity || 1,
-      'Item Description': e.itemDescription || '',
-      'Exchange COD (BDT)': e.codAmount,
-      'Courier Fee (BDT)': e.courierCharge,
-      'Discount (BDT)': e.discount,
-      'Payment Status': e.paymentStatus,
-      'Action / POD': e.actionPod || '',
-      'Matched in Ledger': e.matchedInOrders ? 'Yes' : 'No'
-    }));
+    const exchangeData = sortedExchanges.map(e => {
+      const eRec = e as unknown as Record<string, unknown>;
+      const sku = String(eRec.sku || eRec.SKU || 'N/A');
+      const cat = getCategoryForSales(e.itemDescription || '');
+      const subCat = getSubCategoryForSales(e.itemDescription || '', cat);
+      const collectionLine = classifyProductLine(e.itemDescription || '', sku, cat) === 'DEEN Selects' ? 'DEEN Selects' : 'DEEN Regular';
+      const unitPrice = Number(eRec.unitPrice || eRec.price || eRec.itemCost) || 0;
+      const cogsInfo = getItemCogsInfo(sku, unitPrice);
+      const qty = Number(e.quantity) || 1;
+      const unitCogs = cogsInfo.cogs;
+      const totalCogs = unitCogs * qty;
+      const totalPrice = unitPrice * qty;
+      const unitMrp = cogsInfo.mrp;
+      const sipInventory = String(eRec.sipInventory || eRec.fulfillmentLocation || 'Exchange Replacement');
+
+      return {
+        'Order ID': e.orderId,
+        'Raw Order ID': e.rawOrderId,
+        'Consignment ID': e.consignmentId,
+        'Recipient Name': getExportCustomerName(e),
+        'Phone': getExportPhoneNumber(e),
+        'Destination / Address': e.address,
+        'Delivery Status': e.deliveryStatus,
+        'Category': cat,
+        'Sub-Category': subCat,
+        'SIP Inventory': sipInventory,
+        'Collection Line': collectionLine,
+        'Item Description': e.itemDescription || '',
+        'SKU': sku,
+        'Quantity': qty,
+        'Unit Price (BDT)': unitPrice,
+        'Total Price (BDT)': totalPrice,
+        'Unit COGS (BDT)': unitCogs,
+        'Total COGS (BDT)': totalCogs,
+        'Unit MRP (BDT)': unitMrp,
+        'Exchange COD (BDT)': e.codAmount,
+        'Courier Fee (BDT)': e.courierCharge,
+        'Discount (BDT)': e.discount,
+        'Payment Status': e.paymentStatus,
+        'Action / POD': e.actionPod || '',
+        'Matched in Ledger': e.matchedInOrders ? 'Yes' : 'No'
+      };
+    });
     const wsExchanges = XLSX.utils.json_to_sheet(exchangeData);
     autoFitSheetColumns(wsExchanges, exchangeData);
     XLSX.utils.book_append_sheet(wb, wsExchanges, 'Exchanged Orders');
@@ -421,22 +504,45 @@ export function exportReconciledExcel(
   // 8. AI Audited & Tagged Orders Sheet (Sorted by Order Number)
   const taggedOrders = [...result.reconciledOrders.filter(r => Boolean(r.aiAuditTag))].sort(compareOrdersByNumber);
   if (taggedOrders.length > 0) {
-    const aiAuditData = taggedOrders.map(r => ({
-      'Order ID': r.orderId,
-      'AI Audit Tag': r.aiAuditTag || '',
-      'AI Operational Notes': r.aiAuditNote || '',
-      'Customer Name': getExportCustomerName(r),
-      'Phone': getExportPhoneNumber(r),
-      'City': r.city,
-      'Territory': r.districtArea,
-      'Delivery Status': r.orderDeliveryStatus || r.deliveryStatus,
-      'SKU': r.sku,
-      'Product': r.itemName,
-      'Quantity': r.quantity,
-      'Order Total (BDT)': r.orderAmount,
-      'Net Revenue Recognized (BDT)': Math.round(r.netRevenueImpact),
-      'Fulfillment Branch': r.fulfillmentLocation || 'Online Store (Central Warehouse)'
-    }));
+    const aiAuditData = taggedOrders.map(r => {
+      const cat = getCategoryForSales(r.itemName);
+      const subCat = getSubCategoryForSales(r.itemName, cat);
+      const collectionLine = classifyProductLine(r.itemName, r.sku, cat) === 'DEEN Selects' ? 'DEEN Selects' : 'DEEN Regular';
+      const sipInventory = String(r.sipInventory || r.fulfillmentLocation || 'Central Warehouse');
+      const unitPrice = Number(r.itemCost) || 0;
+      const cogsInfo = getItemCogsInfo(r.sku, unitPrice);
+      const qty = Number(r.quantity) || 1;
+      const unitCogs = cogsInfo.cogs;
+      const totalCogs = unitCogs * qty;
+      const totalPrice = unitPrice * qty;
+      const unitMrp = cogsInfo.mrp;
+
+      return {
+        'Order ID': r.orderId,
+        'AI Audit Tag': r.aiAuditTag || '',
+        'AI Operational Notes': r.aiAuditNote || '',
+        'Customer Name': getExportCustomerName(r),
+        'Phone': getExportPhoneNumber(r),
+        'City': r.city,
+        'Territory': r.districtArea,
+        'Delivery Status': r.orderDeliveryStatus || r.deliveryStatus,
+        'Category': cat,
+        'Sub-Category': subCat,
+        'SIP Inventory': sipInventory,
+        'Collection Line': collectionLine,
+        'Product': r.itemName,
+        'SKU': r.sku,
+        'Quantity': r.quantity,
+        'Unit Price (BDT)': unitPrice,
+        'Total Price (BDT)': totalPrice,
+        'Unit COGS (BDT)': unitCogs,
+        'Total COGS (BDT)': totalCogs,
+        'Unit MRP (BDT)': unitMrp,
+        'Order Total (BDT)': r.orderAmount,
+        'Net Revenue Recognized (BDT)': Math.round(r.netRevenueImpact),
+        'Fulfillment Branch': r.fulfillmentLocation || 'Online Store (Central Warehouse)'
+      };
+    });
     const wsAiAudit = XLSX.utils.json_to_sheet(aiAuditData);
     autoFitSheetColumns(wsAiAudit, aiAuditData);
     XLSX.utils.book_append_sheet(wb, wsAiAudit, 'AI Audited Orders');
@@ -616,6 +722,19 @@ export function buildLiveShippedOrdersWorkbook(
     const cat = getCategoryForSales(itemName);
     const subCat = getSubCategoryForSales(itemName, cat);
     const isSelects = classifyProductLine(itemName, sku, cat) === 'DEEN Selects';
+    const sipInventory = String(o.sipInventory || o.sip_inventory || o['SIP Inventory'] || o.fulfillmentBranch || o['Fulfillment Branch'] || 'Central Warehouse');
+    const qty = Number(o.Quantity ?? o.quantity ?? o.qty) || 1;
+    const unitPrice = Number(o['Item Cost'] ?? o.itemCost ?? o.price) || 0;
+    const orderAmt = Number(o['Order Amount'] ?? o.orderAmount ?? o.amount ?? o.total) || 0;
+    const oRec = o as unknown as Record<string, unknown>;
+    const cogsInfo = getItemCogsInfo(sku, unitPrice, {
+      productId: (oRec.productId || oRec['Product ID'] || oRec.product_id) as string | number,
+      variationId: (oRec.variationId || oRec['Variation ID'] || oRec.variation_id) as string | number,
+    });
+    const unitCogs = cogsInfo.cogs;
+    const totalCogs = unitCogs * qty;
+    const totalPrice = unitPrice * qty;
+    const unitMrp = cogsInfo.mrp;
 
     return {
       'Order ID': o['Order ID'] || o.orderId,
@@ -623,15 +742,19 @@ export function buildLiveShippedOrdersWorkbook(
       'Customer Name': getExportCustomerName(o),
       'Phone': getExportPhoneNumber(o),
       'City': o.City || o.city || 'Dhaka',
-      'Item Name': itemName,
-      'SKU': sku,
       'Category': cat,
       'Sub-Category': subCat,
+      'SIP Inventory': sipInventory,
       'Collection Line': isSelects ? 'DEEN Selects' : 'DEEN Regular',
-      'SIP Inventory': String(o.sipInventory || o.sip_inventory || o['SIP Inventory'] || o.fulfillmentBranch || o['Fulfillment Branch'] || 'Central Warehouse'),
-      'Quantity': Number(o.Quantity ?? o.quantity ?? o.qty) || 1,
-      'Unit Cost (TK)': Number(o['Item Cost'] ?? o.itemCost ?? o.price) || 0,
-      'Order Amount (TK)': Number(o['Order Amount'] ?? o.orderAmount ?? o.amount ?? o.total) || 0,
+      'Item Name': itemName,
+      'SKU': sku,
+      'Quantity': qty,
+      'Unit Price (TK)': unitPrice,
+      'Total Price (TK)': totalPrice,
+      'Unit COGS (TK)': unitCogs,
+      'Total COGS (TK)': totalCogs,
+      'Unit MRP (TK)': unitMrp,
+      'Order Amount (TK)': orderAmt,
       'WooCommerce Status': String(o['Delivery Status'] || (o as Record<string, unknown>).status || 'shipped'),
       'Pathao Courier Status': String(o['Courier Status'] || o.courierStatus || 'Untracked'),
       'Pathao Consignment ID': String(o['Consignment ID'] || o.consignmentId || o.tracking_number || 'N/A'),
@@ -657,6 +780,22 @@ export function buildLiveShippedOrdersWorkbook(
         const info = extractExchangeInfo(o);
         const itemName = String(o['Item Name'] || o.itemName || o.name || '');
         const sku = String(o.SKU || o.sku || '');
+        const cat = getCategoryForSales(itemName);
+        const subCat = getSubCategoryForSales(itemName, cat);
+        const isSelects = classifyProductLine(itemName, sku, cat) === 'DEEN Selects';
+        const sipInventory = String(o.sipInventory || o.sip_inventory || o['SIP Inventory'] || 'Exchange Replacement');
+        const qty = Number(o.Quantity ?? o.quantity ?? o.qty) || 1;
+        const unitPrice = Number(o['Item Cost'] ?? o.itemCost ?? o.price) || 0;
+        const oRec = o as unknown as Record<string, unknown>;
+        const cogsInfo = getItemCogsInfo(sku, unitPrice, {
+          productId: (oRec.productId || oRec['Product ID'] || oRec.product_id) as string | number,
+          variationId: (oRec.variationId || oRec['Variation ID'] || oRec.variation_id) as string | number,
+        });
+        const unitCogs = cogsInfo.cogs;
+        const totalCogs = unitCogs * qty;
+        const totalPrice = unitPrice * qty;
+        const unitMrp = cogsInfo.mrp;
+
         return {
           'Replacement Order ID': o['Order ID'] || o.orderId,
           'Original Order ID': info.referencedOrderId || 'N/A',
@@ -665,10 +804,18 @@ export function buildLiveShippedOrdersWorkbook(
           'Customer Name': getExportCustomerName(o),
           'Phone': getExportPhoneNumber(o),
           'City': o.City || o.city || 'Dhaka',
+          'Category': cat,
+          'Sub-Category': subCat,
+          'SIP Inventory': sipInventory,
+          'Collection Line': isSelects ? 'DEEN Selects' : 'DEEN Regular',
           'Item Name': itemName,
           'SKU': sku,
-          'SIP Inventory': String(o.sipInventory || o.sip_inventory || o['SIP Inventory'] || 'Exchange Replacement'),
-          'Quantity': Number(o.Quantity ?? o.quantity ?? o.qty) || 1,
+          'Quantity': qty,
+          'Unit Price (TK)': unitPrice,
+          'Total Price (TK)': totalPrice,
+          'Unit COGS (TK)': unitCogs,
+          'Total COGS (TK)': totalCogs,
+          'Unit MRP (TK)': unitMrp,
           'Courier Status': String(o['Courier Status'] || o.courierStatus || 'Untracked'),
           'Pathao Consignment ID': String(o['Consignment ID'] || o.consignmentId || o.tracking_number || 'N/A'),
           'Commercial Revenue Recognized': 0, // Invariant: zero revenue inflation
@@ -1031,21 +1178,31 @@ export function buildMonthlyNetSalesWorkbook(
       status = '✅ Healthy Performer';
     }
 
+    const avgPrice = it.deliveredQty > 0 ? Math.round(it.deliveredRevenue / it.deliveredQty) : 0;
+    const cogsInfo = getItemCogsInfo(it.masterSku, avgPrice);
+    const unitCogs = cogsInfo.cogs;
+    const totalDeliveredCogs = unitCogs * it.deliveredQty;
+    const unitMrp = cogsInfo.mrp;
+
     return {
       'Rank': idx + 1,
-      'Master SKU': it.masterSku,
-      'Product Style Name': it.mainName,
       'Category': it.category,
+      'Product Style Name': it.mainName,
+      'Master SKU': it.masterSku,
       'Performance Status': status,
       'Dispatched (Units)': it.grossQty,
       'Delivered (Units)': it.deliveredQty,
       'Returned (Units)': it.returnedQty,
       'Retention Rate (%)': retRate.toFixed(1) + '%',
       'Return Rate (%)': rtoRate.toFixed(1) + '%',
+      'Unit Price (BDT)': avgPrice,
       'Gross Dispatched Sales (BDT)': Math.round(it.deliveredRevenue + it.returnLoss),
       'Return Revenue Loss (BDT)': Math.round(it.returnLoss),
       'Net Realized Revenue (BDT)': Math.round(it.deliveredRevenue),
-      'Avg Realized Unit Price (BDT)': it.deliveredQty > 0 ? Math.round(it.deliveredRevenue / it.deliveredQty) : 0
+      'Unit COGS (BDT)': unitCogs,
+      'Total Delivered COGS (BDT)': totalDeliveredCogs,
+      'Unit MRP (BDT)': unitMrp,
+      'Est. Gross Profit (BDT)': Math.max(0, Math.round(it.deliveredRevenue) - totalDeliveredCogs)
     };
   });
 
@@ -1080,6 +1237,22 @@ export function buildMonthlyNetSalesWorkbook(
       'Delivered'
     );
 
+    const cat = getCategoryForSales(r.itemName);
+    const subCat = getSubCategoryForSales(r.itemName, cat);
+    const collectionLine = classifyProductLine(r.itemName, r.sku, cat) === 'DEEN Selects' ? 'DEEN Selects' : 'DEEN Regular';
+    const sipInventory = String(r.sipInventory || r.fulfillmentLocation || 'Central Warehouse');
+    const unitPrice = Number(r.itemCost) || 0;
+    const rRec = r as unknown as Record<string, unknown>;
+    const cogsInfo = getItemCogsInfo(r.sku, unitPrice, {
+      productId: (rRec.productId || rRec['Product ID'] || rRec.product_id) as string | number,
+      variationId: (rRec.variationId || rRec['Variation ID'] || rRec.variation_id) as string | number,
+    });
+    const qty = Number(r.quantity) || 1;
+    const unitCogs = cogsInfo.cogs;
+    const totalCogs = unitCogs * qty;
+    const totalPrice = unitPrice * qty;
+    const unitMrp = cogsInfo.mrp;
+
     return {
       'Order ID': r.orderId,
       'Order Delivery Status': orderDeliveryStatus,
@@ -1091,11 +1264,18 @@ export function buildMonthlyNetSalesWorkbook(
       'Customer Phone': getExportPhoneNumber(r),
       'City': r.city || 'Dhaka',
       'Territory Area': r.districtArea || 'Inside Dhaka',
-      'SKU': r.sku,
+      'Category': cat,
+      'Sub-Category': subCat,
+      'SIP Inventory Origin': sipInventory,
+      'Collection Line': collectionLine,
       'Product Description': r.itemName,
-      'SIP Inventory Origin': String(r.sipInventory || r.fulfillmentLocation || 'Central Warehouse'),
+      'SKU': r.sku,
       'Quantity': r.quantity,
-      'Unit Cost (BDT)': r.itemCost,
+      'Unit Price (BDT)': unitPrice,
+      'Total Price (BDT)': totalPrice,
+      'Unit COGS (BDT)': unitCogs,
+      'Total COGS (BDT)': totalCogs,
+      'Unit MRP (BDT)': unitMrp,
       'Order Total (BDT)': r.orderAmount,
       'Net Revenue Recognized (BDT)': Math.round(r.netRevenueImpact),
       'Payment Method': r.paymentMethod,
@@ -1112,22 +1292,43 @@ export function buildMonthlyNetSalesWorkbook(
   // SHEET 5: Item-Wise Returns & Partials
   // ==========================================
   const sortedReturns = [...result.returnedItems].sort(compareOrdersByNumber);
-  const returnRows: Record<string, unknown>[] = sortedReturns.map((i) => ({
-    'Order ID': i.orderId,
-    'Return Source': i.returnSource,
-    'Delivery Status': i.deliveryStatus,
-    'Order Date': i.orderDate ? i.orderDate.toISOString().slice(0, 19).replace('T', ' ') : '',
-    'Customer Name': getExportCustomerName(i),
-    'Customer Phone': getExportPhoneNumber(i),
-    'Territory Area': i.districtArea,
-    'SKU': i.sku,
-    'Product Description': i.itemName,
-    'SIP Inventory Origin': String(i.sipInventory || 'Central Warehouse'),
-    'Returned Qty': Math.round(i.quantity),
-    'Unit Cost (BDT)': i.itemCost,
-    'Total Return Loss (BDT)': Math.round(i.returnedValue),
-    'Order Total (BDT)': i.orderAmount
-  }));
+  const returnRows: Record<string, unknown>[] = sortedReturns.map((i) => {
+    const cat = getCategoryForSales(i.itemName);
+    const subCat = getSubCategoryForSales(i.itemName, cat);
+    const collectionLine = classifyProductLine(i.itemName, i.sku, cat) === 'DEEN Selects' ? 'DEEN Selects' : 'DEEN Regular';
+    const sipInventory = String(i.sipInventory || 'Central Warehouse');
+    const unitPrice = Number(i.itemCost) || 0;
+    const cogsInfo = getItemCogsInfo(i.sku, unitPrice);
+    const qty = Math.round(i.quantity) || 1;
+    const unitCogs = cogsInfo.cogs;
+    const totalCogs = unitCogs * qty;
+    const totalPrice = unitPrice * qty;
+    const unitMrp = cogsInfo.mrp;
+
+    return {
+      'Order ID': i.orderId,
+      'Return Source': i.returnSource,
+      'Delivery Status': i.deliveryStatus,
+      'Order Date': i.orderDate ? i.orderDate.toISOString().slice(0, 19).replace('T', ' ') : '',
+      'Customer Name': getExportCustomerName(i),
+      'Customer Phone': getExportPhoneNumber(i),
+      'Territory Area': i.districtArea,
+      'Category': cat,
+      'Sub-Category': subCat,
+      'SIP Inventory Origin': sipInventory,
+      'Collection Line': collectionLine,
+      'Product Description': i.itemName,
+      'SKU': i.sku,
+      'Returned Qty': qty,
+      'Unit Price (BDT)': unitPrice,
+      'Total Price (BDT)': totalPrice,
+      'Unit COGS (BDT)': unitCogs,
+      'Total COGS (BDT)': totalCogs,
+      'Unit MRP (BDT)': unitMrp,
+      'Total Return Loss (BDT)': Math.round(i.returnedValue),
+      'Order Total (BDT)': i.orderAmount
+    };
+  });
 
   // Append Total Returns Row
   returnRows.push({
@@ -1138,11 +1339,18 @@ export function buildMonthlyNetSalesWorkbook(
     'Customer Name': '',
     'Customer Phone': '',
     'Territory Area': '',
-    'SKU': '',
-    'Product Description': '',
+    'Category': '',
+    'Sub-Category': '',
     'SIP Inventory Origin': '',
+    'Collection Line': '',
+    'Product Description': '',
+    'SKU': '',
     'Returned Qty': sortedReturns.reduce((acc, it) => acc + Math.round(it.quantity), 0),
-    'Unit Cost (BDT)': 0,
+    'Unit Price (BDT)': 0,
+    'Total Price (BDT)': 0,
+    'Unit COGS (BDT)': 0,
+    'Total COGS (BDT)': 0,
+    'Unit MRP (BDT)': 0,
     'Total Return Loss (BDT)': Math.round(sortedReturns.reduce((acc, it) => acc + (it.returnedValue || 0), 0)),
     'Order Total (BDT)': 0
   });

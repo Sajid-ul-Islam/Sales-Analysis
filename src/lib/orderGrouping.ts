@@ -28,7 +28,7 @@ import {
   compareOrdersByNumber,
   saveWorkbook,
 } from './excelExport';
-import { resolveSipOutlet } from './woocommerceClient';
+import { resolveSipOutlet, getItemCogsInfo } from './woocommerceClient';
 
 export interface OrderWiseItem {
   itemName: string;
@@ -38,6 +38,9 @@ export interface OrderWiseItem {
   quantity: number;
   itemCost: number;
   amount: number;
+  cogs?: number;
+  marginPercent?: number;
+  isExactCogs?: boolean;
   isSelects: boolean;
   sipInventory?: string;
   sipOutletId?: string;
@@ -186,6 +189,11 @@ export function groupOrdersByOrderId(rows: RawOrderRow[]): OrderWiseGroup[] {
     const sipOutletSlug = String(row.sipOutletSlug || resolvedItemSip.outletSlug || '').trim();
     const branchCode = (row.branchCode as 'ONLINE' | 'MIRPUR' | 'CUMILLA' | 'WARI' | 'SYLHET' | 'EXCHANGE') || resolvedItemSip.inventoryCode || group.branch?.branchCode || 'ONLINE';
 
+    const cogsInfo = getItemCogsInfo(sku, itemCost, {
+      productId: (row as any).productId || (row as any)['Product ID'] || (row as any).product_id,
+      variationId: (row as any).variationId || (row as any)['Variation ID'] || (row as any).variation_id,
+    });
+
     group.items.push({
       itemName,
       sku,
@@ -194,6 +202,9 @@ export function groupOrdersByOrderId(rows: RawOrderRow[]): OrderWiseGroup[] {
       quantity,
       itemCost,
       amount,
+      cogs: cogsInfo.cogs,
+      marginPercent: cogsInfo.marginPercent,
+      isExactCogs: cogsInfo.isExact,
       isSelects,
       sipInventory,
       sipOutletId,
@@ -224,11 +235,25 @@ export function groupOrdersByOrderId(rows: RawOrderRow[]): OrderWiseGroup[] {
     }
 
     // Courier status resolution:
+    // If marked return via WP/courier -> Returned
     // If all rawRows are Delivered -> Delivered
     // If all rawRows are Returned -> Returned
     // If any In Transit -> In Transit
+    const hasReturn = group.rawRows.some((r) => {
+      const rRec = r as Record<string, unknown>;
+      return (
+        rRec.isReturnFromWp === true ||
+        rRec.isPaidReturnFromWp === true ||
+        String(r['Delivery Status'] || rRec.wpDeliveryStatus || '').toLowerCase().includes('return') ||
+        String(rRec.status || '').toLowerCase().includes('return') ||
+        String(r['Courier Status'] || rRec.courierStatus || '').toLowerCase().includes('return')
+      );
+    });
+
     const cStatuses = group.rawRows.map((r) => String(r['Courier Status'] || r.courierStatus || 'Untracked'));
-    if (cStatuses.every((s) => s === 'Delivered')) {
+    if (hasReturn) {
+      group.courierStatus = 'Returned';
+    } else if (cStatuses.every((s) => s === 'Delivered')) {
       group.courierStatus = 'Delivered';
     } else if (cStatuses.every((s) => s === 'Returned')) {
       group.courierStatus = 'Returned';
@@ -332,6 +357,20 @@ export function filterOrderWiseGroups(
         courierFilter === 'DOUBLE_COLLECTION_RISK'
       ) {
         if (!group.hasDiscrepancy || group.discrepancyType !== courierFilter) return false;
+      } else if (courierFilter === 'Returned') {
+        const isRet =
+          group.courierStatus === 'Returned' ||
+          group.rawRows.some((r) => {
+            const rRec = r as Record<string, unknown>;
+            return (
+              rRec.isReturnFromWp === true ||
+              rRec.isPaidReturnFromWp === true ||
+              String(r['Delivery Status'] || rRec.wpDeliveryStatus || '').toLowerCase().includes('return') ||
+              String(rRec.status || '').toLowerCase().includes('return') ||
+              String(r['Courier Status'] || rRec.courierStatus || '').toLowerCase().includes('return')
+            );
+          });
+        if (!isRet) return false;
       } else {
         if (group.courierStatus !== courierFilter) return false;
       }
@@ -370,6 +409,9 @@ export function buildOrderWiseWorkbook(
       new Set(g.items.map((i) => i.sipInventory).filter(Boolean))
     ).join(', ') || g.branch.branchName || 'Central Warehouse';
 
+    const totalCogs = g.items.reduce((sum, i) => sum + (i.cogs || 0) * i.quantity, 0);
+    const estProfit = Math.max(0, g.totalAmount - totalCogs);
+
     return {
       'Order ID': g.orderId,
       'Order Date': g.orderDate,
@@ -379,7 +421,7 @@ export function buildOrderWiseWorkbook(
       'Delivery Success Rate': r?.successRate !== undefined ? `${r.successRate}%` : 'N/A',
       'City': g.city,
       'Total Items (Pcs)': g.totalQuantity,
-      'Items Summary': g.items.map((i) => `${i.itemName} (x${i.quantity})`).join('; '),
+      'Items Summary': g.items.map((i) => `[${i.sku || 'SKU'}] (x${i.quantity}) ${i.itemName}`).join('; '),
       'SIP Inventory': sipInventory,
       'Collection Type':
         g.collectionType === 'SELECTS'
@@ -388,6 +430,8 @@ export function buildOrderWiseWorkbook(
           ? 'DEEN Regular'
           : 'Mixed (Selects + Regular)',
       'Order Total (TK)': g.totalAmount,
+      'Total COGS (TK)': totalCogs,
+      'Est. Gross Profit (TK)': estProfit,
       'WooCommerce Status': g.wcStatus,
       'Pathao Courier Status': g.courierStatus,
       'Pathao Consignment ID': g.consignmentIds.join(', ') || 'N/A',
@@ -409,6 +453,8 @@ export function buildOrderWiseWorkbook(
         new Set(g.items.map((i) => i.sipInventory).filter(Boolean))
       ).join(', ') || 'Exchange Replacement';
 
+      const totalCogs = g.items.reduce((sum, i) => sum + (i.cogs || 0) * i.quantity, 0);
+
       return {
         'Replacement Order ID': g.orderId,
         'Original Order ID': g.exchangeInfo.referencedOrderId || 'N/A',
@@ -420,8 +466,9 @@ export function buildOrderWiseWorkbook(
         'Delivery Success Rate': r?.successRate !== undefined ? `${r.successRate}%` : 'N/A',
         'City': g.city,
         'Total Items (Pcs)': g.totalQuantity,
-        'Items Summary': g.items.map((i) => `${i.itemName} (x${i.quantity})`).join('; '),
+        'Items Summary': g.items.map((i) => `[${i.sku || 'SKU'}] (x${i.quantity}) ${i.itemName}`).join('; '),
         'SIP Inventory': sipInventory,
+        'Total COGS (TK)': totalCogs,
         'Courier Status': g.courierStatus,
         'Pathao Consignment ID': g.consignmentIds.join(', ') || 'N/A',
         'Commercial Revenue Recognized': 0,

@@ -3,6 +3,7 @@ import { RawOrderRow } from '@/types';
 import { withExponentialBackoff } from './sync/retry';
 import { getCategoryForSales, getSubCategoryForSales } from './liveCategoryEngine';
 import { classifyProductLine } from './selectsAnalytics';
+import wcSkuCogsData from '@/data/wc-sku-cogs.json';
 
 export interface WcCredentials {
   store_url?: string;
@@ -963,11 +964,12 @@ export function extractPathaoPluginOrderInfo(order: WcOrder, meta: WcMetaItem[])
 }
 
 export interface WordPressStatusMarks {
-  wpDeliveryStatus: 'Delivered' | 'Paid Return' | 'Not Paid Return' | 'Exchange' | 'Partial' | null;
+  wpDeliveryStatus: 'Delivered' | 'Paid Return' | 'Not Paid Return' | 'Exchange' | 'Partial' | 'Cancelled' | null;
   isReturnFromWp: boolean;
   isPartialFromWp: boolean;
   isExchangeFromWp: boolean;
   isPaidReturnFromWp: boolean;
+  isCancelledFromWp: boolean;
   wpMarkSource: 'wc_status' | 'pathao_plugin' | 'custom_status_meta' | 'order_note' | null;
   wpMarkReason: string;
   pathaoPluginStatus: string;
@@ -986,41 +988,71 @@ export function detectWordPressStatusMarks(order: WcOrder, meta: WcMetaItem[] = 
   const rawStatus = String(order.status || '').toLowerCase().trim();
   const cleanStatus = rawStatus.replace(/^wc-/, '');
   const notesText = `${order.customer_note || ''} ${order.order_notes || ''}`.toLowerCase();
+  const createdVia = String(order.created_via || '').toLowerCase().trim();
 
-  // 1. Check custom status metadata
+  // 1. Check custom status metadata and SIP plugin metadata
   let customStatusMeta = '';
+  let sipExchangeCode = '';
+  let sipExchangeOf = '';
+  let sipReplacementOrders: string[] = [];
+  let sipReturnCode = '';
+  let sipReturnOf = '';
+
   for (const m of meta) {
     const k = String(m.key || '').toLowerCase();
     const v = String(m.value || '').trim();
     if (/ywcos_custom_status|custom_order_status|_custom_order_status|substatus|_substatus|sub_status|order_status_label|_return_status|return_status|_partial_status|partial_status|_exchange_status|exchange_status/i.test(k) && v) {
       customStatusMeta = v.toLowerCase();
-      break;
+    }
+    if (k === '_sip_exchange_code' && v) sipExchangeCode = v;
+    if (k === '_sip_exchange_of' && v) sipExchangeOf = v;
+    if (k === '_sip_return_code' && v) sipReturnCode = v;
+    if (k === '_sip_return_of' && v) sipReturnOf = v;
+    if (k === '_sip_replacement_orders' && m.value) {
+      if (Array.isArray(m.value)) {
+        sipReplacementOrders = m.value.map(String).filter(Boolean);
+      } else if (typeof m.value === 'string' && m.value !== '[]') {
+        sipReplacementOrders = m.value.replace(/[[\]"]/g, '').split(',').map((s) => s.trim()).filter(Boolean);
+      }
     }
   }
 
   const pStatus = (pathaoInfo.status || '').toLowerCase();
 
+  // Check WooCommerce order refunds
+  const refunds = Array.isArray(order.refunds) ? order.refunds : [];
+  const orderTotal = typeof order.total === 'number' ? order.total : parseFloat(String(order.total || '0')) || 0;
+  const totalRefunded = refunds.reduce((sum, r) => sum + Math.abs(parseFloat(String(r.total || '0')) || 0), 0);
+  const hasFullRefund = orderTotal > 0 && totalRefunded > 0 && Math.abs(totalRefunded - orderTotal) < 1;
+  const hasPartialRefund = orderTotal > 0 && totalRefunded > 0 && totalRefunded < orderTotal;
+
   // Pattern tests
-  const isWcReturn = /^(returned|return|refunded|failed|cancelled|canceled|rto|return-requested|return_requested)$/i.test(cleanStatus) ||
-    cleanStatus.includes('return') || cleanStatus.includes('rto');
-  const isPtcReturn = pStatus.includes('return') || pStatus.includes('rto') || pStatus.includes('pickup cancel') || pStatus.includes('pickup failed') || pStatus.includes('lost') || pStatus.includes('damaged');
-  const isMetaReturn = /return|returned|rto|rejected/i.test(customStatusMeta);
-  const isNoteReturn = /\b(return|returned|rto|customer rejected)\b/i.test(notesText);
+  const isSipExchange = createdVia === 'sip_exchange' || createdVia.includes('exchange') ||
+    Boolean(sipExchangeCode) || Boolean(sipExchangeOf) || sipReplacementOrders.length > 0;
+  const isWcExchange = /^(exchange|exchanged|replacement)$/i.test(cleanStatus) || cleanStatus.includes('exchange') || isSipExchange;
+  const isPtcExchange = pStatus.includes('exchange');
+  const isMetaExchange = /exchange|replacement/i.test(customStatusMeta) || isSipExchange;
+  const isNoteExchange = /\b(exchange|exchanged|replacement)\b/i.test(notesText) || /ret-[a-z0-9]+/i.test(notesText);
+
+  const isSipReturn = Boolean(sipReturnCode) || Boolean(sipReturnOf) || createdVia.includes('return');
+  const isWcReturn = /^(returned|return|refunded|rto|return-requested|return_requested)$/i.test(cleanStatus) ||
+    cleanStatus.includes('return') || cleanStatus.includes('rto') || hasFullRefund || isSipReturn;
+  const isWcCancelled = /^(cancelled|canceled|failed|trash)$/i.test(cleanStatus) ||
+    cleanStatus.includes('cancelled') || cleanStatus.includes('canceled');
+  const isPtcReturn = pStatus.includes('return') || pStatus.includes('rto') || pStatus.includes('lost') || pStatus.includes('damaged');
+  const isMetaReturn = /return|returned|rto|rejected/i.test(customStatusMeta) || isSipReturn;
+  const isNoteReturn = /\b(return|returned|rto|customer return|customer rejected|rejected)\b/i.test(notesText);
 
   const isWcPartial = /^(partial|partially-refunded|partially_refunded|partially-delivered|partially_delivered|partial-return|partial_return)$/i.test(cleanStatus) ||
-    cleanStatus.includes('partial');
+    cleanStatus.includes('partial') || hasPartialRefund;
   const isPtcPartial = pStatus.includes('partial');
   const isMetaPartial = /partial/i.test(customStatusMeta);
-  const isNotePartial = /\b(partial delivery|partial return|partially delivered|kept item)\b/i.test(notesText);
-
-  const isWcExchange = /^(exchange|exchanged|replacement)$/i.test(cleanStatus) || cleanStatus.includes('exchange');
-  const isPtcExchange = pStatus.includes('exchange');
-  const isMetaExchange = /exchange|replacement/i.test(customStatusMeta);
-  const isNoteExchange = /\b(exchange|exchanged|replacement)\b/i.test(notesText);
+  const isNotePartial = /\b(partial delivery|partial return|partially delivered|kept item|partial)\b/i.test(notesText);
 
   let isReturn = false;
   let isPartial = false;
   let isExchange = false;
+  let isCancelled = false;
   let wpMarkSource: WordPressStatusMarks['wpMarkSource'] = null;
   let wpMarkReason = '';
 
@@ -1028,7 +1060,10 @@ export function detectWordPressStatusMarks(order: WcOrder, meta: WcMetaItem[] = 
   // Partial takes priority if explicitly partial (since partial contains both kept and returned items)
   if (isWcPartial || isPtcPartial || isMetaPartial || isNotePartial) {
     isPartial = true;
-    if (isPtcPartial) {
+    if (hasPartialRefund) {
+      wpMarkSource = 'wc_status';
+      wpMarkReason = `Partially refunded in WooCommerce (৳${totalRefunded} of ৳${orderTotal})`;
+    } else if (isPtcPartial) {
       wpMarkSource = 'pathao_plugin';
       wpMarkReason = `Pathao Courier plugin marked: "${pathaoInfo.status}"`;
     } else if (isWcPartial) {
@@ -1043,12 +1078,24 @@ export function detectWordPressStatusMarks(order: WcOrder, meta: WcMetaItem[] = 
     }
   } else if (isWcExchange || isPtcExchange || isMetaExchange || isNoteExchange) {
     isExchange = true;
-    if (isWcExchange) {
-      wpMarkSource = 'wc_status';
-      wpMarkReason = `WooCommerce order status marked: "${order.status}"`;
+    if (sipExchangeOf) {
+      wpMarkSource = 'custom_status_meta';
+      wpMarkReason = `SIP Exchange replacement for order #${sipExchangeOf}${sipExchangeCode ? ' (' + sipExchangeCode + ')' : ''}`;
+    } else if (sipReplacementOrders.length > 0) {
+      wpMarkSource = 'custom_status_meta';
+      wpMarkReason = `SIP Original order replaced by #${sipReplacementOrders.join(', #')}`;
+    } else if (sipExchangeCode) {
+      wpMarkSource = 'custom_status_meta';
+      wpMarkReason = `SIP Exchange (${sipExchangeCode})`;
     } else if (isPtcExchange) {
       wpMarkSource = 'pathao_plugin';
       wpMarkReason = `Pathao Courier plugin marked: "${pathaoInfo.status}"`;
+    } else if (isWcExchange && cleanStatus.includes('exchange')) {
+      wpMarkSource = 'wc_status';
+      wpMarkReason = `WooCommerce order status marked: "${order.status}"`;
+    } else if (createdVia.includes('exchange')) {
+      wpMarkSource = 'wc_status';
+      wpMarkReason = `WooCommerce created_via marked: "${order.created_via}"`;
     } else if (isMetaExchange) {
       wpMarkSource = 'custom_status_meta';
       wpMarkReason = `WordPress custom meta marked: "${customStatusMeta}"`;
@@ -1058,19 +1105,26 @@ export function detectWordPressStatusMarks(order: WcOrder, meta: WcMetaItem[] = 
     }
   } else if (isWcReturn || isPtcReturn || isMetaReturn || isNoteReturn) {
     isReturn = true;
-    if (isPtcReturn) {
+    if (hasFullRefund) {
+      wpMarkSource = 'wc_status';
+      wpMarkReason = `Fully refunded in WooCommerce (৳${totalRefunded})`;
+    } else if (isPtcReturn) {
       wpMarkSource = 'pathao_plugin';
       wpMarkReason = `Pathao Courier plugin marked: "${pathaoInfo.status}"`;
+    } else if (isMetaReturn) {
+      wpMarkSource = 'custom_status_meta';
+      wpMarkReason = sipReturnCode ? `SIP Return (${sipReturnCode})` : `WordPress custom meta marked: "${customStatusMeta}"`;
     } else if (isWcReturn) {
       wpMarkSource = 'wc_status';
       wpMarkReason = `WooCommerce order status marked: "${order.status}"`;
-    } else if (isMetaReturn) {
-      wpMarkSource = 'custom_status_meta';
-      wpMarkReason = `WordPress custom meta marked: "${customStatusMeta}"`;
     } else {
       wpMarkSource = 'order_note';
       wpMarkReason = 'Order notes indicate customer return';
     }
+  } else if (isWcCancelled) {
+    isCancelled = true;
+    wpMarkSource = 'wc_status';
+    wpMarkReason = `WooCommerce order status marked: "${order.status}"`;
   }
 
   // Detect paid return
@@ -1088,6 +1142,8 @@ export function detectWordPressStatusMarks(order: WcOrder, meta: WcMetaItem[] = 
     wpDeliveryStatus = 'Exchange';
   } else if (isReturn) {
     wpDeliveryStatus = isPaidReturn ? 'Paid Return' : 'Not Paid Return';
+  } else if (isCancelled) {
+    wpDeliveryStatus = 'Cancelled';
   } else if (cleanStatus === 'completed' || cleanStatus === 'delivered' || pStatus === 'delivered') {
     wpDeliveryStatus = 'Delivered';
   }
@@ -1098,6 +1154,7 @@ export function detectWordPressStatusMarks(order: WcOrder, meta: WcMetaItem[] = 
     isPartialFromWp: isPartial,
     isExchangeFromWp: isExchange,
     isPaidReturnFromWp: isPaidReturn,
+    isCancelledFromWp: isCancelled,
     wpMarkSource,
     wpMarkReason,
     pathaoPluginStatus: pathaoInfo.status,
@@ -1504,13 +1561,22 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
     }
 
     const exchangeOfMeta = meta.find((m) => m.key === '_sip_exchange_of');
+    const replacementOrdersMeta = meta.find((m) => m.key === '_sip_replacement_orders');
     const hasSipExchangeMeta = meta.some((m) =>
       (m.key === '_sip_exchange_order' && String(m.value) === '1') ||
       m.key === '_sip_exchange_of' ||
-      m.key === '_sip_exchange_code'
+      m.key === '_sip_exchange_code' ||
+      (m.key === '_sip_replacement_orders' && Boolean(m.value) && String(m.value) !== '[]')
     );
     if (!substatus && exchangeOfMeta && exchangeOfMeta.value) {
       substatus = `Exchange for #${exchangeOfMeta.value}`;
+    } else if (!substatus && replacementOrdersMeta && replacementOrdersMeta.value) {
+      const reps = Array.isArray(replacementOrdersMeta.value)
+        ? replacementOrdersMeta.value.join(', #')
+        : String(replacementOrdersMeta.value).replace(/[[\]"]/g, '');
+      if (reps && reps !== '[]') {
+        substatus = `Exchanged (Replacement #${reps})`;
+      }
     }
 
     // Extract created_via source
@@ -1611,8 +1677,9 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
         'isCod': isCod,
         'Order Notes': note,
         'orderNotes': note,
-        'Delivery Status': status,
-        'status': status,
+        'Delivery Status': wpMarks.wpDeliveryStatus || status,
+        'status': wpMarks.wpDeliveryStatus || status,
+        'rawWcStatus': status,
         'Quantity': 1,
         'quantity': 1,
         'SKU': 'GENERAL',
@@ -1660,6 +1727,7 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
         'isPartialFromWp': wpMarks.isPartialFromWp,
         'isExchangeFromWp': wpMarks.isExchangeFromWp,
         'isPaidReturnFromWp': wpMarks.isPaidReturnFromWp,
+        'isCancelledFromWp': wpMarks.isCancelledFromWp,
         isPos: branchInfo.isPos,
         isBranchFulfillment: branchInfo.branchCode !== 'ONLINE' && !branchInfo.isPos,
       });
@@ -1735,8 +1803,9 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
           'isCod': isCod,
           'Order Notes': note,
           'orderNotes': note,
-          'Delivery Status': status,
-          'status': status,
+          'Delivery Status': wpMarks.wpDeliveryStatus || status,
+          'status': wpMarks.wpDeliveryStatus || status,
+          'rawWcStatus': status,
           'Order Source': branchInfo.isPos ? 'POS' : 'Online',
           'Outlet ID': branchInfo.outletId,
           'outletId': branchInfo.outletId,
@@ -1772,6 +1841,7 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
           'isPartialFromWp': wpMarks.isPartialFromWp,
           'isExchangeFromWp': wpMarks.isExchangeFromWp,
           'isPaidReturnFromWp': wpMarks.isPaidReturnFromWp,
+        'isCancelledFromWp': wpMarks.isCancelledFromWp,
           isPos: branchInfo.isPos,
           isBranchFulfillment: branchInfo.branchCode !== 'ONLINE' && !branchInfo.isPos,
         });
@@ -1781,3 +1851,251 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
 
   return rows;
 }
+
+// ---------------------------------------------------------------------------
+// SKU COGS (Cost of Goods Sold) Extraction from WooCommerce REST API
+// ---------------------------------------------------------------------------
+
+export interface SkuCogsRecord {
+  sku: string;
+  productId: number;
+  variationId?: number;
+  productName: string;
+  cogs: number; // Cost of Goods Sold in BDT (_sip_buying_price)
+  regularPrice: number;
+  grossMarginPercent: number;
+}
+
+export interface WcCogsData {
+  fetchedAt: string;
+  totalProducts: number;
+  totalSkusWithCogs: number;
+  bySku: Record<string, SkuCogsRecord>;
+  byId: Record<string, SkuCogsRecord>;
+}
+
+export interface FetchCogsOptions {
+  credentials?: WcCredentials;
+  maxPages?: number;
+  concurrency?: number;
+}
+
+/**
+ * Fetches all products and variations from WooCommerce REST API,
+ * extracting the buying price (_sip_buying_price) to compute exact SKU-level COGS.
+ */
+export async function fetchWooCommerceCogsMap(
+  options: FetchCogsOptions = {}
+): Promise<WcCogsData> {
+  const { woocommerce: wc } = getSecretsWithOverrides({ woocommerce: options.credentials });
+  if (!wc.store_url || !wc.consumer_key || !wc.consumer_secret) {
+    throw new Error('WooCommerce credentials not configured.');
+  }
+
+  const cleanStoreUrl = wc.store_url.replace(/\/+$/, '');
+  const authHeader = 'Basic ' + Buffer.from(`${wc.consumer_key}:${wc.consumer_secret}`).toString('base64');
+  const maxPages = options.maxPages || 10;
+  const concurrency = options.concurrency || 8;
+
+  const allProducts: Array<{
+    id: number;
+    name: string;
+    type: string;
+    sku?: string;
+    regular_price?: string | number;
+    price?: string | number;
+    meta_data?: Array<{ key: string; value: unknown }>;
+  }> = [];
+
+  // 1. Fetch catalog products using lean field projection
+  for (let page = 1; page <= maxPages; page++) {
+    const url = `${cleanStoreUrl}/wp-json/wc/v3/products?per_page=100&page=${page}&_fields=id,name,type,sku,price,regular_price,meta_data`;
+    const res = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': authHeader,
+      },
+    });
+    if (!res.ok) break;
+    const batch = await res.json();
+    if (!Array.isArray(batch) || batch.length === 0) break;
+    allProducts.push(...batch);
+    if (batch.length < 100) break;
+  }
+
+  const bySku: Record<string, SkuCogsRecord> = {};
+  const byId: Record<string, SkuCogsRecord> = {};
+  const variableProducts: typeof allProducts = [];
+
+  for (const p of allProducts) {
+    if (p.type === 'variable') {
+      variableProducts.push(p);
+    } else {
+      const buyingMeta = p.meta_data?.find((m) => m.key === '_sip_buying_price');
+      const buyingPrice = buyingMeta ? parseFloat(String(buyingMeta.value)) : 0;
+      const regularPrice = parseFloat(String(p.regular_price || p.price || 0));
+      const sku = (p.sku || '').trim();
+
+      if (!isNaN(buyingPrice) && buyingPrice > 0) {
+        const margin = regularPrice > 0 ? ((regularPrice - buyingPrice) / regularPrice) * 100 : 0;
+        const record: SkuCogsRecord = {
+          sku: sku || `PROD-${p.id}`,
+          productId: p.id,
+          productName: p.name,
+          cogs: Math.round(buyingPrice),
+          regularPrice: Math.round(regularPrice),
+          grossMarginPercent: Number(margin.toFixed(1)),
+        };
+        if (sku) {
+          bySku[sku] = record;
+        }
+        byId[`${p.id}`] = record;
+      }
+    }
+  }
+
+  // 2. Fetch variations for variable products
+  async function fetchVariations(p: (typeof allProducts)[0]) {
+    try {
+      const vUrl = `${cleanStoreUrl}/wp-json/wc/v3/products/${p.id}/variations?per_page=100&_fields=id,sku,price,regular_price,attributes,meta_data`;
+      const res = await fetch(vUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': authHeader,
+        },
+      });
+      if (!res.ok) return;
+      const variations = await res.json();
+      if (!Array.isArray(variations)) return;
+
+      const parentBuyingMeta = p.meta_data?.find((m) => m.key === '_sip_buying_price');
+      const parentBuyingPrice = parentBuyingMeta ? parseFloat(String(parentBuyingMeta.value)) : 0;
+
+      for (const v of variations) {
+        const vBuyingMeta = v.meta_data?.find((m: any) => m.key === '_sip_buying_price');
+        let vBuyingPrice = vBuyingMeta ? parseFloat(String(vBuyingMeta.value)) : NaN;
+        if (isNaN(vBuyingPrice) || vBuyingPrice <= 0) {
+          if (!isNaN(parentBuyingPrice) && parentBuyingPrice > 0) {
+            vBuyingPrice = parentBuyingPrice;
+          }
+        }
+
+        const sku = (v.sku || p.sku || '').trim();
+        const regularPrice = parseFloat(String(v.regular_price || v.price || p.regular_price || 0));
+
+        if (!isNaN(vBuyingPrice) && vBuyingPrice > 0) {
+          const margin = regularPrice > 0 ? ((regularPrice - vBuyingPrice) / regularPrice) * 100 : 0;
+          const attrText = Array.isArray(v.attributes) ? v.attributes.map((a: any) => a.option).join(' ') : '';
+          const record: SkuCogsRecord = {
+            sku: sku || `VAR-${v.id}`,
+            productId: p.id,
+            variationId: v.id,
+            productName: `${p.name}${attrText ? ` - ${attrText}` : ''}`.trim(),
+            cogs: Math.round(vBuyingPrice),
+            regularPrice: Math.round(regularPrice),
+            grossMarginPercent: Number(margin.toFixed(1)),
+          };
+
+          if (sku) {
+            bySku[sku] = record;
+          }
+          byId[`${p.id}:${v.id}`] = record;
+          byId[`${v.id}`] = record;
+        }
+      }
+    } catch {
+      // ignore individual variation failure
+    }
+  }
+
+  for (let i = 0; i < variableProducts.length; i += concurrency) {
+    const chunk = variableProducts.slice(i, i + concurrency);
+    await Promise.all(chunk.map((p) => fetchVariations(p)));
+  }
+
+  return {
+    fetchedAt: new Date().toISOString(),
+    totalProducts: allProducts.length,
+    totalSkusWithCogs: Object.keys(bySku).length,
+    bySku,
+    byId,
+  };
+}
+
+export interface ItemCogsInfo {
+  cogs: number;
+  salePrice: number;
+  regularPrice: number;
+  mrp: number;
+  marginAmount: number;
+  marginPercent: number;
+  isExact: boolean;
+  cogsSource: 'EXACT_WOOCOMMERCE' | 'ESTIMATED_BASELINE';
+}
+
+/**
+ * Resolves unit COGS (buying price) and profit margin for any apparel SKU or item.
+ * Prioritizes exact WooCommerce REST API buying price (_sip_buying_price),
+ * falling back to baseline margin % (default 42% COGS / 58% margin).
+ */
+export function getItemCogsInfo(
+  sku?: string,
+  salePrice: number = 0,
+  options: {
+    productId?: number | string;
+    variationId?: number | string;
+    fallbackPercent?: number;
+  } = {}
+): ItemCogsInfo {
+  const cleanSku = (sku || '').trim();
+  const fallbackRate = (options.fallbackPercent !== undefined ? options.fallbackPercent : 42) / 100;
+  let cogs = 0;
+  let regularPrice = 0;
+  let isExact = false;
+
+  const dataset = wcSkuCogsData as unknown as WcCogsData;
+  if (cleanSku && dataset?.bySku?.[cleanSku]?.cogs) {
+    cogs = Number(dataset.bySku[cleanSku].cogs) || 0;
+    regularPrice = Number(dataset.bySku[cleanSku].regularPrice) || 0;
+    isExact = true;
+  } else if (cleanSku && dataset?.bySku?.[cleanSku]?.regularPrice) {
+    regularPrice = Number(dataset.bySku[cleanSku].regularPrice) || 0;
+  } else if (dataset?.byId) {
+    const pId = options.productId ? String(options.productId).trim() : '';
+    const vId = options.variationId ? String(options.variationId).trim() : '';
+    if (pId && vId && dataset.byId[`${pId}:${vId}`]?.cogs) {
+      cogs = Number(dataset.byId[`${pId}:${vId}`].cogs) || 0;
+      regularPrice = Number(dataset.byId[`${pId}:${vId}`].regularPrice) || 0;
+      isExact = true;
+    } else if (vId && dataset.byId[vId]?.cogs) {
+      cogs = Number(dataset.byId[vId].cogs) || 0;
+      regularPrice = Number(dataset.byId[vId].regularPrice) || 0;
+      isExact = true;
+    } else if (pId && dataset.byId[pId]?.cogs) {
+      cogs = Number(dataset.byId[pId].cogs) || 0;
+      regularPrice = Number(dataset.byId[pId].regularPrice) || 0;
+      isExact = true;
+    }
+  }
+
+  if (cogs <= 0 && salePrice > 0) {
+    cogs = Math.round(salePrice * fallbackRate);
+  }
+
+  const mrp = regularPrice > 0 ? Math.round(regularPrice) : (salePrice > 0 ? Math.round(salePrice) : 0);
+  const marginAmount = Math.max(0, salePrice - cogs);
+  const marginPercent = salePrice > 0 ? Number(((marginAmount / salePrice) * 100).toFixed(1)) : 0;
+
+  return {
+    cogs,
+    salePrice,
+    regularPrice: Math.round(regularPrice),
+    mrp,
+    marginAmount,
+    marginPercent,
+    isExact,
+    cogsSource: isExact ? 'EXACT_WOOCOMMERCE' : 'ESTIMATED_BASELINE',
+  };
+}
+
+

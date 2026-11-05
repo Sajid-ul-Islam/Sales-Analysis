@@ -424,7 +424,10 @@ export function isOrderExchange(order: RawOrderRow): boolean {
     o._sip_exchange_order === '1' ||
     o._sip_exchange_order === 1 ||
     Boolean(o._sip_exchange_of) ||
-    Boolean(o._sip_exchange_code)
+    Boolean(o._sip_exchange_code) ||
+    Boolean(o._sip_replacement_orders && String(o._sip_replacement_orders) !== '[]') ||
+    o.isExchangeFromWp === true ||
+    o.wpDeliveryStatus === 'Exchange'
   ) {
     return true;
   }
@@ -506,6 +509,30 @@ export function extractExchangeInfo(order: RawOrderRow): ExchangeInfo {
       type: 'replacement',
       referencedOrderId: sipExchangeOf,
       displayTag: `Exchange for #${sipExchangeOf}`,
+    };
+  }
+
+  // Check for original order replaced by exchange order (_sip_replacement_orders)
+  let sipReplacementOrders = String(o._sip_replacement_orders || '').trim();
+  if (!sipReplacementOrders) {
+    const rawOrder = (o.rawOrder || order) as Record<string, unknown>;
+    const metaList = Array.isArray(rawOrder?.meta_data)
+      ? (rawOrder.meta_data as Array<{ key?: string; value?: unknown }>)
+      : Array.isArray(o.meta_data)
+        ? (o.meta_data as Array<{ key?: string; value?: unknown }>)
+        : [];
+    const found = metaList.find(m => m.key === '_sip_replacement_orders');
+    if (found && found.value && String(found.value) !== '[]') {
+      sipReplacementOrders = Array.isArray(found.value) ? found.value.join(', #') : String(found.value).replace(/[[\]"]/g, '');
+    }
+  }
+
+  if (sipReplacementOrders && sipReplacementOrders !== '[]') {
+    return {
+      isExchange: true,
+      type: 'original_exchanged',
+      referencedOrderId: sipReplacementOrders,
+      displayTag: `Exchanged (Replaced by #${sipReplacementOrders})`,
     };
   }
 
@@ -670,10 +697,29 @@ export function parseOrderDate(order: RawOrderRow): Date | null {
   return getStatusModificationDate(order);
 }
 
+/**
+ * Detects whether an order has been marked as returned via WooCommerce status,
+ * custom delivery marks (Paid Return / Not Paid Return), order notes, refunds,
+ * or Pathao courier status (Returned To Merchant / Return).
+ */
+export function isOrderReturn(order: RawOrderRow): boolean {
+  const o = order as Record<string, unknown>;
+  if (o.isReturnFromWp === true || o.isPaidReturnFromWp === true) return true;
+  const wpDeliv = String(o.wpDeliveryStatus || '').toLowerCase();
+  if (wpDeliv.includes('return')) return true;
+  const delivStatus = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
+  if (delivStatus.includes('return')) return true;
+  const cStatus = String(order['Courier Status'] || o.courierStatus || o.pathaoStatus || '').toLowerCase().trim();
+  if (cStatus === 'returned' || cStatus.includes('return')) return true;
+  return false;
+}
+
 export function isOrderShipped(order: RawOrderRow): boolean {
   const o = order as Record<string, unknown>;
   const status = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
-  return SHIPPED_STATUSES.has(status);
+  if (SHIPPED_STATUSES.has(status)) return true;
+  if (isOrderReturn(order)) return true;
+  return false;
 }
 
 export function isOrderProcessing(order: RawOrderRow): boolean {
@@ -718,8 +764,29 @@ export function isOrderShippedOnDate(order: RawOrderRow, targetDateIso: string):
     return false;
   }
 
+  // Primary check: getStatusModificationDate
   const d = getStatusModificationDate(order);
-  return Boolean(d && formatDateToIsoDay(d) === targetDateIso);
+  if (d && formatDateToIsoDay(d) === targetDateIso) {
+    return true;
+  }
+
+  // For returned orders, check both completion date (when parcel was dispatched)
+  // and modification / courier updated date (when return was received/marked)
+  if (isOrderReturn(order)) {
+    const o = order as Record<string, unknown>;
+    const compVal = o['Date Completed'] || o.date_completed || o.dateCompleted;
+    if (compVal) {
+      const cd = parseOrderDateValue(compVal);
+      if (cd && formatDateToIsoDay(cd) === targetDateIso) return true;
+    }
+    const modVal = o['Date Modified'] || o.dateModified || o.date_modified || o['Status Modified Date'] || o.status_modified_date || o.courierUpdatedAt || o['Courier Updated At'];
+    if (modVal) {
+      const md = parseOrderDateValue(modVal);
+      if (md && formatDateToIsoDay(md) === targetDateIso) return true;
+    }
+  }
+
+  return false;
 }
 
 export function isOrderShippedToday(order: RawOrderRow, targetDateIso: string): boolean {
@@ -728,7 +795,7 @@ export function isOrderShippedToday(order: RawOrderRow, targetDateIso: string): 
 
 /**
  * Validates if an order belongs to "Today's Orders" view.
- * User Rule: Today's Orders = (All Today's Shipped) + (All orders with Processing status)
+ * User Rule: Today's Orders = (All Today's Shipped/Returned) + (All orders with Processing status)
  * Non-checkout exchange orders are tracked separately in Exchange Logistics.
  */
 export function isTodayOrdersEligible(
@@ -764,10 +831,13 @@ export function isTodayOrdersEligible(
 
   const o = order as Record<string, unknown>;
   const status = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
-  if (CANCELLED_STATUSES.has(status)) return false;
+  if (CANCELLED_STATUSES.has(status)) {
+    // Only drop cancelled orders if they are NOT genuine returned parcels (dispatched & returned)
+    if (!isOrderReturn(order)) return false;
+  }
 
-  // 1. Shipped today (status completed/shipped and status modification date matches target date)
-  if (SHIPPED_STATUSES.has(status)) {
+  // 1. Shipped or Returned today (status completed/shipped/returned and date matches target date)
+  if (SHIPPED_STATUSES.has(status) || isOrderReturn(order)) {
     return isOrderShippedOnDate(order, targetDateIso);
   }
 
@@ -1062,12 +1132,14 @@ export function processLiveOpsData(
   const now = new Date();
   const todayIso = getDhakaTodayIso();
 
-  // If there are orders today, use today; otherwise find the latest date in the dataset
+  // If an explicit anchorDate is supplied (live terminal always passes one pinned to today),
+  // we skip this fallback entirely. The fallback only activates for offline/test/batch calls
+  // that omit anchorDate AND customDate — in that case, auto-detect the latest date in the dataset.
   const hasOrdersToday = ordersWithDates.some((x) => formatDateToIsoDay(x.date) === todayIso);
   let defaultAnchorDate = now;
   let isFallbackDate = false;
 
-  if (!hasOrdersToday && ordersWithDates.length > 0) {
+  if (!options.anchorDate && !hasOrdersToday && ordersWithDates.length > 0) {
     // Sort descending to find newest date
     ordersWithDates.sort((a, b) => b.date.getTime() - a.date.getTime());
     defaultAnchorDate = ordersWithDates[0].date;
@@ -1184,8 +1256,8 @@ export function processLiveOpsData(
       return (
         d &&
         formatDateToIsoDay(d) === prevDateIso &&
-        !CANCELLED_STATUSES.has(status) &&
-        (SHIPPED_STATUSES.has(status) || status === 'processing')
+        (!CANCELLED_STATUSES.has(status) || isOrderReturn(o)) &&
+        (SHIPPED_STATUSES.has(status) || isOrderReturn(o) || status === 'processing')
       );
     });
   } else {

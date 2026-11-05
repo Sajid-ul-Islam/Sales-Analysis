@@ -23,6 +23,7 @@ import {
   getExportCustomerName,
   getExportPhoneNumber,
 } from '@/lib/excelExport';
+import { getItemCogsInfo } from '@/lib/woocommerceClient';
 
 export interface OrderWiseReturnGroup {
   orderId: string;
@@ -853,7 +854,30 @@ export function ItemReturnsTab({ returnedItems, onSelectOrder }: ItemReturnsTabP
                                             <SipInventoryBadge inventory={subItem.sipInventory || 'Central Warehouse'} />
                                           </td>
                                           <td className="py-2.5 px-3 text-center font-bold font-mono text-rose-600">{subItem.quantity}</td>
-                                          <td className="py-2.5 px-3 text-right font-mono text-slate-500">৳ {Math.round(subItem.itemCost).toLocaleString()}</td>
+                                          <td className="py-2.5 px-3 text-right font-mono text-slate-500">
+                                            <div className="font-semibold text-slate-700 dark:text-slate-300">
+                                              ৳ {Math.round(subItem.itemCost).toLocaleString()}
+                                            </div>
+                                            {(() => {
+                                              const cInfo = getItemCogsInfo(subItem.sku, subItem.itemCost);
+                                              return (
+                                                <div className="text-[10px] text-slate-400 font-mono flex items-center justify-end gap-1 mt-0.5">
+                                                  <span>COGS: ৳{cInfo.cogs.toLocaleString()}</span>
+                                                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                                                    ({cInfo.marginPercent}%)
+                                                  </span>
+                                                  {cInfo.isExact && (
+                                                    <span
+                                                      className="text-[8px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded px-0.5"
+                                                      title="Exact WooCommerce buying price"
+                                                    >
+                                                      WC
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              );
+                                            })()}
+                                          </td>
                                           <td className="py-2.5 px-3 text-right font-mono font-bold text-rose-600">৳ {Math.round(subItem.returnedValue).toLocaleString()}</td>
                                           <td className="py-2.5 px-3 text-[11px] text-slate-500">
                                             <span className="inline-flex items-center gap-1">

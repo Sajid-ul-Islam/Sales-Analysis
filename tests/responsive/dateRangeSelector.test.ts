@@ -136,4 +136,26 @@ describe('Smart Date Range & Scope Engine', () => {
     expect(apiTitle).toContain('Live Cloud Ledger');
     expect(apiTitle).toContain('5 Orders');
   });
+
+  it('includes morning orders (08:30 AM) in date scopes without midday boundary clipping', () => {
+    const morningOrders: RawOrderRow[] = [
+      { orderId: 'M-1', orderDate: '2026-10-15T08:30:00+06:00', orderAmount: 1500, deliveryStatus: 'Delivered' },
+      { orderId: 'M-2', orderDate: '2026-10-15T10:15:00+06:00', orderAmount: 2200, deliveryStatus: 'Delivered' },
+      { orderId: 'M-3', orderDate: '2026-10-15T15:00:00+06:00', orderAmount: 3100, deliveryStatus: 'Delivered' },
+    ];
+
+    const result = filterOrdersByDateScope(morningOrders, 'today');
+    expect(result.matchedOrders).toBe(3);
+    expect(result.filteredOrders.map(o => o.orderId)).toEqual(['M-1', 'M-2', 'M-3']);
+  });
+
+  it('correctly parses raw WooCommerce date_created and date_modified fields', () => {
+    const wcOrders: RawOrderRow[] = [
+      { id: 9001, date_created: '2026-10-14T09:00:00', total: '1500', status: 'completed' },
+      { id: 9002, created_at: '2026-10-14T11:30:00', total: '2000', status: 'completed' },
+    ];
+
+    const result = filterOrdersByDateScope(wcOrders, '30d');
+    expect(result.matchedOrders).toBe(2);
+  });
 });

@@ -197,6 +197,7 @@ export function detectWordPressAndWebhookMarks(
   isPartial: boolean;
   isReturn: boolean;
   isExchange: boolean;
+  isCancelled: boolean;
   isPaidReturn: boolean;
   collectedAmount: number;
   source: string;
@@ -214,6 +215,7 @@ export function detectWordPressAndWebhookMarks(
             isPartial: true,
             isReturn: false,
             isExchange: false,
+            isCancelled: false,
             isPaidReturn: false,
             collectedAmount: webhook.collectedAmount || 0,
             source: 'webhook',
@@ -224,6 +226,7 @@ export function detectWordPressAndWebhookMarks(
             isPartial: false,
             isReturn: true,
             isExchange: false,
+            isCancelled: false,
             isPaidReturn: webhook.collectedAmount > 0,
             collectedAmount: webhook.collectedAmount || 0,
             source: 'webhook',
@@ -240,6 +243,7 @@ export function detectWordPressAndWebhookMarks(
   let isReturn = false;
   let isExchange = false;
   let isPaidReturn = false;
+  let isCancelled = false;
   let collectedAmount = 0;
   let source = '';
 
@@ -248,6 +252,7 @@ export function detectWordPressAndWebhookMarks(
     if (r.isReturnFromWp) isReturn = true;
     if (r.isExchangeFromWp) isExchange = true;
     if (r.isPaidReturnFromWp) isPaidReturn = true;
+    if (r.isCancelledFromWp || r.wpDeliveryStatus === 'Cancelled') isCancelled = true;
 
     const rCollected = parseFloat(String(r.pathaoCollectedAmount || r['Pathao Collected Amount'] || r['ptc_collected_amount'] || 0)) || 0;
     if (rCollected > 0 && rCollected > collectedAmount) {
@@ -279,7 +284,7 @@ export function detectWordPressAndWebhookMarks(
       if (!source) source = 'status_column';
     }
     if (
-      /^(returned|return|refunded|failed|cancelled|canceled|rto)$/i.test(cleanStatus) ||
+      /^(returned|return|refunded|rto)$/i.test(cleanStatus) ||
       cleanStatus.includes('return') ||
       pathaoStatus.includes('return') ||
       pathaoStatus.includes('rto') ||
@@ -290,6 +295,13 @@ export function detectWordPressAndWebhookMarks(
       if (cleanStatus.includes('paid') || pathaoStatus.includes('paid return') || substatus.includes('paid')) {
         isPaidReturn = true;
       }
+    } else if (
+      /^(cancelled|canceled|failed|trash)$/i.test(cleanStatus) ||
+      cleanStatus.includes('cancelled') ||
+      cleanStatus.includes('canceled')
+    ) {
+      isCancelled = true;
+      if (!source) source = 'status_column';
     }
   }
 
@@ -301,6 +313,7 @@ export function detectWordPressAndWebhookMarks(
     isPartial,
     isReturn,
     isExchange,
+    isCancelled,
     isPaidReturn,
     collectedAmount,
     source,
@@ -938,6 +951,8 @@ export function runReconciliationEngine(
           }
         } else if (wpMarks.isExchange) {
           orderDeliveryCategory = 'EXCHANGE';
+        } else if (wpMarks.isCancelled) {
+          orderDeliveryCategory = 'CANCELLED';
         } else {
           // Business Rule: Every parcel was delivered!
           orderDeliveryCategory = 'DELIVERED';
@@ -1137,6 +1152,39 @@ export function runReconciliationEngine(
             decisionEvidence: partialMatchResult?.decisionEvidence
           });
         }
+      } else if (orderDeliveryCategory === 'CANCELLED') {
+        reconciled.push({
+          orderId: cleanOid,
+          lineStatus,
+          deliveryStatus: 'Cancelled (Pre-Dispatch)',
+          orderCategory: 'CANCELLED',
+          orderDeliveryStatus: 'Cancelled',
+          itemDeliveryStatus: 'Cancelled',
+          orderDate: dateObj,
+          customerName,
+          phone,
+          city,
+          districtArea: location,
+          sku,
+          itemName,
+          quantity: rawQty,
+          itemCost,
+          orderAmount: lineOrderAmount,
+          netRevenueImpact: 0,
+          paymentMethod,
+          hasSplitSuffix,
+          rawNote: note || undefined,
+          cogsEstimate: 0,
+          fulfillmentLocation: branchInfo.branch,
+          sipInventory: itemSip,
+          branchSuffix: branchInfo.suffix || undefined,
+          isPaidReturn: false,
+          isExchange: false,
+          wpDeliveryStatus: rWpDeliveryStatus || 'Cancelled',
+          wpMarkSource: rWpMarkSource,
+          pathaoPluginStatus: rPathaoStatus,
+          pathaoCollectedAmount: rPathaoCollectedAmount,
+        });
       } else if (orderDeliveryCategory === 'EXCHANGE') {
         const exStatus = exchEntries[0]?.status || 'Exchange';
         reconciled.push({
@@ -1379,6 +1427,7 @@ export function runReconciliationEngine(
   let fullDeliveredOrders = 0;
   let partialOrders = 0;
   let fullReturnedOrders = 0;
+  let cancelledOrders = 0;
   let grossRevenue = 0;
   let netDeliveredRevenue = 0;
   let totalItemsDelivered = 0;
@@ -1423,6 +1472,8 @@ export function runReconciliationEngine(
       partialOrders++;
     } else if (ord.orderCategory === 'EXCHANGE') {
       // Exchange order - distinct operational category isolated from full delivered sales
+    } else if (ord.orderCategory === 'CANCELLED') {
+      cancelledOrders++;
     } else {
       fullDeliveredOrders++;
     }
@@ -1710,6 +1761,7 @@ export function runReconciliationEngine(
     partialOrders,
     fullReturnedOrders,
     totalReturnedOrders: fullReturnedOrders,
+    cancelledOrders,
     totalPartialProducts,
     regularReturnedQty: Math.round(regularReturnedQty * 10) / 10,
     partialReturnedQty: Math.round(partialReturnedQty * 10) / 10,

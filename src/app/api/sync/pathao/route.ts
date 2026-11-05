@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const credentials = body.credentials || undefined;
     let consignmentIds: string[] = body.consignmentIds || [];
-    const limit = Math.min(body.limit || 25, 40);
+    const limit = Math.min(body.limit || 50, 100);
 
     // 1. If active WooCommerce orders or tracking list supplied in body, harvest from them
     if (consignmentIds.length === 0 && Array.isArray(body.activeOrders) && body.activeOrders.length > 0) {
@@ -109,7 +109,10 @@ export async function POST(req: Request) {
     const fetchedData = await batchFetchPathaoOrders(consignmentIds, 4, credentials);
 
     let filteredData = fetchedData;
-    if (body.startDate || body.endDate) {
+    // Only apply date range filtering if consignmentIds were NOT explicitly provided.
+    // When specific consignment IDs are requested for an order batch (e.g. October orders),
+    // we want their latest real-time status even if Pathao resolved/updated the delivery later.
+    if ((body.startDate || body.endDate) && (!body.consignmentIds || body.consignmentIds.length === 0)) {
       const startTs = body.startDate ? new Date(body.startDate).getTime() : 0;
       const endTs = body.endDate ? new Date(body.endDate).getTime() + 86400000 : Infinity;
       filteredData = fetchedData.filter(o => {

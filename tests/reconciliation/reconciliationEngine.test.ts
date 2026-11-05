@@ -220,6 +220,44 @@ describe('DEEN Commerce Reconciliation Engine — Domain Invariant Tests', () =>
       expect(row.itemDeliveryStatus).toBe('Returned');
       expect(row.orderCategory).toBe('FULL_RETURN');
     });
+    it('reconciles cancelled orders as Cancelled and excludes them from returned items', () => {
+      const wpCancelledSalesOrders = [
+        {
+          'Order ID': '30005',
+          'Order Date': '2026-10-16',
+          'Customer Name': 'Cancelled User',
+          'Phone': '01800112288',
+          'City': 'Dhaka',
+          'SKU': 'DN-J-01',
+          'Item Name': 'DEEN Slim Fit Jeans',
+          'Quantity': 1,
+          'Item Cost': 2100,
+          'Order Amount': 2100,
+          'Delivery Status': 'cancelled',
+          'status': 'cancelled',
+          'isCancelledFromWp': true,
+          'wpDeliveryStatus': 'Cancelled',
+        },
+      ];
+
+      const result = runReconciliationEngine(
+        wpCancelledSalesOrders,
+        [],
+        [],
+        { excludeAugust: false, excludePOS: false },
+        [],
+        []
+      );
+
+      expect(result.reconciledOrders.length).toBe(1);
+      const row = result.reconciledOrders[0];
+      expect(row.orderDeliveryStatus).toBe('Cancelled');
+      expect(row.itemDeliveryStatus).toBe('Cancelled');
+      expect(row.orderCategory).toBe('CANCELLED');
+      expect(result.returnedItems.some((it) => it.orderId === '30005')).toBe(false);
+      expect(result.summary.fullReturnedOrders).toBe(0);
+      expect(result.summary.cancelledOrders).toBe(1);
+    });
 
     it('reconciles WordPress partial mark into PARTIAL with knapsack item allocation without uploaded manifest', () => {
       const wpPartialSalesOrders = [

@@ -24,6 +24,7 @@ import {
   getExportCustomerName,
   getExportPhoneNumber
 } from '@/lib/excelExport';
+import { getItemCogsInfo } from '@/lib/woocommerceClient';
 
 interface OutletDispatchTabProps {
   orders: ReconciledOrderRow[];
@@ -1211,7 +1212,28 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
                           {o.quantity}
                         </td>
                         <td className="py-3 px-3 text-right text-slate-700 dark:text-slate-300">
-                          ৳ {o.itemCost.toLocaleString()}
+                          <div className="font-semibold text-slate-800 dark:text-slate-200">
+                            ৳ {o.itemCost.toLocaleString()}
+                          </div>
+                          {(() => {
+                            const cInfo = getItemCogsInfo(o.sku, o.itemCost);
+                            return (
+                              <div className="text-[10px] text-slate-400 font-mono flex items-center justify-end gap-1 mt-0.5">
+                                <span>COGS: ৳{cInfo.cogs.toLocaleString()}</span>
+                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                                  ({cInfo.marginPercent}%)
+                                </span>
+                                {cInfo.isExact && (
+                                  <span
+                                    className="text-[8px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded px-0.5"
+                                    title="Exact WooCommerce buying price"
+                                  >
+                                    WC
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="py-3 px-3 text-right font-bold text-slate-800 dark:text-slate-200">
                           ৳ {o.orderAmount.toLocaleString()}

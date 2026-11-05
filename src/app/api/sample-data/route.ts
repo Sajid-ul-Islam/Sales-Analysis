@@ -37,7 +37,14 @@ function parseExcelFile(filePath: string): RawOrderRow[] {
   }
 }
 
-import { jsonWithEdgeCache } from '@/lib/edgeCache';
+import { jsonWithEdgeCache, isClientFresh, createNotModifiedResponse } from '@/lib/edgeCache';
+
+// Cached baseline fallback payload to avoid repeating 5,200+ PII sanitization loops per request
+interface CachedFallback {
+  payload: Record<string, unknown>;
+  etag: string;
+}
+let cachedMaskedFallback: CachedFallback | null = null;
 
 // ISR (Incremental Static Regeneration): Cache static baseline sample data for 1 hour
 export const revalidate = 3600;
@@ -54,6 +61,15 @@ export async function GET(req: Request) {
         const blobResult = await fetchDatasetFromBlob();
         if (blobResult.success && blobResult.dataset && (blobResult.dataset.orders?.length || 0) > 0) {
           const ds = blobResult.dataset;
+          const uploadedAtIso = blobResult.uploadedAt || 'v1';
+          const sampleKey = auth.sampleRate ? String(auth.sampleRate) : '1';
+          const etag = `W/"blob-${uploadedAtIso}-${sampleKey}-${isPrivileged ? 'priv' : 'mask'}"`;
+
+          // Instant HTTP 304 if client browser already has the latest cloud blob snapshot
+          if (isClientFresh(req, etag)) {
+            return createNotModifiedResponse(etag, 'STATIC_DATASET');
+          }
+
           let sanitizedOrders = isPrivileged ? ds.orders : sanitizeOrdersResponse(ds.orders || []);
           let sanitizedReturns = isPrivileged ? ds.returns : sanitizeOrdersResponse(ds.returns || []);
           let sanitizedPartials = isPrivileged ? ds.partials : sanitizeOrdersResponse(ds.partials || []);
@@ -97,7 +113,7 @@ export async function GET(req: Request) {
             exchanges: sanitizedExchanges,
             pathaoDelivery: sanitizedPathao,
           };
-          return jsonWithEdgeCache(payload, 'STATIC_DATASET', { req, isPrivate: false });
+          return jsonWithEdgeCache(payload, 'STATIC_DATASET', { req, etag, isPrivate: false });
         }
       } catch (blobErr) {
         console.warn('[API /api/sample-data] Non-fatal notice querying Vercel Blob:', blobErr);
@@ -105,6 +121,18 @@ export async function GET(req: Request) {
     }
 
     // 2. TIER 2 LOCAL CHECK: Local Excel Spreadsheets on disk (Method 1 Local Dev)
+    // Fast path: if unprivileged fallback was already parsed & sanitized in this compute instance, serve immediately
+    if (!isPrivileged && (!auth.sampleRate || auth.sampleRate === 1) && cachedMaskedFallback) {
+      if (isClientFresh(req, cachedMaskedFallback.etag)) {
+        return createNotModifiedResponse(cachedMaskedFallback.etag, 'STATIC_DATASET');
+      }
+      return jsonWithEdgeCache(cachedMaskedFallback.payload, 'STATIC_DATASET', {
+        req,
+        etag: cachedMaskedFallback.etag,
+        isPrivate: false,
+      });
+    }
+
     const cwd = process.cwd();
 
     const orderCandidates = [
@@ -230,7 +258,18 @@ export async function GET(req: Request) {
       exchanges: sanitizedExchanges,
       pathaoDelivery: sanitizedPathao,
     };
-    return jsonWithEdgeCache(fallbackPayload, 'STATIC_DATASET', { req, isPrivate: false });
+
+    const sampleKey = auth.sampleRate ? String(auth.sampleRate) : '1';
+    const fallbackEtag = `W/"baseline-${sanitizedOrders.length}-${sampleKey}-${isPrivileged ? 'priv' : 'mask'}"`;
+
+    if (!isPrivileged && (!auth.sampleRate || auth.sampleRate === 1)) {
+      cachedMaskedFallback = {
+        payload: fallbackPayload,
+        etag: fallbackEtag,
+      };
+    }
+
+    return jsonWithEdgeCache(fallbackPayload, 'STATIC_DATASET', { req, etag: fallbackEtag, isPrivate: false });
   } catch (error: unknown) {
     console.error('Error reading sample data:', error);
     const errorMsg = error instanceof Error ? error.message : 'Failed to load sample dataset';

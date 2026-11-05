@@ -1,0 +1,1192 @@
+{
+  "fetchedAt": "2026-11-05T04:40:12.733Z",
+  "totalProducts": 383,
+  "totalSkusWithCogs": 23,
+  "bySku": {
+    "109-0102-082": {
+      "sku": "109-0102-082",
+      "productId": 19595,
+      "productName": "DEEN Black Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "109-0102-081": {
+      "sku": "109-0102-081",
+      "productId": 19593,
+      "productName": "DEEN Chocolate Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "109-0102-080": {
+      "sku": "109-0102-080",
+      "productId": 19591,
+      "productName": "DEEN Chocolate Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "109-0102-079": {
+      "sku": "109-0102-079",
+      "productId": 19589,
+      "productName": "DEEN Chocolate Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "109-0102-083": {
+      "sku": "109-0102-083",
+      "productId": 19587,
+      "productName": "DEEN Black Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 950,
+      "grossMarginPercent": 52.6
+    },
+    "109-0102-084": {
+      "sku": "109-0102-084",
+      "productId": 19584,
+      "productName": "DEEN Chocolate Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 950,
+      "grossMarginPercent": 52.6
+    },
+    "109-0102-085": {
+      "sku": "109-0102-085",
+      "productId": 19582,
+      "productName": "DEEN Black Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 950,
+      "grossMarginPercent": 52.6
+    },
+    "109-0102-086": {
+      "sku": "109-0102-086",
+      "productId": 19578,
+      "productName": "DEEN Chocolate Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 950,
+      "grossMarginPercent": 52.6
+    },
+    "109-0102-090": {
+      "sku": "109-0102-090",
+      "productId": 19574,
+      "productName": "DEEN Black Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "109-0102-089": {
+      "sku": "109-0102-089",
+      "productId": 19569,
+      "productName": "DEEN Chocolate Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "109-0102-088": {
+      "sku": "109-0102-088",
+      "productId": 19564,
+      "productName": "DEEN Black Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "109-0102-087": {
+      "sku": "109-0102-087",
+      "productId": 19560,
+      "productName": "DEEN Chocolate Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "109-0102-078": {
+      "sku": "109-0102-078",
+      "productId": 19556,
+      "productName": "DEEN Black Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "109-0102-077": {
+      "sku": "109-0102-077",
+      "productId": 19552,
+      "productName": "DEEN Chocolate Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "109-0102-076": {
+      "sku": "109-0102-076",
+      "productId": 19548,
+      "productName": "DEEN Chocolate Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "109-0102-075": {
+      "sku": "109-0102-075",
+      "productId": 19541,
+      "productName": "DEEN Black Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "101-0100-172": {
+      "sku": "101-0100-172",
+      "productId": 19268,
+      "variationId": 19269,
+      "productName": "American Eagle Jeans – Straight Fit - 30",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "101-0100-173": {
+      "sku": "101-0100-173",
+      "productId": 19276,
+      "variationId": 19277,
+      "productName": "American Eagle Jeans – Relaxed Fit - 30",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "101-0100-171": {
+      "sku": "101-0100-171",
+      "productId": 19254,
+      "variationId": 19255,
+      "productName": "American Eagle Jeans – Slim Fit - 30",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "104-0504-005": {
+      "sku": "104-0504-005",
+      "productId": 17498,
+      "variationId": 17499,
+      "productName": "Banana Republic Chino Pant - 28",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "104-0504-008": {
+      "sku": "104-0504-008",
+      "productId": 17526,
+      "variationId": 17527,
+      "productName": "Banana Republic Five Pocket Twill - 28",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "104-0504-007": {
+      "sku": "104-0504-007",
+      "productId": 17518,
+      "variationId": 17519,
+      "productName": "Banana Republic Five Pocket Twill - 28",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "104-0504-006": {
+      "sku": "104-0504-006",
+      "productId": 17510,
+      "variationId": 17511,
+      "productName": "Banana Republic Five Pocket Twill - 28",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    }
+  },
+  "byId": {
+    "17499": {
+      "sku": "104-0504-005",
+      "productId": 17498,
+      "variationId": 17499,
+      "productName": "Banana Republic Chino Pant - 28",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17500": {
+      "sku": "104-0504-005",
+      "productId": 17498,
+      "variationId": 17500,
+      "productName": "Banana Republic Chino Pant - 30",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17501": {
+      "sku": "104-0504-005",
+      "productId": 17498,
+      "variationId": 17501,
+      "productName": "Banana Republic Chino Pant - 32",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17502": {
+      "sku": "104-0504-005",
+      "productId": 17498,
+      "variationId": 17502,
+      "productName": "Banana Republic Chino Pant - 34",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17503": {
+      "sku": "104-0504-005",
+      "productId": 17498,
+      "variationId": 17503,
+      "productName": "Banana Republic Chino Pant - 36",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17504": {
+      "sku": "104-0504-005",
+      "productId": 17498,
+      "variationId": 17504,
+      "productName": "Banana Republic Chino Pant - 38",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17511": {
+      "sku": "104-0504-006",
+      "productId": 17510,
+      "variationId": 17511,
+      "productName": "Banana Republic Five Pocket Twill - 28",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17512": {
+      "sku": "104-0504-006",
+      "productId": 17510,
+      "variationId": 17512,
+      "productName": "Banana Republic Five Pocket Twill - 30",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17513": {
+      "sku": "104-0504-006",
+      "productId": 17510,
+      "variationId": 17513,
+      "productName": "Banana Republic Five Pocket Twill - 32",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17514": {
+      "sku": "104-0504-006",
+      "productId": 17510,
+      "variationId": 17514,
+      "productName": "Banana Republic Five Pocket Twill - 34",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17515": {
+      "sku": "104-0504-006",
+      "productId": 17510,
+      "variationId": 17515,
+      "productName": "Banana Republic Five Pocket Twill - 36",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17516": {
+      "sku": "104-0504-006",
+      "productId": 17510,
+      "variationId": 17516,
+      "productName": "Banana Republic Five Pocket Twill - 38",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17519": {
+      "sku": "104-0504-007",
+      "productId": 17518,
+      "variationId": 17519,
+      "productName": "Banana Republic Five Pocket Twill - 28",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17520": {
+      "sku": "104-0504-007",
+      "productId": 17518,
+      "variationId": 17520,
+      "productName": "Banana Republic Five Pocket Twill - 30",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17521": {
+      "sku": "104-0504-007",
+      "productId": 17518,
+      "variationId": 17521,
+      "productName": "Banana Republic Five Pocket Twill - 32",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17522": {
+      "sku": "104-0504-007",
+      "productId": 17518,
+      "variationId": 17522,
+      "productName": "Banana Republic Five Pocket Twill - 34",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17523": {
+      "sku": "104-0504-007",
+      "productId": 17518,
+      "variationId": 17523,
+      "productName": "Banana Republic Five Pocket Twill - 36",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17524": {
+      "sku": "104-0504-007",
+      "productId": 17518,
+      "variationId": 17524,
+      "productName": "Banana Republic Five Pocket Twill - 38",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17527": {
+      "sku": "104-0504-008",
+      "productId": 17526,
+      "variationId": 17527,
+      "productName": "Banana Republic Five Pocket Twill - 28",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17528": {
+      "sku": "104-0504-008",
+      "productId": 17526,
+      "variationId": 17528,
+      "productName": "Banana Republic Five Pocket Twill - 30",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17529": {
+      "sku": "104-0504-008",
+      "productId": 17526,
+      "variationId": 17529,
+      "productName": "Banana Republic Five Pocket Twill - 32",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17530": {
+      "sku": "104-0504-008",
+      "productId": 17526,
+      "variationId": 17530,
+      "productName": "Banana Republic Five Pocket Twill - 34",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17531": {
+      "sku": "104-0504-008",
+      "productId": 17526,
+      "variationId": 17531,
+      "productName": "Banana Republic Five Pocket Twill - 36",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17532": {
+      "sku": "104-0504-008",
+      "productId": 17526,
+      "variationId": 17532,
+      "productName": "Banana Republic Five Pocket Twill - 38",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17536": {
+      "sku": "104-0504-006",
+      "productId": 17510,
+      "variationId": 17536,
+      "productName": "Banana Republic Five Pocket Twill - 40",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17537": {
+      "sku": "104-0504-006",
+      "productId": 17510,
+      "variationId": 17537,
+      "productName": "Banana Republic Five Pocket Twill - 42",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17541": {
+      "sku": "104-0504-007",
+      "productId": 17518,
+      "variationId": 17541,
+      "productName": "Banana Republic Five Pocket Twill - 40",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17542": {
+      "sku": "104-0504-007",
+      "productId": 17518,
+      "variationId": 17542,
+      "productName": "Banana Republic Five Pocket Twill - 42",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17546": {
+      "sku": "104-0504-008",
+      "productId": 17526,
+      "variationId": 17546,
+      "productName": "Banana Republic Five Pocket Twill - 40",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17547": {
+      "sku": "104-0504-008",
+      "productId": 17526,
+      "variationId": 17547,
+      "productName": "Banana Republic Five Pocket Twill - 42",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "19255": {
+      "sku": "101-0100-171",
+      "productId": 19254,
+      "variationId": 19255,
+      "productName": "American Eagle Jeans – Slim Fit - 30",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19256": {
+      "sku": "101-0100-171",
+      "productId": 19254,
+      "variationId": 19256,
+      "productName": "American Eagle Jeans – Slim Fit - 32",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19257": {
+      "sku": "101-0100-171",
+      "productId": 19254,
+      "variationId": 19257,
+      "productName": "American Eagle Jeans – Slim Fit - 34",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19258": {
+      "sku": "101-0100-171",
+      "productId": 19254,
+      "variationId": 19258,
+      "productName": "American Eagle Jeans – Slim Fit - 36",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19259": {
+      "sku": "101-0100-171",
+      "productId": 19254,
+      "variationId": 19259,
+      "productName": "American Eagle Jeans – Slim Fit - 40",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19260": {
+      "sku": "101-0100-171",
+      "productId": 19254,
+      "variationId": 19260,
+      "productName": "American Eagle Jeans – Slim Fit - 38",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19269": {
+      "sku": "101-0100-172",
+      "productId": 19268,
+      "variationId": 19269,
+      "productName": "American Eagle Jeans – Straight Fit - 30",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19270": {
+      "sku": "101-0100-172",
+      "productId": 19268,
+      "variationId": 19270,
+      "productName": "American Eagle Jeans – Straight Fit - 32",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19271": {
+      "sku": "101-0100-172",
+      "productId": 19268,
+      "variationId": 19271,
+      "productName": "American Eagle Jeans – Straight Fit - 34",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19272": {
+      "sku": "101-0100-172",
+      "productId": 19268,
+      "variationId": 19272,
+      "productName": "American Eagle Jeans – Straight Fit - 36",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19273": {
+      "sku": "101-0100-172",
+      "productId": 19268,
+      "variationId": 19273,
+      "productName": "American Eagle Jeans – Straight Fit - 40",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19274": {
+      "sku": "101-0100-172",
+      "productId": 19268,
+      "variationId": 19274,
+      "productName": "American Eagle Jeans – Straight Fit - 38",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19277": {
+      "sku": "101-0100-173",
+      "productId": 19276,
+      "variationId": 19277,
+      "productName": "American Eagle Jeans – Relaxed Fit - 30",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19278": {
+      "sku": "101-0100-173",
+      "productId": 19276,
+      "variationId": 19278,
+      "productName": "American Eagle Jeans – Relaxed Fit - 32",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19279": {
+      "sku": "101-0100-173",
+      "productId": 19276,
+      "variationId": 19279,
+      "productName": "American Eagle Jeans – Relaxed Fit - 34",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19280": {
+      "sku": "101-0100-173",
+      "productId": 19276,
+      "variationId": 19280,
+      "productName": "American Eagle Jeans – Relaxed Fit - 36",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19281": {
+      "sku": "101-0100-173",
+      "productId": 19276,
+      "variationId": 19281,
+      "productName": "American Eagle Jeans – Relaxed Fit - 40",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19282": {
+      "sku": "101-0100-173",
+      "productId": 19276,
+      "variationId": 19282,
+      "productName": "American Eagle Jeans – Relaxed Fit - 38",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19541": {
+      "sku": "109-0102-075",
+      "productId": 19541,
+      "productName": "DEEN Black Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "19548": {
+      "sku": "109-0102-076",
+      "productId": 19548,
+      "productName": "DEEN Chocolate Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "19552": {
+      "sku": "109-0102-077",
+      "productId": 19552,
+      "productName": "DEEN Chocolate Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "19556": {
+      "sku": "109-0102-078",
+      "productId": 19556,
+      "productName": "DEEN Black Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "19560": {
+      "sku": "109-0102-087",
+      "productId": 19560,
+      "productName": "DEEN Chocolate Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "19564": {
+      "sku": "109-0102-088",
+      "productId": 19564,
+      "productName": "DEEN Black Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "19569": {
+      "sku": "109-0102-089",
+      "productId": 19569,
+      "productName": "DEEN Chocolate Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "19574": {
+      "sku": "109-0102-090",
+      "productId": 19574,
+      "productName": "DEEN Black Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "19578": {
+      "sku": "109-0102-086",
+      "productId": 19578,
+      "productName": "DEEN Chocolate Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 950,
+      "grossMarginPercent": 52.6
+    },
+    "19582": {
+      "sku": "109-0102-085",
+      "productId": 19582,
+      "productName": "DEEN Black Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 950,
+      "grossMarginPercent": 52.6
+    },
+    "19584": {
+      "sku": "109-0102-084",
+      "productId": 19584,
+      "productName": "DEEN Chocolate Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 950,
+      "grossMarginPercent": 52.6
+    },
+    "19587": {
+      "sku": "109-0102-083",
+      "productId": 19587,
+      "productName": "DEEN Black Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 950,
+      "grossMarginPercent": 52.6
+    },
+    "19589": {
+      "sku": "109-0102-079",
+      "productId": 19589,
+      "productName": "DEEN Chocolate Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "19591": {
+      "sku": "109-0102-080",
+      "productId": 19591,
+      "productName": "DEEN Chocolate Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "19593": {
+      "sku": "109-0102-081",
+      "productId": 19593,
+      "productName": "DEEN Chocolate Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "19595": {
+      "sku": "109-0102-082",
+      "productId": 19595,
+      "productName": "DEEN Black Bifold Wallet",
+      "cogs": 450,
+      "regularPrice": 890,
+      "grossMarginPercent": 49.4
+    },
+    "19268:19274": {
+      "sku": "101-0100-172",
+      "productId": 19268,
+      "variationId": 19274,
+      "productName": "American Eagle Jeans – Straight Fit - 38",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19268:19273": {
+      "sku": "101-0100-172",
+      "productId": 19268,
+      "variationId": 19273,
+      "productName": "American Eagle Jeans – Straight Fit - 40",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19268:19272": {
+      "sku": "101-0100-172",
+      "productId": 19268,
+      "variationId": 19272,
+      "productName": "American Eagle Jeans – Straight Fit - 36",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19268:19271": {
+      "sku": "101-0100-172",
+      "productId": 19268,
+      "variationId": 19271,
+      "productName": "American Eagle Jeans – Straight Fit - 34",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19268:19270": {
+      "sku": "101-0100-172",
+      "productId": 19268,
+      "variationId": 19270,
+      "productName": "American Eagle Jeans – Straight Fit - 32",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19268:19269": {
+      "sku": "101-0100-172",
+      "productId": 19268,
+      "variationId": 19269,
+      "productName": "American Eagle Jeans – Straight Fit - 30",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19276:19282": {
+      "sku": "101-0100-173",
+      "productId": 19276,
+      "variationId": 19282,
+      "productName": "American Eagle Jeans – Relaxed Fit - 38",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19276:19281": {
+      "sku": "101-0100-173",
+      "productId": 19276,
+      "variationId": 19281,
+      "productName": "American Eagle Jeans – Relaxed Fit - 40",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19276:19280": {
+      "sku": "101-0100-173",
+      "productId": 19276,
+      "variationId": 19280,
+      "productName": "American Eagle Jeans – Relaxed Fit - 36",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19276:19279": {
+      "sku": "101-0100-173",
+      "productId": 19276,
+      "variationId": 19279,
+      "productName": "American Eagle Jeans – Relaxed Fit - 34",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19276:19278": {
+      "sku": "101-0100-173",
+      "productId": 19276,
+      "variationId": 19278,
+      "productName": "American Eagle Jeans – Relaxed Fit - 32",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19276:19277": {
+      "sku": "101-0100-173",
+      "productId": 19276,
+      "variationId": 19277,
+      "productName": "American Eagle Jeans – Relaxed Fit - 30",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19254:19260": {
+      "sku": "101-0100-171",
+      "productId": 19254,
+      "variationId": 19260,
+      "productName": "American Eagle Jeans – Slim Fit - 38",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19254:19259": {
+      "sku": "101-0100-171",
+      "productId": 19254,
+      "variationId": 19259,
+      "productName": "American Eagle Jeans – Slim Fit - 40",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19254:19258": {
+      "sku": "101-0100-171",
+      "productId": 19254,
+      "variationId": 19258,
+      "productName": "American Eagle Jeans – Slim Fit - 36",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19254:19257": {
+      "sku": "101-0100-171",
+      "productId": 19254,
+      "variationId": 19257,
+      "productName": "American Eagle Jeans – Slim Fit - 34",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19254:19256": {
+      "sku": "101-0100-171",
+      "productId": 19254,
+      "variationId": 19256,
+      "productName": "American Eagle Jeans – Slim Fit - 32",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "19254:19255": {
+      "sku": "101-0100-171",
+      "productId": 19254,
+      "variationId": 19255,
+      "productName": "American Eagle Jeans – Slim Fit - 30",
+      "cogs": 1180,
+      "regularPrice": 2430,
+      "grossMarginPercent": 51.4
+    },
+    "17498:17504": {
+      "sku": "104-0504-005",
+      "productId": 17498,
+      "variationId": 17504,
+      "productName": "Banana Republic Chino Pant - 38",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17498:17503": {
+      "sku": "104-0504-005",
+      "productId": 17498,
+      "variationId": 17503,
+      "productName": "Banana Republic Chino Pant - 36",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17498:17502": {
+      "sku": "104-0504-005",
+      "productId": 17498,
+      "variationId": 17502,
+      "productName": "Banana Republic Chino Pant - 34",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17498:17501": {
+      "sku": "104-0504-005",
+      "productId": 17498,
+      "variationId": 17501,
+      "productName": "Banana Republic Chino Pant - 32",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17498:17500": {
+      "sku": "104-0504-005",
+      "productId": 17498,
+      "variationId": 17500,
+      "productName": "Banana Republic Chino Pant - 30",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17498:17499": {
+      "sku": "104-0504-005",
+      "productId": 17498,
+      "variationId": 17499,
+      "productName": "Banana Republic Chino Pant - 28",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17526:17547": {
+      "sku": "104-0504-008",
+      "productId": 17526,
+      "variationId": 17547,
+      "productName": "Banana Republic Five Pocket Twill - 42",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17526:17546": {
+      "sku": "104-0504-008",
+      "productId": 17526,
+      "variationId": 17546,
+      "productName": "Banana Republic Five Pocket Twill - 40",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17526:17532": {
+      "sku": "104-0504-008",
+      "productId": 17526,
+      "variationId": 17532,
+      "productName": "Banana Republic Five Pocket Twill - 38",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17526:17531": {
+      "sku": "104-0504-008",
+      "productId": 17526,
+      "variationId": 17531,
+      "productName": "Banana Republic Five Pocket Twill - 36",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17526:17530": {
+      "sku": "104-0504-008",
+      "productId": 17526,
+      "variationId": 17530,
+      "productName": "Banana Republic Five Pocket Twill - 34",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17526:17529": {
+      "sku": "104-0504-008",
+      "productId": 17526,
+      "variationId": 17529,
+      "productName": "Banana Republic Five Pocket Twill - 32",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17526:17528": {
+      "sku": "104-0504-008",
+      "productId": 17526,
+      "variationId": 17528,
+      "productName": "Banana Republic Five Pocket Twill - 30",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17526:17527": {
+      "sku": "104-0504-008",
+      "productId": 17526,
+      "variationId": 17527,
+      "productName": "Banana Republic Five Pocket Twill - 28",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17518:17542": {
+      "sku": "104-0504-007",
+      "productId": 17518,
+      "variationId": 17542,
+      "productName": "Banana Republic Five Pocket Twill - 42",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17518:17541": {
+      "sku": "104-0504-007",
+      "productId": 17518,
+      "variationId": 17541,
+      "productName": "Banana Republic Five Pocket Twill - 40",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17518:17524": {
+      "sku": "104-0504-007",
+      "productId": 17518,
+      "variationId": 17524,
+      "productName": "Banana Republic Five Pocket Twill - 38",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17518:17523": {
+      "sku": "104-0504-007",
+      "productId": 17518,
+      "variationId": 17523,
+      "productName": "Banana Republic Five Pocket Twill - 36",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17518:17522": {
+      "sku": "104-0504-007",
+      "productId": 17518,
+      "variationId": 17522,
+      "productName": "Banana Republic Five Pocket Twill - 34",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17518:17521": {
+      "sku": "104-0504-007",
+      "productId": 17518,
+      "variationId": 17521,
+      "productName": "Banana Republic Five Pocket Twill - 32",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17518:17520": {
+      "sku": "104-0504-007",
+      "productId": 17518,
+      "variationId": 17520,
+      "productName": "Banana Republic Five Pocket Twill - 30",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17518:17519": {
+      "sku": "104-0504-007",
+      "productId": 17518,
+      "variationId": 17519,
+      "productName": "Banana Republic Five Pocket Twill - 28",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17510:17537": {
+      "sku": "104-0504-006",
+      "productId": 17510,
+      "variationId": 17537,
+      "productName": "Banana Republic Five Pocket Twill - 42",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17510:17536": {
+      "sku": "104-0504-006",
+      "productId": 17510,
+      "variationId": 17536,
+      "productName": "Banana Republic Five Pocket Twill - 40",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17510:17516": {
+      "sku": "104-0504-006",
+      "productId": 17510,
+      "variationId": 17516,
+      "productName": "Banana Republic Five Pocket Twill - 38",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17510:17515": {
+      "sku": "104-0504-006",
+      "productId": 17510,
+      "variationId": 17515,
+      "productName": "Banana Republic Five Pocket Twill - 36",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17510:17514": {
+      "sku": "104-0504-006",
+      "productId": 17510,
+      "variationId": 17514,
+      "productName": "Banana Republic Five Pocket Twill - 34",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17510:17513": {
+      "sku": "104-0504-006",
+      "productId": 17510,
+      "variationId": 17513,
+      "productName": "Banana Republic Five Pocket Twill - 32",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17510:17512": {
+      "sku": "104-0504-006",
+      "productId": 17510,
+      "variationId": 17512,
+      "productName": "Banana Republic Five Pocket Twill - 30",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    },
+    "17510:17511": {
+      "sku": "104-0504-006",
+      "productId": 17510,
+      "variationId": 17511,
+      "productName": "Banana Republic Five Pocket Twill - 28",
+      "cogs": 650,
+      "regularPrice": 1790,
+      "grossMarginPercent": 63.7
+    }
+  }
+}
