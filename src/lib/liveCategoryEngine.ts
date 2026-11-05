@@ -33,6 +33,8 @@ export const CATEGORY_COLOR_MAP: Record<string, string> = {
   'Accessories': '#0d9488',
   'Mask': '#14b8a6',
   'Belt': '#b45309',
+  'Water Bottle': '#06b6d4',
+  'Mug': '#78716c',
   'Others': '#94a3b8',
 
   // Jeans Sub-Categories (Differentiated shades of rose/crimson/coral)
@@ -106,7 +108,6 @@ export function getShortCategoryLabel(name: string): string {
   if (lower.includes('sweatshirt')) return 'Sweatshirt';
   if (lower.includes('hoodie')) return 'Hoodie';
   if (lower.includes('jacket')) return 'Jacket';
-  if (lower.includes('mug')) return 'Mug';
   if (lower.includes('jeans')) return 'Jeans';
   if (lower.includes('pajama') || lower.includes('payjama')) return 'Pajama';
   if (lower.includes('polo')) return 'Polo';
@@ -115,7 +116,7 @@ export function getShortCategoryLabel(name: string): string {
   if (lower.includes('trouser') || lower.includes('jogger')) return 'Trousers';
   if (lower.includes('full sleeve') || lower === 'fs shirt') return 'FS Shirt';
   if (lower.includes('half sleeve') || lower === 'hs shirt') return 'HS Shirt';
-  if (lower.includes('mask') || lower.includes('accessor') || lower.includes('belt')) return 'Accessories';
+  if (lower.includes('mask') || lower.includes('accessor') || lower.includes('belt') || lower.includes('bottle') || lower.includes('mug')) return 'Accessories';
 
   const prefixes = ['FS Shirt - ', 'HS Shirt - ', 'FS T-Shirt - ', 'HS T-Shirt - ', 'FS Shirt ', 'HS Shirt ', 'FS ', 'HS '];
   for (const prefix of prefixes) {
@@ -141,7 +142,6 @@ export function getCategoryForSales(name?: string | null): string {
   if (hasAny(['sweatshirt', 'pullover'], nameStr)) return 'Sweatshirt';
   if (nameStr.includes('hoodie')) return 'Hoodie';
   if (hasAny(['jacket', 'outerwear', 'coat'], nameStr)) return 'Jacket';
-  if (nameStr.includes('mug')) return 'Mug';
   if (nameStr.includes('polo')) return 'Polo';
   if (hasAny(['turtleneck', 'turtle-neck', 'mock neck'], nameStr)) return 'Turtle-Neck';
   if (nameStr.includes('bundle')) return 'Bundles';
@@ -175,8 +175,7 @@ export function getCategoryForSales(name?: string | null): string {
   if (nameStr.includes('boxer')) return 'Boxer';
   if (hasAny(['wallet', 'card holder', 'passport holder'], nameStr)) return 'Wallet';
   if (hasAny(['bag', 'backpack', 'tote'], nameStr)) return 'Leather Bag';
-  if (nameStr.includes('bottle')) return 'Water Bottle';
-  if (hasAny(['mask', 'face mask', 'accessor', 'belt'], nameStr)) return 'Accessories';
+  if (hasAny(['mask', 'face mask', 'accessor', 'belt', 'bottle', 'water bottle', 'mug'], nameStr)) return 'Accessories';
 
   return 'Others';
 }
@@ -240,9 +239,11 @@ export function getSubCategoryForSales(name?: string | null, parentCategory?: st
     return 'Sweatshirt';
   }
 
-  if (category === 'Accessories' || hasAny(['mask', 'belt'], nameStr)) {
+  if (category === 'Accessories' || hasAny(['mask', 'belt', 'bottle', 'mug'], nameStr)) {
     if (nameStr.includes('mask')) return 'Mask';
     if (nameStr.includes('belt')) return 'Belt';
+    if (nameStr.includes('bottle')) return 'Water Bottle';
+    if (nameStr.includes('mug')) return 'Mug';
     return 'Accessories';
   }
 
@@ -298,6 +299,8 @@ export function getShortSubCategoryLabel(subCategory?: string | null): string {
   // 9. Accessories sub-categories
   if (lower === 'mask' || lower.includes('face mask') || lower.includes('breathable face mask')) return 'Mask';
   if (lower === 'belt' || lower.includes('leather belt') || lower.includes('belt')) return 'Belt';
+  if (lower === 'water bottle' || lower.includes('bottle')) return 'Water Bottle';
+  if (lower === 'mug' || lower.includes('mug')) return 'Mug';
 
   return trimmed;
 }

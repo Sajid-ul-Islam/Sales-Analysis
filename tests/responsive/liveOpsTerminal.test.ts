@@ -69,6 +69,8 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(getCategoryForSales('DEEN Breathable Face Mask')).toBe('Accessories');
       expect(getCategoryForSales('Breathable Face Mask')).toBe('Accessories');
       expect(getCategoryForSales('DEEN Black Premium Leather Belt')).toBe('Accessories');
+      expect(getCategoryForSales('DEEN Insulated Water Bottle')).toBe('Accessories');
+      expect(getCategoryForSales('DEEN Ceramic Coffee Mug')).toBe('Accessories');
     });
 
     it('extracts granular sub-categories', () => {
@@ -78,6 +80,8 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(getSubCategoryForSales('DEEN Breathable Face Mask')).toBe('Mask');
       expect(getSubCategoryForSales('Breathable Face Mask')).toBe('Mask');
       expect(getSubCategoryForSales('DEEN Black Premium Leather Belt')).toBe('Belt');
+      expect(getSubCategoryForSales('DEEN Insulated Water Bottle')).toBe('Water Bottle');
+      expect(getSubCategoryForSales('DEEN Ceramic Coffee Mug')).toBe('Mug');
     });
 
     it('extracts short concise category labels for charts', () => {
