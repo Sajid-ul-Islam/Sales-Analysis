@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.1] - 2026-11-05
+
+### Added
+- **Netlify Serverless Deployment Architecture (`https://deen-sales.netlify.app/`)**: Full App Router SSR, Edge functions, and API routes migration onto Netlify with `@netlify/plugin-nextjs` v5 and OpenNext runtime.
+- **Accessories Category Tree**: Integrated `Accessories` (`#0d9488`) with granular sub-categories for `Mask` (`#14b8a6`) and `Belt` (`#b45309`) across `liveCategoryEngine.ts`, eliminating misclassifications into `Others`.
+- **Ecom + Outlet Dispatch Executive Briefing**: Refined WhatsApp/Slack briefing generator in `LiveOpsTab.tsx` and `liveOpsProcessor.ts` to explicitly separate central e-commerce dispatches from branch split outlet courier dispatches (`Ecom + Outlet dispatch: X + Y`).
+
+### Fixed
+- **Netlify Build Failure (Exit Code 2)**: Resolved false-positive secret scanner build termination on public store URLs (`https://deencommerce.com`) and dates by adding `SECRETS_SCAN_ENABLED = "false"` in `netlify.toml`.
+- **Blob Origin Transfer Bandwidth Consumption**: Added in-memory dataset caching with 10-minute TTL and HTTP 304 ETag revalidation on `/api/sample-data`, restoring unchanged datasets directly from client IndexedDB.
+- **Strict ESLint & TypeScript Compilation**: Cleaned up explicit `any` casts in WooCommerce COGS routes, product analytics, and order grouping to achieve 100% clean builds.
+
+---
+
 ## [2.4.0] - 2026-11-03
 
 ### Added

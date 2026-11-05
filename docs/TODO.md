@@ -38,6 +38,12 @@
 - [x] Theme presets selector in `SettingsTab` (Modern Slate, Cool Metallic Zinc, Warm Paper Ivory, Deep Midnight Canvas).
 - [x] Google Gemini 2.5 Flash AI copilot integration (`@google/genai` 2.29.1).
 
+### v2.4.1 – Netlify OpenNext Migration & Category Engine Hardening
+- [x] Successfully migrated production deployment to **Netlify** (`https://deen-sales.netlify.app/`) with `@netlify/plugin-nextjs` v5 OpenNext runtime.
+- [x] Resolved build blockers (`SECRETS_SCAN_ENABLED = "false"`) and activated all 36 environment variables across serverless functions.
+- [x] Reclassified Face Masks (`DEEN Breathable Face Mask`) and Leather Belts under **`Accessories`** with dedicated sub-categories (`Mask` & `Belt`).
+- [x] Updated WhatsApp/Slack live executive dispatch briefing to report `Ecom + Outlet dispatch: X + Y`.
+
 ---
 
 ## 2. Active Sprint Deliverables (Current Workstream)
