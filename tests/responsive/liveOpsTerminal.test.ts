@@ -877,8 +877,8 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(exchangeBullet).toContain('#18085 (Exchange for #17839)');
       expect(exchangeBullet).toContain('isolated from sales charts with zero revenue inflation');
 
-      // 5. Clipboard briefing contains exchange dispatches section
-      expect(report.executiveBriefing.clipboardText).toContain('Exchanges Dispatched: 1 replacement parcel(s) [#18085 (for #17839)]');
+      // 5. Clipboard briefing contains exchange in channel summary
+      expect(report.executiveBriefing.clipboardText).toContain('🔄 *Exchange:* 1');
 
       // 6. Orders ledger contains both orders with full exchange details
       expect(report.activeOrders.length).toBe(2);
@@ -1031,10 +1031,10 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(briefing.fulfillment.lastShippedOrder).toBe('18100');
       expect(briefing.fulfillment.lastPathaoPrint).toBe('CID-ONLINE-100');
 
-      // 4. Clipboard text formatting must omit POS outlet and label Ecom as Checkout
+      // 4. Clipboard text formatting must omit POS outlet and label Ecom as Ecom + Outlet dispatch
       expect(briefing.clipboardText).toContain('🛒 *Total Orders:* 1');
       expect(briefing.clipboardText).toContain('🔄 *Exchange:* 1');
-      expect(briefing.clipboardText).toContain('🚀 *Ecom (Checkout):* 1');
+      expect(briefing.clipboardText).toContain('🚀 *Ecom + Outlet dispatch:* 1 + 0');
       expect(briefing.clipboardText).not.toContain('🏪 *Outlet:*');
     });
 

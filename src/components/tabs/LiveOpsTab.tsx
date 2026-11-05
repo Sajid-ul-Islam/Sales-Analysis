@@ -2470,9 +2470,9 @@ export function LiveOpsTab({
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-1 text-center">
                   <div className="bg-white/5 rounded-xl p-2 min-w-0">
-                    <div className="text-[10px] text-slate-400 truncate">🚀 Ecom (Checkout)</div>
+                    <div className="text-[10px] text-slate-400 truncate">🚀 Ecom + Outlet dispatch</div>
                     <div className="font-bold text-sky-400 text-sm mt-0.5 truncate">
-                      {report.executiveBriefing.channelBreakdown?.ecomCount ?? report.executiveBriefing.totalOrders}
+                      {report.executiveBriefing.channelBreakdown?.ecomCount ?? report.executiveBriefing.totalOrders} + {report.executiveBriefing.channelBreakdown?.outletDispatchCount ?? 0}
                     </div>
                   </div>
                   <div className="bg-white/5 rounded-xl p-2 min-w-0">

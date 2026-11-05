@@ -255,6 +255,7 @@ export interface ExecutiveBriefing {
     exchangeCount: number;
     ecomCount: number;
     outletCount: number;
+    outletDispatchCount?: number;
   };
   top3Products?: {
     name: string;
@@ -1103,6 +1104,7 @@ export function processLiveOpsData(
     customDate?: string;
     anchorDate?: string;
     historicalOrders?: RawOrderRow[];
+    outletDispatchCount?: number;
   } = {}
 ): LiveOpsReport {
   const view = options.view || 'Today Shipped';
@@ -1782,30 +1784,52 @@ export function processLiveOpsData(
   const lastShippedClean = lastShippedOid.replace(/^#/, '');
   const lastPathaoClean = String(lastPathaoPrint).replace(/^#/, '');
 
-  let clipboardText = `📊 *DEEN Sales Executive Briefing*\n` +
+  // Detect branch split / outlet courier dispatches on reference date
+  const isBranchDispatchOrder = (o: RawOrderRow): boolean => {
+    const rawOid = String(o['Order ID'] || (o as Record<string, unknown>).orderId || '').trim();
+    const paymentMethod = String(o['Payment Method'] || (o as Record<string, unknown>).paymentMethod || (o as Record<string, unknown>).payment_method || '').toLowerCase().trim();
+    const paymentTitle = String((o as Record<string, unknown>).payment_method_title || (o as Record<string, unknown>).paymentMethodTitle || '').toLowerCase().trim();
+
+    if (isEcomPaymentMethod(paymentMethod, paymentTitle)) return true;
+    if (/[-_\s]?[cwsm]$/i.test(rawOid) || /\b\d+\s*[cwsm]\b/i.test(rawOid)) return true;
+
+    const branch = detectFulfillmentBranch(o);
+    if (branch.isBranchFulfillment && branch.branchCode !== 'ONLINE' && branch.branchCode !== 'EXCHANGE') {
+      return true;
+    }
+    return false;
+  };
+
+  const seenOutletDispatchIds = new Set<string>();
+  for (const o of orders) {
+    if (isOrderExchange(o)) continue;
+    const isTargetDay = isOrderShippedOnDate(o, refDateIso) || isPosOrderOnDate(o, refDateIso) || isTargetDate(o, refDateIso);
+    if (!isTargetDay) continue;
+
+    if (isBranchDispatchOrder(o) || isOrderOutlet(o)) {
+      const oid = String(o['Order ID'] || (o as Record<string, unknown>).orderId || '').trim();
+      if (oid) seenOutletDispatchIds.add(oid);
+    }
+  }
+
+  const computedOutletDispatchCount = typeof options.outletDispatchCount === 'number'
+    ? options.outletDispatchCount
+    : seenOutletDispatchIds.size;
+
+  const clipboardText = `📊 *DEEN Sales Executive Briefing*\n` +
     `📅 ${formattedDate}\n\n` +
     `💵 *Gross Revenue:* ৳${Math.round(activeRevenue).toLocaleString()}\n\n` +
     `📦 *Shipped Items:* ${activeItemsCount}\n` +
     `🛍️ *Avg Basket Value:* ৳${activeBasket.toLocaleString()}\n\n` +
-    `🏷️ *Collection Split:*\n` +
     `💎 *DEEN Selects:* ৳${selectsStats.selectsRevenue.toLocaleString()} (${selectsStats.selectsQty} pcs · ${selectsStats.selectsRevShare}%)\n` +
     `📦 *DEEN Regular:* ৳${selectsStats.regularRevenue.toLocaleString()} (${selectsStats.regularQty} pcs · ${selectsStats.regularRevShare}%)\n\n` +
     `📋 *Last Shipped Order:* ${lastShippedClean}\n` +
     `🖨️ *Last Pathao Print:* ${lastPathaoClean}\n\n` +
     `🛒 *Total Orders:* ${activeOrdersCount}\n` +
     `🔄 *Exchange:* ${exchangeStats.count}\n` +
-    `🚀 *Ecom (Checkout):* ${activeOrdersCount}\n\n` +
+    `🚀 *Ecom + Outlet dispatch:* ${activeOrdersCount} + ${computedOutletDispatchCount}\n\n` +
     `🔥 *Top Performing Products:*\n` +
     `${top3ProductsList || '• None recorded'}`;
-
-  if (exchangeStats.count > 0) {
-    const details = exchangeStats.replacementOrders.map((o) => {
-      const info = extractExchangeInfo(o);
-      const oid = o['Order ID'] || o.orderId || '';
-      return info.referencedOrderId ? `#${oid} (for #${info.referencedOrderId})` : `#${oid}`;
-    }).join(', ');
-    clipboardText += `\n\n🔄 Exchanges Dispatched: ${exchangeStats.count} replacement parcel(s) [${details}] (${exchangeStats.itemsCount} items; tracked separately)`;
-  }
 
   const executiveBriefing: ExecutiveBriefing = {
     dateIso: refDateIso,
@@ -1838,7 +1862,8 @@ export function processLiveOpsData(
       totalOrders: activeOrdersCount,
       exchangeCount: exchangeStats.count,
       ecomCount: activeOrdersCount,
-      outletCount: 0,
+      outletCount: computedOutletDispatchCount,
+      outletDispatchCount: computedOutletDispatchCount,
     },
     top3Products: topProducts.slice(0, 3).map((p) => ({
       name: p.productName,
