@@ -1,6 +1,6 @@
 # Living Engineering Roadmap & Backlog: DEEN Commerce
 
-**Version:** 2.4.0  
+**Version:** 2.4.2  
 **Status:** Active Sprint & Product Backlog  
 **Last Updated:** November 2026  
 
@@ -38,6 +38,12 @@
 - [x] Theme presets selector in `SettingsTab` (Modern Slate, Cool Metallic Zinc, Warm Paper Ivory, Deep Midnight Canvas).
 - [x] Google Gemini 2.5 Flash AI copilot integration (`@google/genai` 2.29.1).
 
+### v2.4.2 – Pre-Dispatch Predictive RTO Warning & Gemini Risk Predictor
+- [x] Surface pre-dispatch predictive RTO warning badge (`⚠️ High Risk`) on Everyday Dispatched Orders ledger.
+- [x] Operational Pre-Dispatch Advisory banner inside Order Detail Modal for buyers with low delivery rates (< 50%).
+- [x] Interactive Gemini 2.5 Flash + Heuristic RTO evaluation hub with size-bracketing detection and Bengali recommendations.
+- [x] Comprehensive test suite in `tests/ai/predictRiskRoute.test.ts`.
+
 ### v2.4.1 – Netlify OpenNext Migration & Category Engine Hardening
 - [x] Successfully migrated production deployment to **Netlify** (`https://deen-sales.netlify.app/`) with `@netlify/plugin-nextjs` v5 OpenNext runtime.
 - [x] Resolved build blockers (`SECRETS_SCAN_ENABLED = "false"`) and activated all 36 environment variables across serverless functions.
@@ -56,9 +62,9 @@
 
 ## 3. Short-Term Backlog (Q1 2027)
 
-1. **Pre-Dispatch Predictive RTO Warning Badge**:
-   - Surface machine learning fraud score on the warehouse packing screen.
-   - Alert packing team if buyer has $<50\%$ delivery success rate across previous orders.
+1. [x] **Pre-Dispatch Predictive RTO Warning Badge** *(Completed in v2.4.2)*:
+   - Surfaced machine learning and heuristic fraud score on the warehouse packing screen.
+   - Alerts packing team if buyer has $<50\%$ delivery success rate across previous orders with actionable WhatsApp confirmation link.
 2. **Steadfast & RedX Courier Multi-Carrier Adapters**:
    - Expand courier reconciliation beyond Pathao to ingest Steadfast and RedX delivery reports into a single unified ledger.
 3. **Automated WhatsApp Order Confirmation Flow**:

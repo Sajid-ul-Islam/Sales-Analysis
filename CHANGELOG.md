@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.2] - 2026-11-05
+
+### Added
+- **Pre-Dispatch Predictive RTO Warning Badge**: High-risk RTO indicator (`⚠️ High Risk`) integrated into the Everyday Dispatched Orders ledger for orders with $< 50\%$ courier delivery success or high return risk.
+- **Order Inspection Pre-Dispatch RTO Advisory Banner**: High-visibility operational advisory inside the Order Detail Modal guiding the fulfillment team to confirm sizing and address via WhatsApp before packing or generating shipping labels.
+- **Gemini AI Return (RTO) Risk Predictor Hub**: Interactive Gemini 2.5 Flash + Heuristic RTO evaluation in Order Detail Modal with Bengali explanation, size-bracketing risk detection, and recommended dispatch actions (`CALL_TO_VERIFY_SIZE`, `ADVANCE_REQUIRED`, `INSTANT_DISPATCH`).
+- **AI RTO Risk Route Test Suite**: Comprehensive Vitest coverage (`tests/ai/predictRiskRoute.test.ts`) validating authentication enforcement, Gemini LLM JSON response parsing, and deterministic heuristic fallback triggers.
+
+---
+
 ## [2.4.1] - 2026-11-05
 
 ### Added

@@ -1,6 +1,6 @@
 # Living Engineering Roadmap & Backlog: DEEN Commerce
 
-**Version:** 2.4.0  
+**Version:** 2.4.2  
 **Status:** Active Sprint & Product Backlog  
 **Last Updated:** November 2026  
 
@@ -44,6 +44,12 @@
 - [x] Reclassified Face Masks (`DEEN Breathable Face Mask`) and Leather Belts under **`Accessories`** with dedicated sub-categories (`Mask` & `Belt`).
 - [x] Updated WhatsApp/Slack live executive dispatch briefing to report `Ecom + Outlet dispatch: X + Y`.
 
+### v2.4.2 – Pre-Dispatch Predictive RTO Warning & Gemini Risk Predictor
+- [x] Surface pre-dispatch predictive RTO warning badge (`⚠️ High Risk`) on Everyday Dispatched Orders ledger.
+- [x] Operational Pre-Dispatch Advisory banner inside Order Detail Modal for buyers with low delivery rates (< 50%).
+- [x] Interactive Gemini 2.5 Flash + Heuristic RTO evaluation hub with size-bracketing detection and Bengali recommendations.
+- [x] Comprehensive test suite in `tests/ai/predictRiskRoute.test.ts`.
+
 ---
 
 ## 2. Active Sprint Deliverables (Current Workstream)
@@ -56,9 +62,9 @@
 
 ## 3. Short-Term Backlog (Q1 2027)
 
-1. **Pre-Dispatch Predictive RTO Warning Badge**:
-   - Surface machine learning fraud score on the warehouse packing screen.
-   - Alert packing team if buyer has $<50\%$ delivery success rate across previous orders.
+1. [x] **Pre-Dispatch Predictive RTO Warning Badge** *(Completed in v2.4.2)*:
+   - Surfaced machine learning and heuristic fraud score on the warehouse packing screen.
+   - Alerts packing team if buyer has $<50\%$ delivery success rate across previous orders with actionable WhatsApp confirmation link.
 2. **Steadfast & RedX Courier Multi-Carrier Adapters**:
    - Expand courier reconciliation beyond Pathao to ingest Steadfast and RedX delivery reports into a single unified ledger.
 3. **Automated WhatsApp Order Confirmation Flow**:

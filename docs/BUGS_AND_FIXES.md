@@ -142,6 +142,17 @@ This document catalogs every significant engineering bug, architectural defect, 
 
 ---
 
+### Bug #10: Lack of Early RTO Fraud Warning on Warehouse Dispatch Screen
+- **Symptom:** Warehouse packaging staff had no pre-dispatch indication of high-risk return buyers prior to booking Pathao consignments, leading to preventable return courier penalties (৳90 delivery + ৳45 return fee + ৳25 sunk packaging = ৳160 loss per RTO).
+- **Root Cause:** Customer delivery ratings were calculated purely historically and displayed only in the detail modal without actionable pre-dispatch RTO alerts or Gemini LLM hesitation detection on order notes.
+- **Engineering Fix:**
+  1. Integrated an inline `⚠️ High Risk` pill directly into the Everyday Dispatched Orders ledger table for buyers with $< 50\%$ courier delivery success or high risk.
+  2. Injected a high-visibility Pre-Dispatch RTO Advisory banner in the Order Detail Modal instructing operators to confirm sizing/address before packing.
+  3. Integrated Gemini 2.5 Flash + Heuristic RTO predictor card (`/api/ai/predict-risk`) providing risk scoring, size-bracketing detection, Bengali explanations, and direct 1-click WhatsApp customer verification links.
+- **Regression Test:** `tests/ai/predictRiskRoute.test.ts` (6 tests passed), `tests/sync/customerRating.test.ts` (17 tests passed).
+
+---
+
 ## 3. Bug Prevention Protocol
 
 To maintain zero regressions:
