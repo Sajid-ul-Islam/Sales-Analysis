@@ -359,7 +359,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
           status: orderStatus,
           perPage: 100,
           fetchAllPages: true,
-          maxPages: 15,
+          maxPages: 5,
           credentials: creds.wc,
         }),
       });
@@ -438,7 +438,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
             status: orderStatus,
             perPage: 100,
             fetchAllPages: true,
-            maxPages: 15,
+            maxPages: 5,
             credentials: creds.wc,
           }),
         }).then(r => r.json());

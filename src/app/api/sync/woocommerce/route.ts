@@ -58,7 +58,7 @@ export async function POST(req: Request) {
       customer: body.customer,
       datesAreGmt: body.datesAreGmt,
       fetchAllPages: body.fetchAllPages !== undefined ? body.fetchAllPages : true,
-      maxPages: Math.min(body.maxPages || 10, 20),
+      maxPages: Math.min(body.maxPages || 5, 8),
       credentials,
     });
 

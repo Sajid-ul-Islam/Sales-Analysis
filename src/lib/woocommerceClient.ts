@@ -1395,9 +1395,9 @@ export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Prom
 
   const authHeader = 'Basic ' + Buffer.from(`${wc.consumer_key}:${wc.consumer_secret}`).toString('base64');
 
-  while (currentPage <= maxPages) {
+  const buildPageUrl = (pageNum: number) => {
     const url = new URL(`${wc.store_url.replace(/\/+$/, '')}/wp-json/wc/v3/orders`);
-    url.searchParams.set('page', String(currentPage));
+    url.searchParams.set('page', String(pageNum));
     url.searchParams.set('per_page', String(perPage));
     url.searchParams.set('orderby', orderBy);
     url.searchParams.set('order', order);
@@ -1439,30 +1439,29 @@ export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Prom
     if (options.datesAreGmt) {
       url.searchParams.set('dates_are_gmt', 'true');
     }
+    return url.toString();
+  };
 
-    let totalPages: number | undefined;
-    let _totalOrders: number | undefined;
-
-    const pageOrders = await withExponentialBackoff(async () => {
+  const fetchSinglePage = async (pageNum: number): Promise<{ orders: WcOrder[]; totalPages?: number }> => {
+    return withExponentialBackoff(async () => {
       const timeoutMs = options.timeoutMs || 15000;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
-        const res = await fetch(url.toString(), {
+        const pageUrl = buildPageUrl(pageNum);
+        const res = await fetch(pageUrl, {
           signal: controller.signal,
           headers: {
             'Accept': 'application/json',
             'Authorization': authHeader,
-            'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Vercel Serverless)',
+            'User-Agent': 'Mozilla/5.0 DEEN-Commerce-Engine/2.0 (Next.js; Serverless)',
           },
         });
 
         const contentType = res.headers.get('content-type') || '';
-        const wpTotal = res.headers.get('x-wp-total');
         const wpTotalPages = res.headers.get('x-wp-totalpages');
-        if (wpTotal) _totalOrders = parseInt(wpTotal, 10);
-        if (wpTotalPages) totalPages = parseInt(wpTotalPages, 10);
+        const totalPages = wpTotalPages ? parseInt(wpTotalPages, 10) : undefined;
 
         if (!res.ok) {
           let errMsg = `Failed to fetch WooCommerce orders: HTTP ${res.status}`;
@@ -1485,24 +1484,41 @@ export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Prom
           throw new Error(`WooCommerce returned HTML instead of JSON (${res.status}): ${text.slice(0, 80)}`);
         }
 
-        return (await res.json()) as WcOrder[];
+        const data = (await res.json()) as WcOrder[];
+        return { orders: Array.isArray(data) ? data : [], totalPages };
       } finally {
         clearTimeout(timeoutId);
       }
     }, { maxRetries: 2, baseDelayMs: 350 });
+  };
 
-    if (!Array.isArray(pageOrders) || pageOrders.length === 0) break;
-    allOrders = [...allOrders, ...pageOrders];
+  // 1. Fetch initial page
+  const firstResult = await fetchSinglePage(currentPage);
+  if (!Array.isArray(firstResult.orders) || firstResult.orders.length === 0) {
+    return [];
+  }
+  allOrders = [...firstResult.orders];
 
-    // Smart early termination:
-    // If not fetching all pages, stop after first page
-    if (!options.fetchAllPages) break;
-    // If fewer orders than perPage, no more pages exist
-    if (pageOrders.length < perPage) break;
-    // If totalPages is known from HTTP headers and we've reached it, stop!
-    if (totalPages !== undefined && currentPage >= totalPages) break;
+  // 2. Early return if single page requested or less than perPage returned
+  if (!options.fetchAllPages || firstResult.orders.length < perPage) {
+    return allOrders;
+  }
 
-    currentPage++;
+  // 3. Fetch remaining pages in parallel for ultra-fast sub-3s serverless execution
+  const effectiveTotalPages = firstResult.totalPages || maxPages;
+  const targetMaxPage = Math.min(effectiveTotalPages, maxPages);
+
+  if (targetMaxPage > currentPage) {
+    const remainingPages: number[] = [];
+    for (let p = currentPage + 1; p <= targetMaxPage; p++) {
+      remainingPages.push(p);
+    }
+    const parallelResults = await Promise.all(remainingPages.map((p) => fetchSinglePage(p)));
+    for (const r of parallelResults) {
+      if (Array.isArray(r.orders)) {
+        allOrders = [...allOrders, ...r.orders];
+      }
+    }
   }
 
   return allOrders;
