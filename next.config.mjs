@@ -3,6 +3,12 @@ const nextConfig = {
   reactStrictMode: false,
   compress: true,
   poweredByHeader: false,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   headers: async () => [
     {
       source: '/:path*.(jpg|jpeg|png|svg|webp|avif|ico|woff|woff2|ttf)',

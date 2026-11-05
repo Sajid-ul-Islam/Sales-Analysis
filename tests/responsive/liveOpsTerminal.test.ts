@@ -66,12 +66,16 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(getCategoryForSales('Heavyweight Winter Hoodie')).toBe('Hoodie');
       expect(getCategoryForSales('Casual Full Sleeve Shirt')).toBe('FS Shirt');
       expect(getCategoryForSales('Cuban Half Sleeve Shirt')).toBe('HS Shirt');
+      expect(getCategoryForSales('DEEN Breathable Face Mask')).toBe('Accessories');
+      expect(getCategoryForSales('Breathable Face Mask')).toBe('Accessories');
     });
 
     it('extracts granular sub-categories', () => {
       expect(getSubCategoryForSales('Classic Regular Jeans', 'Jeans')).toBe('Regular Fit Jeans');
       expect(getSubCategoryForSales('Indigo Slim Fit Jeans', 'Jeans')).toBe('Slim Fit Jeans');
       expect(getSubCategoryForSales('Vintage Denim Jacket', 'Jacket')).toBe('Denim Jacket');
+      expect(getSubCategoryForSales('DEEN Breathable Face Mask')).toBe('Mask');
+      expect(getSubCategoryForSales('Breathable Face Mask')).toBe('Mask');
     });
 
     it('extracts short concise category labels for charts', () => {
