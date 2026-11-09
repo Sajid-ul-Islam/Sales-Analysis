@@ -170,12 +170,15 @@ export function getCategoryForSales(name?: string | null): string {
     !hasAny(['pant', 'trouser', 'panjabi', 'punjabi'], nameStr);
   if (isShirt) return 'Shirt';
 
+  // Cargo (If cargo trousers, main cat should be cargo)
+  if (nameStr.includes('cargo')) return 'Cargo';
+
   // Accessories (Card Holder, Passport Holder, Wallet, Boxer, Mask, Belt, Bottle, Mug)
   if (hasAny(['card holder', 'passport', 'wallet', 'bifold', 'coin pocket long wallet', 'mask', 'face mask', 'accessor', 'belt', 'bottle', 'water bottle', 'mug', 'boxer'], nameStr)) return 'Accessories';
-  if (hasAny(['bag', 'backpack', 'tote'], nameStr)) return 'Leather Bag';
+  if ((hasAny(['backpack', 'tote', 'leather bag'], nameStr) || /\bbag(s)?\b/.test(nameStr)) && !nameStr.includes('baggy')) return 'Leather Bag';
 
   // Trousers
-  if (hasAny(['trousers', 'trouser', 'cargo', 'jogger', 'pants', 'gabardine'], nameStr)) return 'Trousers';
+  if (hasAny(['trousers', 'trouser', 'jogger', 'pants', 'gabardine'], nameStr)) return 'Trousers';
 
   return 'General Apparel';
 }
@@ -226,6 +229,10 @@ export function getSubCategoryForSales(name?: string | null, parentCategory?: st
     if (hasAny(['french terry', 'french-terry', 'french'], nameStr)) return 'French Terry';
     if (nameStr.includes('hoodie')) return 'Hoodie';
     return 'Cotton Terry';
+  }
+
+  if (category === 'Cargo') {
+    return 'Cargo Trouser';
   }
 
   if (category === 'Trousers' || category === 'Trouser') {
@@ -302,7 +309,8 @@ export function getShortSubCategoryLabel(subCategory?: string | null): string {
   if (lower.includes('cotton terry')) return 'Cotton Terry';
   if (lower.includes('french terry')) return 'French Terry';
 
-  // 8. Trousers sub-categories
+  // 8. Cargo & Trousers sub-categories
+  if (lower.includes('cargo')) return 'Cargo Trouser';
   if (lower === 'regular fit trousers' || lower === 'regular fit trouser') return 'Regular Trousers';
   if (lower.includes('jogger')) return 'Joggers';
 

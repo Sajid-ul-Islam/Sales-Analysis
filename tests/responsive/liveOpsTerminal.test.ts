@@ -79,9 +79,12 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(getCategoryForSales('DEEN Genuine Leather Passport Holder')).toBe('Accessories');
       expect(getCategoryForSales('DEEN White Relaxed Graphic Tank Top - XL')).toBe('T-Shirt');
       expect(getCategoryForSales('DEEN Oversized Drop Shoulder Tee')).toBe('T-Shirt');
+      expect(getCategoryForSales('Pull & Bear Cargo Trouser in Black - 3XL')).toBe('Cargo');
+      expect(getCategoryForSales('Lefties Baggy Cargo Trousers - 31')).toBe('Cargo');
     });
 
     it('extracts granular sub-categories', () => {
+      expect(getSubCategoryForSales('Pull & Bear Cargo Trouser in Black - 3XL')).toBe('Cargo Trouser');
       expect(getSubCategoryForSales('Classic Regular Jeans', 'Jeans')).toBe('Regular Fit Jeans');
       expect(getSubCategoryForSales('Indigo Slim Fit Jeans', 'Jeans')).toBe('Slim Fit Jeans');
       expect(getSubCategoryForSales('Vintage Denim Jacket', 'Jacket')).toBe('Denim Jacket');

@@ -293,7 +293,8 @@ export const normalizeCat = (raw: string): string => {
   if (low.includes("sweat") || low.includes("hoodie")) return "Sweatshirt";
   if (low.includes("jacket")) return "Jacket";
   if (low.includes("jean")) return "Jeans";
-  if (low.includes("trouser") || low.includes("cargo")) return "Trouser";
+  if (low.includes("cargo")) return "Cargo";
+  if (low.includes("trouser")) return "Trouser";
   if (low.includes("panjabi")) return "Panjabi";
   if (low.includes("accessor") || low.includes("boxer") || low.includes("wallet") || low.includes("holder") || low.includes("mask") || low.includes("belt")) return "Accessories";
   return "General Apparel";
@@ -1849,7 +1850,8 @@ export function OutletSalesTab({
 
       'Sweatshirt': { name: 'Sweatshirt', sub: 'Cotton Terry & French Terry Sweatshirts & Hoodies', icon: '🧥', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
 
-      'Trouser': { name: 'Trouser', sub: 'Cargo & Formal Trousers', icon: '👖', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'Cargo': { name: 'Cargo', sub: 'Cargo Trousers & Pants', icon: '📦', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'Trouser': { name: 'Trouser', sub: 'Formal & Casual Trousers', icon: '👖', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
 
       'Panjabi': { name: 'Panjabi', sub: 'Semi-Formal & Regular Panjabi', icon: '✨', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
 
@@ -1885,7 +1887,8 @@ export function OutletSalesTab({
 
       if (low.includes('jean')) return 'Jeans';
 
-      if (low.includes('trouser') || low.includes('cargo')) return 'Trouser';
+      if (low.includes('cargo')) return 'Cargo';
+      if (low.includes('trouser')) return 'Trouser';
 
       if (low.includes('panjabi')) return 'Panjabi';
 

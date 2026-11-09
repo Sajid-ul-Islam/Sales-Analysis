@@ -118,7 +118,8 @@ export function ExecutiveOverviewTab({
         'T-Shirt': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👕', sub: 'Solid Tees, Tank Tops & Drop Shoulder' },
         'Jacket': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '🧥', sub: 'Denim Jackets & Outerwear' },
         'Sweatshirt': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '🧥', sub: 'Cotton Terry & French Terry Sweatshirts & Hoodies' },
-        'Trouser': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👖', sub: 'Cargo & Formal Trousers' },
+        'Cargo': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '📦', sub: 'Cargo Trousers & Pants' },
+        'Trouser': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👖', sub: 'Formal & Casual Trousers' },
         'Panjabi': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '✨', sub: 'Semi-Formal & Regular Panjabi' },
         'Accessories': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '📦', sub: 'Boxers, Wallets, Card Holders, Masks & Belts' },
         'General Apparel': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '🏷️', sub: 'Core Garments & Essentials' }
@@ -136,7 +137,8 @@ export function ExecutiveOverviewTab({
         if (low.includes('sweat') || low.includes('hoodie')) return 'Sweatshirt';
         if (low.includes('jacket')) return 'Jacket';
         if (low.includes('jean')) return 'Jeans';
-        if (low.includes('trouser') || low.includes('cargo')) return 'Trouser';
+        if (low.includes('cargo')) return 'Cargo';
+        if (low.includes('trouser')) return 'Trouser';
         if (low.includes('panjabi')) return 'Panjabi';
         if (low.includes('accessor') || low.includes('boxer') || low.includes('wallet') || low.includes('holder') || low.includes('mask') || low.includes('belt')) return 'Accessories';
         return 'General Apparel';
@@ -213,7 +215,8 @@ export function ExecutiveOverviewTab({
       if (low.includes('sweat') || low.includes('hoodie')) return 'Sweatshirt';
       if (low.includes('jacket')) return 'Jacket';
       if (low.includes('jean')) return 'Jeans';
-      if (low.includes('trouser') || low.includes('cargo')) return 'Trouser';
+      if (low.includes('cargo')) return 'Cargo';
+      if (low.includes('trouser')) return 'Trouser';
       if (low.includes('panjabi')) return 'Panjabi';
       if (low.includes('accessor') || low.includes('boxer') || low.includes('wallet') || low.includes('holder') || low.includes('mask') || low.includes('belt')) return 'Accessories';
       return r;
