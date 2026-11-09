@@ -130,6 +130,8 @@ export function LiveVolumeBarChart({
     'Cargo': '#14b8a6',
     'Hoodie': '#f59e0b',
     'Trousers': '#fb923c',
+    'Formal Trousers': '#2563eb',
+    'Formal Trouser': '#2563eb',
     'Denim Jacket': '#f43f5e',
     'Jacket': '#f43f5e',
     'Accessories': '#d97706',
@@ -212,10 +214,14 @@ export function LiveVolumeBarChart({
             const isHovered = hoveredIdx === idx;
             const isHighestBar = Boolean(totalVol === maxActualVolume && maxActualVolume > 0 && idx === 0);
 
-            // X-axis label: In Sub-Category view, preserve distinct fits/cuts; in Category view unify Twill and Jacket
+            // X-axis label: In Sub-Category view, preserve distinct fits/cuts (e.g. Formal Trousers); in Category view unify Twill and Jacket
             const rawLabel = item.displayName || item.name;
             let xLabel = rawLabel;
-            if (!isSubCategory) {
+            if (isSubCategory) {
+              if (/^formal(\s+trouser(s)?)?$/i.test(rawLabel.trim())) {
+                xLabel = 'Formal Trousers';
+              }
+            } else {
               if (/^Twill(\s+Chino|\s+(Five\s+Pockets?|5\s*Pockets?))?$/i.test(rawLabel.trim()) || /^5\s*Pockets?$/i.test(rawLabel.trim()) || /^Chino$/i.test(rawLabel.trim())) {
                 xLabel = 'Twill Chino';
               } else if (/^Denim\s+Jacket$/i.test(rawLabel.trim()) || rawLabel.trim() === 'Jacket') {
@@ -402,7 +408,9 @@ export function LiveVolumeBarChart({
           >
             <div className="font-headline font-black text-white text-xs sm:text-sm flex items-center justify-between gap-2 border-b border-slate-800 pb-1.5 mb-1.5">
               <span>
-                {/^Denim\s+Jacket$/i.test((active.displayName || active.name).trim())
+                {isSubCategory && /^formal(\s+trouser(s)?)?$/i.test((active.displayName || active.name).trim())
+                  ? 'Formal Trousers'
+                  : /^Denim\s+Jacket$/i.test((active.displayName || active.name).trim())
                   ? 'Jacket'
                   : (/^Twill(\s+Chino|\s+Five\s+Pockets?|5\s*Pockets?)?$/i.test((active.displayName || active.name).trim()) || /^Chino$/i.test((active.displayName || active.name).trim())
                     ? 'Twill Chino'

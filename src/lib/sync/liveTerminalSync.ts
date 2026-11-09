@@ -216,8 +216,8 @@ export async function syncLiveTerminalData(options: {
       const wcTest = await testWooCommerceConnection(options.wcCredentials);
       if (wcTest.success) {
         wcConnected = true;
-        const maxPagesToFetch = options.maxPages || 6; // Default to 6 pages (300-600 orders) or 2 pages on delta
-        const deltaAfter = options.after || (options.isDelta ? new Date(Date.now() - 48 * 3600 * 1000).toISOString() : undefined);
+        const maxPagesToFetch = options.maxPages || 6; // Default to 6-8 pages or 4 pages on delta
+        const deltaAfter = options.after || (options.isDelta ? new Date(Date.now() - 8 * 24 * 3600 * 1000).toISOString() : undefined);
 
         // Multi-stream WooCommerce Synchronization:
         // 1. Fetch newly created orders (ordered by date_created desc)

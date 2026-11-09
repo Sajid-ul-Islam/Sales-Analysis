@@ -455,8 +455,16 @@ export function LiveOpsTab({
   // Guard to prevent concurrent sync loops
   const isSyncingRef = React.useRef(false);
 
-  // Active dataset for processing (prefer live synced orders if available)
-  const activeDataset = liveOrders.length > 0 ? liveOrders : orders;
+  // Active dataset for processing:
+  // Seamlessly overlay fresh live synced orders on top of historical workspace orders,
+  // ensuring the entire 7-day dispatch strip (and older dates) retain their full data while today/yesterday receive real-time updates!
+  const activeDataset = useMemo(() => {
+    if (liveOrders.length === 0) return orders;
+    if (orders.length === 0) return liveOrders;
+    const liveOrderIds = new Set(liveOrders.map((o) => cleanOrderId(o['Order ID'] || o.orderId)));
+    const historicalWithoutLive = orders.filter((o) => !liveOrderIds.has(cleanOrderId(o['Order ID'] || o.orderId)));
+    return [...liveOrders, ...historicalWithoutLive];
+  }, [liveOrders, orders]);
 
   // Anchor date for the 7-day strip is ALWAYS today (Asia/Dhaka).
   // The strip must show the last 7 calendar days ending TODAY, not the last date present in the dataset.
@@ -534,9 +542,9 @@ export function LiveOpsTab({
     try {
       const appSettings = typeof window !== 'undefined' ? loadAppSettings() : null;
       const payload: Record<string, unknown> = {
-        limitConsignments: isManual ? 35 : 15,
+        limitConsignments: isManual ? 35 : 20,
         fetchLiveWc: true,
-        maxPages: isManual ? 6 : 2,
+        maxPages: isManual ? 8 : 4,
         isDelta: !isManual,
         // Zero-upload architecture: Never send megabytes of client orders over the network during live sync
         activeOrders: undefined,

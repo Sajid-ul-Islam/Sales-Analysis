@@ -93,6 +93,8 @@ export const CATEGORY_COLOR_MAP: Record<string, string> = {
   'Joggers': '#d97706',
   'Regular Trousers': '#f59e0b',
   'Regular Fit Trousers': '#f59e0b',
+  'Formal Trousers': '#2563eb',
+  'Formal Trouser': '#2563eb',
 };
 
 export function getShortCategoryLabel(name: string): string {
@@ -239,7 +241,7 @@ export function getSubCategoryForSales(name?: string | null, parentCategory?: st
     if (nameStr.includes('cargo')) return 'Cargo Trouser';
     if (nameStr.includes('joggers')) return 'Joggers';
     if (nameStr.includes('regular fit')) return 'Regular Fit Trousers';
-    return 'Formal Trouser';
+    return 'Formal Trousers';
   }
 
   if (category === 'Jacket') {
@@ -278,7 +280,11 @@ export function getShortSubCategoryLabel(subCategory?: string | null): string {
   if (lower === 'straight fit jeans' || lower === 'straight fit') return 'Straight Fit';
   if (lower === 'jeans') return 'Jeans';
 
-  // 2. Twill sub-categories
+  // 1.5 Trousers & Cargo sub-categories (HIGH PRIORITY: Ensure Formal Trousers is never abbreviated to just "Formal")
+  if (lower.includes('formal') && (lower.includes('trouser') || lower.includes('pant'))) return 'Formal Trousers';
+  if (lower === 'formal trouser' || lower === 'formal trousers') return 'Formal Trousers';
+  if (lower.includes('cargo')) return 'Cargo Trouser';
+  if (lower === 'regular fit trousers' || lower === 'regular fit trouser') return 'Regular Trousers';
   if (hasAny(['five pocket', '5 pocket', '5-pocket'], lower)) return '5-Pocket Twill';
   if (lower.includes('jogger')) return 'Twill Joggers';
   if (lower.includes('pant')) return 'Twill Pant';

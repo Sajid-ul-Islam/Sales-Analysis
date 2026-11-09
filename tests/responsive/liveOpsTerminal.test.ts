@@ -135,6 +135,11 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(getShortSubCategoryLabel('Flannel Shirt')).toBe('Flannel');
       expect(getShortSubCategoryLabel('Oxford Shirt')).toBe('Oxford');
       expect(getShortSubCategoryLabel('Cuban Shirt')).toBe('Cuban');
+
+      // Trousers: Formal Trousers (must never be abbreviated to just "Formal")
+      expect(getShortSubCategoryLabel('Formal Trouser')).toBe('Formal Trousers');
+      expect(getShortSubCategoryLabel('Formal Trousers')).toBe('Formal Trousers');
+      expect(getShortSubCategoryLabel(getSubCategoryForSales('Executive Formal Trouser', 'Trousers'))).toBe('Formal Trousers');
     });
   });
 
