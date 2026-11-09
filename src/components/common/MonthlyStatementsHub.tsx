@@ -14,7 +14,6 @@ import { AvailableMonth } from '@/lib/dateFilter';
 import { computeMonthlyStatementSummaries } from '@/lib/monthlyStatements';
 import { ReconciledOrderRow, SummaryAnalytics } from '@/types';
 import { ReconciliationResult } from '@/lib/reconciliationEngine';
-import { exportMonthlyNetSalesExcel } from '@/lib/excelExport';
 
 export interface MonthlyStatementsHubProps {
   orders?: ReconciledOrderRow[];
@@ -86,12 +85,13 @@ export function MonthlyStatementsHub({
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (onExportReport) {
       onExportReport();
       return;
     }
     if (reconciliationResult) {
+      const { exportMonthlyNetSalesExcel } = await import('@/lib/excelExport');
       exportMonthlyNetSalesExcel(reconciliationResult, {
         monthLabel: activeMonth?.label || 'Monthly Statement',
       });

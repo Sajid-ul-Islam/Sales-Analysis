@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { CustomerRatingData } from '@/lib/customerRating';
+import { CustomerRatingData } from '@/lib/customerRatingTypes';
 import { ShieldCheck, ShieldAlert, AlertTriangle, Sparkles, UserCheck } from 'lucide-react';
 
 interface CustomerRatingBadgeProps {

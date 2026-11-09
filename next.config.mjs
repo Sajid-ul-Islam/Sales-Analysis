@@ -30,6 +30,7 @@ const nextConfig = {
   ],
   experimental: {
     serverComponentsExternalPackages: ['alasql'],
+    optimizePackageImports: ['lucide-react'],
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {

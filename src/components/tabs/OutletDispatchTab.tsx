@@ -18,12 +18,11 @@ import {
   ArrowUpRight,
   Award
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import {
   compareOrdersByNumber,
   getExportCustomerName,
   getExportPhoneNumber
-} from '@/lib/excelExport';
+} from '@/lib/exportUtils';
 import { getItemCogsInfo } from '@/lib/woocommerceClient';
 
 interface OutletDispatchTabProps {
@@ -330,7 +329,8 @@ export function OutletDispatchTab({ orders, summary: _summary }: OutletDispatchT
   }, [filteredOrders, currentPage]);
 
   // Export Outlet Dispatch Report to Excel (.xlsx) using Parcel Counts
-  const handleExportOutletReport = () => {
+  const handleExportOutletReport = async () => {
+    const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
 
     // Sheet 1: Outlet Summary Matrix (Parcels)

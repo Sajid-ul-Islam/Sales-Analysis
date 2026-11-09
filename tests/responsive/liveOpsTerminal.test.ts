@@ -61,16 +61,24 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
   describe('Category and Sub-Category Engine', () => {
     it('maps items to canonical DEEN categories', () => {
       expect(getCategoryForSales('Slim Fit Stretch Jeans')).toBe('Jeans');
-      expect(getCategoryForSales('Mens Twill Five Pocket Pant')).toBe('Twill');
+      expect(getCategoryForSales('Mens Twill Five Pocket Pant')).toBe('Twill Chino');
+      expect(getCategoryForSales('Banana Republic Five Pocket Twill')).toBe('Twill Chino');
+      expect(getCategoryForSales('Banana Republic Chino Pant')).toBe('Twill Chino');
       expect(getCategoryForSales('Classic Polo Shirt Navy')).toBe('Polo');
-      expect(getCategoryForSales('Heavyweight Winter Hoodie')).toBe('Hoodie');
-      expect(getCategoryForSales('Casual Full Sleeve Shirt')).toBe('FS Shirt');
-      expect(getCategoryForSales('Cuban Half Sleeve Shirt')).toBe('HS Shirt');
+      expect(getCategoryForSales('Heavyweight Winter Hoodie')).toBe('Sweatshirt');
+      expect(getCategoryForSales('Casual Full Sleeve Shirt')).toBe('Shirt');
+      expect(getCategoryForSales('Cuban Half Sleeve Shirt')).toBe('Shirt');
       expect(getCategoryForSales('DEEN Breathable Face Mask')).toBe('Accessories');
       expect(getCategoryForSales('Breathable Face Mask')).toBe('Accessories');
       expect(getCategoryForSales('DEEN Black Premium Leather Belt')).toBe('Accessories');
       expect(getCategoryForSales('DEEN Insulated Water Bottle')).toBe('Accessories');
       expect(getCategoryForSales('DEEN Ceramic Coffee Mug')).toBe('Accessories');
+      expect(getCategoryForSales('DEEN Sky Boxer Brief - 2XL')).toBe('Accessories');
+      expect(getCategoryForSales('Export Boxer 01 - L')).toBe('Accessories');
+      expect(getCategoryForSales('DEEN Compact Genuine Leather Card Holder')).toBe('Accessories');
+      expect(getCategoryForSales('DEEN Genuine Leather Passport Holder')).toBe('Accessories');
+      expect(getCategoryForSales('DEEN White Relaxed Graphic Tank Top - XL')).toBe('T-Shirt');
+      expect(getCategoryForSales('DEEN Oversized Drop Shoulder Tee')).toBe('T-Shirt');
     });
 
     it('extracts granular sub-categories', () => {
@@ -82,11 +90,26 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(getSubCategoryForSales('DEEN Black Premium Leather Belt')).toBe('Belt');
       expect(getSubCategoryForSales('DEEN Insulated Water Bottle')).toBe('Water Bottle');
       expect(getSubCategoryForSales('DEEN Ceramic Coffee Mug')).toBe('Mug');
+      expect(getSubCategoryForSales('DEEN Sky Boxer Brief - 2XL')).toBe('Boxer');
+      expect(getSubCategoryForSales('Export Boxer 01 - L')).toBe('Boxer');
+      expect(getSubCategoryForSales('Banana Republic Five Pocket Twill')).toBe('Twill Chino');
+      expect(getSubCategoryForSales('Banana Republic Chino Pant')).toBe('Twill Chino');
+      expect(getSubCategoryForSales('DEEN Compact Genuine Leather Card Holder')).toBe('Card Holder');
+      expect(getSubCategoryForSales('DEEN Genuine Leather Passport Holder')).toBe('Passport Holder');
+      expect(getSubCategoryForSales('DEEN White Relaxed Graphic Tank Top - XL')).toBe('Tank Top');
+      expect(getSubCategoryForSales('DEEN Oversized Drop Shoulder Tee')).toBe('Drop Shoulder');
+      expect(getSubCategoryForSales('DEEN Dark Blue Denim Shirt')).toBe('Denim Shirt');
+      expect(getSubCategoryForSales('DEEN Ivory Brown Windowpane Flannel Shirt')).toBe('Flannel Shirt');
+      expect(getSubCategoryForSales('DEEN Floral Cuban Collar Shirt')).toBe('Cuban Shirt');
+      expect(getSubCategoryForSales('DEEN Full Sleeve Shirt')).toBe('Full Sleeve Shirt');
+      expect(getSubCategoryForSales('DEEN Grey Wiggly Casual Half Shirt')).toBe('Half Shirt');
+      expect(getSubCategoryForSales('DEEN Maroon Sweatshirt in Cotton-Terry')).toBe('Cotton Terry');
+      expect(getSubCategoryForSales('DEEN Black Sweatshirt in French-Terry')).toBe('French Terry');
     });
 
     it('extracts short concise category labels for charts', () => {
       expect(getShortCategoryLabel('Denim Jacket Winter Edition')).toBe('Denim Jacket');
-      expect(getShortCategoryLabel('Twill Five Pockets Casual')).toBe('Twill');
+      expect(getShortCategoryLabel('Twill Five Pockets Casual')).toBe('Twill Chino');
       expect(getShortCategoryLabel('FS Shirt - Formal Executive')).toBe('Formal');
     });
 
@@ -686,7 +709,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       // 4. Slices contain real data, never falling back to dummy data
       expect(reportWed.categoryItems.length).toBe(2);
       expect(reportWed.categoryItems.map((c) => c.name)).toContain('Jacket');
-      expect(reportWed.categoryItems.map((c) => c.name)).toContain('Twill');
+      expect(reportWed.categoryItems.map((c) => c.name)).toContain('Twill Chino');
     });
 
     it('keeps 7-day dispatch history strip stable when inspecting past dates', () => {

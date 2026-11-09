@@ -159,7 +159,7 @@ export function computeMonthlyStatementSummaries(
       const substatus = String(row.Substatus || row.substatus || '').toLowerCase();
       const isExch = Boolean(row.isExchange || delivStatus.includes('exchange') || pathaoStatus.includes('exchange') || substatus.includes('exchange'));
 
-      const isDelivered = delivStatus.includes('deliver') || pathaoStatus.includes('deliver') || delivStatus === 'completed';
+      const isDelivered = delivStatus.includes('deliver') || pathaoStatus.includes('deliver');
       const isPaidReturn = delivStatus.includes('paid return') || pathaoStatus.includes('paid return') || substatus.includes('paid return');
       const isReturned = isPaidReturn || delivStatus.includes('return') || pathaoStatus.includes('return') || substatus.includes('return');
 
@@ -172,7 +172,7 @@ export function computeMonthlyStatementSummaries(
         else nonPaidReturnUnits += qty;
 
         // Check phantom discrepancy (store completed but courier returned)
-        if (delivStatus === 'completed') {
+        if (delivStatus === 'completed' || delivStatus === 'shipped') {
           phantomDiscrepancyCount++;
           phantomDiscrepancyRevenue += val;
         }

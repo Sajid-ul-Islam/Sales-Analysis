@@ -120,6 +120,7 @@ export function LiveVolumeBarChart({
 
   const CANONICAL_BAR_COLORS: Record<string, string> = {
     'Jeans': '#f43f5e',
+    'Twill Chino': '#f97316',
     'Twill Five Pockets': '#f97316',
     '5-Pocket Twill': '#f97316',
     'Twill': '#f97316',
@@ -131,7 +132,9 @@ export function LiveVolumeBarChart({
     'Trousers': '#fb923c',
     'Denim Jacket': '#f43f5e',
     'Jacket': '#f43f5e',
+    'Accessories': '#d97706',
     'Wallet': '#d97706',
+    'General Apparel': '#94a3b8',
   };
 
   return (
@@ -213,8 +216,8 @@ export function LiveVolumeBarChart({
             const rawLabel = item.displayName || item.name;
             let xLabel = rawLabel;
             if (!isSubCategory) {
-              if (/^Twill(\s+(Five\s+Pockets?|5\s*Pockets?))?$/i.test(rawLabel.trim()) || /^5\s*Pockets?$/i.test(rawLabel.trim())) {
-                xLabel = 'Twill';
+              if (/^Twill(\s+Chino|\s+(Five\s+Pockets?|5\s*Pockets?))?$/i.test(rawLabel.trim()) || /^5\s*Pockets?$/i.test(rawLabel.trim()) || /^Chino$/i.test(rawLabel.trim())) {
+                xLabel = 'Twill Chino';
               } else if (/^Denim\s+Jacket$/i.test(rawLabel.trim()) || rawLabel.trim() === 'Jacket') {
                 xLabel = 'Jacket';
               }
@@ -226,7 +229,7 @@ export function LiveVolumeBarChart({
               (selectedCategory === item.name ||
                 selectedCategory === item.displayName ||
                 selectedCategory === xLabel ||
-                (!isSubCategory && selectedCategory === 'Twill' && /^Twill/i.test(rawLabel)) ||
+                (!isSubCategory && (selectedCategory === 'Twill' || selectedCategory === 'Twill Chino') && (/^Twill/i.test(rawLabel) || /^Chino/i.test(rawLabel))) ||
                 (!isSubCategory && selectedCategory === 'Jacket' && /Jacket/i.test(rawLabel)))
             );
             const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);
@@ -401,8 +404,8 @@ export function LiveVolumeBarChart({
               <span>
                 {/^Denim\s+Jacket$/i.test((active.displayName || active.name).trim())
                   ? 'Jacket'
-                  : (/^Twill(\s+Five\s+Pockets?|5\s*Pockets?)?$/i.test((active.displayName || active.name).trim())
-                    ? 'Twill'
+                  : (/^Twill(\s+Chino|\s+Five\s+Pockets?|5\s*Pockets?)?$/i.test((active.displayName || active.name).trim()) || /^Chino$/i.test((active.displayName || active.name).trim())
+                    ? 'Twill Chino'
                     : (active.displayName || active.name))}
               </span>
               <span className="text-amber-400 font-black text-sm">{active.volume} units</span>

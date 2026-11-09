@@ -27,7 +27,6 @@ import {
   Layers,
   FileText,
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 
 import { RawOrderRow } from '@/types';
 import { dispatchSyncNotification } from '@/components/notifications/SyncNotificationCenter';
@@ -57,15 +56,17 @@ import {
   DiscrepancyAlert,
   detectFulfillmentBranch,
   cleanOrderId,
-} from '@/lib/sync/liveTerminalSync';
+} from '@/lib/fulfillmentUtils';
 import { loadAppSettings } from '@/lib/settingsStore';
 import { getCacheItem, setCacheItem, DEEN_CACHE_KEYS } from '@/lib/cacheManager';
+import {
+  exportLiveShippedOrdersExcel,
+} from '@/lib/excelExport';
 import {
   compareOrdersByNumber,
   getExportCustomerName,
   getExportPhoneNumber,
-  exportLiveShippedOrdersExcel,
-} from '@/lib/excelExport';
+} from '@/lib/exportUtils';
 import {
   groupOrdersByOrderId,
   filterOrderWiseGroups,
@@ -76,8 +77,8 @@ import { CustomerRatingBadge } from '@/components/courier/CustomerRatingBadge';
 import {
   CustomerRatingData,
   normalizeCustomerPhone,
-  batchResolveCustomerRatings,
-} from '@/lib/customerRating';
+  deriveRatingFromStats,
+} from '@/lib/customerRatingTypes';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 import { DataProvenanceInfo } from '@/lib/dataAudit';
 import { useTableVirtualizer } from '@/lib/useTableVirtualizer';
@@ -928,12 +929,16 @@ export function LiveOpsTab({
     const uniqueList = Array.from(new Set(rawPhones.filter(Boolean)));
     if (uniqueList.length === 0) return;
 
-    // 1. Instant local baseline resolution (0ms synchronous lookup from store history)
-    batchResolveCustomerRatings(uniqueList, { skipPathaoApi: true, liveOrders: report.activeOrders })
-      .then((localRatings) => {
-        setCustomerRatings((prev) => ({ ...localRatings, ...prev }));
-      })
-      .catch(() => {});
+    // 1. Instant local baseline resolution (0ms synchronous lookup from active orders in memory)
+    const localRatings: Record<string, CustomerRatingData> = {};
+    for (const ph of uniqueList) {
+      const { full } = normalizeCustomerPhone(ph);
+      if (!full || customerRatingsRef.current[full]) continue;
+      localRatings[full] = deriveRatingFromStats(ph, null, 'STORE_HISTORY');
+    }
+    if (Object.keys(localRatings).length > 0) {
+      setCustomerRatings((prev) => ({ ...localRatings, ...prev }));
+    }
 
     // 2. Asynchronous Pathao API verification in background for unverified numbers (debounced 600ms)
     const debounceTimer = setTimeout(() => {
@@ -1004,6 +1009,41 @@ export function LiveOpsTab({
 
   // Export current table to Excel with full courier details sorted by order number
   // Strictly excludes POS and non-checkout exchange orders from commercial sales sheet
+  const handleExportAll7DaysExcel = async () => {
+    try {
+      const XLSX = await import('xlsx');
+      const allHistoryOrders = report.activeOrders;
+      const exportData = allHistoryOrders.map((o) => {
+        const oid = String(o['Order ID'] || o.orderId || o.id || '').trim();
+        const branchInfo = detectFulfillmentBranch(o);
+        return {
+          'Order ID': oid,
+          'Date': String(o['Order Date'] || o.orderDate || o.date_created || ''),
+          'Customer Name': getExportCustomerName(o) || o['Customer Name'] || '',
+          'Phone': getExportPhoneNumber(o) || o.Phone || '',
+          'City': o.City || o.city || 'Dhaka',
+          'Item Name': o['Item Name'] || o.itemName || '',
+          'SKU': o.SKU || o.sku || '',
+          'Quantity': Number(o.Quantity || o.quantity || 1),
+          'Unit Cost': Number(o['Item Cost'] || o.itemCost || 0),
+          'Order Amount': Number(o['Order Amount'] || o.orderAmount || 0),
+          'WooCommerce Status': String((o as Record<string, unknown>).rawWcStatus || (o as Record<string, unknown>)['WooCommerce Status'] || o.status || 'completed'),
+          'Courier Status': String(o['Courier Status'] || o.courierStatus || 'Untracked'),
+          'Consignment ID': String(o['Consignment ID'] || o.consignmentId || ''),
+          'Fulfillment Branch': branchInfo.branchName,
+        };
+      });
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      XLSX.utils.book_append_sheet(wb, ws, '7-Day Dispatches');
+      const filename = `DEEN_Live_7Day_History_${snapshotAnchorDate}.xlsx`;
+      XLSX.writeFile(wb, filename);
+    } catch (err) {
+      console.error('Failed to export 7-day history:', err);
+    }
+  };
+
   const handleExportExcel = () => {
     if (ledgerViewMode === 'ORDER_WISE') {
       exportOrderWiseLedgerExcel(filteredOrderWiseGroups, report, {
@@ -1017,7 +1057,8 @@ export function LiveOpsTab({
     });
   };
 
-  const handleExportCsv = () => {
+  const handleExportCsv = async () => {
+    const XLSX = await import('xlsx');
     const isExchangesView = courierFilter === 'EXCHANGES_ONLY';
 
     if (ledgerViewMode === 'ORDER_WISE') {
@@ -1084,7 +1125,12 @@ export function LiveOpsTab({
         'Quantity': o.Quantity || 1,
         'Unit Cost': o['Item Cost'] || 0,
         'Order Total': o['Order Amount'] || 0,
-        'WooCommerce Status': o['Delivery Status'] || 'shipped',
+        'WooCommerce Status': String(
+          (o as Record<string, unknown>).rawWcStatus ||
+          (o as Record<string, unknown>)['WooCommerce Status'] ||
+          (o as Record<string, unknown>).status ||
+          'completed'
+        ),
         'Courier Status': o['Courier Status'] || o.courierStatus || 'Untracked',
         'Consignment ID': o['Consignment ID'] || o.consignmentId || '',
         'SIP Inventory': String(o.sipInventory || o.sip_inventory || (o as Record<string, unknown>)['SIP Inventory'] || o.fulfillmentBranch || 'Central Warehouse'),
@@ -1425,19 +1471,34 @@ export function LiveOpsTab({
               </span>
             </div>
 
-            {selectedHistoricalDate && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedHistoricalDate(null);
-                  setSelectedView('Today Shipped');
-                  setCategoryFilter('ALL');
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <input
+                type="date"
+                value={selectedHistoricalDate || ''}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setSelectedHistoricalDate(e.target.value);
+                    setSelectedView('Today Shipped');
+                    setCategoryFilter('ALL');
+                  }
                 }}
-                className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 rounded-lg border border-blue-200/80 dark:border-blue-800/60 transition-colors"
-              >
-                ↺ Reset to Today
-              </button>
-            )}
+                className="text-xs px-2 py-0.5 rounded-lg border border-slate-200 dark:border-[#2A2A2A] bg-white dark:bg-[#1A1A1A] text-slate-800 dark:text-slate-100 font-mono"
+                title="Select any custom date to inspect dispatches"
+              />
+              {selectedHistoricalDate && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedHistoricalDate(null);
+                    setSelectedView('Today Shipped');
+                    setCategoryFilter('ALL');
+                  }}
+                  className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-lg border border-blue-200/80 dark:border-blue-800/60 transition-colors"
+                >
+                  ↺ Today
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Day Cards Grid */}
@@ -2378,6 +2439,16 @@ export function LiveOpsTab({
 
             <button
               type="button"
+              onClick={handleExportAll7DaysExcel}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition-all shadow-xs active:scale-95"
+              title="Export all orders dispatched across the active period to Excel (.xlsx)"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export All Dispatches (.xlsx)</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handleExportHtml}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-xs active:scale-95"
               title="Export complete self-contained HTML report with KPI cards and charts"
@@ -3306,8 +3377,21 @@ export function LiveOpsTab({
 
                           {/* WC Status */}
                           <td className="py-2.5 px-3.5 text-center">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-[#1A1A1A] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2A2A2A]">
-                              {group.wcStatus}
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                                group.wcStatus === 'completed'
+                                  ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                                  : group.wcStatus === 'processing'
+                                  ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                                  : group.wcStatus === 'on-hold'
+                                  ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800'
+                                  : group.wcStatus === 'cancelled'
+                                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                                  : 'bg-slate-100 dark:bg-[#1A1A1A] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2A2A2A]'
+                              }`}
+                              title={group.wcStatus === 'completed' ? 'WooCommerce status: completed (Parcel dispatched/shipped to courier)' : `WooCommerce status: ${group.wcStatus}`}
+                            >
+                              {group.wcStatus === 'completed' ? 'Shipped (Completed)' : group.wcStatus}
                             </span>
                           </td>
 
@@ -3550,7 +3634,14 @@ export function LiveOpsTab({
                     const qty = Number(row.Quantity) || 1;
                     const itemCost = Number(row['Item Cost']) || 0;
                     const orderAmt = Number(row['Order Amount']) || itemCost * qty;
-                    const wcStatus = String(row['Delivery Status'] || (row as Record<string, unknown>).status || 'shipped');
+                    const rawWc = String(
+                      (row as Record<string, unknown>).rawWcStatus ||
+                      (row as Record<string, unknown>)['WooCommerce Status'] ||
+                      (row as Record<string, unknown>).wc_status ||
+                      (row as Record<string, unknown>).status ||
+                      'shipped'
+                    );
+                    const wcStatus = rawWc === 'completed' ? 'Shipped (Completed)' : rawWc;
                     const rawCourierStatus = String(row['Courier Status'] || row.courierStatus || 'Untracked');
                     const consignmentId = String(row['Consignment ID'] || row.consignmentId || '').trim();
                     const hasDiscrepancy = Boolean(row.hasDiscrepancy);
@@ -3744,7 +3835,17 @@ export function LiveOpsTab({
                           ৳ {orderAmt.toLocaleString()}
                         </td>
                         <td className="py-2.5 px-3.5 text-center">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-[#1A1A1A] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2A2A2A]">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                              rawWc === 'completed'
+                                ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                                : rawWc === 'processing'
+                                ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                                : rawWc === 'on-hold'
+                                ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800'
+                                : 'bg-slate-100 dark:bg-[#1A1A1A] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2A2A2A]'
+                            }`}
+                          >
                             {wcStatus}
                           </span>
                         </td>
@@ -3852,7 +3953,15 @@ export function LiveOpsTab({
                     );
                   })()}
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-deepBlack-hover text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-deepBlack-border">
-                    WC: {String(selectedDetailOrder['Delivery Status'] || 'shipped')}
+                    WC: {(() => {
+                      const raw = String(
+                        (selectedDetailOrder as Record<string, unknown>).rawWcStatus ||
+                        (selectedDetailOrder as Record<string, unknown>)['WooCommerce Status'] ||
+                        (selectedDetailOrder as Record<string, unknown>).status ||
+                        'shipped'
+                      );
+                      return raw === 'completed' ? 'Shipped (Completed)' : raw;
+                    })()}
                   </span>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
                     Pathao: {String(selectedDetailOrder['Courier Status'] || selectedDetailOrder.courierStatus || 'Untracked')}

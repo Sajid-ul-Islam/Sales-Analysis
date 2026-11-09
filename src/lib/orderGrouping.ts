@@ -21,13 +21,13 @@ import {
 import {
   detectFulfillmentBranch,
   FulfillmentBranchInfo,
-} from './sync/liveTerminalSync';
+} from './fulfillmentUtils';
 import {
   getExportCustomerName,
   getExportPhoneNumber,
   compareOrdersByNumber,
-  saveWorkbook,
-} from './excelExport';
+} from './exportUtils';
+import { saveWorkbook } from './excelExport';
 import { resolveSipOutlet, getItemCogsInfo } from './woocommerceClient';
 
 export interface OrderWiseItem {
@@ -124,7 +124,14 @@ export function groupOrdersByOrderId(rows: RawOrderRow[]): OrderWiseGroup[] {
         customerName: String(getExportCustomerName(row) || row['Customer Name'] || row.customerName || 'Customer'),
         phone: String(getExportPhoneNumber(row) || row.Phone || row.phone || ''),
         city: String(row.City || row.city || 'Dhaka'),
-        wcStatus: String(row['Delivery Status'] || (row as Record<string, unknown>).status || 'shipped'),
+        wcStatus: String(
+          (row as Record<string, unknown>).rawWcStatus ||
+          (row as Record<string, unknown>)['WooCommerce Status'] ||
+          (row as Record<string, unknown>).wc_status ||
+          (row as Record<string, unknown>).status ||
+          row['Delivery Status'] ||
+          'shipped'
+        ),
         courierStatus: String(row['Courier Status'] || row.courierStatus || 'Untracked'),
         consignmentId: '',
         consignmentIds: [],

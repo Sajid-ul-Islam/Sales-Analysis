@@ -48,8 +48,8 @@ function getCategoryIcon(name: string): string {
 
 function formatShortCategoryName(name: string): string {
   const trimmed = (name || '').trim();
-  if (/^Twill(\s+(Five\s+Pockets?|5\s*Pockets?))?$/i.test(trimmed) || /^5\s*Pockets?$/i.test(trimmed)) {
-    return 'Twill';
+  if (/^Twill(\s+Chino|\s+(Five\s+Pockets?|5\s*Pockets?))?$/i.test(trimmed) || /^5\s*Pockets?$/i.test(trimmed) || /^Chino$/i.test(trimmed)) {
+    return 'Twill Chino';
   }
   if (/^Denim\s+Jacket$/i.test(trimmed) || trimmed === 'Jacket') {
     return 'Jacket';
@@ -353,7 +353,7 @@ export function generateLiveOpsHtmlReport(
           const prod = String(r['Item Name'] || 'Apparel');
           const qty = Number(r.Quantity) || 1;
           const amt = Number(r['Order Amount'] || r['Item Cost'] || 0);
-          const wc = String(r['Delivery Status'] || 'shipped');
+          const wc = String((r as Record<string, unknown>).rawWcStatus || (r as Record<string, unknown>)['WooCommerce Status'] || (r as Record<string, unknown>).status || 'completed');
           const cour = String(r['Courier Status'] || r.courierStatus || 'Untracked');
           const cid = String(r['Consignment ID'] || r.consignmentId || '—');
 

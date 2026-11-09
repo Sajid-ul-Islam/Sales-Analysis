@@ -31,7 +31,7 @@ import {
   compareOrdersByNumber,
   getExportCustomerName,
   getExportPhoneNumber,
-} from '@/lib/excelExport';
+} from '@/lib/exportUtils';
 
 export interface CommandPaletteModalProps {
   isOpen: boolean;

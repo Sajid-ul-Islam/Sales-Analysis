@@ -25,7 +25,7 @@ import {
   MarketingChannel,
 } from '@/types/campaign';
 import { computeProductAnalytics, ProductAnalyticsItem } from './productAnalytics';
-import { normalizeCustomerPhone } from './customerRating';
+import { normalizeCustomerPhone } from './customerRatingTypes';
 
 /**
  * Evaluates the financial sustainability of a "Buy More, Save More" threshold tier.

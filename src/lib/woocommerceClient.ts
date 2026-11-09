@@ -964,7 +964,7 @@ export function extractPathaoPluginOrderInfo(order: WcOrder, meta: WcMetaItem[])
 }
 
 export interface WordPressStatusMarks {
-  wpDeliveryStatus: 'Delivered' | 'Paid Return' | 'Not Paid Return' | 'Exchange' | 'Partial' | 'Cancelled' | null;
+  wpDeliveryStatus: 'Delivered' | 'Paid Return' | 'Not Paid Return' | 'Exchange' | 'Partial' | 'Cancelled' | 'Shipped' | 'Processing' | 'On Hold' | null;
   isReturnFromWp: boolean;
   isPartialFromWp: boolean;
   isExchangeFromWp: boolean;
@@ -1135,6 +1135,8 @@ export function detectWordPressStatusMarks(order: WcOrder, meta: WcMetaItem[] = 
     notesText.includes('paid return')
   );
 
+  const isPos = createdVia === 'pos' || meta.some(m => String(m.key).toLowerCase() === '_sip_outlet_id' && m.value);
+
   let wpDeliveryStatus: WordPressStatusMarks['wpDeliveryStatus'] = null;
   if (isPartial) {
     wpDeliveryStatus = 'Partial';
@@ -1144,8 +1146,16 @@ export function detectWordPressStatusMarks(order: WcOrder, meta: WcMetaItem[] = 
     wpDeliveryStatus = isPaidReturn ? 'Paid Return' : 'Not Paid Return';
   } else if (isCancelled) {
     wpDeliveryStatus = 'Cancelled';
-  } else if (cleanStatus === 'completed' || cleanStatus === 'delivered' || pStatus === 'delivered') {
+  } else if (pStatus === 'delivered' || pStatus === 'delivery completed' || cleanStatus === 'delivered') {
     wpDeliveryStatus = 'Delivered';
+  } else if (isPos && (cleanStatus === 'completed' || cleanStatus === 'delivered')) {
+    wpDeliveryStatus = 'Delivered';
+  } else if (cleanStatus === 'completed' || cleanStatus === 'shipped') {
+    wpDeliveryStatus = 'Shipped';
+  } else if (cleanStatus === 'processing') {
+    wpDeliveryStatus = 'Processing';
+  } else if (cleanStatus === 'on-hold' || cleanStatus === 'hold') {
+    wpDeliveryStatus = 'On Hold';
   }
 
   return {
@@ -1693,8 +1703,8 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
         'isCod': isCod,
         'Order Notes': note,
         'orderNotes': note,
-        'Delivery Status': wpMarks.wpDeliveryStatus || status,
-        'status': wpMarks.wpDeliveryStatus || status,
+        'Delivery Status': wpMarks.wpDeliveryStatus || (status === 'completed' ? 'Shipped' : status),
+        'status': wpMarks.wpDeliveryStatus || (status === 'completed' ? 'Shipped' : status),
         'rawWcStatus': status,
         'Quantity': 1,
         'quantity': 1,
@@ -1819,8 +1829,8 @@ export function formatWooCommerceToOrderRows(orders: WcOrder[]): RawOrderRow[] {
           'isCod': isCod,
           'Order Notes': note,
           'orderNotes': note,
-          'Delivery Status': wpMarks.wpDeliveryStatus || status,
-          'status': wpMarks.wpDeliveryStatus || status,
+          'Delivery Status': wpMarks.wpDeliveryStatus || (status === 'completed' ? 'Shipped' : status),
+          'status': wpMarks.wpDeliveryStatus || (status === 'completed' ? 'Shipped' : status),
           'rawWcStatus': status,
           'Order Source': branchInfo.isPos ? 'POS' : 'Online',
           'Outlet ID': branchInfo.outletId,

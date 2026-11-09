@@ -14,7 +14,6 @@ import {
   Download,
   FileSpreadsheet
 } from 'lucide-react';
-import { exportPerformanceReport, exportMonthlyNetSalesExcel } from '@/lib/excelExport';
 import { ReconciliationResult } from '@/lib/reconciliationEngine';
 import { DataProvenanceInfo } from '@/lib/dataAudit';
 import { ComparativeBarChart } from '@/components/charts';
@@ -73,11 +72,12 @@ export function ExecutiveOverviewTab({
 }: ExecutiveOverviewTabProps) {
   const s = summary;
 
-  const handleDownloadMonthlyReport = () => {
+  const handleDownloadMonthlyReport = async () => {
     if (onExportMonthlyReport) {
       onExportMonthlyReport();
       return;
     }
+    const { exportMonthlyNetSalesExcel } = await import('@/lib/excelExport');
     if (reconciliationResult) {
       exportMonthlyNetSalesExcel(reconciliationResult, { provenance });
       return;
@@ -94,6 +94,11 @@ export function ExecutiveOverviewTab({
     exportMonthlyNetSalesExcel(fallbackResult, { provenance });
   };
 
+  const handleExportPerformanceReport = async () => {
+    const { exportPerformanceReport } = await import('@/lib/excelExport');
+    exportPerformanceReport(categories, masterSkuItems, viewMode);
+  };
+
   // View Filter Toggle: 'CATEGORY' vs 'ITEM'
   const [viewMode, setViewMode] = useState<'CATEGORY' | 'ITEM'>('CATEGORY');
 
@@ -107,18 +112,39 @@ export function ExecutiveOverviewTab({
     if (skuList && skuList.length > 0) {
       const groups: Record<string, { dispatched: number; returns: number; net: number; revenue: number; icon: string; sub: string }> = {
         'Jeans': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👖', sub: 'Slim & Regular Fit Jeans' },
-        'Casual & Formal Shirts': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👔', sub: 'Full Sleeve, Half Sleeve, Cuban Collar & Formal Shirts' },
-        'Polo Shirts': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👕', sub: 'Classic Pique, Solid & Knitted Polos' },
-        'T-Shirts': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👕', sub: 'Solid, Printed & Heavyweight GSM Tees' },
-        'Twill Pants & Chinos': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👖', sub: 'Urban Slim Comfort Chinos, Trousers & Cargo' },
-        'Jackets': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '🧥', sub: 'Denim Jackets & Outerwear' },
-        'Sweatshirts & Hoodies': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '🧥', sub: 'Hoodies & French-Terry Sweatshirts' },
-        'Apparel & Accessories': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '📦', sub: 'Boxers, Masks & Core Essentials' }
+        'Twill Chino': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👖', sub: 'Five Pocket Twill & Chino Pants' },
+        'Shirt': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👔', sub: 'Denim, Flannel, Cuban, Full Sleeve & Half Shirts' },
+        'Polo': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👕', sub: 'Classic Pique, Solid & Knitted Polos' },
+        'T-Shirt': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👕', sub: 'Solid Tees, Tank Tops & Drop Shoulder' },
+        'Jacket': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '🧥', sub: 'Denim Jackets & Outerwear' },
+        'Sweatshirt': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '🧥', sub: 'Cotton Terry & French Terry Sweatshirts & Hoodies' },
+        'Trouser': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '👖', sub: 'Cargo & Formal Trousers' },
+        'Panjabi': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '✨', sub: 'Semi-Formal & Regular Panjabi' },
+        'Accessories': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '📦', sub: 'Boxers, Wallets, Card Holders, Masks & Belts' },
+        'General Apparel': { dispatched: 0, returns: 0, net: 0, revenue: 0, icon: '🏷️', sub: 'Core Garments & Essentials' }
+      };
+
+      const normalizeCat = (raw: string): string => {
+        if (!raw) return 'General Apparel';
+        const r = raw.trim();
+        if (groups[r]) return r;
+        const low = r.toLowerCase();
+        if (low.includes('twill') || low.includes('chino')) return 'Twill Chino';
+        if (low.includes('polo')) return 'Polo';
+        if (low.includes('shirt')) return 'Shirt';
+        if (low.includes('t-shirt') || low.includes('tank top') || low.includes('drop shoulder') || low.includes('tee')) return 'T-Shirt';
+        if (low.includes('sweat') || low.includes('hoodie')) return 'Sweatshirt';
+        if (low.includes('jacket')) return 'Jacket';
+        if (low.includes('jean')) return 'Jeans';
+        if (low.includes('trouser') || low.includes('cargo')) return 'Trouser';
+        if (low.includes('panjabi')) return 'Panjabi';
+        if (low.includes('accessor') || low.includes('boxer') || low.includes('wallet') || low.includes('holder') || low.includes('mask') || low.includes('belt')) return 'Accessories';
+        return 'General Apparel';
       };
 
       skuList.forEach(sku => {
-        const catName = sku.category || 'Apparel & Accessories';
-        const target = groups[catName] || groups['Apparel & Accessories'];
+        const catName = normalizeCat(sku.category || '');
+        const target = groups[catName] || groups['General Apparel'];
         target.dispatched += sku.grossQty;
         target.returns += sku.returnedQty;
         target.net += sku.deliveredQty;
@@ -176,6 +202,23 @@ export function ExecutiveOverviewTab({
       returnRate: number;
     }>();
 
+    const normalizeCat = (raw: string): string => {
+      if (!raw) return 'General Apparel';
+      const r = raw.trim();
+      const low = r.toLowerCase();
+      if (low.includes('twill') || low.includes('chino')) return 'Twill Chino';
+      if (low.includes('polo')) return 'Polo';
+      if (low.includes('shirt')) return 'Shirt';
+      if (low.includes('t-shirt') || low.includes('tank top') || low.includes('drop shoulder') || low.includes('tee')) return 'T-Shirt';
+      if (low.includes('sweat') || low.includes('hoodie')) return 'Sweatshirt';
+      if (low.includes('jacket')) return 'Jacket';
+      if (low.includes('jean')) return 'Jeans';
+      if (low.includes('trouser') || low.includes('cargo')) return 'Trouser';
+      if (low.includes('panjabi')) return 'Panjabi';
+      if (low.includes('accessor') || low.includes('boxer') || low.includes('wallet') || low.includes('holder') || low.includes('mask') || low.includes('belt')) return 'Accessories';
+      return r;
+    };
+
     skuList.forEach(item => {
       const mSku = extractMasterSku(item.sku);
       const mName = cleanProductMainName(item.itemName);
@@ -183,7 +226,7 @@ export function ExecutiveOverviewTab({
         map.set(mSku, {
           masterSku: mSku,
           mainName: mName,
-          category: item.category || 'Apparel & Accessories',
+          category: normalizeCat(item.category || ''),
           grossQty: 0,
           deliveredQty: 0,
           returnedQty: 0,
@@ -346,7 +389,7 @@ export function ExecutiveOverviewTab({
               {/* EXPORT OPTION BUTTON FOR CATEGORY & ITEM WISE PERFORMANCE */}
               <button
                 type="button"
-                onClick={() => exportPerformanceReport(categories, masterSkuItems, viewMode)}
+                onClick={handleExportPerformanceReport}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-2xs active:scale-95 bg-white dark:bg-deepBlack-card text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border-emerald-200/80 dark:border-emerald-800/60 hover:border-emerald-300 dark:hover:border-emerald-700 cursor-pointer"
                 title={viewMode === 'CATEGORY' ? "Export Category Wise Performance to Excel (.xlsx)" : "Export Item Wise (Master SKU) Performance to Excel (.xlsx)"}
               >
@@ -385,14 +428,11 @@ export function ExecutiveOverviewTab({
                       className="text-xs bg-white dark:bg-deepBlack-card border border-slate-200 dark:border-deepBlack-border rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-slate-200 font-semibold focus:outline-none focus:border-primary"
                     >
                       <option value="ALL">All Categories ({masterSkuItems.length} Master SKUs)</option>
-                      <option value="Jeans">Jeans</option>
-                      <option value="Casual & Formal Shirts">Casual & Formal Shirts</option>
-                      <option value="Polo Shirts">Polo Shirts</option>
-                      <option value="T-Shirts">T-Shirts</option>
-                      <option value="Twill Pants & Chinos">Twill Pants & Chinos</option>
-                      <option value="Jackets">Jackets</option>
-                      <option value="Sweatshirts & Hoodies">Sweatshirts & Hoodies</option>
-                      <option value="Apparel & Accessories">Apparel & Accessories</option>
+                      {categories.map((c) => (
+                        <option key={c.name} value={c.name}>
+                          {c.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
 

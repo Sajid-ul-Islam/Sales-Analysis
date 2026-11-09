@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { ReconciledOrderRow } from '@/types';
-import { Search, ChevronLeft, ChevronRight, Eye, Copy, Check } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Eye, Copy, Check, Download, FileSpreadsheet } from 'lucide-react';
 import { OrderDetailModal } from '@/components/OrderDetailModal';
 import { getManualOverrides, ManualOverride } from '@/lib/overrideStore';
 import { FulfillmentBadge, StatusBadge, SuffixHygieneBadge, NoSearchResults } from '@/components/common';
@@ -10,16 +10,17 @@ import {
   compareOrdersByNumber,
   getExportCustomerName,
   getExportPhoneNumber,
-} from '@/lib/excelExport';
+} from '@/lib/exportUtils';
 
 interface OrdersLedgerTabProps {
   orders: ReconciledOrderRow[];
   initialStatusFilter?: string;
   initialTerritoryFilter?: string;
   onClearAiTags?: () => void;
+  dateScopeLabel?: string;
 }
 
-export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryFilter, onClearAiTags }: OrdersLedgerTabProps) {
+export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryFilter, onClearAiTags, dateScopeLabel }: OrdersLedgerTabProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter || 'ALL');
   const [branchFilter, setBranchFilter] = useState('ALL');
@@ -145,6 +146,75 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
 
     return list.sort(compareOrdersByNumber);
   }, [orders, searchTerm, statusFilter, branchFilter, territoryFilter, aiTagFilter]);
+
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportOrdersExcel = async () => {
+    if (filteredOrders.length === 0) return;
+    try {
+      setIsExporting(true);
+      const XLSX = await import('xlsx');
+      const exportRows = filteredOrders.map((o) => {
+        const isPartial = o.orderCategory === 'PARTIAL';
+        const isReturn = o.orderCategory === 'FULL_RETURN';
+        const isExchange = o.isExchange || o.orderCategory === 'EXCHANGE';
+        const rawDeliv = String(o.deliveryStatus || '').toLowerCase();
+        const isShipped = rawDeliv.includes('shipped') || rawDeliv === 'completed' || rawDeliv === 'wc-completed';
+        const isInTransit = rawDeliv.includes('transit');
+        const isProcessing = rawDeliv.includes('processing');
+        const isOnHold = rawDeliv.includes('hold');
+
+        const orderStatusLabel = o.orderDeliveryStatus || (
+          isExchange ? 'Exchange' :
+          isPartial ? 'Partial' :
+          isReturn ? (o.isPaidReturn ? 'Paid Return' : 'Not Paid Return') :
+          isShipped ? 'Shipped' :
+          isInTransit ? 'In Transit' :
+          isProcessing ? 'Processing' :
+          isOnHold ? 'On Hold' :
+          'Delivered'
+        );
+
+        let orderDateStr = '';
+        if (o.orderDate) {
+          orderDateStr = o.orderDate instanceof Date
+            ? o.orderDate.toISOString().slice(0, 10)
+            : String(o.orderDate).slice(0, 10);
+        }
+
+        return {
+          'Order ID': o.orderId,
+          'Order Date': orderDateStr,
+          'Customer Name': getExportCustomerName(o) || o.customerName || 'Customer',
+          'Phone': getExportPhoneNumber(o) || o.phone || '',
+          'City': o.city || 'Dhaka',
+          'Territory': o.districtArea || 'Inside Dhaka',
+          'SKU': o.sku,
+          'Item Name': o.itemName,
+          'Quantity': o.quantity,
+          'Unit Cost': o.itemCost,
+          'Order Amount': o.orderAmount,
+          'Net Revenue Impact': o.netRevenueImpact,
+          'Line Type': o.lineStatus,
+          'Order Delivery Status': orderStatusLabel,
+          'Item Delivery Status': o.itemDeliveryStatus || orderStatusLabel,
+          'Payment Method': o.paymentMethod || 'COD',
+          'Fulfillment Branch': o.fulfillmentLocation || (o.hasSplitSuffix ? 'Branch Split' : 'Central Warehouse'),
+        };
+      });
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(exportRows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Dispatched Orders');
+      const cleanScope = (dateScopeLabel || 'Custom_Period').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = `DEEN_Orders_Ledger_${cleanScope}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      XLSX.writeFile(wb, filename);
+    } catch (err) {
+      console.error('Failed to export orders:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
   const paginatedOrders = useMemo(() => {

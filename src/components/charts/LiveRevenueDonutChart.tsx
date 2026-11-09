@@ -21,7 +21,7 @@ interface LiveRevenueDonutChartProps {
 // 6. T-Shirt (6%) [sweeps 8:00 to 8:45]
 // 7. Cargo (7%) [sweeps 8:45 to 9:30]
 // 8. Polo (7%) [sweeps 9:30 to 10:15]
-// 9. Twill Five Pockets (14%) [sweeps 10:15 to 12:00]
+// 9. Twill Five Pockets / Twill Chino (14%) [sweeps 10:15 to 12:00]
 const CANONICAL_CLOCKWISE_SEQUENCE: Record<string, number> = {
   'Jeans': 1,
   'Trousers': 2,
@@ -35,6 +35,7 @@ const CANONICAL_CLOCKWISE_SEQUENCE: Record<string, number> = {
   'Cargo Trouser': 7,
   'Polo': 8,
   'Polo Shirt': 8,
+  'Twill Chino': 9,
   'Twill Five Pockets': 9,
   'Twill': 9,
 };
@@ -49,16 +50,19 @@ const CANONICAL_SLICE_COLORS: Record<string, string> = {
   'T-Shirt': '#e11d48',
   'Cargo': '#14b8a6',
   'Polo': '#6366f1',
+  'Twill Chino': '#f97316',
   'Twill Five Pockets': '#f97316',
   '5-Pocket Twill': '#f97316',
   'Twill': '#f97316',
+  'Accessories': '#d97706',
   'Wallet': '#d97706',
+  'General Apparel': '#94a3b8',
 };
 
 function formatShortCategoryName(name: string): string {
   const trimmed = name.trim();
-  if (/^Twill(\s+(Five\s+Pockets?|5\s*Pockets?))?$/i.test(trimmed) || /^5\s*Pockets?$/i.test(trimmed)) {
-    return 'Twill';
+  if (/^Twill(\s+Chino|\s+(Five\s+Pockets?|5\s*Pockets?))?$/i.test(trimmed) || /^5\s*Pockets?$/i.test(trimmed) || /^Chino$/i.test(trimmed)) {
+    return 'Twill Chino';
   }
   if (/^Denim\s+Jacket$/i.test(trimmed) || trimmed === 'Jacket') {
     return 'Jacket';
@@ -226,7 +230,7 @@ export function LiveRevenueDonutChart({
                 (selectedCategory === sp.slice.name ||
                   selectedCategory === sp.slice.displayName ||
                   selectedCategory === sliceLabel ||
-                  (!isSubCategory && selectedCategory === 'Twill' && /^Twill/i.test(rawName)) ||
+                  (!isSubCategory && (selectedCategory === 'Twill' || selectedCategory === 'Twill Chino') && (/^Twill/i.test(rawName) || /^Chino/i.test(rawName))) ||
                   (!isSubCategory && selectedCategory === 'Jacket' && /Jacket/i.test(rawName)))
               );
               const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);
@@ -279,7 +283,7 @@ export function LiveRevenueDonutChart({
                 (selectedCategory === sp.slice.name ||
                   selectedCategory === sp.slice.displayName ||
                   selectedCategory === sliceLabel ||
-                  (!isSubCategory && selectedCategory === 'Twill' && /^Twill/i.test(rawName)) ||
+                  (!isSubCategory && (selectedCategory === 'Twill' || selectedCategory === 'Twill Chino') && (/^Twill/i.test(rawName) || /^Chino/i.test(rawName))) ||
                   (!isSubCategory && selectedCategory === 'Jacket' && /Jacket/i.test(rawName)))
               );
               const isDimmed = Boolean(selectedCategory && selectedCategory !== 'ALL' && !isSelected);

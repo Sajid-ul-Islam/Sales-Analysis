@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import * as XLSX from 'xlsx';
+import dynamic from 'next/dynamic';
+import { TableSkeleton } from '@/components/common/TableSkeleton';
 import {
   Sidebar,
   Header,
@@ -10,27 +11,78 @@ import {
   KpiOverview,
   DateRangeSelector,
   ExecutiveOverviewTab,
-  CourierMismatchTab,
-  TerritoryTab,
-  StatusMatrixTab,
-  OrdersLedgerTab,
-
-  ProductAnalysisTab,
-  CampaignIntelligenceTab,
-  CustomerRiskTab,
-  OmnichannelOutletsTab,
-  AfterSalesHub,
-  LiveOpsTab,
-
-  SettingsTab,
-  WeekComparisonModal,
   DraggableAssistantButton,
-  CommandPaletteModal,
   SyncNotificationCenter,
   dispatchSyncNotification,
   DataProvenanceBanner
 } from '@/components';
-import { CopilotDrawer } from '@/components/ai/CopilotDrawer';
+
+const LiveOpsTab = dynamic(() => import('@/components/tabs/LiveOpsTab').then((m) => m.LiveOpsTab), {
+  loading: () => <TableSkeleton rows={10} cols={8} />,
+  ssr: false,
+});
+
+const SettingsTab = dynamic(() => import('@/components/tabs/SettingsTab').then((m) => m.SettingsTab), {
+  loading: () => <TableSkeleton rows={8} cols={4} />,
+  ssr: false,
+});
+
+const CampaignIntelligenceTab = dynamic(() => import('@/components/tabs/CampaignIntelligenceTab').then((m) => m.CampaignIntelligenceTab), {
+  loading: () => <TableSkeleton rows={8} cols={6} />,
+  ssr: false,
+});
+
+const OmnichannelOutletsTab = dynamic(() => import('@/components/tabs/OmnichannelOutletsTab').then((m) => m.OmnichannelOutletsTab), {
+  loading: () => <TableSkeleton rows={8} cols={6} />,
+  ssr: false,
+});
+
+const CourierMismatchTab = dynamic(() => import('@/components/tabs/CourierMismatchTab').then((m) => m.CourierMismatchTab), {
+  loading: () => <TableSkeleton rows={8} cols={7} />,
+  ssr: false,
+});
+
+const TerritoryTab = dynamic(() => import('@/components/tabs/TerritoryTab').then((m) => m.TerritoryTab), {
+  loading: () => <TableSkeleton rows={8} cols={6} />,
+  ssr: false,
+});
+
+const StatusMatrixTab = dynamic(() => import('@/components/tabs/StatusMatrixTab').then((m) => m.StatusMatrixTab), {
+  loading: () => <TableSkeleton rows={8} cols={6} />,
+  ssr: false,
+});
+
+const OrdersLedgerTab = dynamic(() => import('@/components/tabs/OrdersLedgerTab').then((m) => m.OrdersLedgerTab), {
+  loading: () => <TableSkeleton rows={12} cols={8} />,
+  ssr: false,
+});
+
+const ProductAnalysisTab = dynamic(() => import('@/components/tabs/ProductAnalysisTab').then((m) => m.ProductAnalysisTab), {
+  loading: () => <TableSkeleton rows={8} cols={6} />,
+  ssr: false,
+});
+
+const AfterSalesHub = dynamic(() => import('@/components/tabs/AfterSalesHub').then((m) => m.AfterSalesHub), {
+  loading: () => <TableSkeleton rows={8} cols={7} />,
+  ssr: false,
+});
+
+const CustomerRiskTab = dynamic(() => import('@/components/tabs/CustomerRiskTab').then((m) => m.CustomerRiskTab), {
+  loading: () => <TableSkeleton rows={8} cols={6} />,
+  ssr: false,
+});
+
+const CopilotDrawer = dynamic(() => import('@/components/ai/CopilotDrawer').then((m) => m.CopilotDrawer), {
+  ssr: false,
+});
+
+const WeekComparisonModal = dynamic(() => import('@/components/WeekComparisonModal').then((m) => m.WeekComparisonModal), {
+  ssr: false,
+});
+
+const CommandPaletteModal = dynamic(() => import('@/components/CommandPaletteModal').then((m) => m.CommandPaletteModal), {
+  ssr: false,
+});
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import {
   runReconciliationEngine,
@@ -39,7 +91,6 @@ import {
   extractPartialsFromPathaoDelivery,
   extractExchangesFromPathaoDelivery
 } from '@/lib/reconciliationEngine';
-import { exportReconciledExcel, exportMonthlyNetSalesExcel } from '@/lib/excelExport';
 import { loadSavedThemeSettings, saveThemeSettings, applyThemeToDocument, BackgroundStyleId } from '@/lib/themeManager';
 import { loadAppSettings } from '@/lib/settingsStore';
 import { DateScope, filterOrdersByDateScope, CustomDateRange, getDynamicDatasetTitle, DateScopeBoundaries } from '@/lib/dateFilter';
@@ -635,14 +686,15 @@ export default function DashboardPage() {
   ]);
 
   // Read a File object to XLSX Workbook (works seamlessly for .xlsx, .xls, .csv)
-  const readFileWorkbook = (file: File): Promise<XLSX.WorkBook> => {
+  const readFileWorkbook = async (file: File, xlsxModule?: any): Promise<any> => {
+    const XLSX = xlsxModule || (await import('xlsx'));
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
           const buffer = e.target?.result as ArrayBuffer;
           const data = new Uint8Array(buffer);
-          let workbook: XLSX.WorkBook;
+          let workbook: any;
           try {
             workbook = XLSX.read(data, { type: 'array', cellDates: true });
           } catch {
@@ -733,9 +785,10 @@ export default function DashboardPage() {
 
     setIsProcessing(true);
     setStatusMessage('Parsing uploaded Excel / CSV files...');
+    const XLSX = await import('xlsx');
     try {
       // Helper: Smartly extract real order rows from any Excel workbook, skipping executive summary sheets
-      const extractOrdersFromWorkbook = (wb: XLSX.WorkBook): RawOrderRow[] => {
+      const extractOrdersFromWorkbook = (wb: any): RawOrderRow[] => {
         let matchedRows: RawOrderRow[] = [];
 
         const isOrderKey = (k: string) => {
@@ -792,7 +845,7 @@ export default function DashboardPage() {
       };
 
       // Helper: Extract courier manifest rows from return/partial/exchange/pathao sheets
-      const extractManifestRows = (wb: XLSX.WorkBook): RawOrderRow[] => {
+      const extractManifestRows = (wb: any): RawOrderRow[] => {
         for (const sheetName of wb.SheetNames) {
           const sLower = sheetName.toLowerCase();
           if (sLower.includes('summary') || sLower.includes('executive') || sLower.includes('dashboard')) {
@@ -808,7 +861,7 @@ export default function DashboardPage() {
 
       let combinedOrders: RawOrderRow[] = [];
       for (const file of targetOrderFiles) {
-        const wb = await readFileWorkbook(file);
+        const wb = await readFileWorkbook(file, XLSX);
         const extracted = extractOrdersFromWorkbook(wb);
         combinedOrders = [...combinedOrders, ...extracted];
       }
@@ -1165,13 +1218,14 @@ export default function DashboardPage() {
     setStatusMessage('AI audit tags cleared from all orders in active dataset.');
   }, [result]);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!result) {
       setStatusMessage('No reconciled data available to export.');
       return;
     }
     try {
       setStatusMessage('Preparing and downloading DEEN Reconciliation Excel audit workbook (.xlsx)...');
+      const { exportReconciledExcel } = await import('@/lib/excelExport');
       exportReconciledExcel(result);
       setTimeout(() => {
         setStatusMessage('Excel reconciliation audit workbook (.xlsx) downloaded successfully.');
@@ -1183,13 +1237,14 @@ export default function DashboardPage() {
     }
   };
 
-  const handleExportMonthlyNetSales = useCallback(() => {
+  const handleExportMonthlyNetSales = useCallback(async () => {
     if (!result) {
       setStatusMessage('No reconciled data available to export.');
       return;
     }
     try {
       setStatusMessage('Generating 7-Sheet Month-End Net Sales Report (.xlsx)...');
+      const { exportMonthlyNetSalesExcel } = await import('@/lib/excelExport');
       exportMonthlyNetSalesExcel(result, {
         provenance: dataProvenance || undefined,
       });

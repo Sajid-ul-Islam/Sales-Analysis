@@ -14,8 +14,8 @@ export interface ReconciledOrderRow {
   lineStatus: string; // 'Primary Item (Unique Order)' | 'Additional Item (Multi-Item Order)'
   deliveryStatus: string;
   orderCategory: DeliveryCategory;
-  orderDeliveryStatus?: 'Delivered' | 'Paid Return' | 'Not Paid Return' | 'Exchange' | 'Partial' | 'Cancelled';
-  itemDeliveryStatus?: 'Delivered' | 'Returned' | 'Exchange' | 'Cancelled';
+  orderDeliveryStatus?: 'Delivered' | 'Paid Return' | 'Not Paid Return' | 'Exchange' | 'Partial' | 'Cancelled' | 'Shipped' | 'In Transit' | 'Processing' | 'On Hold';
+  itemDeliveryStatus?: 'Delivered' | 'Returned' | 'Exchange' | 'Cancelled' | 'Shipped' | 'In Transit' | 'Processing';
   orderDate: Date | null;
   customerName: string;
   phone: string;

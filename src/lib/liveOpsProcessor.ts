@@ -8,9 +8,9 @@
 import { RawOrderRow } from '@/types';
 import { classifyProductLine, computeSelectsStats, SelectsStats } from './selectsAnalytics';
 import { getCategoryForSales, getSubCategoryForSales, getShortCategoryLabel, getShortSubCategoryLabel, CATEGORY_COLOR_MAP } from './liveCategoryEngine';
-import { computeCustomerMix } from './customerRegistry';
+import { computeCustomerMix } from './customerMixCalculator';
 import { isEcomPaymentMethod } from './woocommerceClient';
-import { detectFulfillmentBranch } from './sync/liveTerminalSync';
+import { detectFulfillmentBranch } from './fulfillmentUtils';
 import {
   getDhakaIsoDate,
   getDhakaTodayIso,
@@ -78,8 +78,8 @@ export const DEFAULT_DEEN_OPS_CATEGORY_ITEMS: LiveCategoryItem[] = [
     color: '#f43f5e',
   },
   {
-    name: 'Twill',
-    displayName: 'Twill',
+    name: 'Twill Chino',
+    displayName: 'Twill Chino',
     revenue: 6058,
     volume: 5,
     selectsVolume: 0,

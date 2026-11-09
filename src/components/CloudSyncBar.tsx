@@ -651,8 +651,8 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
                   className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-deepBlack-border bg-white dark:bg-deepBlack-card text-slate-800 dark:text-slate-100 focus:outline-none focus:border-primary"
                 >
                   <option value="any">Any Status (All Orders)</option>
-                  <option value="processing">Processing (Active Handover)</option>
-                  <option value="completed">Completed (Delivered & Paid)</option>
+                  <option value="processing">Processing (In Warehouse / Packing)</option>
+                  <option value="completed">Completed (Shipped / Dispatched)</option>
                   <option value="cancelled">Cancelled</option>
                   <option value="refunded">Refunded / Returned</option>
                 </select>

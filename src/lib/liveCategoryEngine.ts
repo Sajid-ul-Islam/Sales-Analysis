@@ -5,10 +5,12 @@
 
 export const CATEGORY_COLOR_MAP: Record<string, string> = {
   'Jeans': '#f43f5e',
+  'Twill Chino': '#f97316',
   'Twill Five Pockets': '#f97316',
   '5-Pocket Twill': '#f97316',
   'Twill': '#f97316',
   'T-Shirt': '#e11d48',
+  'Shirt': '#3b82f6',
   'Casual': '#a855f7',
   'Casual Shirt': '#a855f7',
   'Polo': '#6366f1',
@@ -25,6 +27,8 @@ export const CATEGORY_COLOR_MAP: Record<string, string> = {
   'Panjabi': '#0ea5e9',
   'Boxer': '#ec4899',
   'Wallet': '#d97706',
+  'Card Holder': '#0d9488',
+  'Passport Holder': '#0d9488',
   'Drop Shoulder': '#84cc16',
   'Tank Top': '#10b981',
   'Turtle-Neck': '#64748b',
@@ -34,6 +38,7 @@ export const CATEGORY_COLOR_MAP: Record<string, string> = {
   'Mask': '#14b8a6',
   'Belt': '#b45309',
   'Water Bottle': '#06b6d4',
+  'General Apparel': '#94a3b8',
   'Others': '#94a3b8',
 
   // Jeans Sub-Categories (Differentiated shades of rose/crimson/coral)
@@ -98,7 +103,7 @@ export function getShortCategoryLabel(name: string): string {
   if (lower.includes('denim shirt')) return 'Denim Shirt';
   if (lower.includes('denim')) return 'Denim';
   if (lower.includes('flannel')) return 'Flannel';
-  if (lower.includes('five pocket') || lower.includes('5 pocket') || lower.includes('5-pocket') || lower.includes('twill')) return 'Twill';
+  if (lower.includes('five pocket') || lower.includes('5 pocket') || lower.includes('5-pocket') || lower.includes('twill') || lower.includes('chino')) return 'Twill Chino';
   if (lower.includes('casual')) return 'Casual';
   if (lower.includes('corduroy')) return 'Corduroy';
   if (lower.includes('cuban')) return 'Cuban';
@@ -111,11 +116,14 @@ export function getShortCategoryLabel(name: string): string {
   if (lower.includes('pajama') || lower.includes('payjama')) return 'Pajama';
   if (lower.includes('polo')) return 'Polo';
   if (lower.includes('cargo')) return 'Cargo';
+  if (lower.includes('tank top')) return 'T-Shirt';
+  if (lower.includes('drop shoulder')) return 'T-Shirt';
   if (lower.includes('t-shirt') || lower.includes('t shirt')) return 'T-Shirt';
   if (lower.includes('trouser') || lower.includes('jogger')) return 'Trousers';
   if (lower.includes('full sleeve') || lower === 'fs shirt') return 'FS Shirt';
   if (lower.includes('half sleeve') || lower === 'hs shirt') return 'HS Shirt';
-  if (lower.includes('mask') || lower.includes('accessor') || lower.includes('belt') || lower.includes('bottle') || lower.includes('mug')) return 'Accessories';
+  if (lower.includes('mask') || lower.includes('accessor') || lower.includes('belt') || lower.includes('bottle') || lower.includes('mug') || lower.includes('boxer') || lower.includes('card holder') || lower.includes('passport') || lower.includes('wallet')) return 'Accessories';
+  if (lower.includes('other')) return 'General Apparel';
 
   const prefixes = ['FS Shirt - ', 'HS Shirt - ', 'FS T-Shirt - ', 'HS T-Shirt - ', 'FS Shirt ', 'HS Shirt ', 'FS ', 'HS '];
   for (const prefix of prefixes) {
@@ -133,54 +141,47 @@ function hasAny(keywords: string[], text: string): boolean {
 }
 
 export function getCategoryForSales(name?: string | null): string {
-  if (!name || typeof name !== 'string') return 'Others';
+  if (!name || typeof name !== 'string') return 'General Apparel';
   const nameStr = name.toLowerCase().trim();
 
   // 1. High-priority special categories
   if (hasAny(['panjabi', 'punjabi'], nameStr)) return 'Panjabi';
-  if (hasAny(['sweatshirt', 'pullover'], nameStr)) return 'Sweatshirt';
-  if (nameStr.includes('hoodie')) return 'Hoodie';
+  if (hasAny(['sweatshirt', 'pullover'], nameStr) || nameStr.includes('hoodie')) return 'Sweatshirt';
   if (hasAny(['jacket', 'outerwear', 'coat'], nameStr)) return 'Jacket';
   if (nameStr.includes('polo')) return 'Polo';
   if (hasAny(['turtleneck', 'turtle-neck', 'mock neck'], nameStr)) return 'Turtle-Neck';
   if (nameStr.includes('bundle')) return 'Bundles';
-  if (nameStr.includes('cuban')) return 'HS Shirt';
 
   // 2. Main clusters
-  if (nameStr.includes('jeans')) return 'Jeans';
-  if (hasAny(['drop shoulder', 'oversized'], nameStr)) return 'Drop Shoulder';
-  if (nameStr.includes('tank top')) return 'Tank Top';
+  if (nameStr.includes('jeans') && !nameStr.includes('jacket') && !nameStr.includes('shirt')) return 'Jeans';
 
+  // T-Shirt (including Tank Top and Drop Shoulder)
   const hasTshirt =
-    hasAny(['t-shirt', 't shirt', 'active wear', 'activewear', 'jersy', 'jersey'], nameStr) ||
+    hasAny(['t-shirt', 't shirt', 'active wear', 'activewear', 'jersy', 'jersey', 'tank top', 'drop shoulder', 'oversized'], nameStr) ||
     /\btee\b/.test(nameStr);
   if (hasTshirt) return 'T-Shirt';
 
-  const fsKeywords = ['full sleeve', 'long sleeve', 'fs', 'l/s', 'fullsleeve', 'full-sleeve'];
+  // Twill Chino (both sub and main cat should be twill chino)
+  if (hasAny(['five pocket', '5 pocket', '5-pocket', 'twill', 'chino'], nameStr)) return 'Twill Chino';
+
+  // Shirt
   const isShirt =
     (nameStr.includes('shirt') || hasAny(['executive', 'formal'], nameStr)) &&
     !hasAny(['pant', 'trouser', 'panjabi', 'punjabi'], nameStr);
+  if (isShirt) return 'Shirt';
 
-  if (isShirt) {
-    if (hasAny(fsKeywords, nameStr) || hasAny(['denim', 'flannel', 'oxford', 'kaftan', 'executive', 'formal'], nameStr)) {
-      return 'FS Shirt';
-    }
-    return 'HS Shirt';
-  }
-
-  if (hasAny(['five pocket', '5 pocket', '5-pocket', 'twill', 'chino'], nameStr)) return 'Twill';
-  if (nameStr.includes('cargo')) return 'Cargo';
-  if (hasAny(['trousers', 'trouser', 'jogger', 'pants', 'gabardine'], nameStr)) return 'Trousers';
-  if (nameStr.includes('boxer')) return 'Boxer';
-  if (hasAny(['wallet', 'card holder', 'passport holder'], nameStr)) return 'Wallet';
+  // Accessories (Card Holder, Passport Holder, Wallet, Boxer, Mask, Belt, Bottle, Mug)
+  if (hasAny(['card holder', 'passport', 'wallet', 'bifold', 'coin pocket long wallet', 'mask', 'face mask', 'accessor', 'belt', 'bottle', 'water bottle', 'mug', 'boxer'], nameStr)) return 'Accessories';
   if (hasAny(['bag', 'backpack', 'tote'], nameStr)) return 'Leather Bag';
-  if (hasAny(['mask', 'face mask', 'accessor', 'belt', 'bottle', 'water bottle', 'mug'], nameStr)) return 'Accessories';
 
-  return 'Others';
+  // Trousers
+  if (hasAny(['trousers', 'trouser', 'cargo', 'jogger', 'pants', 'gabardine'], nameStr)) return 'Trousers';
+
+  return 'General Apparel';
 }
 
 export function getSubCategoryForSales(name?: string | null, parentCategory?: string): string {
-  if (!name || typeof name !== 'string') return parentCategory || 'Others';
+  if (!name || typeof name !== 'string') return parentCategory || 'General Apparel';
   const nameStr = name.toLowerCase().trim();
   const category = parentCategory || getCategoryForSales(name);
 
@@ -192,39 +193,46 @@ export function getSubCategoryForSales(name?: string | null, parentCategory?: st
   }
 
   if (category === 'T-Shirt') {
+    if (nameStr.includes('tank top')) return 'Tank Top';
+    if (hasAny(['drop shoulder', 'oversized'], nameStr)) return 'Drop Shoulder';
     if (hasAny(['active wear', 'activewear'], nameStr)) return 'Active Wear T-Shirt';
-    if (hasAny(['jersy', 'jersey'], nameStr)) return 'Jersy';
-    if (hasAny(['full sleeve', 'long sleeve', 'fs'], nameStr)) return 'FS-T-Shirt';
-    return 'HS T-Shirt';
+    if (hasAny(['jersy', 'jersey'], nameStr)) return 'Jersey';
+    if (hasAny(['full sleeve', 'long sleeve', 'fs'], nameStr)) return 'Full Sleeve';
+    return 'Half Sleeve';
   }
 
-  if (category === 'FS Shirt') {
-    if (nameStr.includes('flannel')) return 'Flannel Shirt';
+  if (category === 'Polo') {
+    return 'Polo';
+  }
+
+  if (category === 'Twill Chino' || category === 'Twill' || category === 'Twill Five Pockets') {
+    return 'Twill Chino';
+  }
+
+  if (category === 'Shirt' || category === 'FS Shirt' || category === 'HS Shirt') {
     if (nameStr.includes('denim')) return 'Denim Shirt';
-    if (nameStr.includes('oxford')) return 'Oxford Shirt';
-    if (nameStr.includes('kaftan')) return 'Kaftan Shirt';
-    if (nameStr.includes('casual')) return 'Casual Shirt - Full Sleeve';
-    if (hasAny(['executive', 'formal'], nameStr)) return 'Formal Shirt';
-    return 'FS Shirt';
-  }
-
-  if (category === 'HS Shirt') {
-    if (nameStr.includes('contrast')) return 'Contrast Shirt';
-    if (nameStr.includes('casual')) return 'Casual Shirt - Half Sleeve';
+    if (nameStr.includes('flannel')) return 'Flannel Shirt';
     if (nameStr.includes('cuban')) return 'Cuban Shirt';
-    return 'HS Shirt';
+    if (nameStr.includes('kaftan')) return 'Kaftan Shirt';
+    if (nameStr.includes('oxford')) return 'Oxford Shirt';
+    if (hasAny(['executive', 'formal'], nameStr)) return 'Formal Shirt';
+    if (hasAny(['full sleeve', 'long sleeve', 'fs'], nameStr)) return 'Full Sleeve Shirt';
+    if (hasAny(['half shirt', 'half sleeve', 'hs'], nameStr)) return 'Half Shirt';
+    return 'Casual Shirt';
   }
 
-  if (category === 'Twill' || category === 'Twill Five Pockets') {
-    if (nameStr.includes('joggers')) return 'Twill Joggers';
-    if (hasAny(['five pocket', '5 pocket', '5-pocket'], nameStr)) return 'Twill Five Pockets';
-    return 'Twill Pant';
+  if (category === 'Sweatshirt' || category === 'Hoodie') {
+    if (hasAny(['cotton terry', 'cotton-terry', 'cotton'], nameStr)) return 'Cotton Terry';
+    if (hasAny(['french terry', 'french-terry', 'french'], nameStr)) return 'French Terry';
+    if (nameStr.includes('hoodie')) return 'Hoodie';
+    return 'Cotton Terry';
   }
 
-  if (category === 'Trousers') {
+  if (category === 'Trousers' || category === 'Trouser') {
+    if (nameStr.includes('cargo')) return 'Cargo Trouser';
     if (nameStr.includes('joggers')) return 'Joggers';
     if (nameStr.includes('regular fit')) return 'Regular Fit Trousers';
-    return 'Trousers';
+    return 'Formal Trouser';
   }
 
   if (category === 'Jacket') {
@@ -232,13 +240,11 @@ export function getSubCategoryForSales(name?: string | null, parentCategory?: st
     return 'Jacket';
   }
 
-  if (category === 'Sweatshirt') {
-    if (nameStr.includes('cotton terry')) return 'Cotton Terry Sweatshirt';
-    if (nameStr.includes('french terry')) return 'French Terry Sweatshirt';
-    return 'Sweatshirt';
-  }
-
-  if (category === 'Accessories' || hasAny(['mask', 'belt', 'bottle', 'mug'], nameStr)) {
+  if (category === 'Accessories' || hasAny(['mask', 'belt', 'bottle', 'mug', 'boxer', 'card', 'passport', 'wallet'], nameStr)) {
+    if (nameStr.includes('card')) return 'Card Holder';
+    if (nameStr.includes('passport')) return 'Passport Holder';
+    if (hasAny(['wallet', 'bifold'], nameStr)) return 'Wallet';
+    if (nameStr.includes('boxer')) return 'Boxer';
     if (nameStr.includes('mask')) return 'Mask';
     if (nameStr.includes('belt')) return 'Belt';
     if (nameStr.includes('bottle')) return 'Water Bottle';
@@ -246,7 +252,12 @@ export function getSubCategoryForSales(name?: string | null, parentCategory?: st
     return 'Accessories';
   }
 
-  return category;
+  if (category === 'Panjabi') {
+    if (nameStr.includes('semi')) return 'Semi Formal';
+    return 'Regular Panjabi';
+  }
+
+  return category === 'Others' ? 'General Apparel' : category;
 }
 
 export function getShortSubCategoryLabel(subCategory?: string | null): string {
@@ -296,10 +307,24 @@ export function getShortSubCategoryLabel(subCategory?: string | null): string {
   if (lower.includes('jogger')) return 'Joggers';
 
   // 9. Accessories sub-categories
+  if (lower === 'boxer' || lower.includes('boxer')) return 'Boxer';
+  if (lower.includes('card holder') || lower === 'card holder') return 'Card Holder';
+  if (lower.includes('passport') || lower === 'passport holder') return 'Passport Holder';
   if (lower === 'mask' || lower.includes('face mask') || lower.includes('breathable face mask')) return 'Mask';
   if (lower === 'belt' || lower.includes('leather belt') || lower.includes('belt')) return 'Belt';
   if (lower === 'water bottle' || lower.includes('bottle')) return 'Water Bottle';
   if (lower === 'mug' || lower.includes('mug')) return 'Mug';
+
+  // 10. Twill Chino & Tank Top / Drop Shoulder
+  if (lower.includes('twill') || lower.includes('chino')) return 'Twill Chino';
+  if (lower.includes('tank top')) return 'Tank Top';
+  if (lower.includes('drop shoulder')) return 'Drop Shoulder';
+
+  // 11. Additional Shirt sub-categories
+  if (lower.includes('full sleeve shirt')) return 'Full Sleeve Shirt';
+  if (lower.includes('half shirt')) return 'Half Shirt';
+  if (lower === 'polo') return 'Polo';
+  if (lower === 'general apparel') return 'General Apparel';
 
   return trimmed;
 }

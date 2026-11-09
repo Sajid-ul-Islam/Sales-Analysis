@@ -16,13 +16,12 @@ import {
   Package,
   ShoppingBag,
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import { AIReturnDiagnosisCard } from '@/components/after-sales/AIReturnDiagnosisCard';
 import {
   compareOrdersByNumber,
   getExportCustomerName,
   getExportPhoneNumber,
-} from '@/lib/excelExport';
+} from '@/lib/exportUtils';
 import { getItemCogsInfo } from '@/lib/woocommerceClient';
 
 export interface OrderWiseReturnGroup {
@@ -272,7 +271,8 @@ export function ItemReturnsTab({ returnedItems, onSelectOrder }: ItemReturnsTabP
   const partialOrdersCount = useMemo(() => new Set(partialItems.map((i) => i.orderId)).size, [partialItems]);
 
   // Handle Export based on active view mode
-  const handleExportCsv = () => {
+  const handleExportCsv = async () => {
+    const XLSX = await import('xlsx');
     const dateStr = new Date().toISOString().split('T')[0];
 
     if (viewMode === 'ORDER_WISE') {

@@ -44,7 +44,7 @@ import {
 } from '@/lib/chatHistory';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 import { trimOrderRowsForSql } from '@/lib/edgeCache';
-import { detectDirectSql } from '@/lib/ai/sqlEngine';
+import { detectDirectSql } from '@/lib/ai/sqlDetect';
 import { getTabContext } from '@/lib/ai/contextualPrompts';
 import { detectAgenticIntent } from '@/lib/ai/agenticActions';
 import { AgenticActionProposal } from '@/types';

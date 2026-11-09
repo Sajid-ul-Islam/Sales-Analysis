@@ -12,7 +12,7 @@ import {
   compareOrdersByNumber,
   getExportCustomerName,
   getExportPhoneNumber,
-} from '@/lib/excelExport';
+} from '@/lib/exportUtils';
 
 interface SkuHistoryModalProps {
   sku: string | null;

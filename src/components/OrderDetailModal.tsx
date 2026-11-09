@@ -22,7 +22,7 @@ import { FulfillmentBadge, StatusBadge } from '@/components/common';
 import {
   getExportCustomerName,
   getExportPhoneNumber,
-} from '@/lib/excelExport';
+} from '@/lib/exportUtils';
 
 interface OrderDetailModalProps {
   orderId: string | null;

@@ -17,6 +17,7 @@ import { OrderItemEntry } from './subsetSum';
 import { matchPartialItemsWithAudit, AuditedSubsetMatchResult } from './subsetSumAuditor';
 import { assertNoDoubleCounting } from './accounting/accountingContract';
 import { getLiveWebhookUpdates } from './pathaoWebhookEngine';
+import { getCategoryForSales } from './liveCategoryEngine';
 
 export interface IngestionOptions {
   excludeAugust?: boolean;
@@ -321,48 +322,20 @@ export function detectWordPressAndWebhookMarks(
 }
 
 export function classifyProductCategory(itemName: string, sku: string): string {
-  const n = (itemName || '').toLowerCase();
+  const cat = getCategoryForSales(itemName);
+  if (cat && cat !== 'General Apparel') {
+    return cat;
+  }
   const s = (sku || '').toLowerCase();
+  if (s.startsWith('101-')) return 'Jeans';
+  if (s.startsWith('102-') || s.startsWith('export-shirt')) return 'Shirt';
+  if (s.startsWith('103-')) return 'Polo';
+  if (s.startsWith('105-')) return 'T-Shirt';
+  if (s.startsWith('115-')) return 'Jacket';
+  if (s.startsWith('108-') || s.startsWith('114-')) return 'Sweatshirt';
+  if (s.startsWith('104-') || s.startsWith('110-')) return 'Twill Chino';
 
-  // 1. Denim Core (Jeans, Denim Pants)
-  if (n.includes('jean') || (n.includes('denim') && !n.includes('jacket') && !n.includes('shirt')) || s.startsWith('101-')) {
-    return 'Jeans';
-  }
-
-  // 2. Casual & Formal Shirts (102- is exclusively Deen Shirts, e.g. Cuban Collar, Half Shirt, Formal Shirt)
-  const isTshirt = n.includes('t-shirt') || n.includes('tshirt') || n.includes('tee');
-  const isPolo = n.includes('polo');
-  const isShirt = (n.includes('shirt') || n.includes('panjabi')) && !isTshirt && !isPolo;
-  if (isShirt || s.startsWith('102-') || s.startsWith('export-shirt')) {
-    return 'Casual & Formal Shirts';
-  }
-
-  // 3. Distinct: Polo Shirts (103-)
-  if (isPolo || s.startsWith('103-')) {
-    return 'Polo Shirts';
-  }
-
-  // 4. Distinct: T-Shirts (105-)
-  if (isTshirt || s.startsWith('105-')) {
-    return 'T-Shirts';
-  }
-
-  // 5. Distinct: Jackets (115-)
-  if (n.includes('jacket') || s.startsWith('115-')) {
-    return 'Jackets';
-  }
-
-  // 6. Distinct: Sweatshirts & Hoodies (108- Sweatshirt, 114- Hoodie)
-  if (n.includes('sweatshirt') || n.includes('hoodie') || n.includes('french-terry') || s.startsWith('108-') || s.startsWith('114-')) {
-    return 'Sweatshirts & Hoodies';
-  }
-
-  // 7. Pants, Chinos & Trousers (Twill, Chino, Cargo, Trouser, 104-, 110-)
-  if (n.includes('twill') || n.includes('chino') || n.includes('trouser') || n.includes('cargo') || n.includes('pant') || s.includes('104-') || s.startsWith('110-')) {
-    return 'Twill Pants & Chinos';
-  }
-
-  return 'Apparel & Accessories';
+  return 'General Apparel';
 }
 
 /**

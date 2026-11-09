@@ -347,18 +347,7 @@ Columns:
 - isOnline (number): 1 if placed online via checkout, 0 if physical outlet`;
 }
 
-/**
- * Detects if the user query is a direct SQL statement.
- * Matches if trimmed query starts with SELECT or WITH.
- */
-export function detectDirectSql(query: string): string | null {
-  if (!query || typeof query !== 'string') return null;
-  const trimmed = query.trim();
-  if (/^(SELECT|WITH|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|EXEC)\b/i.test(trimmed)) {
-    return trimmed;
-  }
-  return null;
-}
+export { detectDirectSql } from './sqlDetect';
 
 /**
  * Detects analytical intent from natural language merchant questions and generates a tailored SQL query.
