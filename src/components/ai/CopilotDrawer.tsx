@@ -359,7 +359,7 @@ export function CopilotDrawer({
                 </button>
               </div>
               <span className="text-[11px] text-slate-400 block font-normal">
-                Executive Intelligence & Reconciliation Analyst
+                Executive AI & Reconciliation Analyst
               </span>
             </div>
           </div>
@@ -436,7 +436,7 @@ export function CopilotDrawer({
             </span>
           </div>
           <span className="text-[11px] text-slate-400 dark:text-slate-500 truncate hidden sm:inline">
-            Auto-adapted intelligence
+            Auto-adapted analytics
           </span>
         </div>
 

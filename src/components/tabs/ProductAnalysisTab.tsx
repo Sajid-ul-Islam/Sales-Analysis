@@ -193,7 +193,7 @@ export function ProductAnalysisTab({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base sm:text-lg font-bold font-headline text-slate-900 dark:text-white">
-                Product & Merchandising Intelligence
+                Product & Merchandising Analytics
               </h2>
               <span className="px-2 py-0.5 rounded-full text-2xs font-extrabold bg-primary/10 text-primary-dark dark:text-orange-400 border border-primary/20">
                 {summary.totalProducts} Active Products
@@ -889,7 +889,7 @@ export function ProductAnalysisTab({
         </div>
       )}
 
-      {/* VIEW 3: MARKET BASKET & BUNDLING INTELLIGENCE */}
+      {/* VIEW 3: MARKET BASKET & BUNDLING ANALYTICS */}
       {viewMode === 'basket' && (
         <div className="space-y-5">
           {/* Basket Overview Strip */}

@@ -82,7 +82,7 @@ export const TAB_CONTEXT_REGISTRY: Record<string, TabContextConfig> = {
   tabTerritory: {
     id: 'tabTerritory',
     label: 'Territory Distribution',
-    badge: 'Geographic Intelligence',
+    badge: 'Geographic Analytics',
     summaryFocus: 'Bangladesh 8-division geographic breakdown, linehaul logistics, and district RTO.',
     prompts: [
       'Why is the Outside Dhaka return rate higher than Dhaka Metro?',

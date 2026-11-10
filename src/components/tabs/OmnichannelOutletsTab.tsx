@@ -37,7 +37,7 @@ export function OmnichannelOutletsTab({
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-black font-headline text-slate-900 dark:text-white flex items-center gap-2">
-                Omnichannel Retail Outlets Hub
+                Retail Outlets Hub
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-sans uppercase">
                   Mirpur • Cumilla • Wari • Sylhet
                 </span>

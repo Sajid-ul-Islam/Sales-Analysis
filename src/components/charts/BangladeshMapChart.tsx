@@ -103,7 +103,7 @@ export function BangladeshMapChart({
           <div className="flex items-center gap-2 mb-1">
             <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
             <span className="text-[10px] uppercase font-bold tracking-wider text-primary">
-              Geographic Intelligence & Customer Delivery Analytics
+              Geographic & Customer Delivery Analytics
             </span>
           </div>
           <h3 className="text-base sm:text-lg font-black text-navy-deep dark:text-white font-headline flex items-center gap-2">
@@ -318,7 +318,7 @@ export function BangladeshMapChart({
 
             {/* Quick Map Legend at Bottom Left */}
             <div className="absolute bottom-2 left-2 bg-white/95 dark:bg-deepBlack-elevated/95 backdrop-blur-xs p-2 rounded-xl border border-slate-200/80 dark:border-deepBlack-border shadow-xs text-[10px] space-y-1 pointer-events-none">
-              <span className="font-bold text-slate-700 dark:text-slate-200 block uppercase tracking-wider text-[9px]">Territory Intelligence</span>
+              <span className="font-bold text-slate-700 dark:text-slate-200 block uppercase tracking-wider text-[9px]">Territory Analytics</span>
               <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
                 <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
                 <span>Customer Delivery Destinations</span>

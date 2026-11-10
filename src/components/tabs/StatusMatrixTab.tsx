@@ -107,7 +107,7 @@ export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProp
               Status Matrix & Unit Economics
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Omnichannel fulfillment classification, Pathao delivery reconciliation, and contribution margins (CM1, CM2, CM3)
+              Multi-channel fulfillment classification, Pathao delivery reconciliation, and contribution margins (CM1, CM2, CM3)
             </p>
           </div>
         </div>

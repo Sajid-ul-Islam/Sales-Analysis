@@ -268,10 +268,10 @@ export function MarketingAnalyticsTab({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-headline text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-                GA4 & Meta Marketing Intelligence
+                GA4 & Meta Marketing Analytics
               </h2>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50">
-                OmniChannel v2.6
+                Analytics v2.6
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -540,7 +540,7 @@ export function MarketingAnalyticsTab({
         <div className="kpi-card bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200/90 dark:border-deepBlack-border p-3.5 sm:p-4.5 xl:p-5 shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all min-w-0">
           <div className="flex items-center justify-between mb-3 min-w-0">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-headline truncate">
-              Blended Omnichannel ROAS
+              Blended ROAS
             </span>
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-50/90 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 shadow-2xs">
               <Zap className="w-4 h-4" />
@@ -648,13 +648,13 @@ export function MarketingAnalyticsTab({
         />
       </div>
 
-      {/* Omnichannel Cross-Reconciliation & Cash Protection Audit */}
+      {/* Cross-Channel Reconciliation & Cash Protection Audit */}
       <div className="bg-white dark:bg-deepBlack-card rounded-2xl border border-slate-200 dark:border-deepBlack-border p-5 shadow-2xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-deepBlack-border pb-3">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-primary" />
             <h3 className="font-headline text-sm font-bold text-slate-900 dark:text-slate-100">
-              Omnichannel Reconciliation: Ad Spend vs Retained Courier Cash
+              Reconciliation: Ad Spend vs Retained Courier Cash
             </h3>
           </div>
           <span className="text-[11px] text-slate-400 dark:text-slate-500">

@@ -8,8 +8,7 @@ import {
   RotateCcw,
   Truck,
   Store,
-
-
+  Boxes,
   Layers,
   X,
   User,
@@ -131,6 +130,9 @@ export function Sidebar({
     if (itemId === 'tabStatus') {
       return activeTab === 'tabStatus' || activeTab === 'tabUnitEconomics';
     }
+    if (itemId === 'tabInventory') {
+      return activeTab === 'tabInventory';
+    }
     return false;
   };
 
@@ -149,9 +151,10 @@ export function Sidebar({
     {
       title: 'Commercial & Retail',
       items: [
-        { id: 'tabOutlets', label: 'Omnichannel Outlets', icon: Store, highlight: true },
-        { id: 'tabProductAnalysis', label: 'Product & SKU Intelligence', icon: Layers, highlight: true },
-        { id: 'tabCampaigns', label: 'Campaign & Ad Intelligence', icon: Sparkles, highlight: true },
+        { id: 'tabOutlets', label: 'Retail Outlets', icon: Store, highlight: true },
+        { id: 'tabProductAnalysis', label: 'Product & SKU Analytics', icon: Layers, highlight: true },
+        { id: 'tabInventory', label: 'Stock & Inventory', icon: Boxes, highlight: true },
+        { id: 'tabCampaigns', label: 'Campaign & Ad Strategy', icon: Sparkles, highlight: true },
       ]
     }
   ];

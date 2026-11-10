@@ -1006,7 +1006,7 @@ interface ApiConnectionStatus {
             <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-deepBlack-sidebar/60 border border-slate-200/80 dark:border-deepBlack-border">
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="w-5 h-5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold">✓</span>
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">SIP Omnichannel Routing</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">SIP Multi-Branch Routing</span>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
                 Track waterfall stock deductions and courier dispatches across Central Warehouse, Mirpur, Cumilla, Wari, and Sylhet.
@@ -1016,7 +1016,7 @@ interface ApiConnectionStatus {
             <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-deepBlack-sidebar/60 border border-slate-200/80 dark:border-deepBlack-border">
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="w-5 h-5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold">✓</span>
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Customer Risk Intelligence</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Customer Risk Analytics</span>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
                 Inspect unmasked customer names, verified 11-digit phone numbers, Pathao delivery success rates, and RTO alerts.
@@ -1086,7 +1086,7 @@ interface ApiConnectionStatus {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-slate-900 dark:text-white font-headline">
-                  Cloud Sync & Omnichannel Hub
+                  Cloud Sync & Outlets Hub
                 </h3>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-950/40 text-primary-dark dark:text-orange-400 font-bold border border-orange-200 dark:border-orange-900/40 font-mono">
                   Live Operations

@@ -57,6 +57,11 @@ const OrdersLedgerTab = dynamic(() => import('@/components/tabs/OrdersLedgerTab'
   ssr: false,
 });
 
+const InventoryStockTab = dynamic(() => import('@/components/tabs/InventoryStockTab').then((m) => m.InventoryStockTab), {
+  loading: () => <TableSkeleton rows={8} cols={7} />,
+  ssr: false,
+});
+
 const ProductAnalysisTab = dynamic(() => import('@/components/tabs/ProductAnalysisTab').then((m) => m.ProductAnalysisTab), {
   loading: () => <TableSkeleton rows={8} cols={6} />,
   ssr: false,
@@ -1361,7 +1366,7 @@ export default function DashboardPage() {
           )}
 
           {/* Spreadsheet Upload Dropzones - SHOWN ONLY ON EXECUTIVE OVERVIEW OR INITIAL STATE */}
-          {dataSourceMode === 'UPLOAD' && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && activeTab !== 'tabLiveOps' && (!result || activeTab === 'tabExecutive') && (
+          {dataSourceMode === 'UPLOAD' && activeTab !== 'tabSettings' && activeTab !== 'tabMarketingAnalytics' && activeTab !== 'tabLiveOps' && activeTab !== 'tabInventory' && (!result || activeTab === 'tabExecutive') && (
             <FileDropzone
               orderFiles={orderFiles}
               setOrderFiles={setOrderFiles}
@@ -1755,6 +1760,12 @@ export default function DashboardPage() {
                     initialStatusFilter={ledgerStatusFilter}
                     initialTerritoryFilter={ledgerTerritoryFilter}
                     onClearAiTags={handleClearAiTags}
+                  />
+                )}
+                {activeTab === 'tabInventory' && (
+                  <InventoryStockTab
+                    orders={result.reconciledOrders}
+                    onSelectOrder={() => setActiveTab('tabOrders')}
                   />
                 )}
                 {(activeTab === 'tabProductAnalysis' || activeTab === 'tabSku') && (

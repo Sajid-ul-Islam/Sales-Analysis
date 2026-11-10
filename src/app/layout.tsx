@@ -28,7 +28,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: 'DEEN Commerce | Sales & Growth',
-  description: 'Enterprise Sales Analytics & Real-Time Growth Intelligence for DEEN Commerce',
+  description: 'Enterprise Sales Analytics & Real-Time Growth for DEEN Commerce',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,

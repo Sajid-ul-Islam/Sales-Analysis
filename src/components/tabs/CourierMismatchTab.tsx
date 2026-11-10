@@ -78,7 +78,7 @@ export function CourierMismatchTab({
                 Two-Way Courier Audit
               </span>
               <h2 className="font-headline text-base sm:text-lg font-bold text-navy-deep dark:text-white">
-                Pathao Courier & Excel Mismatch Intelligence
+                Pathao Courier & Excel Mismatch Audit
               </h2>
             </div>
           </div>

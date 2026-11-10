@@ -313,7 +313,7 @@ export function CampaignIntelligenceTab({
               <span className="text-xs text-neutral-400">Bangladesh Men&apos;s Fashion</span>
             </div>
             <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-              Campaign Intelligence & Marketing Strategy
+              Campaign Strategy & Marketing
             </h1>
             <p className="text-sm text-neutral-400 max-w-3xl">
               Transforming historical sales, delivery success, COGS, returns, and customer retention into profitable promotional decisions. Optimized strictly for delivered realized net profit.
@@ -669,7 +669,7 @@ export function CampaignIntelligenceTab({
               <div>
                 <h3 className="text-base font-semibold text-white flex items-center gap-2">
                   <Package className="w-4 h-4 text-primary" />
-                  Intelligent Winter Bundles (Apriori Co-Occurrence & Margin Modeling)
+                  Winter Product Bundles (Apriori Co-Occurrence & Margin Modeling)
                 </h3>
                 <p className="text-xs text-neutral-400">
                   Coordinated outfit pairings dynamically computed from product-level COGS, return rates, and companion purchase frequency.

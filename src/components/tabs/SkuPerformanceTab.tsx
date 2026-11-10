@@ -138,7 +138,7 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
             </div>
             <div>
               <span className="text-[10px] uppercase tracking-wider text-primary dark:text-orange-400 font-bold">
-                Item & Product Catalog Intelligence
+                Item & Product Catalog Analytics
               </span>
               <h2 className="font-headline text-base sm:text-lg font-bold text-navy-deep dark:text-white">
                 SKU Performance & Category Return Analysis

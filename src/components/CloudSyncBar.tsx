@@ -517,7 +517,7 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-headline text-sm font-bold text-slate-900 dark:text-white">Cloud Sync & Omnichannel Hub</h3>
+              <h3 className="font-headline text-sm font-bold text-slate-900 dark:text-white">Cloud Sync & Outlets Hub</h3>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-deepBlack-sidebar text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-deepBlack-border font-mono font-semibold">
                 Live REST APIs
               </span>

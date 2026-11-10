@@ -16,3 +16,4 @@ export { LiveOpsTab } from './LiveOpsTab';
 export { SettingsTab } from './SettingsTab';
 export { CampaignIntelligenceTab } from './CampaignIntelligenceTab';
 export { AfterSalesHub } from './AfterSalesHub';
+export { InventoryStockTab } from './InventoryStockTab';
