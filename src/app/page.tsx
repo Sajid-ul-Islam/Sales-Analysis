@@ -37,6 +37,11 @@ const OmnichannelOutletsTab = dynamic(() => import('@/components/tabs/Omnichanne
   ssr: false,
 });
 
+const ChannelComparisonTab = dynamic(() => import('@/components/tabs/ChannelComparisonTab').then((m) => m.ChannelComparisonTab), {
+  loading: () => <TableSkeleton rows={10} cols={8} />,
+  ssr: false,
+});
+
 const CourierMismatchTab = dynamic(() => import('@/components/tabs/CourierMismatchTab').then((m) => m.CourierMismatchTab), {
   loading: () => <TableSkeleton rows={8} cols={7} />,
   ssr: false,
@@ -1288,6 +1293,13 @@ export default function DashboardPage() {
         className="flex-1 flex flex-col min-w-0 transition-colors duration-200"
         style={{ backgroundColor: 'var(--bg-surface, #FFFFFF)' }}
       >
+        {/* Skip Link for Keyboard Accessibility (WCAG 2.4.1 Bypass Blocks & Modern Web Guidance) */}
+        <a
+          href="#mainContent"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[200] focus:px-4 focus:py-2.5 focus:bg-primary focus:text-white focus:font-bold focus:rounded-xl focus:shadow-2xl focus:outline-none focus:ring-2 focus:ring-white text-xs"
+        >
+          Skip to main content
+        </a>
         <OfflineBanner />
         <Header
           onExport={handleExport}
@@ -1311,7 +1323,10 @@ export default function DashboardPage() {
         />
 
         <main
-          className="px-2 py-3.5 sm:px-6 sm:py-6 pb-20 md:pb-6 space-y-5 max-w-[1920px] mx-auto w-full transition-colors duration-200"
+          id="mainContent"
+          tabIndex={-1}
+          aria-label="DEEN Commerce Sales & Fulfillment Dashboard"
+          className="px-2 py-3.5 sm:px-6 sm:py-6 pb-20 md:pb-6 space-y-5 max-w-[1920px] mx-auto w-full transition-colors duration-200 outline-none"
           style={{ backgroundColor: 'var(--bg-surface, #FFFFFF)' }}
         >
           {/* Status Alert Toast — Floating non-layout-shifting overlay */}
@@ -1708,6 +1723,11 @@ export default function DashboardPage() {
                     dateScope={dateScope}
                     customRange={customDateRange}
                     initialMode={activeTab === 'tabOutletDispatch' ? 'dispatch' : 'pos'}
+                  />
+                )}
+                {activeTab === 'tabChannelComparison' && (
+                  <ChannelComparisonTab
+                    orders={result.reconciledOrders}
                   />
                 )}
                 {activeTab === 'tabCourierMismatch' && (

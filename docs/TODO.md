@@ -50,6 +50,20 @@
 - [x] Interactive Gemini 2.5 Flash + Heuristic RTO evaluation hub with size-bracketing detection and Bengali recommendations.
 - [x] Comprehensive test suite in `tests/ai/predictRiskRoute.test.ts`.
 
+### v2.5.0 – Omnichannel Visual Intelligence & Chart Suite
+- [x] **5-Channel Commercial Bar Chart**: Grouped bar chart comparing Gross Sales, COGS, and Gross Profit across Online E-Com, Mirpur, Cumilla, Wari, and Sylhet.
+- [x] **Omnichannel Market Share Donut**: Net Revenue share (Ecom 55.6% vs Outlets 44.4%) and Volume units share.
+- [x] **Channel Category Stacked Bar Chart**: Distribution of top apparel categories (Jeans, Cargo, Twill Chinos, Shirts, Polos) per channel.
+- [x] **Top 10 Products Leaderboard Bar Chart**: Master SKU revenue and units sold leaderboard with RTO badges.
+- [x] **Product Portfolio 4-Quadrant Risk Matrix**: Volume vs Return Rate scatter plot (Stars, Sizing Alerts, Niche, Discontinue).
+- [x] **Size Run & Fit Return Histogram**: Apparel sizing distribution curve (Waist 28-38 & Tops S-XXL) highlighting fit defects.
+- [x] **Financial Cash Realization Waterfall**: Step-by-step cash flow erosion from gross dispatch to settled bank cash.
+- [x] **Return Reasons 80/20 Pareto Chart**: Return cause distribution with cumulative 80% defect barrier curve.
+- [x] **Customer Risk Tier Distribution**: Safe vs Moderate vs High Risk segmentation with loss estimation.
+- [x] **Courier Settlement Aging Curve**: Pathao transit duration and discrepancy severity breakdown.
+- [x] **Modern Dropdown Calendar Date Range Selector**: Interactive calendar range picker with month/year jump dropdowns and two-way synced inputs.
+- [x] **Vitest Test Suite**: Verified in `tests/charts/visualCharts.test.ts` (100% tests passing).
+
 ---
 
 ## 2. Active Sprint Deliverables (Current Workstream)

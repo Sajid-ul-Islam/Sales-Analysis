@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   ListOrdered,
-
   RotateCcw,
   Truck,
   Store,
@@ -16,7 +15,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Sparkles,
-  LogOut
+  LogOut,
+  GitCompareArrows,
 } from 'lucide-react';
 
 import { DeenLogo, DeenLogoMark } from './DeenLogo';
@@ -121,6 +121,9 @@ export function Sidebar({
     if (itemId === 'tabOutlets') {
       return activeTab === 'tabOutlets' || activeTab === 'tabOutletDispatch' || activeTab === 'tabOutletSales';
     }
+    if (itemId === 'tabChannelComparison') {
+      return activeTab === 'tabChannelComparison';
+    }
     if (itemId === 'tabProductAnalysis') {
       return activeTab === 'tabProductAnalysis' || activeTab === 'tabSku';
     }
@@ -152,6 +155,7 @@ export function Sidebar({
       title: 'Commercial & Retail',
       items: [
         { id: 'tabOutlets', label: 'Retail Outlets', icon: Store, highlight: true },
+        { id: 'tabChannelComparison', label: 'Channel Comparison', icon: GitCompareArrows, highlight: true },
         { id: 'tabProductAnalysis', label: 'Product & SKU Analytics', icon: Layers, highlight: true },
         { id: 'tabInventory', label: 'Stock & Inventory', icon: Boxes, highlight: true },
         { id: 'tabCampaigns', label: 'Campaign & Ad Strategy', icon: Sparkles, highlight: true },
@@ -236,7 +240,7 @@ export function Sidebar({
           </div>
 
           {/* Icon List with Floating Tooltips */}
-          <nav className="flex-1 px-2 py-2.5 space-y-1 overflow-y-auto overflow-x-hidden">
+          <nav aria-label="Primary navigation" className="flex-1 px-2 py-2.5 space-y-1 overflow-y-auto overflow-x-hidden">
             {navGroups.map((group, groupIdx) => (
               <React.Fragment key={group.title}>
                 {groupIdx > 0 && (
@@ -362,7 +366,7 @@ export function Sidebar({
           </div>
 
           {/* Grouped Navigation Links (WCAG AA >=44px) */}
-          <nav className="flex-1 px-3 py-1 space-y-3 overflow-y-auto">
+          <nav aria-label="Primary navigation" className="flex-1 px-3 py-1 space-y-3 overflow-y-auto">
             {navGroups.map((group) => (
               <div key={group.title} className="space-y-1">
                 <div className="px-2.5 pt-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-wider uppercase font-headline">
@@ -436,7 +440,7 @@ export function Sidebar({
                   {user?.displayName || 'Operations Admin'}
                 </span>
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
-                  {user?.displayName?.includes('Director') ? '👑 Executive Director' : (user?.role === 'admin' ) ? '👑 Operations Admin' : user?.outletName ? `🏬 ${user.outletName}` : 'Operations Staff'}
+                  {user?.displayName === 'Sajid Islam' || user?.displayName?.includes('Director') ? '👑 Executive Director' : (user?.role === 'admin' ) ? '👑 Operations Admin' : user?.outletName ? `🏬 ${user.outletName}` : 'Operations Staff'}
                 </span>
               </div>
             </button>
@@ -488,7 +492,7 @@ export function Sidebar({
               </div>
 
               {/* Drawer Navigation Links (Mobile 48px minimum touch targets) */}
-              <nav className="flex-1 px-3 py-2 space-y-3 overflow-y-auto">
+              <nav aria-label="Mobile primary navigation" className="flex-1 px-3 py-2 space-y-3 overflow-y-auto">
                 {navGroups.map((group) => (
                   <div key={group.title} className="space-y-1">
                     <div className="px-2 pt-1 text-[11px] font-bold text-slate-400 dark:text-slate-500 tracking-wider uppercase font-headline">
@@ -556,7 +560,7 @@ export function Sidebar({
                       {user?.displayName || 'Operations Admin'}
                     </span>
                     <span className="text-xs text-slate-400 dark:text-slate-500 truncate">
-                      {user?.displayName?.includes('Director') ? '👑 Executive Director' : (user?.role === 'admin' ) ? '👑 Operations Admin' : user?.outletName ? `🏬 ${user.outletName}` : 'Operations Staff'}
+                      {user?.displayName === 'Sajid Islam' || user?.displayName?.includes('Director') ? '👑 Executive Director' : (user?.role === 'admin' ) ? '👑 Operations Admin' : user?.outletName ? `🏬 ${user.outletName}` : 'Operations Staff'}
                     </span>
                   </div>
                 </button>

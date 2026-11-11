@@ -21,8 +21,14 @@ import {
   ChevronRight,
   Scale,
   Shirt,
+  BarChart3,
 } from 'lucide-react';
 import { SkuPerformanceTab } from './SkuPerformanceTab';
+import {
+  TopProductsLeaderboardChart,
+  ProductRiskQuadrantChart,
+  SizeRunHistogramChart,
+} from '@/components/charts';
 
 interface ProductAnalysisTabProps {
   orders: ReconciledOrderRow[];
@@ -33,7 +39,7 @@ interface ProductAnalysisTabProps {
   onSelectOrder?: (orderId: string) => void;
 }
 
-type AnalysisViewMode = 'matrix' | 'sku_flow' | 'elasticity' | 'basket' | 'fit' | 'pareto';
+type AnalysisViewMode = 'visual' | 'matrix' | 'sku_flow' | 'elasticity' | 'basket' | 'fit' | 'pareto';
 
 export function ProductAnalysisTab({
   orders,
@@ -47,7 +53,7 @@ export function ProductAnalysisTab({
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedTier, setSelectedTier] = useState<string>('ALL');
   const [selectedAbc, setSelectedAbc] = useState<string>('ALL');
-  const [viewMode, setViewMode] = useState<AnalysisViewMode>(initialViewMode || 'matrix');
+  const [viewMode, setViewMode] = useState<AnalysisViewMode>(initialViewMode || 'visual');
   const [sortBy, setSortBy] = useState<
     'deliveredRevenue' | 'totalGrossUnits' | 'returnRate' | 'avgSellingPrice' | 'dailyVelocity' | 'totalReturnLoss'
   >('deliveredRevenue');
@@ -207,6 +213,18 @@ export function ProductAnalysisTab({
 
         {/* View Mode Navigation Pills */}
         <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-[#121212] border border-slate-200/80 dark:border-[#1F1F1F] text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => setViewMode('visual')}
+            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+              viewMode === 'visual'
+                ? 'bg-white dark:bg-[#1F1F1F] text-slate-900 dark:text-white shadow-2xs font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5 text-primary" />
+            <span>Visual Analytics</span>
+          </button>
           <button
             type="button"
             onClick={() => setViewMode('matrix')}
@@ -398,6 +416,30 @@ export function ProductAnalysisTab({
       </div>
 
       {/* 3. Conditional Sub-View Rendering */}
+
+      {/* VIEW 0: VISUAL PRODUCT ANALYTICS */}
+      {viewMode === 'visual' && (
+        <div className="space-y-6">
+          {/* Top Row: 4-Quadrant Risk Matrix + Top Products Leaderboard */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-7">
+              <ProductRiskQuadrantChart
+                products={products}
+                onSelectProduct={(p) => setInspectingProduct(p)}
+              />
+            </div>
+            <div className="lg:col-span-5">
+              <TopProductsLeaderboardChart
+                products={products}
+                onSelectProduct={(p) => setInspectingProduct(p)}
+              />
+            </div>
+          </div>
+
+          {/* Bottom Row: Full-width Size Run & Fit Distribution Histogram */}
+          <SizeRunHistogramChart products={products} />
+        </div>
+      )}
 
       {/* VIEW 1: PRODUCT MATRIX (MASTER INVENTORY VIEW) */}
       {viewMode === 'matrix' && (

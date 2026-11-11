@@ -4,12 +4,18 @@
 
 @layer base {
   :root {
+    color-scheme: light dark;
+    scrollbar-color: #cbd5e1 #f1f5f9;
     --background: 210 40% 98%;
     --foreground: 222 47% 11%;
     --primary: #EB5A19;
     --primary-hover: #D4490E;
     --primary-subtle: #FFF7ED;
     --brand-navy: #0F172A;
+  }
+
+  .dark {
+    scrollbar-color: #475569 #0f172a;
   }
 
   * {
@@ -460,4 +466,10 @@ body.dark-canvas {
     animation: none !important;
     transform: none !important;
   }
+}
+
+/* Accessible Global Focus Ring (WCAG 2.4.7 Focus Visible & Modern Web Guidance) */
+:where(a, button, input, select, textarea, [tabindex="0"]):focus-visible {
+  outline: 2px solid var(--primary, #EB5A19);
+  outline-offset: 2px;
 }

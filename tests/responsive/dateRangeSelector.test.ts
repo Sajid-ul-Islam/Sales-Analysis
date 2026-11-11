@@ -158,4 +158,17 @@ describe('Smart Date Range & Scope Engine', () => {
     const result = filterOrdersByDateScope(wcOrders, '30d');
     expect(result.matchedOrders).toBe(2);
   });
+
+  it('validates PRESET_OPTIONS and calendar range constants for modern dropdown selector', async () => {
+    const { PRESET_OPTIONS } = await import('@/components/DateRangeSelector');
+    expect(PRESET_OPTIONS).toBeDefined();
+    expect(PRESET_OPTIONS.length).toBeGreaterThanOrEqual(6);
+
+    const defaultPreset = PRESET_OPTIONS.find(p => p.isDefault);
+    expect(defaultPreset?.id).toBe('30d');
+
+    const customPreset = PRESET_OPTIONS.find(p => p.id === 'custom');
+    expect(customPreset).toBeDefined();
+    expect(customPreset?.label).toBe('Custom Range');
+  });
 });

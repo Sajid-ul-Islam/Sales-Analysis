@@ -4,12 +4,22 @@
  */
 
 import { SessionUser, DEFAULT_SESSION_DURATION } from './session';
+import { getSecretsWithOverrides } from '@/lib/secrets';
 
 export interface WcAuthResult {
   success: boolean;
   user?: SessionUser;
   error?: string;
   statusCode?: number;
+}
+
+export interface WcUserProfile {
+  id: number | string;
+  username: string;
+  displayName: string;
+  email?: string;
+  role: 'admin' | 'operator' | 'readonly';
+  assignedOutlet: 'ALL' | 'MIRPUR' | 'CUMILLA' | 'WARI' | 'SYLHET';
 }
 
 /**
@@ -67,8 +77,9 @@ export function mapWcUserToOutletAndRole(
     };
   }
 
-  // 5. Store Founder & Administrator (Sajid Islam: sazid / sajid / sazid@deencommerce.com)
+  // 5. Store Founder & Administrator (Sajid Islam: sazid / sajid / sazid@deencommerce.com / ID 1507)
   const isSajid =
+    idStr === '1507' ||
     u === 'sazid' ||
     u === 'sajid' ||
     u === 'sazid islam' ||
@@ -111,6 +122,151 @@ export function mapWcUserToOutletAndRole(
     assignedOutlet: 'ALL',
     displayName: rawUsername || 'DEEN Staff',
   };
+}
+
+/**
+ * Fetches actual staff profile directly from WooCommerce REST API (/wp-json/wc/v3/customers).
+ * Resolves real full names (first_name + last_name) and official store roles from WordPress.
+ */
+export async function fetchWcUserProfile(
+  identifier: string | number,
+  options?: { storeUrl?: string; timeoutMs?: number }
+): Promise<WcUserProfile | null> {
+  try {
+    const { woocommerce: wc } = getSecretsWithOverrides();
+    const storeUrl =
+      options?.storeUrl ||
+      wc.store_url ||
+      process.env.WOOCOMMERCE_STORE_URL ||
+      'https://deencommerce.com';
+
+    if (!wc.consumer_key || !wc.consumer_secret) {
+      return null;
+    }
+
+    const auth = Buffer.from(`${wc.consumer_key}:${wc.consumer_secret}`).toString('base64');
+    const headers = {
+      Authorization: `Basic ${auth}`,
+      'User-Agent': 'DEEN-Commerce-Auth-Agent/2.0',
+    };
+    const timeoutMs = options?.timeoutMs || 4000;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    const idStr = String(identifier).trim();
+    const isNumericId = /^\d+$/.test(idStr);
+
+    let customer: any = null;
+
+    if (isNumericId) {
+      try {
+        const res = await fetch(`${storeUrl.replace(/\/+$/, '')}/wp-json/wc/v3/customers/${idStr}`, {
+          headers,
+          signal: controller.signal,
+        });
+        if (res.ok) {
+          customer = await res.json();
+        }
+      } catch {}
+    }
+
+    if (!customer && idStr.includes('@')) {
+      try {
+        const res = await fetch(
+          `${storeUrl.replace(/\/+$/, '')}/wp-json/wc/v3/customers?email=${encodeURIComponent(idStr)}&role=all`,
+          { headers, signal: controller.signal }
+        );
+        if (res.ok) {
+          const list = await res.json();
+          if (Array.isArray(list) && list.length > 0) {
+            customer = list[0];
+          }
+        }
+      } catch {}
+    }
+
+    if (!customer) {
+      try {
+        const res = await fetch(
+          `${storeUrl.replace(/\/+$/, '')}/wp-json/wc/v3/customers?search=${encodeURIComponent(idStr)}&role=all`,
+          { headers, signal: controller.signal }
+        );
+        if (res.ok) {
+          const list = await res.json();
+          if (Array.isArray(list) && list.length > 0) {
+            const q = idStr.toLowerCase();
+            const exact = list.find((c: any) => c.email?.toLowerCase() === q || c.username?.toLowerCase() === q);
+            if (exact) {
+              customer = exact;
+            } else {
+              const staff = list.find(
+                (c: any) =>
+                  c.role !== 'customer' &&
+                  (c.email?.toLowerCase().includes(q) ||
+                    c.username?.toLowerCase().includes(q) ||
+                    `${c.first_name || ''} ${c.last_name || ''}`.toLowerCase().includes(q))
+              );
+              customer = staff || list[0];
+            }
+          }
+        }
+      } catch {}
+    }
+
+    clearTimeout(timeout);
+
+    if (!customer || typeof customer !== 'object') return null;
+
+    const firstName = String(customer.first_name || '').trim();
+    const lastName = String(customer.last_name || '').trim();
+    const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+    const rawRole = String(customer.role || '').toLowerCase();
+    const rawUser = String(customer.username || idStr).trim();
+    const custId = customer.id;
+
+    // Resolve display name: prefer full name from WordPress
+    let displayName = fullName;
+    const isSajidEntity =
+      custId === 1507 ||
+      rawUser.toLowerCase() === 'sazid' ||
+      rawUser.toLowerCase() === 'sajid' ||
+      rawUser.toLowerCase().includes('sazid@') ||
+      rawUser.toLowerCase().includes('sajid@') ||
+      idStr.toLowerCase() === 'sazid' ||
+      idStr.toLowerCase() === 'sajid' ||
+      idStr.toLowerCase().includes('sazid@');
+
+    if (!displayName || displayName.toLowerCase() === rawUser.toLowerCase()) {
+      if (isSajidEntity) {
+        displayName = 'Sajid Islam';
+      } else {
+        displayName = rawUser || 'DEEN Staff';
+      }
+    }
+
+    // Role & Outlet Mapping
+    const mapped = mapWcUserToOutletAndRole(custId, rawUser, [rawRole]);
+
+    // If WordPress role is administrator or shop_manager, ensure admin role
+    const finalRole: 'admin' | 'operator' | 'readonly' =
+      rawRole === 'administrator' || rawRole === 'shop_manager' || isSajidEntity || displayName === 'Sajid Islam'
+        ? 'admin'
+        : mapped.role;
+
+    const resolvedEmail =
+      customer.email || (isSajidEntity || displayName === 'Sajid Islam' ? 'sazid@deencommerce.com' : undefined);
+
+    return {
+      id: custId,
+      username: rawUser,
+      displayName,
+      email: resolvedEmail,
+      role: finalRole,
+      assignedOutlet: isSajidEntity ? 'ALL' : mapped.assignedOutlet,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -160,10 +316,11 @@ export async function authenticateWooCommerceUser(
     // WordPress returns 302 Found redirect to /wp-admin/ on success
     if (loginRes.status === 302) {
       // Extract logged-in cookie or username
-      const setCookie =
-        loginRes.headers.get('set-cookie') ||
-        loginRes.headers.get('Set-Cookie') ||
-        '';
+      const setCookies =
+        typeof loginRes.headers.getSetCookie === 'function'
+          ? loginRes.headers.getSetCookie()
+          : [loginRes.headers.get('set-cookie') || loginRes.headers.get('Set-Cookie') || ''];
+      const setCookie = setCookies.join('; ');
 
       let extractedUsername = cleanUser;
       const wpUserId = 'wp_user';
@@ -175,6 +332,11 @@ export async function authenticateWooCommerceUser(
         } catch {}
       }
 
+      // Fetch live WordPress/WooCommerce profile to get real display name and official role
+      const liveProfile =
+        (await fetchWcUserProfile(cleanUser, options)) ||
+        (await fetchWcUserProfile(extractedUsername, options));
+
       let mapping = mapWcUserToOutletAndRole(wpUserId, extractedUsername);
       // If extracted username mapped to operator but input username/email was admin/sajid, prefer the higher role
       if (mapping.role === 'operator' && cleanUser.toLowerCase() !== extractedUsername.toLowerCase()) {
@@ -183,21 +345,29 @@ export async function authenticateWooCommerceUser(
           mapping = altMapping;
         }
       }
+
+      const finalDisplayName = liveProfile?.displayName || mapping.displayName;
+      const finalRole = liveProfile?.role || mapping.role;
+      const finalOutlet = liveProfile?.assignedOutlet || mapping.assignedOutlet;
+      const finalEmail =
+        liveProfile?.email ||
+        (cleanUser.includes('@')
+          ? cleanUser.toLowerCase()
+          : finalDisplayName === 'Sajid Islam'
+          ? 'sazid@deencommerce.com'
+          : undefined);
+      const finalId = liveProfile?.id ? `wp_${liveProfile.id}` : `wp_${extractedUsername.toLowerCase()}`;
+      const finalUsername = liveProfile?.username || extractedUsername;
+
       const now = Math.floor(Date.now() / 1000);
 
-      const resolvedEmail = cleanUser.includes('@')
-        ? cleanUser.toLowerCase()
-        : mapping.displayName === 'Sajid Islam'
-        ? 'sazid@deencommerce.com'
-        : undefined;
-
       const sessionUser: SessionUser = {
-        id: `wp_${extractedUsername.toLowerCase()}`,
-        username: extractedUsername,
-        displayName: mapping.displayName,
-        email: resolvedEmail,
-        role: mapping.role,
-        assignedOutlet: mapping.assignedOutlet,
+        id: finalId,
+        username: finalUsername,
+        displayName: finalDisplayName,
+        email: finalEmail,
+        role: finalRole,
+        assignedOutlet: finalOutlet,
         authMethod: 'WOOCOMMERCE',
         createdAt: now,
         expiresAt: now + DEFAULT_SESSION_DURATION,
@@ -222,6 +392,10 @@ export async function authenticateWooCommerceUser(
     if (apiRes.ok) {
       const wpUser = await apiRes.json();
       const roles: string[] = Array.isArray(wpUser.roles) ? wpUser.roles : [];
+
+      // Query WooCommerce customer profile for full name and meta
+      const liveProfile = await fetchWcUserProfile(wpUser.id || cleanUser, options);
+
       const mapping = mapWcUserToOutletAndRole(
         wpUser.id || 'wp_user',
         wpUser.slug || wpUser.name || cleanUser,
@@ -230,17 +404,25 @@ export async function authenticateWooCommerceUser(
       const now = Math.floor(Date.now() / 1000);
 
       const resolvedName =
-        wpUser.name && wpUser.name.toLowerCase() !== String(wpUser.slug || '').toLowerCase()
+        liveProfile?.displayName ||
+        (wpUser.name && wpUser.name.toLowerCase() !== String(wpUser.slug || '').toLowerCase()
           ? wpUser.name
-          : mapping.displayName;
+          : mapping.displayName);
+
+      const finalRole = liveProfile?.role || mapping.role;
+      const finalOutlet = liveProfile?.assignedOutlet || mapping.assignedOutlet;
+      const finalEmail =
+        liveProfile?.email ||
+        wpUser.email ||
+        (resolvedName === 'Sajid Islam' ? 'sazid@deencommerce.com' : undefined);
 
       const sessionUser: SessionUser = {
         id: `wp_${wpUser.id || cleanUser}`,
         username: wpUser.slug || cleanUser,
         displayName: resolvedName,
-        email: wpUser.email || (mapping.displayName === 'Sajid Islam' ? 'sazid@deencommerce.com' : undefined),
-        role: mapping.role,
-        assignedOutlet: mapping.assignedOutlet,
+        email: finalEmail,
+        role: finalRole,
+        assignedOutlet: finalOutlet,
         authMethod: 'WOOCOMMERCE',
         createdAt: now,
         expiresAt: now + DEFAULT_SESSION_DURATION,

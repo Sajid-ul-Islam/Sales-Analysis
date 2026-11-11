@@ -18,6 +18,10 @@ import {
 } from 'lucide-react';
 import { AIReturnDiagnosisCard } from '@/components/after-sales/AIReturnDiagnosisCard';
 import {
+  FinancialLeakageWaterfallChart,
+  ReturnReasonParetoChart,
+} from '@/components/charts';
+import {
   compareOrdersByNumber,
   getExportCustomerName,
   getExportPhoneNumber,
@@ -476,6 +480,23 @@ export function ItemReturnsTab({ returnedItems, onSelectOrder }: ItemReturnsTabP
 
       {/* AI Return Root Cause Diagnosis */}
       <AIReturnDiagnosisCard returnedItems={returnedItems} />
+
+      {/* Visual Analytics: Financial Leakage Waterfall & Return Reason Pareto */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-7">
+          <FinancialLeakageWaterfallChart
+            grossDispatched={totalValue > 0 ? totalValue * 2.5 : 2348200}
+            fullReturnLoss={fullItems.reduce((acc, i) => acc + i.returnedValue, 0)}
+            partialReturnLoss={partialItems.reduce((acc, i) => acc + i.returnedValue, 0)}
+            courierCharges={Math.round(totalUniqueOrders * 115)}
+            packagingLoss={Math.round(totalUnits * 25)}
+            netRetained={Math.max(0, (totalValue > 0 ? totalValue * 2.5 : 2348200) - totalValue - (totalUniqueOrders * 115) - (totalUnits * 25))}
+          />
+        </div>
+        <div className="lg:col-span-5">
+          <ReturnReasonParetoChart />
+        </div>
+      </div>
 
       {/* Controls & Filters Bar: Search, Filters, Granularity Switcher, and Export */}
       <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-4 border border-slate-200 dark:border-deepBlack-border shadow-sm flex flex-col lg:flex-row gap-3.5 items-stretch lg:items-center justify-between">

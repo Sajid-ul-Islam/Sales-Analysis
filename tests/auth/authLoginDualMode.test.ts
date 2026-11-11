@@ -138,6 +138,11 @@ describe('Dual-Mode Authentication & Session Engine', () => {
       const mappedSajid = mapWcUserToOutletAndRole('wp_user', 'sajid');
       expect(mappedSajid.role).toBe('admin');
       expect(mappedSajid.displayName).toBe('Sajid Islam');
+
+      const mappedId = mapWcUserToOutletAndRole(1507, 'sazid');
+      expect(mappedId.role).toBe('admin');
+      expect(mappedId.displayName).toBe('Sajid Islam');
+      expect(mappedId.assignedOutlet).toBe('ALL');
     });
 
     it('identifies outlet from username slug if cashier ID is unmapped', () => {
@@ -264,6 +269,32 @@ describe('Dual-Mode Authentication & Session Engine', () => {
       const json = await res.json();
       expect(json.authenticated).toBe(true);
       expect(json.user.displayName).toBe('Operations Dispatcher');
+    });
+
+    it('GET /api/auth/session seamlessly upgrades legacy sazid session to Sajid Islam with admin role', async () => {
+      const legacyToken = await createSessionToken({
+        id: 'wp_sazid',
+        username: 'sazid',
+        displayName: 'sazid',
+        role: 'operator',
+        assignedOutlet: 'ALL',
+        email: 'sazid@deencommerce.com',
+        authMethod: 'WOOCOMMERCE',
+        expiresAt: Math.floor(Date.now() / 1000) + 3600,
+      });
+
+      const req = new NextRequest('http://localhost:3000/api/auth/session', {
+        headers: { Cookie: `deen_session=${legacyToken}` },
+      });
+
+      const res = await getSession(req);
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.authenticated).toBe(true);
+      expect(json.user.displayName).toBe('Sajid Islam');
+      expect(json.user.role).toBe('admin');
+      expect(json.user.assignedOutlet).toBe('ALL');
+      expect(json.user.email).toBe('sazid@deencommerce.com');
     });
 
     it('GET /api/auth/session returns authenticated: false when no session cookie exists', async () => {

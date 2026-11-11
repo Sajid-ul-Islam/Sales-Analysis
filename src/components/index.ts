@@ -10,5 +10,6 @@ export { CommandPaletteModal } from './CommandPaletteModal';
 export { SyncNotificationCenter, dispatchSyncNotification } from './notifications/SyncNotificationCenter';
 export { DataProvenanceBanner } from './DataProvenanceBanner';
 export { ExecutiveOverviewTab } from './tabs/ExecutiveOverviewTab';
+export { ChannelComparisonTab } from './tabs/ChannelComparisonTab';
 export * from './common';
 

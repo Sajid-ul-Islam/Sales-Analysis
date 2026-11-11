@@ -1,0 +1,2681 @@
+{
+  "syncedAt": "2026-11-10T11:27:34.573Z",
+  "totalProducts": 382,
+  "totalSkus": 382,
+  "stockBySku": {
+    "109-0102-082": {
+      "warehouse": 22,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-081": {
+      "warehouse": 22,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-080": {
+      "warehouse": 21,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-079": {
+      "warehouse": 22,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-083": {
+      "warehouse": 22,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-084": {
+      "warehouse": 22,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-085": {
+      "warehouse": 22,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-086": {
+      "warehouse": 21,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-090": {
+      "warehouse": 22,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-089": {
+      "warehouse": 21,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-088": {
+      "warehouse": 22,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-087": {
+      "warehouse": 22,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-078": {
+      "warehouse": 22,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-077": {
+      "warehouse": 21,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-076": {
+      "warehouse": 22,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-075": {
+      "warehouse": 23,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "103-0100-124": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-173": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-172": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-171": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-069": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-068": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-067": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-066": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-065": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "B-101-0200-150": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-413": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-412": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-411": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-410": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-170": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-169": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-168": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-167": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-166": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-165": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "110-0101-017": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "110-0101-016": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "B-102-0301-016": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "104-0504-008": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "104-0504-007": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "104-0504-006": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "104-0504-005": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-409": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-406": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-405": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-404": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-403": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-402": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-408": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-407": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-401": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-164": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-163": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-162": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-161": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "104-0102-006": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-400": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-399": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-398": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-397": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-396": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-395": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-394": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-393": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-392": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-391": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-390": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-389": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "115-0101-003": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-388": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "103-0100-123": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "103-0100-122": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-387": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-386": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-385": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-160": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "115-0101-002": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "EXPORT-JEANS-03": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "EXPORT-JEANS-02": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "107-0100-051": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-156": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-155": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-153": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-152": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-154": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-157": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-158": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-159": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-384": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-383": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-382": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-381": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "EXPORT-SHIRT-01": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "EXPORT- TWILL- 01": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "114-0101-002": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "114-0101-001": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "115-0101-001": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "B-101-0100-149": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "B-101-0100-150": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "B-101-0100-151": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "104-0504-004": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "104-0504-003": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "104-0504-002": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "104-0504-001": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0400-001": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "103-0100-121": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "103-0100-120": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "103-0100-119": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "103-0100-118": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "103-0100-117": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "103-0100-116": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "103-0100-115": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "103-0100-114": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "103-0100-113": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "EXPORT-JEANS-01": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "EXPORT-BOXER-01": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "EXPORT-TANKTOP-01": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "DS-104-0402-005": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-064": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-063": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-062": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-061": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "DS-104-0402-006": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "DS-104-0402-004": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-068": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "107-0100-052": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "107-0100-038": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "DS-104-0402-003": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "DS-104-0402-002": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "DS-104-0402-001": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0301-020": {
+      "warehouse": 2,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0301-014": {
+      "warehouse": 2,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0401-222": {
+      "warehouse": 1,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-151": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-150": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-149": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-053": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-059": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-048": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "111-0101-003": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-050": {
+      "warehouse": 2,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-040": {
+      "warehouse": 1,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-036": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-035": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-045": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-041": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-061": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-060": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-058": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-057": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-056": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-055": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-054": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-045": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-042": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-041": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-036": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-018": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0303-004": {
+      "warehouse": 1,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0104-006": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0104-005": {
+      "warehouse": 1,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0103-015": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0103-011": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0103-010": {
+      "warehouse": 1,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0103-008": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0103-003": {
+      "warehouse": 1,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-074": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-073": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-071": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-066": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-063": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-062": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-057": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-056": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-053": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-052": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-005": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-004": {
+      "warehouse": 2,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0101-052": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0101-050": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0101-049": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0101-048": {
+      "warehouse": 2,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0101-045": {
+      "warehouse": 1,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0101-025": {
+      "warehouse": 1,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0101-024": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0101-020": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0101-005": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-105": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-083": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-061": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-043": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0201-028": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "103-0200-100": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "103-0200-098": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "103-0100-053": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0402-034": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-053": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0103-001": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "108-0101-003": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-377": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-130": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0104-001": {
+      "warehouse": 12,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0104-004": {
+      "warehouse": 3,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0104-003": {
+      "warehouse": 6,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0104-002": {
+      "warehouse": 5,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0101-051": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0101-011": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0103-006": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0103-004": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-049": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0102-072": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0202-006": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0202-005": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0202-004": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0202-003": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0202-002": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "108-0101-014": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "108-0101-013": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "108-0101-010": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "108-0101-007": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "108-0101-012": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "108-0101-008": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "108-0101-011": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "108-0101-009": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "108-0101-005": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "108-0101-004": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "108-0101-002": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-037": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-043": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-051": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0402-044": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0501-007": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0501-002": {
+      "warehouse": 48,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0501-003": {
+      "warehouse": 6,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0501-004": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0501-005": {
+      "warehouse": 9,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0501-006": {
+      "warehouse": 2,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0501-008": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "109-0502-001": {
+      "warehouse": 221,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-050": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-071": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-104": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-107": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-108": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-109": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-110": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-111": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-112": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-113": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-114": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-118": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-119": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-120": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-121": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-122": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-123": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-124": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-125": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-126": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-127": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-128": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-129": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-131": {
+      "warehouse": 1,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-132": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-133": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-134": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-135": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-136": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-137": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-138": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-139": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-140": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-141": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-142": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "106-0101-143": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "103-0100-112": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "110-0101-015": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "110-0101-008": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "110-0101-010": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "110-0101-011": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "110-0101-012": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "110-0101-013": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "104-0302-004": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0402-032": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0402-035": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-060": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0201-037": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0201-036": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0201-035": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0201-034": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0201-033": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0201-032": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0201-031": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0201-030": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0201-029": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0201-027": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0201-024": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0201-021": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-371": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-372": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-373": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-374": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-375": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-376": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-378": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-379": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0101-380": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0401-009": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0401-008": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0401-007": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0401-006": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0401-005": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0401-004": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0401-003": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0401-002": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0401-001": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0301-009": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0301-008": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0301-007": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0301-006": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0301-005": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0301-004": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0301-003": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0301-002": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "105-0301-001": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0301-016": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0301-015": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0301-014": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0301-013": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0301-012": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0301-011": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0301-010": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0301-009": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0301-008": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0301-007": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0301-006": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0301-005": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0301-004": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0301-003": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0301-002": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0301-001": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-010": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-009": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-008": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-007": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-006": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-005": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-004": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-003": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-002": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0302-001": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0501-011": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0501-010": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0501-009": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0501-008": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0501-007": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0501-006": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0501-005": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0501-004": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0501-003": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0501-002": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "102-0501-001": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0300-141": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0300-140": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0200-145": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0200-144": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-139": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-138": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-137": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-135": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-133": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-132": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-131": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-127": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-124": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0100-134": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0200-142": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0200-143": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0200-149": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0200-151": {
+      "warehouse": 15,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    },
+    "101-0200-150": {
+      "warehouse": 0,
+      "mirpur": 0,
+      "cumilla": 0,
+      "wari": 0,
+      "sylhet": 0
+    }
+  }
+}

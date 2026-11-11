@@ -48,9 +48,175 @@ export interface InventoryFilterCriteria {
   searchTerm: string;
   location: InventoryLocationId;
   category: string;
+  size?: string;
   status: 'ALL' | 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
-  sortBy: 'sku' | 'title' | 'category' | 'unitPrice' | 'totalStock' | 'retailValuation' | 'selectedLocation' | 'velocity';
+  sortBy: 'sku' | 'title' | 'category' | 'size' | 'unitPrice' | 'totalStock' | 'retailValuation' | 'selectedLocation' | 'velocity';
   sortOrder: 'asc' | 'desc';
+}
+
+/**
+ * Standard apparel size sorting order.
+ */
+const CANONICAL_SIZE_ORDER: Record<string, number> = {
+  'XS': 1,
+  'S': 2,
+  'M': 3,
+  'L': 4,
+  'XL': 5,
+  '2XL': 6,
+  'XXL': 6,
+  '3XL': 7,
+  'XXXL': 7,
+  '4XL': 8,
+  '5XL': 9,
+  '26': 26,
+  '28': 28,
+  '29': 29,
+  '30': 30,
+  '31': 31,
+  '32': 32,
+  '33': 33,
+  '34': 34,
+  '35': 35,
+  '36': 36,
+  '38': 38,
+  '40': 40,
+  '42': 42,
+  '44': 44,
+  'FREE SIZE': 99,
+  'FREE-SIZE': 99,
+  'STANDARD': 100,
+  'ONE SIZE': 101,
+};
+
+export function compareSizes(a: string, b: string): number {
+  const normA = (a || '').toUpperCase().trim();
+  const normB = (b || '').toUpperCase().trim();
+  const rankA = CANONICAL_SIZE_ORDER[normA] ?? (parseInt(normA, 10) || 50);
+  const rankB = CANONICAL_SIZE_ORDER[normB] ?? (parseInt(normB, 10) || 50);
+  if (rankA !== rankB) return rankA - rankB;
+  return normA.localeCompare(normB);
+}
+
+export interface SizeStockBreakdown {
+  size: string;
+  units: number;
+  value: number;
+  skuCount: number;
+  inStockCount: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+  stockoutRate: number;
+}
+
+/**
+ * Computes aggregated stock count and stockout metrics per garment size / variation.
+ */
+export function computeSizeStockBreakdown(rows: ProductStockRow[]): SizeStockBreakdown[] {
+  const sizeMap = new Map<
+    string,
+    {
+      units: number;
+      value: number;
+      skuCount: number;
+      inStockCount: number;
+      lowStockCount: number;
+      outOfStockCount: number;
+    }
+  >();
+
+  rows.forEach((r) => {
+    const s = r.size || 'Standard';
+    if (!sizeMap.has(s)) {
+      sizeMap.set(s, {
+        units: 0,
+        value: 0,
+        skuCount: 0,
+        inStockCount: 0,
+        lowStockCount: 0,
+        outOfStockCount: 0,
+      });
+    }
+    const item = sizeMap.get(s)!;
+    item.units += r.totalStock;
+    item.value += r.retailValuation;
+    item.skuCount += 1;
+    if (r.stockStatus === 'IN_STOCK') item.inStockCount += 1;
+    else if (r.stockStatus === 'LOW_STOCK') item.lowStockCount += 1;
+    else item.outOfStockCount += 1;
+  });
+
+  return Array.from(sizeMap.entries())
+    .map(([size, d]) => ({
+      size,
+      units: d.units,
+      value: d.value,
+      skuCount: d.skuCount,
+      inStockCount: d.inStockCount,
+      lowStockCount: d.lowStockCount,
+      outOfStockCount: d.outOfStockCount,
+      stockoutRate: d.skuCount > 0 ? (d.outOfStockCount / d.skuCount) * 100 : 0,
+    }))
+    .sort((a, b) => compareSizes(a.size, b.size));
+}
+
+export interface ParentProductStockGroup {
+  masterSku: string;
+  productTitle: string;
+  category: string;
+  subCategory: string;
+  unitPrice: number;
+  totalStock: number;
+  retailValuation: number;
+  costValuation: number;
+  stock: LocationStockBreakdown;
+  variations: ProductStockRow[];
+  sizeSummary: Record<string, number>;
+}
+
+/**
+ * Groups variation-wise SKU stock into parent product styles.
+ */
+export function groupInventoryByProduct(rows: ProductStockRow[]): ParentProductStockGroup[] {
+  const groupMap = new Map<string, ParentProductStockGroup>();
+
+  rows.forEach((r) => {
+    const key = r.masterSku || r.productTitle;
+    if (!groupMap.has(key)) {
+      groupMap.set(key, {
+        masterSku: r.masterSku,
+        productTitle: r.productTitle,
+        category: r.category,
+        subCategory: r.subCategory,
+        unitPrice: r.unitPrice,
+        totalStock: 0,
+        retailValuation: 0,
+        costValuation: 0,
+        stock: { warehouse: 0, mirpur: 0, cumilla: 0, wari: 0, sylhet: 0 },
+        variations: [],
+        sizeSummary: {},
+      });
+    }
+
+    const group = groupMap.get(key)!;
+    group.totalStock += r.totalStock;
+    group.retailValuation += r.retailValuation;
+    group.costValuation += r.costValuation;
+    group.stock.warehouse += r.stock.warehouse;
+    group.stock.mirpur += r.stock.mirpur;
+    group.stock.cumilla += r.stock.cumilla;
+    group.stock.wari += r.stock.wari;
+    group.stock.sylhet += r.stock.sylhet;
+    group.variations.push(r);
+    group.sizeSummary[r.size] = (group.sizeSummary[r.size] || 0) + r.totalStock;
+    if (r.unitPrice > group.unitPrice) group.unitPrice = r.unitPrice;
+  });
+
+  groupMap.forEach((g) => {
+    g.variations.sort((a, b) => compareSizes(a.size, b.size));
+  });
+
+  return Array.from(groupMap.values());
 }
 
 /**
@@ -405,7 +571,16 @@ export function filterInventoryRows(
         return false;
       }
 
-      // 3. Location & Stock Health Filter
+      // 3. Size / Variation Filter
+      if (filters.size && filters.size !== 'ALL') {
+        const targetSize = filters.size.toUpperCase().trim();
+        const rowSize = (row.size || '').toUpperCase().trim();
+        if (targetSize !== rowSize) {
+          return false;
+        }
+      }
+
+      // 4. Location & Stock Health Filter
       const locStock =
         location === 'ALL'
           ? row.totalStock
@@ -438,6 +613,9 @@ export function filterInventoryRows(
           break;
         case 'category':
           diff = a.category.localeCompare(b.category);
+          break;
+        case 'size':
+          diff = compareSizes(a.size, b.size);
           break;
         case 'unitPrice':
           diff = a.unitPrice - b.unitPrice;

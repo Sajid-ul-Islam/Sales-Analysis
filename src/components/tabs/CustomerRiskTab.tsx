@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { CustomerRiskProfile } from '@/types';
 import { ShieldAlert, ShieldCheck, AlertTriangle, Search, CheckCircle2, ArrowUpRight } from 'lucide-react';
 import { AICustomerLossCard } from '@/components/after-sales/AICustomerLossCard';
+import { CustomerRiskTierChart } from '@/components/charts';
 
 interface CustomerRiskTabProps {
   profiles: CustomerRiskProfile[];
@@ -169,6 +170,13 @@ export function CustomerRiskTab({ profiles }: CustomerRiskTabProps) {
 
       {/* AI Reverse Logistics Loss & Chronic Returner Audit */}
       <AICustomerLossCard profiles={profiles} />
+
+      {/* Visual Customer Risk Tier Distribution */}
+      <CustomerRiskTierChart
+        profiles={profiles}
+        selectedFilter={riskFilter}
+        onSelectTier={(tier) => setRiskFilter(tier)}
+      />
 
       {/* Filter and Search Bar */}
       <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-4 border border-slate-200 dark:border-deepBlack-border shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">

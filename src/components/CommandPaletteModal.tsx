@@ -24,7 +24,8 @@ import {
   Layers,
   Clock,
   PanelLeftClose,
-  Boxes
+  Boxes,
+  GitCompareArrows
 } from 'lucide-react';
 import { ReconciliationResult } from '@/lib/reconciliationEngine';
 import { RawOrderRow } from '@/types';
@@ -66,6 +67,7 @@ const ALL_TABS_CONFIG = [
   { id: 'tabOrders', title: 'Orders Ledger', subtitle: 'Searchable Master Order Database with Suffix Decoders', icon: <FileSpreadsheet className="w-4 h-4 text-blue-500" /> },
   { id: 'tabItemReturns', title: 'Item Returns Deep-Dive', subtitle: 'Granular Inspection of Full & Partial Return Causes', icon: <RotateCcw className="w-4 h-4 text-amber-500" /> },
   { id: 'tabCourierMismatch', title: 'Courier Mismatch Audit', subtitle: 'Pathao Delivery Tracking & COD Reconciliation Discrepancies', icon: <Truck className="w-4 h-4 text-rose-500" /> },
+  { id: 'tabChannelComparison', title: '5-Channel Sales Comparison', subtitle: 'Ecom vs Mirpur vs Cumilla vs Wari vs Sylhet Side-by-Side Analytics', icon: <GitCompareArrows className="w-4 h-4 text-emerald-500" /> },
   { id: 'tabOutlets', title: 'Retail Outlets Hub', subtitle: 'In-Store POS Walk-Ins & Regional Branch Split Couriers (c, w, s, m)', icon: <Store className="w-4 h-4 text-purple-500" /> },
   { id: 'tabOutletDispatch', title: 'Outlet Dispatch Hub', subtitle: 'Regional Branch Logistics & Parcel Dispatch Allocations', icon: <Layers className="w-4 h-4 text-indigo-500" /> },
   { id: 'tabOutletSales', title: 'Outlet Sales (WooCommerce Live)', subtitle: 'Physical In-Store POS Registers vs Online Store Web Revenue', icon: <Store className="w-4 h-4 text-purple-500" /> },

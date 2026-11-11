@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { CourierMismatchRecord } from '@/types';
 import { AICourierDisputeCard } from '@/components/after-sales/AICourierDisputeCard';
+import { SettlementAgingCurveChart } from '@/components/charts';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -289,6 +290,9 @@ export function CourierMismatchTab({
 
       {/* AI Courier Dispute Dossier & Financial Audit */}
       <AICourierDisputeCard mismatches={mismatches} />
+
+      {/* Visual Settlement Aging & Discrepancy Breakdown */}
+      <SettlementAgingCurveChart mismatches={mismatches} />
 
       {/* Filter and Search Bar */}
       <div className="bg-white dark:bg-deepBlack-card rounded-xl p-3.5 border border-slate-200/80 dark:border-deepBlack-border shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">

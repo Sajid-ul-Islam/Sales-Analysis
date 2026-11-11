@@ -40,6 +40,7 @@ export const metadata: Metadata = {
 // Essential Critical CSS: inlined for fast paint before async CSS chunks load
 const criticalCSS = `
   :root {
+    color-scheme: light dark;
     --primary: #EB5A19;
     --primary-hover: #D4490E;
     --primary-subtle: #FFF7ED;
@@ -107,6 +108,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${plusJakartaSans.variable}`}>
       <head>
+        <meta name="color-scheme" content="light dark" />
         <link rel="icon" type="image/jpeg" href="/deencommerce_logo.jpg" />
         <link rel="apple-touch-icon" href="/deencommerce_logo.jpg" />
 

@@ -6,6 +6,9 @@ import {
   filterInventoryRows,
   generateInventoryCsvString,
   exportInventoryToCsv,
+  compareSizes,
+  computeSizeStockBreakdown,
+  groupInventoryByProduct,
   ProductStockRow,
 } from '@/lib/inventoryEngine';
 import { ReconciledOrderRow } from '@/types';
@@ -167,60 +170,61 @@ describe('DEEN Inventory Engine & Stock Management', () => {
     });
   });
 
+  const mockRows: ProductStockRow[] = [
+    {
+      sku: 'TSH-001-L',
+      masterSku: 'TSH-001',
+      productId: '101',
+      productTitle: 'Solid Black Drop Shoulder Tee',
+      category: 'T-Shirt',
+      subCategory: 'Drop Shoulder',
+      size: 'L',
+      unitPrice: 890,
+      cogs: 380,
+      stock: { warehouse: 20, mirpur: 5, cumilla: 4, wari: 2, sylhet: 1 },
+      totalStock: 32,
+      stockStatus: 'IN_STOCK',
+      retailValuation: 28480,
+      costValuation: 12160,
+      recentSalesVelocity: 15,
+    },
+    {
+      sku: 'PNT-002-32',
+      masterSku: 'PNT-002',
+      productId: '102',
+      productTitle: 'Executive Formal Trousers',
+      category: 'Trousers',
+      subCategory: 'Formal Trousers',
+      size: '32',
+      unitPrice: 1690,
+      cogs: 720,
+      stock: { warehouse: 2, mirpur: 1, cumilla: 0, wari: 0, sylhet: 0 },
+      totalStock: 3,
+      stockStatus: 'LOW_STOCK',
+      retailValuation: 5070,
+      costValuation: 2160,
+      recentSalesVelocity: 8,
+    },
+    {
+      sku: 'JEAN-003-34',
+      masterSku: 'JEAN-003',
+      productId: '103',
+      productTitle: 'Regular Fit Raw Denim',
+      category: 'Jeans',
+      subCategory: 'Regular Fit Jeans',
+      size: '34',
+      unitPrice: 1990,
+      cogs: 850,
+      stock: { warehouse: 0, mirpur: 0, cumilla: 0, wari: 0, sylhet: 0 },
+      totalStock: 0,
+      stockStatus: 'OUT_OF_STOCK',
+      retailValuation: 0,
+      costValuation: 0,
+      recentSalesVelocity: 0,
+    },
+  ];
+
   describe('filterInventoryRows', () => {
-    const mockRows: ProductStockRow[] = [
-      {
-        sku: 'TSH-001-L',
-        masterSku: 'TSH-001',
-        productId: '101',
-        productTitle: 'Solid Black Drop Shoulder Tee',
-        category: 'T-Shirt',
-        subCategory: 'Drop Shoulder',
-        size: 'L',
-        unitPrice: 890,
-        cogs: 380,
-        stock: { warehouse: 20, mirpur: 5, cumilla: 4, wari: 2, sylhet: 1 },
-        totalStock: 32,
-        stockStatus: 'IN_STOCK',
-        retailValuation: 28480,
-        costValuation: 12160,
-        recentSalesVelocity: 15,
-      },
-      {
-        sku: 'PNT-002-32',
-        masterSku: 'PNT-002',
-        productId: '102',
-        productTitle: 'Executive Formal Trousers',
-        category: 'Trousers',
-        subCategory: 'Formal Trousers',
-        size: '32',
-        unitPrice: 1690,
-        cogs: 720,
-        stock: { warehouse: 2, mirpur: 1, cumilla: 0, wari: 0, sylhet: 0 },
-        totalStock: 3,
-        stockStatus: 'LOW_STOCK',
-        retailValuation: 5070,
-        costValuation: 2160,
-        recentSalesVelocity: 8,
-      },
-      {
-        sku: 'JEAN-003-34',
-        masterSku: 'JEAN-003',
-        productId: '103',
-        productTitle: 'Regular Fit Raw Denim',
-        category: 'Jeans',
-        subCategory: 'Regular Fit Jeans',
-        size: '34',
-        unitPrice: 1990,
-        cogs: 850,
-        stock: { warehouse: 0, mirpur: 0, cumilla: 0, wari: 0, sylhet: 0 },
-        totalStock: 0,
-        stockStatus: 'OUT_OF_STOCK',
-        retailValuation: 0,
-        costValuation: 0,
-        recentSalesVelocity: 0,
-      },
-    ];
 
     it('filters by search term across SKU, title, size, and category', () => {
       const bySku = filterInventoryRows(mockRows, {
@@ -308,6 +312,20 @@ describe('DEEN Inventory Engine & Stock Management', () => {
       expect(cumillaOutOfStock.some((r) => r.sku === 'JEAN-003-34')).toBe(true);
     });
 
+    it('filters by size variation', () => {
+      const sizeL = filterInventoryRows(mockRows, {
+        searchTerm: '',
+        location: 'ALL',
+        category: 'ALL',
+        size: 'L',
+        status: 'ALL',
+        sortBy: 'totalStock',
+        sortOrder: 'desc',
+      });
+      expect(sizeL.length).toBe(1);
+      expect(sizeL[0].sku).toBe('TSH-001-L');
+    });
+
     it('sorts rows accurately', () => {
       const sortedByPrice = filterInventoryRows(mockRows, {
         searchTerm: '',
@@ -319,6 +337,83 @@ describe('DEEN Inventory Engine & Stock Management', () => {
       });
       expect(sortedByPrice[0].unitPrice).toBe(1990);
       expect(sortedByPrice[2].unitPrice).toBe(890);
+    });
+  });
+
+  describe('compareSizes (Canonical Variation Ordering)', () => {
+    it('sorts standard apparel top sizes in canonical order', () => {
+      const unsorted = ['XL', 'S', '3XL', 'M', '2XL', 'L', 'XS'];
+      const sorted = [...unsorted].sort(compareSizes);
+      expect(sorted).toEqual(['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL']);
+    });
+
+    it('sorts bottom/waist sizes numerically', () => {
+      const unsorted = ['36', '28', '34', '30', '32'];
+      const sorted = [...unsorted].sort(compareSizes);
+      expect(sorted).toEqual(['28', '30', '32', '34', '36']);
+    });
+  });
+
+  describe('computeSizeStockBreakdown', () => {
+    it('aggregates stock and stockout rates across sizes', () => {
+      const breakdown = computeSizeStockBreakdown(mockRows);
+      expect(breakdown.length).toBe(3);
+      const lSize = breakdown.find((b) => b.size === 'L');
+      expect(lSize?.units).toBe(32);
+      expect(lSize?.stockoutRate).toBe(0);
+
+      const size34 = breakdown.find((b) => b.size === '34');
+      expect(size34?.units).toBe(0);
+      expect(size34?.stockoutRate).toBe(100);
+    });
+  });
+
+  describe('groupInventoryByProduct (Style Matrix)', () => {
+    it('groups variation SKUs into master product style groups with size summary', () => {
+      const variations: ProductStockRow[] = [
+        {
+          sku: 'OXF-NAVY-M',
+          masterSku: 'OXF-NAVY',
+          productId: '501',
+          productTitle: 'Solid Oxford Shirt',
+          category: 'Shirt',
+          subCategory: 'Oxford Shirt',
+          size: 'M',
+          unitPrice: 1290,
+          cogs: 550,
+          stock: { warehouse: 10, mirpur: 2, cumilla: 2, wari: 1, sylhet: 1 },
+          totalStock: 16,
+          stockStatus: 'IN_STOCK',
+          retailValuation: 20640,
+          costValuation: 8800,
+          recentSalesVelocity: 12,
+        },
+        {
+          sku: 'OXF-NAVY-L',
+          masterSku: 'OXF-NAVY',
+          productId: '501',
+          productTitle: 'Solid Oxford Shirt',
+          category: 'Shirt',
+          subCategory: 'Oxford Shirt',
+          size: 'L',
+          unitPrice: 1290,
+          cogs: 550,
+          stock: { warehouse: 15, mirpur: 3, cumilla: 3, wari: 2, sylhet: 2 },
+          totalStock: 25,
+          stockStatus: 'IN_STOCK',
+          retailValuation: 32250,
+          costValuation: 13750,
+          recentSalesVelocity: 18,
+        },
+      ];
+
+      const groups = groupInventoryByProduct(variations);
+      expect(groups.length).toBe(1);
+      expect(groups[0].masterSku).toBe('OXF-NAVY');
+      expect(groups[0].totalStock).toBe(41);
+      expect(groups[0].variations.length).toBe(2);
+      expect(groups[0].sizeSummary['M']).toBe(16);
+      expect(groups[0].sizeSummary['L']).toBe(25);
     });
   });
 
