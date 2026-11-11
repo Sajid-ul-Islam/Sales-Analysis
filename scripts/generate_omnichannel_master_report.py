@@ -4,6 +4,19 @@ import os
 import sys
 import pandas as pd
 import openpyxl
+def safe_sum_cogs(series):
+    s = pd.to_numeric(series, errors='coerce')
+    return float(s.sum()) if s.notna().sum() > 0 else 0.0
+
+def safe_cogs_disp(series, total_count=None):
+    s = pd.to_numeric(series, errors='coerce')
+    notna_cnt = s.notna().sum()
+    if notna_cnt == 0:
+        return "didn'tget"
+    if total_count is not None and notna_cnt < total_count:
+        return "didn'tget"
+    return float(s.sum())
+
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
@@ -105,7 +118,7 @@ ws_ledger = wb_master.create_sheet(title='Master Transaction Ledger')
 ecom_units = int(df_ecom_deliv['Quantity'].sum())
 ecom_mrp = float(df_ecom_raw['Total Value (৳)'].sum())
 ecom_net = float(df_ecom_deliv['Total Value (৳)'].sum())
-ecom_cogs = float(df_ecom_deliv['Total COGS (৳)'].sum())
+ecom_cogs = safe_sum_cogs(df_ecom_deliv['Total COGS (৳)'])
 ecom_profit = ecom_net - ecom_cogs
 ecom_margin = (ecom_profit / ecom_net * 100) if ecom_net else 0.0
 ecom_orders = len(df_ecom_raw['Order Number'].unique())
@@ -113,7 +126,7 @@ ecom_orders = len(df_ecom_raw['Order Number'].unique())
 pos_units = int(df_pos_raw['Quantity Sold'].sum())
 pos_mrp = float((df_pos_raw['Unit Price (৳)'] * df_pos_raw['Quantity Sold']).sum())
 pos_net = float(df_pos_raw['Line Total (৳)'].sum())
-pos_cogs = float(df_pos_raw['Total COGS (৳)'].sum())
+pos_cogs = safe_sum_cogs(df_pos_raw['Total COGS (৳)'])
 pos_profit = pos_net - pos_cogs
 pos_margin = (pos_profit / pos_net * 100) if pos_net else 0.0
 pos_orders = len(df_pos_raw['Order Number'].unique())
@@ -226,7 +239,7 @@ for out_key, out_disp, term_info in outlet_names:
     o_units = int(o_grp['Quantity Sold'].sum())
     o_mrp = float((o_grp['Unit Price (৳)'] * o_grp['Quantity Sold']).sum())
     o_net = float(o_grp['Line Total (৳)'].sum())
-    o_cogs = float(o_grp['Total COGS (৳)'].sum())
+    o_cogs = safe_sum_cogs(o_grp['Total COGS (৳)'])
     o_profit = o_net - o_cogs
     o_margin = (o_profit / o_net) if o_net else 0.0
     o_aov = o_net / o_orders if o_orders else 0.0
@@ -314,13 +327,13 @@ reg_pos_v = float(df_pos_raw[df_pos_raw['Brand Name'] == 'DEEN']['Line Total (�
 
 tot_sel_units = sel_ecom_u + sel_pos_u
 tot_sel_net = sel_ecom_v + sel_pos_v
-tot_sel_cogs = float(df_ecom_deliv[df_ecom_deliv['Brand Name'] == 'DEEN Select']['Total COGS (৳)'].sum()) + float(df_pos_raw[df_pos_raw['Brand Name'] == 'DEEN Select']['Total COGS (৳)'].sum())
+tot_sel_cogs = safe_sum_cogs(df_ecom_deliv[df_ecom_deliv['Brand Name'] == 'DEEN Select']['Total COGS (৳)']) + safe_sum_cogs(df_pos_raw[df_pos_raw['Brand Name'] == 'DEEN Select']['Total COGS (৳)'])
 tot_sel_profit = tot_sel_net - tot_sel_cogs
 tot_sel_margin = (tot_sel_profit / tot_sel_net) if tot_sel_net else 0.0
 
 tot_reg_units = reg_ecom_u + reg_pos_u
 tot_reg_net = reg_ecom_v + reg_pos_v
-tot_reg_cogs = float(df_ecom_deliv[df_ecom_deliv['Brand Name'] == 'DEEN']['Total COGS (৳)'].sum()) + float(df_pos_raw[df_pos_raw['Brand Name'] == 'DEEN']['Total COGS (৳)'].sum())
+tot_reg_cogs = safe_sum_cogs(df_ecom_deliv[df_ecom_deliv['Brand Name'] == 'DEEN']['Total COGS (৳)']) + safe_sum_cogs(df_pos_raw[df_pos_raw['Brand Name'] == 'DEEN']['Total COGS (৳)'])
 tot_reg_profit = tot_reg_net - tot_reg_cogs
 tot_reg_margin = (tot_reg_profit / tot_reg_net) if tot_reg_net else 0.0
 
@@ -456,7 +469,7 @@ for out_key, out_disp, term_info in outlet_names:
     o_orders = len(o_grp['Order Number'].unique())
     o_units = int(o_grp['Quantity Sold'].sum())
     o_net = float(o_grp['Line Total (৳)'].sum())
-    o_cogs = float(o_grp['Total COGS (৳)'].sum())
+    o_cogs = safe_sum_cogs(o_grp['Total COGS (৳)'])
     o_profit = o_net - o_cogs
     o_margin = (o_profit / o_net) if o_net else 0.0
     o_aov = o_net / o_orders if o_orders else 0.0
@@ -587,11 +600,11 @@ for cat_name in all_categories:
     
     e_u = int(e_grp['Quantity'].sum())
     e_v = float(e_grp['Total Value (৳)'].sum())
-    e_cg = float(e_grp['Total COGS (৳)'].sum())
+    e_cg = safe_sum_cogs(e_grp['Total COGS (৳)'])
     
     p_u = int(p_grp['Quantity Sold'].sum())
     p_v = float(p_grp['Line Total (৳)'].sum())
-    p_cg = float(p_grp['Total COGS (৳)'].sum())
+    p_cg = safe_sum_cogs(p_grp['Total COGS (৳)'])
     
     # MRP
     e_mrp = float(df_ecom_raw[df_ecom_raw['Category'] == cat_name]['Total Value (৳)'].sum())
@@ -712,7 +725,7 @@ for (c_name, s_name) in all_subcats:
     
     tot_s_u = e_u + p_u
     tot_s_v = e_v + p_v
-    tot_s_cg = float(e_grp['Total COGS (৳)'].sum()) + float(p_grp['Total COGS (৳)'].sum())
+    tot_s_cg = safe_sum_cogs(e_grp['Total COGS (৳)']) + safe_sum_cogs(p_grp['Total COGS (৳)'])
     tot_s_gp = tot_s_v - tot_s_cg
     tot_s_gm = (tot_s_gp / tot_s_v) if tot_s_v else 0.0
     tot_s_avg_p = (tot_s_v / tot_s_u) if tot_s_u else 0.0
@@ -875,7 +888,7 @@ for cat_name in all_categories:
     sel_u = int(e_sel['Quantity'].sum()) + int(p_sel['Quantity Sold'].sum())
     sel_mrp = float(e_sel['Total Value (৳)'].sum()) + float((p_sel['Unit Price (৳)'] * p_sel['Quantity Sold']).sum())
     sel_net = float(e_sel['Total Value (৳)'].sum()) + float(p_sel['Line Total (৳)'].sum())
-    sel_cg = float(e_sel['Total COGS (৳)'].sum()) + float(p_sel['Total COGS (৳)'].sum())
+    sel_cg = safe_sum_cogs(e_sel['Total COGS (৳)']) + safe_sum_cogs(p_sel['Total COGS (৳)'])
     sel_gp = sel_net - sel_cg
     sel_gm = (sel_gp / sel_net) if sel_net > 0 else 0.0
     
@@ -885,7 +898,7 @@ for cat_name in all_categories:
     reg_u = int(e_reg['Quantity'].sum()) + int(p_reg['Quantity Sold'].sum())
     reg_mrp = float(e_reg['Total Value (৳)'].sum()) + float((p_reg['Unit Price (৳)'] * p_reg['Quantity Sold']).sum())
     reg_net = float(e_reg['Total Value (৳)'].sum()) + float(p_reg['Line Total (৳)'].sum())
-    reg_cg = float(e_reg['Total COGS (৳)'].sum()) + float(p_reg['Total COGS (৳)'].sum())
+    reg_cg = safe_sum_cogs(e_reg['Total COGS (৳)']) + safe_sum_cogs(p_reg['Total COGS (৳)'])
     reg_gp = reg_net - reg_cg
     reg_gm = (reg_gp / reg_net) if reg_net > 0 else 0.0
     
@@ -977,28 +990,35 @@ for _, it in df_ecom_deliv.iterrows():
     sub = str(it['Sub-Category']).strip()
     sku = str(it['SKU']).strip()
     price = float(it['Unit Price (৳)'] or 0.0)
-    cogs = float(it['Unit COGS (৳)'] or 0.0)
+    raw_u_cg = it.get('Unit COGS (৳)')
+    cogs = float(raw_u_cg) if (raw_u_cg is not None and str(raw_u_cg).strip() != "didn'tget") else None
     q = int(it['Quantity'] or 0)
     v = float(it['Total Value (৳)'] or 0.0)
-    cg = float(it['Total COGS (৳)'] or 0.0)
+    raw_t_cg = it.get('Total COGS (৳)')
+    cg = float(raw_t_cg) if (raw_t_cg is not None and str(raw_t_cg).strip() != "didn'tget") else 0.0
+    has_exact = (cogs is not None)
     
     if p_name not in prod_omni:
         prod_omni[p_name] = {
             'brand': brand, 'cat': cat, 'sub': sub, 'name': p_name, 'base_sku': sku,
-            'unit_price': price, 'unit_cogs': cogs,
+            'unit_price': price,
             'ecom_u': 0, 'ecom_v': 0.0,
             'cum_u': 0, 'cum_v': 0.0,
             'mir_u': 0, 'mir_v': 0.0,
             'war_u': 0, 'war_v': 0.0,
             'syl_u': 0, 'syl_v': 0.0,
-            'tot_u': 0, 'tot_v': 0.0, 'tot_cg': 0.0
+            'tot_u': 0, 'tot_v': 0.0, 'tot_cg': 0.0,
+            'exact_cg_u': 0, 'exact_cg_val': 0.0
         }
     p = prod_omni[p_name]
     p['ecom_u'] += q
     p['ecom_v'] += v
     p['tot_u'] += q
     p['tot_v'] += v
-    p['tot_cg'] += cg
+    if has_exact:
+        p['exact_cg_u'] += q
+        p['exact_cg_val'] += (cogs * q)
+        p['tot_cg'] += cg
 
 # Process POS items
 for _, it in df_pos_raw.iterrows():
@@ -1009,21 +1029,25 @@ for _, it in df_pos_raw.iterrows():
     sku = str(it['SKU']).strip()
     outlet = str(it['Outlet Name']).strip()
     price = float(it['Unit Price (৳)'] or 0.0)
-    cogs = float(it['Unit COGS (৳)'] or 0.0)
+    raw_u_cg = it.get('Unit COGS (৳)')
+    cogs = float(raw_u_cg) if (raw_u_cg is not None and str(raw_u_cg).strip() != "didn'tget") else None
     q = int(it['Quantity Sold'] or 0)
     v = float(it['Line Total (৳)'] or 0.0)
-    cg = float(it['Total COGS (৳)'] or 0.0)
+    raw_t_cg = it.get('Total COGS (৳)')
+    cg = float(raw_t_cg) if (raw_t_cg is not None and str(raw_t_cg).strip() != "didn'tget") else 0.0
+    has_exact = (cogs is not None)
     
     if p_name not in prod_omni:
         prod_omni[p_name] = {
             'brand': brand, 'cat': cat, 'sub': sub, 'name': p_name, 'base_sku': sku,
-            'unit_price': price, 'unit_cogs': cogs,
+            'unit_price': price,
             'ecom_u': 0, 'ecom_v': 0.0,
             'cum_u': 0, 'cum_v': 0.0,
             'mir_u': 0, 'mir_v': 0.0,
             'war_u': 0, 'war_v': 0.0,
             'syl_u': 0, 'syl_v': 0.0,
-            'tot_u': 0, 'tot_v': 0.0, 'tot_cg': 0.0
+            'tot_u': 0, 'tot_v': 0.0, 'tot_cg': 0.0,
+            'exact_cg_u': 0, 'exact_cg_val': 0.0
         }
     p = prod_omni[p_name]
     if 'Cumilla' in outlet:
@@ -1040,7 +1064,10 @@ for _, it in df_pos_raw.iterrows():
         p['syl_v'] += v
     p['tot_u'] += q
     p['tot_v'] += v
-    p['tot_cg'] += cg
+    if has_exact:
+        p['exact_cg_u'] += q
+        p['exact_cg_val'] += (cogs * q)
+        p['tot_cg'] += cg
 
 prod_list = list(prod_omni.values())
 prod_list.sort(key=lambda x: -x['tot_v'])
@@ -1062,8 +1089,17 @@ for c_idx, c_name in enumerate(prod_headers, 1):
 
 for r_idx, pr in enumerate(prod_list, 2):
     ws_prod.row_dimensions[r_idx].height = 18
-    gp = pr['tot_v'] - pr['tot_cg']
-    gm = (gp / pr['tot_v']) if pr['tot_v'] else 0.0
+    is_exact_all = (pr['exact_cg_u'] == pr['tot_u']) and (pr['tot_u'] > 0)
+    if is_exact_all:
+        unit_cogs_disp = round(pr['exact_cg_val'] / pr['tot_u'])
+        tot_cogs_disp = round(pr['exact_cg_val'])
+        gp = round(pr['tot_v'] - tot_cogs_disp)
+        gm = (gp / pr['tot_v']) if pr['tot_v'] else 0.0
+    else:
+        unit_cogs_disp = "didn'tget"
+        tot_cogs_disp = "didn'tget"
+        gp = "didn'tget"
+        gm = "didn'tget"
     
     # Determine top channel
     ch_map = {
@@ -1077,9 +1113,9 @@ for r_idx, pr in enumerate(prod_list, 2):
     
     r_vals = [
         pr['brand'], pr['cat'], pr['sub'], pr['name'], pr['base_sku'],
-        pr['unit_price'], pr['unit_cogs'],
+        pr['unit_price'], unit_cogs_disp,
         pr['ecom_u'], pr['cum_u'], pr['mir_u'], pr['war_u'], pr['syl_u'],
-        pr['tot_u'], pr['tot_v'], pr['tot_cg'], gp, gm, top_ch
+        pr['tot_u'], pr['tot_v'], tot_cogs_disp, gp, gm, top_ch
     ]
     for c_idx, val in enumerate(r_vals, 1):
         cell = ws_prod.cell(row=r_idx, column=c_idx, value=val)
@@ -1090,11 +1126,17 @@ for r_idx, pr in enumerate(prod_list, 2):
         elif c_idx == 5:
             cell.alignment = Alignment(horizontal='center', vertical='center')
         elif c_idx in [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]:
-            cell.alignment = Alignment(horizontal='right', vertical='center')
-            cell.number_format = '#,##0'
+            if isinstance(val, (int, float)):
+                cell.alignment = Alignment(horizontal='right', vertical='center')
+                cell.number_format = '#,##0'
+            else:
+                cell.alignment = Alignment(horizontal='center', vertical='center')
         elif c_idx == 17:
-            cell.alignment = Alignment(horizontal='right', vertical='center')
-            cell.number_format = '0.0%'
+            if isinstance(val, (int, float)):
+                cell.alignment = Alignment(horizontal='right', vertical='center')
+                cell.number_format = '0.0%'
+            else:
+                cell.alignment = Alignment(horizontal='center', vertical='center')
 
 # Total Row for Products
 tot_prod_r_idx = len(prod_list) + 2
@@ -1104,7 +1146,11 @@ tot_prod_row = [
     "-", "-",
     ecom_units, sum(p['cum_u'] for p in prod_list), sum(p['mir_u'] for p in prod_list),
     sum(p['war_u'] for p in prod_list), sum(p['syl_u'] for p in prod_list),
-    tot_units, tot_net, tot_cogs, tot_profit, tot_margin / 100.0, "All 5 Channels"
+    tot_units, tot_net,
+    tot_cogs if tot_cogs > 0 else "didn'tget",
+    tot_profit if tot_cogs > 0 else "didn'tget",
+    tot_margin / 100.0 if tot_cogs > 0 else "didn'tget",
+    "All 5 Channels"
 ]
 for c_idx, val in enumerate(tot_prod_row, 1):
     cell = ws_prod.cell(row=tot_prod_r_idx, column=c_idx, value=val)
@@ -1116,11 +1162,17 @@ for c_idx, val in enumerate(tot_prod_row, 1):
     elif c_idx == 5:
         cell.alignment = Alignment(horizontal='center', vertical='center')
     elif c_idx in [8, 9, 10, 11, 12, 13, 14, 15, 16]:
-        cell.alignment = Alignment(horizontal='right', vertical='center')
-        cell.number_format = '#,##0'
+        if isinstance(val, (int, float)):
+            cell.alignment = Alignment(horizontal='right', vertical='center')
+            cell.number_format = '#,##0'
+        else:
+            cell.alignment = Alignment(horizontal='center', vertical='center')
     elif c_idx == 17:
-        cell.alignment = Alignment(horizontal='right', vertical='center')
-        cell.number_format = '0.0%'
+        if isinstance(val, (int, float)):
+            cell.alignment = Alignment(horizontal='right', vertical='center')
+            cell.number_format = '0.0%'
+        else:
+            cell.alignment = Alignment(horizontal='center', vertical='center')
 
 for col in ws_prod.columns:
     col_letter = get_column_letter(col[0].column)
@@ -1149,22 +1201,28 @@ for _, it in df_ecom_deliv.iterrows():
     cat = str(it['Category']).strip()
     sub = str(it['Sub-Category']).strip()
     price = float(it['Unit Price (৳)'] or 0.0)
-    cogs = float(it['Unit COGS (৳)'] or 0.0)
+    raw_u_cg = it.get('Unit COGS (৳)')
+    cogs = float(raw_u_cg) if (raw_u_cg is not None and str(raw_u_cg).strip() != "didn'tget") else None
     q = int(it['Quantity'] or 0)
     v = float(it['Total Value (৳)'] or 0.0)
-    cg = float(it['Total COGS (৳)'] or 0.0)
+    raw_t_cg = it.get('Total COGS (৳)')
+    cg = float(raw_t_cg) if (raw_t_cg is not None and str(raw_t_cg).strip() != "didn'tget") else 0.0
+    has_exact = (cogs is not None)
     
     sku_key = f"{sku}__{size}__{p_name}"
     if sku_key not in sku_omni:
         sku_omni[sku_key] = {
             'brand': brand, 'cat': cat, 'sub': sub, 'name': p_name, 'sku': sku, 'size': size,
-            'price': price, 'cogs': cogs, 'ecom_u': 0, 'pos_u': 0, 'tot_u': 0, 'tot_v': 0.0, 'tot_cg': 0.0
+            'price': price, 'ecom_u': 0, 'pos_u': 0, 'tot_u': 0, 'tot_v': 0.0,
+            'exact_cg_u': 0, 'exact_cg_val': 0.0
         }
     s = sku_omni[sku_key]
     s['ecom_u'] += q
     s['tot_u'] += q
     s['tot_v'] += v
-    s['tot_cg'] += cg
+    if has_exact:
+        s['exact_cg_u'] += q
+        s['exact_cg_val'] += (cogs * q)
 
 for _, it in df_pos_raw.iterrows():
     sku = str(it['SKU']).strip()
@@ -1174,22 +1232,28 @@ for _, it in df_pos_raw.iterrows():
     cat = str(it['Category']).strip()
     sub = str(it['Sub-Category']).strip()
     price = float(it['Unit Price (৳)'] or 0.0)
-    cogs = float(it['Unit COGS (৳)'] or 0.0)
+    raw_u_cg = it.get('Unit COGS (৳)')
+    cogs = float(raw_u_cg) if (raw_u_cg is not None and str(raw_u_cg).strip() != "didn'tget") else None
     q = int(it['Quantity Sold'] or 0)
     v = float(it['Line Total (৳)'] or 0.0)
-    cg = float(it['Total COGS (৳)'] or 0.0)
+    raw_t_cg = it.get('Total COGS (৳)')
+    cg = float(raw_t_cg) if (raw_t_cg is not None and str(raw_t_cg).strip() != "didn'tget") else 0.0
+    has_exact = (cogs is not None)
     
     sku_key = f"{sku}__{size}__{p_name}"
     if sku_key not in sku_omni:
         sku_omni[sku_key] = {
             'brand': brand, 'cat': cat, 'sub': sub, 'name': p_name, 'sku': sku, 'size': size,
-            'price': price, 'cogs': cogs, 'ecom_u': 0, 'pos_u': 0, 'tot_u': 0, 'tot_v': 0.0, 'tot_cg': 0.0
+            'price': price, 'ecom_u': 0, 'pos_u': 0, 'tot_u': 0, 'tot_v': 0.0,
+            'exact_cg_u': 0, 'exact_cg_val': 0.0
         }
     s = sku_omni[sku_key]
     s['pos_u'] += q
     s['tot_u'] += q
     s['tot_v'] += v
-    s['tot_cg'] += cg
+    if has_exact:
+        s['exact_cg_u'] += q
+        s['exact_cg_val'] += (cogs * q)
 
 sku_list = list(sku_omni.values())
 sku_list.sort(key=lambda x: -x['tot_v'])
@@ -1209,13 +1273,22 @@ for c_idx, c_name in enumerate(sku_headers, 1):
 
 for r_idx, sk in enumerate(sku_list, 2):
     ws_sku.row_dimensions[r_idx].height = 18
-    gp = sk['tot_v'] - sk['tot_cg']
-    gm = (gp / sk['tot_v']) if sk['tot_v'] else 0.0
+    is_exact_all = (sk['exact_cg_u'] == sk['tot_u']) and (sk['tot_u'] > 0)
+    if is_exact_all:
+        unit_cogs_disp = round(sk['exact_cg_val'] / sk['tot_u'])
+        tot_cogs_disp = round(sk['exact_cg_val'])
+        gp = round(sk['tot_v'] - tot_cogs_disp)
+        gm = (gp / sk['tot_v']) if sk['tot_v'] else 0.0
+    else:
+        unit_cogs_disp = "didn'tget"
+        tot_cogs_disp = "didn'tget"
+        gp = "didn'tget"
+        gm = "didn'tget"
     
     r_vals = [
         sk['brand'], sk['cat'], sk['sub'], sk['name'], sk['sku'], sk['size'],
-        sk['price'], sk['cogs'], sk['ecom_u'], sk['pos_u'],
-        sk['tot_u'], sk['tot_v'], sk['tot_cg'], gp, gm
+        sk['price'], unit_cogs_disp, sk['ecom_u'], sk['pos_u'],
+        sk['tot_u'], sk['tot_v'], tot_cogs_disp, gp, gm
     ]
     for c_idx, val in enumerate(r_vals, 1):
         cell = ws_sku.cell(row=r_idx, column=c_idx, value=val)
@@ -1226,11 +1299,17 @@ for r_idx, sk in enumerate(sku_list, 2):
         elif c_idx in [5, 6]:
             cell.alignment = Alignment(horizontal='center', vertical='center')
         elif c_idx in [7, 8, 9, 10, 11, 12, 13, 14]:
-            cell.alignment = Alignment(horizontal='right', vertical='center')
-            cell.number_format = '#,##0'
+            if isinstance(val, (int, float)):
+                cell.alignment = Alignment(horizontal='right', vertical='center')
+                cell.number_format = '#,##0'
+            else:
+                cell.alignment = Alignment(horizontal='center', vertical='center')
         elif c_idx == 15:
-            cell.alignment = Alignment(horizontal='right', vertical='center')
-            cell.number_format = '0.0%'
+            if isinstance(val, (int, float)):
+                cell.alignment = Alignment(horizontal='right', vertical='center')
+                cell.number_format = '0.0%'
+            else:
+                cell.alignment = Alignment(horizontal='center', vertical='center')
 
 # Total Row for SKUs
 tot_sku_r_idx = len(sku_list) + 2
@@ -1238,7 +1317,10 @@ ws_sku.row_dimensions[tot_sku_r_idx].height = 20
 tot_sku_row = [
     "TOTAL ALL SKUS", f"{len(sku_list)} SKUs", "-", "-", "-", "-",
     "-", "-", ecom_units, pos_units,
-    tot_units, tot_net, tot_cogs, tot_profit, tot_margin / 100.0
+    tot_units, tot_net,
+    tot_cogs if tot_cogs > 0 else "didn'tget",
+    tot_profit if tot_cogs > 0 else "didn'tget",
+    tot_margin / 100.0 if tot_cogs > 0 else "didn'tget"
 ]
 for c_idx, val in enumerate(tot_sku_row, 1):
     cell = ws_sku.cell(row=tot_sku_r_idx, column=c_idx, value=val)
@@ -1250,11 +1332,17 @@ for c_idx, val in enumerate(tot_sku_row, 1):
     elif c_idx in [5, 6]:
         cell.alignment = Alignment(horizontal='center', vertical='center')
     elif c_idx in [9, 10, 11, 12, 13, 14]:
-        cell.alignment = Alignment(horizontal='right', vertical='center')
-        cell.number_format = '#,##0'
+        if isinstance(val, (int, float)):
+            cell.alignment = Alignment(horizontal='right', vertical='center')
+            cell.number_format = '#,##0'
+        else:
+            cell.alignment = Alignment(horizontal='center', vertical='center')
     elif c_idx == 15:
-        cell.alignment = Alignment(horizontal='right', vertical='center')
-        cell.number_format = '0.0%'
+        if isinstance(val, (int, float)):
+            cell.alignment = Alignment(horizontal='right', vertical='center')
+            cell.number_format = '0.0%'
+        else:
+            cell.alignment = Alignment(horizontal='center', vertical='center')
 
 for col in ws_sku.columns:
     col_letter = get_column_letter(col[0].column)
@@ -1292,12 +1380,20 @@ ledger_rows = []
 # E-Com delivered items
 for _, it in df_ecom_deliv.iterrows():
     p = float(it['Unit Price (৳)'] or 0.0)
-    cg = float(it['Unit COGS (৳)'] or 0.0)
+    raw_u_cg = it.get('Unit COGS (৳)')
+    has_exact = (raw_u_cg is not None and str(raw_u_cg).strip() != "didn'tget")
     q = int(it['Quantity'] or 0)
     v = float(it['Total Value (৳)'] or 0.0)
-    tot_cg = float(it['Total COGS (৳)'] or 0.0)
-    gp = v - tot_cg
-    gm = (gp / v) if v else 0.0
+    if has_exact:
+        cg = float(raw_u_cg)
+        tot_cg = float(it.get('Total COGS (৳)') or (cg * q))
+        gp = v - tot_cg
+        gm = (gp / v) if v else 0.0
+    else:
+        cg = "didn'tget"
+        tot_cg = "didn'tget"
+        gp = "didn'tget"
+        gm = "didn'tget"
     ledger_rows.append([
         it['Order Number'], it['Order Date'], 'Online E-Commerce', it['Fulfillment Store'],
         it['Customer Name'], it['Customer Phone'], it['City'], 'COD (Courier)',
@@ -1308,12 +1404,20 @@ for _, it in df_ecom_deliv.iterrows():
 # POS items
 for _, it in df_pos_raw.iterrows():
     p = float(it['Unit Price (৳)'] or 0.0)
-    cg = float(it['Unit COGS (৳)'] or 0.0)
+    raw_u_cg = it.get('Unit COGS (৳)')
+    has_exact = (raw_u_cg is not None and str(raw_u_cg).strip() != "didn'tget")
     q = int(it['Quantity Sold'] or 0)
     v = float(it['Line Total (৳)'] or 0.0)
-    tot_cg = float(it['Total COGS (৳)'] or 0.0)
-    gp = v - tot_cg
-    gm = (gp / v) if v else 0.0
+    if has_exact:
+        cg = float(raw_u_cg)
+        tot_cg = float(it.get('Total COGS (৳)') or (cg * q))
+        gp = v - tot_cg
+        gm = (gp / v) if v else 0.0
+    else:
+        cg = "didn'tget"
+        tot_cg = "didn'tget"
+        gp = "didn'tget"
+        gm = "didn'tget"
     ledger_rows.append([
         it['Order Number'], it['Order Date'], it['Outlet Name'], f"Terminal {it['Outlet POS ID']} ({it['Cashier']})",
         it['Customer Name'], it['Customer Phone'], 'Retail Branch Walk-In', it['Payment Method'],
@@ -1332,11 +1436,17 @@ for r_idx, lr in enumerate(ledger_rows, 2):
         elif c_idx in [3, 4, 5, 7, 8, 9, 10, 11, 12, 22]:
             cell.alignment = Alignment(horizontal='left', vertical='center')
         elif c_idx in [15, 16, 17, 18, 19, 20]:
-            cell.alignment = Alignment(horizontal='right', vertical='center')
-            cell.number_format = '#,##0'
+            if isinstance(val, (int, float)):
+                cell.alignment = Alignment(horizontal='right', vertical='center')
+                cell.number_format = '#,##0'
+            else:
+                cell.alignment = Alignment(horizontal='center', vertical='center')
         elif c_idx == 21:
-            cell.alignment = Alignment(horizontal='right', vertical='center')
-            cell.number_format = '0.0%'
+            if isinstance(val, (int, float)):
+                cell.alignment = Alignment(horizontal='right', vertical='center')
+                cell.number_format = '0.0%'
+            else:
+                cell.alignment = Alignment(horizontal='center', vertical='center')
 
 for col in ws_ledger.columns:
     col_letter = get_column_letter(col[0].column)
@@ -1351,7 +1461,18 @@ ws_ledger.column_dimensions['L'].width = 36
 ws_ledger.freeze_panes = 'E2'
 
 # Save Master Workbook
-print(f"\nSaving Master Omnichannel Workbook to: {out_path}...")
-wb_master.save(out_path)
-print(f"✅ Successfully created Master Omnichannel Workbook: {out_path}")
+public_out_path = os.path.join('public', 'Sample Docs', 'October 2026 Overall Sales & Channel Performance (Ecom & 4 Outlets).xlsx')
+os.makedirs(os.path.dirname(public_out_path), exist_ok=True)
+wb_master.save(public_out_path)
+print(f"✅ Saved to public directory: {public_out_path}")
+
+try:
+    print(f"\nSaving Master Omnichannel Workbook to: {out_path}...")
+    wb_master.save(out_path)
+    print(f"✅ Successfully created Master Omnichannel Workbook: {out_path}")
+except PermissionError:
+    backup_out_path = os.path.join('Sample Docs', 'October 2026 Overall Sales & Channel Performance (Ecom & 4 Outlets)_Updated.xlsx')
+    wb_master.save(backup_out_path)
+    print(f"⚠️ Warning: {out_path} is currently open in Excel.")
+    print(f"✅ Successfully saved updated version to: {backup_out_path}")
 print("\n🎉 ALL ASPECTS (E-COMMERCE & 4 OUTLETS) CONSOLIDATED IN ONE COMPREHENSIVE WORKBOOK!")

@@ -6,8 +6,22 @@ and financial dimension.
 """
 
 import sys
+import os
 import pandas as pd
 import openpyxl
+def safe_sum_cogs(series):
+    s = pd.to_numeric(series, errors='coerce')
+    return float(s.sum()) if s.notna().sum() > 0 else 0.0
+
+def safe_cogs_disp(series, total_count=None):
+    s = pd.to_numeric(series, errors='coerce')
+    notna_cnt = s.notna().sum()
+    if notna_cnt == 0:
+        return "didn'tget"
+    if total_count is not None and notna_cnt < total_count:
+        return "didn'tget"
+    return float(s.sum())
+
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
@@ -222,14 +236,17 @@ def section_hdr(ws, row, label, ncols=26):
 # OPEN MASTER WORKBOOK & ADD SHEET
 # ─────────────────────────────────────────────────────────────────────────────
 print(f"Opening master workbook: {OUT_PATH}")
-wb = openpyxl.load_workbook(OUT_PATH)
+load_target = 'public/Sample Docs/October 2026 Overall Sales & Channel Performance (Ecom & 4 Outlets).xlsx'
+if not os.path.exists(load_target):
+    load_target = OUT_PATH
+wb = openpyxl.load_workbook(load_target)
 
 # Remove old version if re-running
 if '5-Channel Comparison' in wb.sheetnames:
     del wb['5-Channel Comparison']
 
 ws = wb.create_sheet(title='5-Channel Comparison', index=1)  # 2nd sheet
-ws.sheet_view.showGridLines = False
+ws.sheet_view.showGridLines = True
 NCOLS = 27  # total column span
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -758,7 +775,19 @@ if '5-Channel Comparison' in sheet_order:
     idx = sheet_order.index('5-Channel Comparison')
     wb.move_sheet('5-Channel Comparison', offset=-(idx - 1))
 
-print(f"Saving updated workbook to: {OUT_PATH}")
-wb.save(OUT_PATH)
-print("✅ '5-Channel Comparison' sheet added successfully!")
+import os
+
+public_path = os.path.join('public', 'Sample Docs', 'October 2026 Overall Sales & Channel Performance (Ecom & 4 Outlets).xlsx')
+os.makedirs(os.path.dirname(public_path), exist_ok=True)
+wb.save(public_path)
+print(f"✅ Saved to public directory: {public_path}")
+
+try:
+    print(f"Saving updated workbook to: {OUT_PATH}")
+    wb.save(OUT_PATH)
+    print("✅ '5-Channel Comparison' sheet added successfully!")
+except PermissionError:
+    backup_path = 'Sample Docs/October 2026 Overall Sales & Channel Performance (Ecom & 4 Outlets)_Updated.xlsx'
+    wb.save(backup_path)
+    print(f"⚠️ Warning: {OUT_PATH} is locked by Excel. Saved to: {backup_path}")
 print(f"   Sections: A (KPI Scorecard)  B (Category-Wise)  C (Brand Tier)  D (Top 10 Products)  E (Efficiency Metrics)")

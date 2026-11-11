@@ -321,11 +321,10 @@ describe('Product Analytics Engine', () => {
       const shirt = result.products.find((p) => p.title === 'DEEN Legacy Shirt');
       expect(shirt).toBeDefined();
       expect(shirt!.deliveredRevenue).toBe(1000);
-      expect(shirt!.estimatedCogs).toBe(400); // 1000 * 0.40 = 400
-      expect(shirt!.grossProfit).toBe(600); // 1000 - 400 = 600
-      expect(shirt!.grossMarginPercent).toBe(60);
+      expect(shirt!.cogsDisplay).toBe("didn'tget");
+      expect(shirt!.grossMarginDisplay).toBe("didn'tget");
       expect(shirt!.hasExactCogs).toBe(false);
-      expect(shirt!.cogsSource).toBe('ESTIMATED_BASELINE');
+      expect(shirt!.cogsSource).toBe("didn'tget");
     });
   });
 });

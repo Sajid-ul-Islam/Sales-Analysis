@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { SkuAnalytics, ReconciledOrderRow } from '@/types';
+import { getItemCogsInfo } from '@/lib/woocommerceClient';
 import { SkuHistoryModal } from '@/components/SkuHistoryModal';
 import {
   Search,
@@ -103,19 +104,53 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
 
   // CSV Export Function
   const handleExportCsv = () => {
-    const headers = ['SKU Code', 'Item Description', 'Category', 'Unit Price', 'Gross Dispatched', 'Delivered Qty', 'Returned Qty', 'Return Rate (%)', 'Delivered Net Sales (BDT)', 'Return Loss (BDT)'];
-    const rows = filteredSkus.map(s => [
-      `"${s.sku}"`,
-      `"${s.itemName.replace(/"/g, '""')}"`,
-      `"${s.category || 'N/A'}"`,
-      s.unitPrice || 0,
-      s.grossQty,
-      s.deliveredQty,
-      s.returnedQty,
-      s.returnRate.toFixed(2),
-      Math.round(s.deliveredRevenue),
-      Math.round(s.totalLossFromReturns)
-    ]);
+    const headers = [
+      'SKU Code',
+      'Item Description',
+      'Category',
+      'Unit Price (BDT)',
+      'Gross Dispatched',
+      'Delivered Qty',
+      'Returned Qty',
+      'Return Rate (%)',
+      'Delivered Net Sales (BDT)',
+      'Unit COGS (BDT)',
+      'Total Delivered COGS (BDT)',
+      'Realized Gross Profit (BDT)',
+      'Gross Margin (%)',
+      'COGS Source',
+      'Return Loss (BDT)'
+    ];
+
+    const rows = filteredSkus.map(s => {
+      const avgPrice = s.unitPrice || (s.deliveredQty > 0 ? Math.round(s.deliveredRevenue / s.deliveredQty) : 0);
+      const cogsInfo = getItemCogsInfo(s.sku, avgPrice, { itemName: s.itemName });
+      const unitCogs = cogsInfo.cogs;
+      const totalCogs = typeof unitCogs === 'number' ? Math.round(unitCogs * s.deliveredQty) : "didn'tget";
+      const grossProfit = typeof totalCogs === 'number' ? Math.max(0, Math.round(s.deliveredRevenue) - totalCogs) : "didn'tget";
+      const grossMarginPct = typeof grossProfit === 'number' && s.deliveredRevenue > 0
+        ? ((grossProfit / s.deliveredRevenue) * 100).toFixed(1) + '%'
+        : (typeof unitCogs === 'number' ? '0.0%' : "didn'tget");
+
+      return [
+        `"${s.sku}"`,
+        `"${s.itemName.replace(/"/g, '""')}"`,
+        `"${s.category || 'N/A'}"`,
+        avgPrice,
+        s.grossQty,
+        s.deliveredQty,
+        s.returnedQty,
+        s.returnRate.toFixed(2),
+        Math.round(s.deliveredRevenue),
+        unitCogs,
+        totalCogs,
+        grossProfit,
+        grossMarginPct,
+        `"${cogsInfo.cogsSource}"`,
+        Math.round(s.totalLossFromReturns)
+      ];
+    });
+
     const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);

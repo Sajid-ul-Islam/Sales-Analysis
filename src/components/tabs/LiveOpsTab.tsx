@@ -3387,8 +3387,19 @@ export function LiveOpsTab({
                                           <td className="py-2 px-3 text-right font-mono text-slate-600 dark:text-slate-400">
                                             {(() => {
                                               const cInfo = getItemCogsInfo(item.sku, item.itemCost);
-                                              const itemCogs = item.cogs > 0 ? item.cogs : cInfo.cogs;
+                                              const itemCogs = typeof item.cogs === 'number' && item.cogs > 0
+                                                ? item.cogs
+                                                : typeof cInfo.cogs === 'number'
+                                                ? cInfo.cogs
+                                                : null;
                                               const isExact = item.isExactCogs || cInfo.isExact;
+                                              if (itemCogs === null) {
+                                                return (
+                                                  <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                                                    didn'tget
+                                                  </span>
+                                                );
+                                              }
                                               return (
                                                 <span className="inline-flex items-center justify-end gap-1">
                                                   <span className="font-medium">৳ {itemCogs.toLocaleString()}</span>
@@ -3407,7 +3418,18 @@ export function LiveOpsTab({
                                           <td className="py-2 px-3 text-right font-mono">
                                             {(() => {
                                               const cInfo = getItemCogsInfo(item.sku, item.itemCost);
-                                              const itemMargin = item.marginPercent > 0 ? item.marginPercent : cInfo.marginPercent;
+                                              const itemMargin = typeof item.marginPercent === 'number' && item.marginPercent > 0
+                                                ? item.marginPercent
+                                                : typeof cInfo.marginPercent === 'number'
+                                                ? cInfo.marginPercent
+                                                : null;
+                                              if (itemMargin === null) {
+                                                return (
+                                                  <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                                                    didn'tget
+                                                  </span>
+                                                );
+                                              }
                                               return (
                                                 <span
                                                   className={`text-[11px] font-bold ${

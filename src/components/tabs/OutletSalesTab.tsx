@@ -74,7 +74,7 @@ import { cleanProductMainName, extractMasterSku } from './ExecutiveOverviewTab';
 
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 
-import { isEcomPaymentMethod } from '@/lib/woocommerceClient';
+import { isEcomPaymentMethod, getItemCogsInfo } from '@/lib/woocommerceClient';
 
 
 
@@ -2258,58 +2258,76 @@ export function OutletSalesTab({
 
     // Sheet 2: Category Wise Sales
 
-    const categoryData = categorySales.map((c, idx) => ({
+    const categoryData = categorySales.map((c, idx) => {
+      let catCogs = 0;
+      let hasMissing = false;
+      let catItemCount = 0;
 
-      'SL': idx + 1,
+      for (const item of itemWiseSales) {
+        if ((item.category || '').toLowerCase().trim() === (c.name || '').toLowerCase().trim()) {
+          catItemCount++;
+          const info = getItemCogsInfo(item.masterSku, item.asp, { itemName: item.mainName });
+          if (typeof info.cogs === 'number') {
+            catCogs += info.cogs * item.unitsSold;
+          } else {
+            hasMissing = true;
+          }
+        }
+      }
 
-      'Category': c.name,
+      const totalCatCogs = (catItemCount > 0 && !hasMissing) ? Math.round(catCogs) : "didn'tget";
+      const catProfit = typeof totalCatCogs === 'number' ? Math.max(0, Math.round(c.revenue) - totalCatCogs) : "didn'tget";
+      const catMargin = typeof catProfit === 'number' && c.revenue > 0
+        ? ((catProfit / c.revenue) * 100).toFixed(1) + '%'
+        : (typeof totalCatCogs === 'number' ? '0.0%' : "didn'tget");
 
-      'Sub Category': c.sub,
-
-      'Units Sold (Pcs)': c.unitsSold,
-
-      'Net Revenue (BDT)': c.revenue,
-
-      'Unit ASP (BDT)': c.asp,
-
-      'Revenue Share (%)': c.revenueShare.toFixed(1) + '%',
-
-      'Top Performing Branch': c.topBranchName
-
-    }));
+      return {
+        'SL': idx + 1,
+        'Category': c.name,
+        'Sub Category': c.sub,
+        'Units Sold (Pcs)': c.unitsSold,
+        'Net Revenue (BDT)': c.revenue,
+        'Unit ASP (BDT)': c.asp,
+        'Total COGS (BDT)': totalCatCogs,
+        'Realized Gross Profit (BDT)': catProfit,
+        'Gross Margin (%)': catMargin,
+        'Revenue Share (%)': c.revenueShare.toFixed(1) + '%',
+        'Top Performing Branch': c.topBranchName
+      };
+    });
 
     const wsCategory = XLSX.utils.json_to_sheet(categoryData);
-
     XLSX.utils.book_append_sheet(wb, wsCategory, 'Category Wise Sales');
 
-
-
     // Sheet 3: Item Wise Sales
+    const itemData = itemWiseSales.map((item, idx) => {
+      const cogsInfo = getItemCogsInfo(item.masterSku, item.asp, { itemName: item.mainName });
+      const unitCogs = cogsInfo.cogs;
+      const totalCogs = typeof unitCogs === 'number' ? Math.round(unitCogs * item.unitsSold) : "didn'tget";
+      const grossProfit = typeof totalCogs === 'number' ? Math.max(0, Math.round(item.revenue) - totalCogs) : "didn'tget";
+      const grossMarginPct = typeof grossProfit === 'number' && item.revenue > 0
+        ? ((grossProfit / item.revenue) * 100).toFixed(1) + '%'
+        : (typeof unitCogs === 'number' ? '0.0%' : "didn'tget");
 
-    const itemData = itemWiseSales.map((item, idx) => ({
-
-      'SL': idx + 1,
-
-      'Master SKU': item.masterSku,
-
-      'Product Name': item.mainName,
-
-      'Category': item.category,
-
-      'Units Sold (Pcs)': item.unitsSold,
-
-      'Net Revenue (BDT)': item.revenue,
-
-      'Unit ASP (BDT)': item.asp,
-
-      'Revenue Share (%)': item.revenueShare.toFixed(1) + '%',
-
-      'Branches Active': item.branchesList
-
-    }));
+      return {
+        'SL': idx + 1,
+        'Master SKU': item.masterSku,
+        'Product Name': item.mainName,
+        'Category': item.category,
+        'Units Sold (Pcs)': item.unitsSold,
+        'Net Revenue (BDT)': item.revenue,
+        'Unit ASP (BDT)': item.asp,
+        'Unit COGS (BDT)': unitCogs,
+        'Total COGS (BDT)': totalCogs,
+        'Realized Gross Profit (BDT)': grossProfit,
+        'Gross Margin (%)': grossMarginPct,
+        'COGS Source': cogsInfo.cogsSource,
+        'Revenue Share (%)': item.revenueShare.toFixed(1) + '%',
+        'Branches Active': item.branchesList
+      };
+    });
 
     const wsItem = XLSX.utils.json_to_sheet(itemData);
-
     XLSX.utils.book_append_sheet(wb, wsItem, 'Item Wise Sales');
 
 

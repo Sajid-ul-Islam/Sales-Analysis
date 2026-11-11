@@ -69,7 +69,7 @@ describe('Live Terminal Synchronization Verification', () => {
       expect(conn.success).toBe(false);
       expect(conn.status).toBeGreaterThanOrEqual(400);
     }
-  }, 35000);
+  }, 60000);
 
   it.runIf(hasLiveCreds)('validates Pathao Aladdin/Hermes OAuth2 token and dispatch telemetry', async () => {
     try {

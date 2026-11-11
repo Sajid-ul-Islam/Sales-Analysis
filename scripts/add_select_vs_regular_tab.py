@@ -4,6 +4,19 @@ import os
 import sys
 import pandas as pd
 import openpyxl
+def safe_sum_cogs(series):
+    s = pd.to_numeric(series, errors='coerce')
+    return float(s.sum()) if s.notna().sum() > 0 else 0.0
+
+def safe_cogs_disp(series, total_count=None):
+    s = pd.to_numeric(series, errors='coerce')
+    notna_cnt = s.notna().sum()
+    if notna_cnt == 0:
+        return "didn'tget"
+    if total_count is not None and notna_cnt < total_count:
+        return "didn'tget"
+    return float(s.sum())
+
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
@@ -78,13 +91,13 @@ reg_deliv = d_df1[d_df1['Brand Name'] == 'DEEN']
 
 tot_sel_u = int(sel_deliv['Quantity'].sum())
 tot_sel_v = float(sel_deliv['Total Value (৳)'].sum())
-tot_sel_cg = float(sel_deliv['Total COGS (৳)'].sum())
+tot_sel_cg = safe_sum_cogs(sel_deliv['Total COGS (৳)'])
 tot_sel_gp = tot_sel_v - tot_sel_cg
 tot_sel_gm = (tot_sel_gp / tot_sel_v * 100) if tot_sel_v else 0.0
 
 tot_reg_u = int(reg_deliv['Quantity'].sum())
 tot_reg_v = float(reg_deliv['Total Value (৳)'].sum())
-tot_reg_cg = float(reg_deliv['Total COGS (৳)'].sum())
+tot_reg_cg = safe_sum_cogs(reg_deliv['Total COGS (৳)'])
 tot_reg_gp = tot_reg_v - tot_reg_cg
 tot_reg_gm = (tot_reg_gp / tot_reg_v * 100) if tot_reg_v else 0.0
 
@@ -220,7 +233,7 @@ for cat_name, grp in df1.groupby('Category'):
     sel_u = int(d_sel['Quantity'].sum())
     sel_mrp = float(grp_sel['Total Value (৳)'].sum())
     sel_net = float(d_sel['Total Value (৳)'].sum())
-    sel_cg = float(d_sel['Total COGS (৳)'].sum())
+    sel_cg = safe_sum_cogs(d_sel['Total COGS (৳)'])
     sel_gp = sel_net - sel_cg
     sel_gm = (sel_gp / sel_net) if sel_net > 0 else 0.0
     
@@ -230,7 +243,7 @@ for cat_name, grp in df1.groupby('Category'):
     reg_u = int(d_reg['Quantity'].sum())
     reg_mrp = float(grp_reg['Total Value (৳)'].sum())
     reg_net = float(d_reg['Total Value (৳)'].sum())
-    reg_cg = float(d_reg['Total COGS (৳)'].sum())
+    reg_cg = safe_sum_cogs(d_reg['Total COGS (৳)'])
     reg_gp = reg_net - reg_cg
     reg_gm = (reg_gp / reg_net) if reg_net > 0 else 0.0
     
@@ -332,7 +345,7 @@ for cat_name, grp in df1.groupby('Category'):
         deliv_rate = (sold_u / disp_u) if disp_u > 0 else 0.0
         mrp_v = float(b_grp['Total Value (৳)'].sum())
         net_s = float(d_b_grp['Total Value (৳)'].sum())
-        cogs_v = float(d_b_grp['Total COGS (৳)'].sum())
+        cogs_v = safe_sum_cogs(d_b_grp['Total COGS (৳)'])
         gp = net_s - cogs_v
         gm = (gp / net_s) if net_s > 0 else 0.0
         avg_p = (net_s / sold_u) if sold_u > 0 else 0.0
@@ -480,13 +493,13 @@ reg_pos = df2[df2['Brand Name'] == 'DEEN']
 
 tot_pos_sel_u = int(sel_pos['Quantity Sold'].sum())
 tot_pos_sel_v = float(sel_pos['Line Total (৳)'].sum())
-tot_pos_sel_cg = float(sel_pos['Total COGS (৳)'].sum())
+tot_pos_sel_cg = safe_sum_cogs(sel_pos['Total COGS (৳)'])
 tot_pos_sel_gp = tot_pos_sel_v - tot_pos_sel_cg
 tot_pos_sel_gm = (tot_pos_sel_gp / tot_pos_sel_v * 100) if tot_pos_sel_v else 0.0
 
 tot_pos_reg_u = int(reg_pos['Quantity Sold'].sum())
 tot_pos_reg_v = float(reg_pos['Line Total (৳)'].sum())
-tot_pos_reg_cg = float(reg_pos['Total COGS (৳)'].sum())
+tot_pos_reg_cg = safe_sum_cogs(reg_pos['Total COGS (৳)'])
 tot_pos_reg_gp = tot_pos_reg_v - tot_pos_reg_cg
 tot_pos_reg_gm = (tot_pos_reg_gp / tot_pos_reg_v * 100) if tot_pos_reg_v else 0.0
 
@@ -617,7 +630,7 @@ for cat_name, grp in df2.groupby('Category'):
     sel_u = int(grp_sel['Quantity Sold'].sum())
     sel_mrp = float((grp_sel['Unit Price (৳)'] * grp_sel['Quantity Sold']).sum())
     sel_net = float(grp_sel['Line Total (৳)'].sum())
-    sel_cg = float(grp_sel['Total COGS (৳)'].sum())
+    sel_cg = safe_sum_cogs(grp_sel['Total COGS (৳)'])
     sel_gp = sel_net - sel_cg
     sel_gm = (sel_gp / sel_net) if sel_net > 0 else 0.0
     
@@ -626,7 +639,7 @@ for cat_name, grp in df2.groupby('Category'):
     reg_u = int(grp_reg['Quantity Sold'].sum())
     reg_mrp = float((grp_reg['Unit Price (৳)'] * grp_reg['Quantity Sold']).sum())
     reg_net = float(grp_reg['Line Total (৳)'].sum())
-    reg_cg = float(grp_reg['Total COGS (৳)'].sum())
+    reg_cg = safe_sum_cogs(grp_reg['Total COGS (৳)'])
     reg_gp = reg_net - reg_cg
     reg_gm = (reg_gp / reg_net) if reg_net > 0 else 0.0
     
@@ -724,7 +737,7 @@ for cat_name, grp in df2.groupby('Category'):
         sold_u = int(b_grp['Quantity Sold'].sum())
         mrp_v = float((b_grp['Unit Price (৳)'] * b_grp['Quantity Sold']).sum())
         net_s = float(b_grp['Line Total (৳)'].sum())
-        cogs_v = float(b_grp['Total COGS (৳)'].sum())
+        cogs_v = safe_sum_cogs(b_grp['Total COGS (৳)'])
         gp = net_s - cogs_v
         gm = (gp / net_s) if net_s > 0 else 0.0
         avg_p = (net_s / sold_u) if sold_u > 0 else 0.0

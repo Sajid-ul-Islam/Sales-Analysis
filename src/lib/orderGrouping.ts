@@ -38,8 +38,8 @@ export interface OrderWiseItem {
   quantity: number;
   itemCost: number;
   amount: number;
-  cogs?: number;
-  marginPercent?: number;
+  cogs?: number | "didn'tget";
+  marginPercent?: number | "didn'tget";
   isExactCogs?: boolean;
   isSelects: boolean;
   sipInventory?: string;
@@ -200,6 +200,7 @@ export function groupOrdersByOrderId(rows: RawOrderRow[]): OrderWiseGroup[] {
     const cogsInfo = getItemCogsInfo(sku, itemCost, {
       productId: (rowRec.productId || rowRec['Product ID'] || rowRec.product_id) as string | number | undefined,
       variationId: (rowRec.variationId || rowRec['Variation ID'] || rowRec.variation_id) as string | number | undefined,
+      itemName,
     });
 
     group.items.push({
@@ -417,8 +418,14 @@ export function buildOrderWiseWorkbook(
       new Set(g.items.map((i) => i.sipInventory).filter(Boolean))
     ).join(', ') || g.branch.branchName || 'Central Warehouse';
 
-    const totalCogs = g.items.reduce((sum, i) => sum + (i.cogs || 0) * i.quantity, 0);
-    const estProfit = Math.max(0, g.totalAmount - totalCogs);
+    const allHaveCogs = g.items.every((i) => typeof i.cogs === 'number');
+    const totalCogs = allHaveCogs
+      ? g.items.reduce((sum, i) => sum + (typeof i.cogs === 'number' ? i.cogs : 0) * i.quantity, 0)
+      : "didn'tget";
+    const estProfit = typeof totalCogs === 'number' ? Math.max(0, g.totalAmount - totalCogs) : "didn'tget";
+    const grossMarginPct = typeof estProfit === 'number' && g.totalAmount > 0
+      ? ((estProfit / g.totalAmount) * 100).toFixed(1) + '%'
+      : (typeof totalCogs === 'number' ? '0.0%' : "didn'tget");
 
     return {
       'Order ID': g.orderId,
@@ -440,6 +447,7 @@ export function buildOrderWiseWorkbook(
       'Order Total (TK)': g.totalAmount,
       'Total COGS (TK)': totalCogs,
       'Est. Gross Profit (TK)': estProfit,
+      'Gross Margin (%)': grossMarginPct,
       'WooCommerce Status': g.wcStatus,
       'Pathao Courier Status': g.courierStatus,
       'Pathao Consignment ID': g.consignmentIds.join(', ') || 'N/A',
@@ -461,7 +469,10 @@ export function buildOrderWiseWorkbook(
         new Set(g.items.map((i) => i.sipInventory).filter(Boolean))
       ).join(', ') || 'Exchange Replacement';
 
-      const totalCogs = g.items.reduce((sum, i) => sum + (i.cogs || 0) * i.quantity, 0);
+      const allExHaveCogs = g.items.every((i) => typeof i.cogs === 'number');
+      const totalCogs = allExHaveCogs
+        ? g.items.reduce((sum, i) => sum + (typeof i.cogs === 'number' ? i.cogs : 0) * i.quantity, 0)
+        : "didn'tget";
 
       return {
         'Replacement Order ID': g.orderId,

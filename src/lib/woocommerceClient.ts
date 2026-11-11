@@ -2049,20 +2049,22 @@ export async function fetchWooCommerceCogsMap(
 }
 
 export interface ItemCogsInfo {
-  cogs: number;
+  cogs: number | null | "didn'tget";
   salePrice: number;
   regularPrice: number;
   mrp: number;
-  marginAmount: number;
-  marginPercent: number;
+  marginAmount: number | null | "didn'tget";
+  marginPercent: number | null | "didn'tget";
   isExact: boolean;
-  cogsSource: 'EXACT_WOOCOMMERCE' | 'ESTIMATED_BASELINE';
+  cogsSource: 'EXACT_WOOCOMMERCE' | 'MANAGEMENT_SPECIFIED' | "didn'tget";
 }
 
 /**
  * Resolves unit COGS (buying price) and profit margin for any apparel SKU or item.
- * Prioritizes exact WooCommerce REST API buying price (_sip_buying_price),
- * falling back to baseline margin % (default 42% COGS / 58% margin).
+ * Prioritizes exact WooCommerce REST API buying price (_sip_buying_price) and
+ * management-specified COGS rules.
+ * If exact COGS cannot be retrieved, NO fallback multiplier is applied;
+ * instead, it explicitly returns "didn'tget".
  */
 export function getItemCogsInfo(
   sku?: string,
@@ -2071,44 +2073,107 @@ export function getItemCogsInfo(
     productId?: number | string;
     variationId?: number | string;
     fallbackPercent?: number;
+    itemName?: string;
   } = {}
 ): ItemCogsInfo {
   const cleanSku = (sku || '').trim();
-  const fallbackRate = (options.fallbackPercent !== undefined ? options.fallbackPercent : 42) / 100;
+  const lowerSku = cleanSku.toLowerCase();
+  const lowerName = (options.itemName || '').toLowerCase();
   let cogs = 0;
   let regularPrice = 0;
   let isExact = false;
+  let cogsSource: 'EXACT_WOOCOMMERCE' | 'MANAGEMENT_SPECIFIED' | "didn'tget" = "didn'tget";
+
+  // 1. Management Specified Fixed COGS Rules:
+  // - All Aluminum Water Bottle COGS is 195 BDT
+  // - All Mask COGS is 120 BDT
+  // - All Card Holder COGS is 280 BDT
+  if (lowerSku.startsWith('109-0501-') || lowerName.includes('water bottle') || (lowerName.includes('bottle') && !lowerName.includes('sweatshirt') && !lowerName.includes('hoodie'))) {
+    cogs = 195;
+    regularPrice = 498;
+    isExact = true;
+    cogsSource = 'MANAGEMENT_SPECIFIED';
+  } else if (lowerSku.startsWith('109-0502-') || lowerName.includes('mask') || lowerName.includes('face mask')) {
+    cogs = 120;
+    regularPrice = 280;
+    isExact = true;
+    cogsSource = 'MANAGEMENT_SPECIFIED';
+  } else if (lowerSku.startsWith('109-0104-') || lowerName.includes('card holder') || lowerName.includes('cardholder')) {
+    cogs = 280;
+    regularPrice = 590;
+    isExact = true;
+    cogsSource = 'MANAGEMENT_SPECIFIED';
+  }
 
   const dataset = wcSkuCogsData as unknown as WcCogsData;
-  if (cleanSku && dataset?.bySku?.[cleanSku]?.cogs) {
+
+  // 2. Exact match in dataset by SKU
+  if (!isExact && cleanSku && dataset?.bySku?.[cleanSku]?.cogs) {
     cogs = Number(dataset.bySku[cleanSku].cogs) || 0;
     regularPrice = Number(dataset.bySku[cleanSku].regularPrice) || 0;
     isExact = true;
-  } else if (cleanSku && dataset?.bySku?.[cleanSku]?.regularPrice) {
+    cogsSource = 'EXACT_WOOCOMMERCE';
+  } else if (!isExact && cleanSku && dataset?.bySku?.[cleanSku]?.regularPrice) {
     regularPrice = Number(dataset.bySku[cleanSku].regularPrice) || 0;
-  } else if (dataset?.byId) {
+  }
+
+  // 3. Case-insensitive or size-stripped master SKU lookup
+  if (!isExact && cleanSku && dataset?.bySku) {
+    const upperSku = cleanSku.toUpperCase();
+    if (dataset.bySku[upperSku]?.cogs) {
+      cogs = Number(dataset.bySku[upperSku].cogs) || 0;
+      regularPrice = Number(dataset.bySku[upperSku].regularPrice) || 0;
+      isExact = true;
+      cogsSource = 'EXACT_WOOCOMMERCE';
+    } else {
+      const strippedSku = cleanSku.replace(/[-_](?:(?:[2-5]?X[SL])|[SML]|(?:[2-5]?XL)|XS|XXL|XXXL|\d{2})\s*$/i, '').trim();
+      if (strippedSku && strippedSku !== cleanSku && dataset.bySku[strippedSku]?.cogs) {
+        cogs = Number(dataset.bySku[strippedSku].cogs) || 0;
+        regularPrice = Number(dataset.bySku[strippedSku].regularPrice) || 0;
+        isExact = true;
+        cogsSource = 'EXACT_WOOCOMMERCE';
+      }
+    }
+  }
+
+  // 4. Exact match by Product ID / Variation ID
+  if (!isExact && dataset?.byId) {
     const pId = options.productId ? String(options.productId).trim() : '';
     const vId = options.variationId ? String(options.variationId).trim() : '';
     if (pId && vId && dataset.byId[`${pId}:${vId}`]?.cogs) {
       cogs = Number(dataset.byId[`${pId}:${vId}`].cogs) || 0;
       regularPrice = Number(dataset.byId[`${pId}:${vId}`].regularPrice) || 0;
       isExact = true;
+      cogsSource = 'EXACT_WOOCOMMERCE';
     } else if (vId && dataset.byId[vId]?.cogs) {
       cogs = Number(dataset.byId[vId].cogs) || 0;
       regularPrice = Number(dataset.byId[vId].regularPrice) || 0;
       isExact = true;
+      cogsSource = 'EXACT_WOOCOMMERCE';
     } else if (pId && dataset.byId[pId]?.cogs) {
       cogs = Number(dataset.byId[pId].cogs) || 0;
       regularPrice = Number(dataset.byId[pId].regularPrice) || 0;
       isExact = true;
+      cogsSource = 'EXACT_WOOCOMMERCE';
     }
   }
 
-  if (cogs <= 0 && salePrice > 0) {
-    cogs = Math.round(salePrice * fallbackRate);
+  const mrp = regularPrice > 0 ? Math.round(regularPrice) : (salePrice > 0 ? Math.round(salePrice) : 0);
+
+  // If exact COGS is missing: DO NOT FALLBACK, return "didn'tget"
+  if (!isExact || cogs <= 0) {
+    return {
+      cogs: "didn'tget",
+      salePrice,
+      regularPrice: Math.round(regularPrice),
+      mrp,
+      marginAmount: "didn'tget",
+      marginPercent: "didn'tget",
+      isExact: false,
+      cogsSource: "didn'tget",
+    };
   }
 
-  const mrp = regularPrice > 0 ? Math.round(regularPrice) : (salePrice > 0 ? Math.round(salePrice) : 0);
   const marginAmount = Math.max(0, salePrice - cogs);
   const marginPercent = salePrice > 0 ? Number(((marginAmount / salePrice) * 100).toFixed(1)) : 0;
 
@@ -2119,8 +2184,8 @@ export function getItemCogsInfo(
     mrp,
     marginAmount,
     marginPercent,
-    isExact,
-    cogsSource: isExact ? 'EXACT_WOOCOMMERCE' : 'ESTIMATED_BASELINE',
+    isExact: true,
+    cogsSource,
   };
 }
 

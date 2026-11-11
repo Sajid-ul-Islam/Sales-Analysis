@@ -5,6 +5,19 @@ import sys
 import shutil
 import pandas as pd
 import openpyxl
+def safe_sum_cogs(series):
+    s = pd.to_numeric(series, errors='coerce')
+    return float(s.sum()) if s.notna().sum() > 0 else 0.0
+
+def safe_cogs_disp(series, total_count=None):
+    s = pd.to_numeric(series, errors='coerce')
+    notna_cnt = s.notna().sum()
+    if notna_cnt == 0:
+        return "didn'tget"
+    if total_count is not None and notna_cnt < total_count:
+        return "didn'tget"
+    return float(s.sum())
+
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
@@ -104,7 +117,7 @@ tot_deliv_units = int(deliv_items['Quantity'].sum())
 tot_disp_units = int(df_items['Quantity'].sum())
 tot_disp_val = float(df_items['Total Value (৳)'].sum())
 tot_deliv_val = float(deliv_items['Total Value (৳)'].sum())
-tot_deliv_cogs = float(deliv_items['Total COGS (৳)'].sum())
+tot_deliv_cogs = safe_sum_cogs(deliv_items['Total COGS (৳)'])
 tot_gp = tot_deliv_val - tot_deliv_cogs
 tot_gm = (tot_gp / tot_deliv_val * 100) if tot_deliv_val else 0.0
 
@@ -171,17 +184,26 @@ for cat_name, grp in df_items.groupby('Category'):
     deliv_rate = (sold_u / disp_u) if disp_u else 0.0
     mrp_v = float(grp['Total Value (৳)'].sum())
     net_s = float(d_grp['Total Value (৳)'].sum())
-    cogs_v = float(d_grp['Total COGS (৳)'].sum())
-    gp = net_s - cogs_v
-    gm = (gp / net_s) if net_s > 0 else 0.0
+    cogs_v = safe_sum_cogs(d_grp['Total COGS (৳)'])
+    has_cogs = pd.to_numeric(grp['Total COGS (৳)'], errors='coerce').notna().sum() == len(grp) and len(grp) > 0
+    if has_cogs and cogs_v > 0:
+        gp = net_s - cogs_v
+        gm = (gp / net_s) if net_s > 0 else 0.0
+        cogs_disp = cogs_v
+        gp_disp = gp
+        gm_disp = gm
+    else:
+        cogs_disp = "didn'tget"
+        gp_disp = "didn'tget"
+        gm_disp = "didn'tget" 
     avg_p = (net_s / sold_u) if sold_u > 0 else 0.0
     share = (net_s / tot_deliv_val) if tot_deliv_val > 0 else 0.0
     
     tag = '🌟 Top Revenue Category' if share >= 0.20 else ('⚡ Volume Driver' if sold_u >= 100 else ('⚠️ High Return Alert' if (1.0 - deliv_rate) >= 0.25 else '⚖️ Steady Contributor'))
     ecom_cats.append({
         'cat': cat_name, 'disp_u': disp_u, 'sold_u': sold_u, 'ret_u': ret_u,
-        'deliv_rate': deliv_rate, 'mrp': mrp_v, 'cogs': cogs_v, 'net_s': net_s,
-        'gp': gp, 'gm': gm, 'avg_p': avg_p, 'share': share, 'tag': tag
+        'deliv_rate': deliv_rate, 'mrp': mrp_v, 'cogs': cogs_disp, 'net_s': net_s,
+        'gp': gp_disp, 'gm': gm_disp, 'avg_p': avg_p, 'share': share, 'tag': tag
     })
 ecom_cats.sort(key=lambda x: -x['net_s'])
 
@@ -212,17 +234,18 @@ tot_disp_units = sum(c['disp_u'] for c in ecom_cats)
 tot_sold_units = sum(c['sold_u'] for c in ecom_cats)
 tot_ret_units = sum(c['ret_u'] for c in ecom_cats)
 tot_mrp_v = sum(c['mrp'] for c in ecom_cats)
-tot_cogs_v = sum(c['cogs'] for c in ecom_cats)
+tot_cogs_v = sum(c['cogs'] for c in ecom_cats if isinstance(c['cogs'], (int, float)))
 tot_net_s = sum(c['net_s'] for c in ecom_cats)
-tot_gp = tot_net_s - tot_cogs_v
-tot_gm = (tot_gp / tot_net_s) if tot_net_s > 0 else 0.0
+tot_cogs_disp = tot_cogs_v if all(isinstance(c['cogs'], (int, float)) for c in ecom_cats) else (f"{tot_cogs_v:,.0f} (known only)" if tot_cogs_v > 0 else "didn'tget")
+tot_gp_disp = (tot_net_s - tot_cogs_v) if all(isinstance(c['cogs'], (int, float)) for c in ecom_cats) else "didn'tget"
+tot_gm_disp = ((tot_net_s - tot_cogs_v) / tot_net_s) if (all(isinstance(c['cogs'], (int, float)) for c in ecom_cats) and tot_net_s > 0) else "didn'tget"
 tot_deliv_rate = (tot_sold_units / tot_disp_units) if tot_disp_units > 0 else 0.0
 tot_avg_p = (tot_net_s / tot_sold_units) if tot_sold_units > 0 else 0.0
 
 tot_row_1 = [
     "TOTAL ALL CATEGORIES", tot_disp_units, tot_sold_units, tot_ret_units,
-    tot_deliv_rate, tot_mrp_v, tot_cogs_v, tot_net_s,
-    tot_gp, tot_gm, tot_avg_p, 1.0, "All E-Com Dispatches"
+    tot_deliv_rate, tot_mrp_v, tot_cogs_disp, tot_net_s,
+    tot_gp_disp, tot_gm_disp, tot_avg_p, 1.0, "All E-Com Dispatches"
 ]
 for c_idx, val in enumerate(tot_row_1, 1):
     cell = ws_cat.cell(row=cur_row, column=c_idx, value=val)
@@ -273,16 +296,25 @@ for (cat_name, sub_name), grp in df_items.groupby(['Category', 'Sub-Category']):
     deliv_rate = (sold_u / disp_u) if disp_u else 0.0
     mrp_v = float(grp['Total Value (৳)'].sum())
     net_s = float(d_grp['Total Value (৳)'].sum())
-    cogs_v = float(d_grp['Total COGS (৳)'].sum())
-    gp = net_s - cogs_v
-    gm = (gp / net_s) if net_s > 0 else 0.0
+    cogs_v = safe_sum_cogs(d_grp['Total COGS (৳)'])
+    has_cogs = pd.to_numeric(grp['Total COGS (৳)'], errors='coerce').notna().sum() == len(grp) and len(grp) > 0
+    if has_cogs and cogs_v > 0:
+        gp = net_s - cogs_v
+        gm = (gp / net_s) if net_s > 0 else 0.0
+        cogs_disp = cogs_v
+        gp_disp = gp
+        gm_disp = gm
+    else:
+        cogs_disp = "didn'tget"
+        gp_disp = "didn'tget"
+        gm_disp = "didn'tget" 
     avg_p = (net_s / sold_u) if sold_u > 0 else 0.0
     parent_tot = cat_net_totals.get(cat_name, 0)
     cat_share = (net_s / parent_tot) if parent_tot > 0 else 0.0
     ecom_subcats.append({
         'cat': cat_name, 'sub': sub_name, 'disp_u': disp_u, 'sold_u': sold_u, 'ret_u': ret_u,
-        'deliv_rate': deliv_rate, 'mrp': mrp_v, 'cogs': cogs_v, 'net_s': net_s,
-        'gp': gp, 'gm': gm, 'avg_p': avg_p, 'cat_share': cat_share
+        'deliv_rate': deliv_rate, 'mrp': mrp_v, 'cogs': cogs_disp, 'net_s': net_s,
+        'gp': gp_disp, 'gm': gm_disp, 'avg_p': avg_p, 'cat_share': cat_share
     })
 ecom_subcats.sort(key=lambda x: (x['cat'], -x['net_s']))
 
@@ -311,8 +343,8 @@ for sc in ecom_subcats:
 ws_cat.row_dimensions[cur_row].height = 20
 tot_row_2 = [
     "TOTAL ALL SUB-CATEGORIES", f"{len(ecom_subcats)} Variants", tot_disp_units, tot_sold_units, tot_ret_units,
-    tot_deliv_rate, tot_mrp_v, tot_cogs_v, tot_net_s,
-    tot_gp, tot_gm, tot_avg_p, 1.0
+    tot_deliv_rate, tot_mrp_v, tot_cogs_disp, tot_net_s,
+    tot_gp_disp, tot_gm_disp, tot_avg_p, 1.0
 ]
 for c_idx, val in enumerate(tot_row_2, 1):
     cell = ws_cat.cell(row=cur_row, column=c_idx, value=val)
@@ -385,7 +417,7 @@ ws_pos_cat.row_dimensions[2].height = 18
 tot_pos_units = int(df_pos_items['Quantity Sold'].sum())
 tot_pos_mrp = float((df_pos_items['Unit Price (৳)'] * df_pos_items['Quantity Sold']).sum())
 tot_pos_net = float(df_pos_items['Line Total (৳)'].sum())
-tot_pos_cogs = float(df_pos_items['Total COGS (৳)'].sum())
+tot_pos_cogs = safe_sum_cogs(df_pos_items['Total COGS (৳)'])
 tot_pos_gp = tot_pos_net - tot_pos_cogs
 pos_gm = (tot_pos_gp / tot_pos_net * 100) if tot_pos_net else 0.0
 
@@ -446,16 +478,25 @@ for cat_name, grp in df_pos_items.groupby('Category'):
     sold_u = int(grp['Quantity Sold'].sum())
     mrp_v = float((grp['Unit Price (৳)'] * grp['Quantity Sold']).sum())
     net_s = float(grp['Line Total (৳)'].sum())
-    cogs_v = float(grp['Total COGS (৳)'].sum())
-    gp = net_s - cogs_v
-    gm = (gp / net_s) if net_s > 0 else 0.0
+    cogs_v = safe_sum_cogs(grp['Total COGS (৳)'])
+    has_cogs = pd.to_numeric(grp['Total COGS (৳)'], errors='coerce').notna().sum() == len(grp) and len(grp) > 0
+    if has_cogs and cogs_v > 0:
+        gp = net_s - cogs_v
+        gm = (gp / net_s) if net_s > 0 else 0.0
+        cogs_disp = cogs_v
+        gp_disp = gp
+        gm_disp = gm
+    else:
+        cogs_disp = "didn'tget"
+        gp_disp = "didn'tget"
+        gm_disp = "didn'tget" 
     avg_p = (net_s / sold_u) if sold_u > 0 else 0.0
     share = (net_s / tot_pos_net) if tot_pos_net > 0 else 0.0
     top_out = grp.groupby('Outlet Name')['Quantity Sold'].sum().idxmax()
     tag = '🌟 Top POS Volume' if share >= 0.20 else ('⚡ Core Driver' if sold_u >= 70 else '⚖️ Steady Contributor')
     pos_cats.append({
-        'cat': cat_name, 'sold_u': sold_u, 'mrp': mrp_v, 'cogs': cogs_v, 'net_s': net_s,
-        'gp': gp, 'gm': gm, 'avg_p': avg_p, 'share': share, 'top_out': top_out, 'tag': tag
+        'cat': cat_name, 'sold_u': sold_u, 'mrp': mrp_v, 'cogs': cogs_disp, 'net_s': net_s,
+        'gp': gp_disp, 'gm': gm_disp, 'avg_p': avg_p, 'share': share, 'top_out': top_out, 'tag': tag
     })
 pos_cats.sort(key=lambda x: -x['net_s'])
 
@@ -483,15 +524,16 @@ for pc in pos_cats:
 ws_pos_cat.row_dimensions[cur_row2].height = 20
 tot_pos_sold_units = sum(c['sold_u'] for c in pos_cats)
 tot_pos_mrp_v = sum(c['mrp'] for c in pos_cats)
-tot_pos_cogs_v = sum(c['cogs'] for c in pos_cats)
+tot_pos_cogs_v = sum(c['cogs'] for c in pos_cats if isinstance(c['cogs'], (int, float)))
 tot_pos_net_s = sum(c['net_s'] for c in pos_cats)
-tot_pos_gp_v = tot_pos_net_s - tot_pos_cogs_v
-tot_pos_gm_v = (tot_pos_gp_v / tot_pos_net_s) if tot_pos_net_s > 0 else 0.0
+tot_pos_cogs_disp = tot_pos_cogs_v if all(isinstance(c['cogs'], (int, float)) for c in pos_cats) else (f"{tot_pos_cogs_v:,.0f} (known only)" if tot_pos_cogs_v > 0 else "didn'tget")
+tot_pos_gp_disp = (tot_pos_net_s - tot_pos_cogs_v) if all(isinstance(c['cogs'], (int, float)) for c in pos_cats) else "didn'tget"
+tot_pos_gm_disp = ((tot_pos_net_s - tot_pos_cogs_v) / tot_pos_net_s) if (all(isinstance(c['cogs'], (int, float)) for c in pos_cats) and tot_pos_net_s > 0) else "didn'tget"
 tot_pos_avg_p = (tot_pos_net_s / tot_pos_sold_units) if tot_pos_sold_units > 0 else 0.0
 
 tot_row_pos1 = [
-    "TOTAL ALL CATEGORIES", tot_pos_sold_units, tot_pos_mrp_v, tot_pos_cogs_v, tot_pos_net_s,
-    tot_pos_gp_v, tot_pos_gm_v, tot_pos_avg_p, 1.0, "All 4 Outlets", "All Walk-In Sales"
+    "TOTAL ALL CATEGORIES", tot_pos_sold_units, tot_pos_mrp_v, tot_pos_cogs_disp, tot_pos_net_s,
+    tot_pos_gp_disp, tot_pos_gm_disp, tot_pos_avg_p, 1.0, "All 4 Outlets", "All Walk-In Sales"
 ]
 for c_idx, val in enumerate(tot_row_pos1, 1):
     cell = ws_pos_cat.cell(row=cur_row2, column=c_idx, value=val)
@@ -536,16 +578,25 @@ for (cat_name, sub_name), grp in df_pos_items.groupby(['Category', 'Sub-Category
     sold_u = int(grp['Quantity Sold'].sum())
     mrp_v = float((grp['Unit Price (৳)'] * grp['Quantity Sold']).sum())
     net_s = float(grp['Line Total (৳)'].sum())
-    cogs_v = float(grp['Total COGS (৳)'].sum())
-    gp = net_s - cogs_v
-    gm = (gp / net_s) if net_s > 0 else 0.0
+    cogs_v = safe_sum_cogs(grp['Total COGS (৳)'])
+    has_cogs = pd.to_numeric(grp['Total COGS (৳)'], errors='coerce').notna().sum() == len(grp) and len(grp) > 0
+    if has_cogs and cogs_v > 0:
+        gp = net_s - cogs_v
+        gm = (gp / net_s) if net_s > 0 else 0.0
+        cogs_disp = cogs_v
+        gp_disp = gp
+        gm_disp = gm
+    else:
+        cogs_disp = "didn'tget"
+        gp_disp = "didn'tget"
+        gm_disp = "didn'tget" 
     avg_p = (net_s / sold_u) if sold_u > 0 else 0.0
     parent_tot = cat_net_totals2.get(cat_name, 0)
     cat_share = (net_s / parent_tot) if parent_tot > 0 else 0.0
     top_out = grp.groupby('Outlet Name')['Quantity Sold'].sum().idxmax()
     pos_subcats.append({
-        'cat': cat_name, 'sub': sub_name, 'sold_u': sold_u, 'mrp': mrp_v, 'cogs': cogs_v, 'net_s': net_s,
-        'gp': gp, 'gm': gm, 'avg_p': avg_p, 'cat_share': cat_share, 'top_out': top_out
+        'cat': cat_name, 'sub': sub_name, 'sold_u': sold_u, 'mrp': mrp_v, 'cogs': cogs_disp, 'net_s': net_s,
+        'gp': gp_disp, 'gm': gm_disp, 'avg_p': avg_p, 'cat_share': cat_share, 'top_out': top_out
     })
 pos_subcats.sort(key=lambda x: (x['cat'], -x['net_s']))
 
@@ -572,8 +623,8 @@ for psc in pos_subcats:
 # Total Row for Section 2
 ws_pos_cat.row_dimensions[cur_row2].height = 20
 tot_row_pos2 = [
-    "TOTAL ALL SUB-CATEGORIES", f"{len(pos_subcats)} Variants", tot_pos_sold_units, tot_pos_mrp_v, tot_pos_cogs_v, tot_pos_net_s,
-    tot_pos_gp_v, tot_pos_gm_v, tot_pos_avg_p, 1.0, "All Outlets"
+    "TOTAL ALL SUB-CATEGORIES", f"{len(pos_subcats)} Variants", tot_pos_sold_units, tot_pos_mrp_v, tot_pos_cogs_disp, tot_pos_net_s,
+    tot_pos_gp_disp, tot_pos_gm_disp, tot_pos_avg_p, 1.0, "All Outlets"
 ]
 for c_idx, val in enumerate(tot_row_pos2, 1):
     cell = ws_pos_cat.cell(row=cur_row2, column=c_idx, value=val)

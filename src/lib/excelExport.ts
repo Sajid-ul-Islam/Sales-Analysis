@@ -589,85 +589,54 @@ export function exportReconciledExcel(
     const unitPrice = Number(r.itemCost) || 0;
 
     const cogsInfo = getItemCogsInfo(r.sku, unitPrice, {
-
       productId: (rRec.productId || rRec['Product ID'] || rRec.product_id) as string | number,
-
       variationId: (rRec.variationId || rRec['Variation ID'] || rRec.variation_id) as string | number,
-
+      itemName: r.itemName,
     });
 
     const qty = Number(r.quantity) || 1;
-
     const unitCogs = cogsInfo.cogs;
-
-    const totalCogs = unitCogs * qty;
-
+    const totalCogs = typeof unitCogs === 'number' ? Math.round(unitCogs * qty) : "didn'tget";
     const totalPrice = unitPrice * qty;
-
     const unitMrp = cogsInfo.mrp;
-
-
+    const grossProfit = typeof totalCogs === 'number' ? Math.max(0, Math.round(r.netRevenueImpact) - totalCogs) : "didn'tget";
+    const grossMarginPct = typeof grossProfit === 'number' && r.netRevenueImpact > 0
+      ? ((grossProfit / r.netRevenueImpact) * 100).toFixed(1) + '%'
+      : (typeof unitCogs === 'number' ? '0.0%' : "didn'tget");
 
     return {
-
       'Order ID': r.orderId,
-
       'Order Delivery Status': orderDeliveryStatus,
-
       'Item Delivery Status': itemDeliveryStatus,
-
       'Order Line Status': r.lineStatus,
-
       'Delivery Status': r.deliveryStatus,
-
       'Order Date': r.orderDate ? r.orderDate.toISOString().slice(0, 19).replace('T', ' ') : '',
-
       'Customer Name': getExportCustomerName(r),
-
       'Phone': getExportPhoneNumber(r),
-
       'City': r.city,
-
       'Territory': r.districtArea,
-
       'Category': cat,
-
       'Sub-Category': subCat,
-
       'SIP Inventory': sipInventory,
-
       'Collection Line': collectionLine,
-
       'Product Description': r.itemName,
-
       'SKU': r.sku,
-
       'Quantity': r.quantity,
-
       'Unit Price (BDT)': unitPrice,
-
       'Total Price (BDT)': totalPrice,
-
       'Unit COGS (BDT)': unitCogs,
-
       'Total COGS (BDT)': totalCogs,
-
       'Unit MRP (BDT)': unitMrp,
-
+      'Realized Gross Profit (BDT)': grossProfit,
+      'Gross Margin (%)': grossMarginPct,
+      'COGS Source': cogsInfo.cogsSource,
       'Order Total (BDT)': r.orderAmount,
-
       'Net Revenue Recognized': Math.round(r.netRevenueImpact),
-
       'Payment Method': r.paymentMethod,
-
       'Manual Review Flag': r.requiresManualReview ? 'FLAGGED FOR MANUAL AUDIT' : 'CONFIRMED OK',
-
       'Audit Trail / Evidence': r.decisionEvidence?.explanation || '',
-
       'AI Audit Tag': r.aiAuditTag || '',
-
       'AI Operational Notes': r.aiAuditNote || ''
-
     };
 
   });
@@ -688,42 +657,32 @@ export function exportReconciledExcel(
 
     const unitPrice = i.deliveredQty > 0 ? Math.round(i.deliveredRevenue / i.deliveredQty) : 0;
 
-    const cogsInfo = getItemCogsInfo(i.sku, unitPrice);
-
+    const cogsInfo = getItemCogsInfo(i.sku, unitPrice, { itemName: i.itemName });
     const unitCogs = cogsInfo.cogs;
-
+    const totalDeliveredCogs = typeof unitCogs === 'number' ? Math.round(unitCogs * i.deliveredQty) : "didn'tget";
     const unitMrp = cogsInfo.mrp;
-
-
+    const grossProfit = typeof totalDeliveredCogs === 'number' ? Math.max(0, Math.round(i.deliveredRevenue) - totalDeliveredCogs) : "didn'tget";
+    const grossMarginPct = typeof totalDeliveredCogs === 'number' && i.deliveredRevenue > 0
+      ? (((Math.round(i.deliveredRevenue) - totalDeliveredCogs) / i.deliveredRevenue) * 100).toFixed(1) + '%'
+      : (typeof unitCogs === 'number' ? '0.0%' : "didn'tget");
 
     return {
-
       'Category': cat,
-
       'Item Name': i.itemName,
-
       'SKU': i.sku,
-
       'Gross Qty Sold': i.grossQty,
-
       'Delivered Qty': Math.round(i.deliveredQty),
-
       'Returned Qty': Math.round(i.returnedQty),
-
       'Return Rate (%)': i.returnRate.toFixed(1) + '%',
-
       'Unit Price (BDT)': unitPrice,
-
       'Net Delivered Revenue (BDT)': Math.round(i.deliveredRevenue),
-
       'Unit COGS (BDT)': unitCogs,
-
-      'Total Delivered COGS (BDT)': Math.round(unitCogs * i.deliveredQty),
-
+      'Total Delivered COGS (BDT)': totalDeliveredCogs,
+      'Realized Gross Profit (BDT)': grossProfit,
+      'Gross Margin (%)': grossMarginPct,
+      'COGS Source': cogsInfo.cogsSource,
       'Unit MRP (BDT)': unitMrp,
-
       'Total Return Loss (BDT)': Math.round(i.totalLossFromReturns)
-
     };
 
   });
@@ -751,65 +710,36 @@ export function exportReconciledExcel(
     const sipInventory = String(i.sipInventory || 'Central Warehouse');
 
     const unitPrice = Number(i.itemCost) || 0;
-
-    const cogsInfo = getItemCogsInfo(i.sku, unitPrice);
-
+    const cogsInfo = getItemCogsInfo(i.sku, unitPrice, { itemName: i.itemName });
     const qty = Number(i.quantity) || 1;
-
     const unitCogs = cogsInfo.cogs;
-
-    const totalCogs = unitCogs * qty;
-
+    const totalCogs = typeof unitCogs === 'number' ? Math.round(unitCogs * qty) : "didn'tget";
     const totalPrice = unitPrice * qty;
-
     const unitMrp = cogsInfo.mrp;
 
-
-
     return {
-
       'Order ID': i.orderId,
-
       'Return Source': i.returnSource,
-
       'Delivery Status': i.deliveryStatus,
-
       'Order Date': i.orderDate ? i.orderDate.toISOString().slice(0, 19).replace('T', ' ') : '',
-
       'Customer Name': getExportCustomerName(i),
-
       'Phone': getExportPhoneNumber(i),
-
       'Territory': i.districtArea,
-
       'Category': cat,
-
       'Sub-Category': subCat,
-
       'SIP Inventory': sipInventory,
-
       'Collection Line': collectionLine,
-
       'Product Description': i.itemName,
-
       'SKU': i.sku,
-
       'Returned Qty': i.quantity,
-
       'Unit Price (BDT)': unitPrice,
-
       'Total Price (BDT)': totalPrice,
-
       'Unit COGS (BDT)': unitCogs,
-
       'Total COGS (BDT)': totalCogs,
-
+      'COGS Source': cogsInfo.cogsSource,
       'Unit MRP (BDT)': unitMrp,
-
       'Total Returned Value (BDT)': Math.round(i.returnedValue),
-
       'Order Total (BDT)': i.orderAmount
-
     };
 
   });
@@ -876,74 +806,41 @@ export function exportReconciledExcel(
 
       const unitPrice = Number(eRec.unitPrice || eRec.price || eRec.itemCost) || 0;
 
-      const cogsInfo = getItemCogsInfo(sku, unitPrice);
-
+      const cogsInfo = getItemCogsInfo(sku, unitPrice, { itemName: e.itemDescription });
       const qty = Number(e.quantity) || 1;
-
       const unitCogs = cogsInfo.cogs;
-
-      const totalCogs = unitCogs * qty;
-
+      const totalCogs = typeof unitCogs === 'number' ? Math.round(unitCogs * qty) : "didn'tget";
       const totalPrice = unitPrice * qty;
-
       const unitMrp = cogsInfo.mrp;
-
       const sipInventory = String(eRec.sipInventory || eRec.fulfillmentLocation || 'Exchange Replacement');
 
-
-
       return {
-
         'Order ID': e.orderId,
-
         'Raw Order ID': e.rawOrderId,
-
         'Consignment ID': e.consignmentId,
-
         'Recipient Name': getExportCustomerName(e),
-
         'Phone': getExportPhoneNumber(e),
-
         'Destination / Address': e.address,
-
         'Delivery Status': e.deliveryStatus,
-
         'Category': cat,
-
         'Sub-Category': subCat,
-
         'SIP Inventory': sipInventory,
-
         'Collection Line': collectionLine,
-
         'Item Description': e.itemDescription || '',
-
         'SKU': sku,
-
         'Quantity': qty,
-
         'Unit Price (BDT)': unitPrice,
-
         'Total Price (BDT)': totalPrice,
-
         'Unit COGS (BDT)': unitCogs,
-
         'Total COGS (BDT)': totalCogs,
-
+        'COGS Source': cogsInfo.cogsSource,
         'Unit MRP (BDT)': unitMrp,
-
         'Exchange COD (BDT)': e.codAmount,
-
         'Courier Fee (BDT)': e.courierCharge,
-
         'Discount (BDT)': e.discount,
-
         'Payment Status': e.paymentStatus,
-
         'Action / POD': e.actionPod || '',
-
         'Matched in Ledger': e.matchedInOrders ? 'Yes' : 'No'
-
       };
 
     });
@@ -1021,69 +918,44 @@ export function exportReconciledExcel(
       const sipInventory = String(r.sipInventory || r.fulfillmentLocation || 'Central Warehouse');
 
       const unitPrice = Number(r.itemCost) || 0;
-
-      const cogsInfo = getItemCogsInfo(r.sku, unitPrice);
-
+      const cogsInfo = getItemCogsInfo(r.sku, unitPrice, { itemName: r.itemName });
       const qty = Number(r.quantity) || 1;
-
       const unitCogs = cogsInfo.cogs;
-
-      const totalCogs = unitCogs * qty;
-
+      const totalCogs = typeof unitCogs === 'number' ? Math.round(unitCogs * qty) : "didn'tget";
       const totalPrice = unitPrice * qty;
-
       const unitMrp = cogsInfo.mrp;
-
-
+      const grossProfit = typeof totalCogs === 'number' ? Math.max(0, Math.round(r.netRevenueImpact) - totalCogs) : "didn'tget";
+      const grossMarginPct = typeof grossProfit === 'number' && r.netRevenueImpact > 0
+        ? ((grossProfit / r.netRevenueImpact) * 100).toFixed(1) + '%'
+        : (typeof unitCogs === 'number' ? '0.0%' : "didn'tget");
 
       return {
-
         'Order ID': r.orderId,
-
         'AI Audit Tag': r.aiAuditTag || '',
-
         'AI Operational Notes': r.aiAuditNote || '',
-
         'Customer Name': getExportCustomerName(r),
-
         'Phone': getExportPhoneNumber(r),
-
         'City': r.city,
-
         'Territory': r.districtArea,
-
         'Delivery Status': r.orderDeliveryStatus || r.deliveryStatus,
-
         'Category': cat,
-
         'Sub-Category': subCat,
-
         'SIP Inventory': sipInventory,
-
         'Collection Line': collectionLine,
-
         'Product': r.itemName,
-
         'SKU': r.sku,
-
         'Quantity': r.quantity,
-
         'Unit Price (BDT)': unitPrice,
-
         'Total Price (BDT)': totalPrice,
-
         'Unit COGS (BDT)': unitCogs,
-
         'Total COGS (BDT)': totalCogs,
-
+        'Realized Gross Profit (BDT)': grossProfit,
+        'Gross Margin (%)': grossMarginPct,
+        'COGS Source': cogsInfo.cogsSource,
         'Unit MRP (BDT)': unitMrp,
-
         'Order Total (BDT)': r.orderAmount,
-
         'Net Revenue Recognized (BDT)': Math.round(r.netRevenueImpact),
-
         'Fulfillment Branch': r.fulfillmentLocation || 'Online Store (Central Warehouse)'
-
       };
 
     });
@@ -1275,75 +1147,82 @@ export function exportPerformanceReport(
 
 
   // 1. Category Performance Data
+  const catData = categories.map((c, i) => {
+    let catCogs = 0;
+    let hasMissingCogs = false;
+    let matchingItemsCount = 0;
 
-  const catData = categories.map((c, i) => ({
+    for (const it of masterSkuItems) {
+      if ((it.category || '').toLowerCase().trim() === (c.name || '').toLowerCase().trim()) {
+        matchingItemsCount++;
+        const avgPrice = it.deliveredQty > 0 ? it.deliveredRevenue / it.deliveredQty : 0;
+        const info = getItemCogsInfo(it.masterSku, avgPrice, { itemName: it.mainName || it.name });
+        if (typeof info.cogs === 'number') {
+          catCogs += info.cogs * it.deliveredQty;
+        } else {
+          hasMissingCogs = true;
+        }
+      }
+    }
 
-    'SL': i + 1,
-
-    'Category': c.name,
-
-    'Focus / Subcategory': c.sub || '',
-
-    'Dispatched (Units)': c.dispatched,
-
-    'Returned (Units)': c.returns,
-
-    'Net Delivered (Units)': c.net,
-
-    'Retention Rate': c.retention + '%',
-
-    'Delivered Revenue (BDT)': c.revenue
-
-  }));
-
-  const wsCat = XLSX.utils.json_to_sheet(catData);
-
-  autoFitSheetColumns(wsCat, catData);
-
-
-
-  // 2. Item Wise Master SKU Data
-
-  const itemData = masterSkuItems.map((it, i) => {
-
-    const itemName = it.mainName || it.name || 'DEEN Apparel';
-
-    const retentionPct = it.retentionRate !== undefined
-
-      ? it.retentionRate.toFixed(1)
-
-      : (it.grossQty > 0 ? ((it.deliveredQty / it.grossQty) * 100).toFixed(1) : '0.0');
-
-
+    const finalCatCogs = (matchingItemsCount > 0 && !hasMissingCogs) ? Math.round(catCogs) : "didn'tget";
+    const catProfit = typeof finalCatCogs === 'number' ? Math.max(0, Math.round(c.revenue) - finalCatCogs) : "didn'tget";
+    const catMargin = typeof catProfit === 'number' && c.revenue > 0
+      ? ((catProfit / c.revenue) * 100).toFixed(1) + '%'
+      : (typeof finalCatCogs === 'number' ? '0.0%' : "didn'tget");
 
     return {
-
       'SL': i + 1,
-
-      'Master SKU': it.masterSku,
-
-      'Product Style Name': itemName,
-
-      'Category': it.category,
-
-      'Dispatched (Units)': it.grossQty,
-
-      'Returned (Units)': it.returnedQty,
-
-      'Net Delivered (Units)': it.deliveredQty,
-
-      'Retention Rate': retentionPct + '%',
-
-      'Delivered Revenue (BDT)': Math.round(it.deliveredRevenue),
-
-      'Return Revenue Loss (BDT)': Math.round(it.returnLoss)
-
+      'Category': c.name,
+      'Focus / Subcategory': c.sub || '',
+      'Dispatched (Units)': c.dispatched,
+      'Returned (Units)': c.returns,
+      'Net Delivered (Units)': c.net,
+      'Retention Rate': c.retention + '%',
+      'Delivered Revenue (BDT)': c.revenue,
+      'Total COGS (BDT)': finalCatCogs,
+      'Realized Gross Profit (BDT)': catProfit,
+      'Gross Margin (%)': catMargin,
     };
-
   });
+  const wsCat = XLSX.utils.json_to_sheet(catData);
+  autoFitSheetColumns(wsCat, catData);
 
+  // 2. Item Wise Master SKU Data
+  const itemData = masterSkuItems.map((it, i) => {
+    const itemName = it.mainName || it.name || 'DEEN Apparel';
+    const retentionPct = it.retentionRate !== undefined
+      ? it.retentionRate.toFixed(1)
+      : (it.grossQty > 0 ? ((it.deliveredQty / it.grossQty) * 100).toFixed(1) : '0.0');
+
+    const avgDeliveredPrice = it.deliveredQty > 0 ? it.deliveredRevenue / it.deliveredQty : 0;
+    const cogsInfo = getItemCogsInfo(it.masterSku, avgDeliveredPrice, { itemName });
+    const unitCogs = cogsInfo.cogs;
+    const totalDeliveredCogs = typeof unitCogs === 'number' ? Math.round(unitCogs * it.deliveredQty) : "didn'tget";
+    const grossProfit = typeof totalDeliveredCogs === 'number' ? Math.max(0, Math.round(it.deliveredRevenue) - totalDeliveredCogs) : "didn'tget";
+    const grossMarginPct = typeof grossProfit === 'number' && it.deliveredRevenue > 0
+      ? ((grossProfit / it.deliveredRevenue) * 100).toFixed(1) + '%'
+      : (typeof unitCogs === 'number' ? '0.0%' : "didn'tget");
+
+    return {
+      'SL': i + 1,
+      'Master SKU': it.masterSku,
+      'Product Style Name': itemName,
+      'Category': it.category,
+      'Dispatched (Units)': it.grossQty,
+      'Returned (Units)': it.returnedQty,
+      'Net Delivered (Units)': it.deliveredQty,
+      'Retention Rate': retentionPct + '%',
+      'Delivered Revenue (BDT)': Math.round(it.deliveredRevenue),
+      'Return Revenue Loss (BDT)': Math.round(it.returnLoss),
+      'Unit COGS (BDT)': unitCogs,
+      'Total COGS (BDT)': totalDeliveredCogs,
+      'Realized Gross Profit (BDT)': grossProfit,
+      'Gross Margin (%)': grossMarginPct,
+      'COGS Source': cogsInfo.cogsSource,
+    };
+  });
   const wsItem = XLSX.utils.json_to_sheet(itemData);
-
   autoFitSheetColumns(wsItem, itemData);
 
 
@@ -1455,73 +1334,48 @@ export function buildLiveShippedOrdersWorkbook(
     const orderAmt = Number(o['Order Amount'] ?? o.orderAmount ?? o.amount ?? o.total) || 0;
 
     const oRec = o as unknown as Record<string, unknown>;
-
     const cogsInfo = getItemCogsInfo(sku, unitPrice, {
-
       productId: (oRec.productId || oRec['Product ID'] || oRec.product_id) as string | number,
-
       variationId: (oRec.variationId || oRec['Variation ID'] || oRec.variation_id) as string | number,
-
+      itemName,
     });
 
     const unitCogs = cogsInfo.cogs;
-
-    const totalCogs = unitCogs * qty;
-
+    const totalCogs = typeof unitCogs === 'number' ? Math.round(unitCogs * qty) : "didn'tget";
     const totalPrice = unitPrice * qty;
-
     const unitMrp = cogsInfo.mrp;
-
-
+    const grossProfit = typeof totalCogs === 'number' ? Math.max(0, totalPrice - totalCogs) : "didn'tget";
+    const grossMarginPct = typeof totalCogs === 'number' && totalPrice > 0
+      ? (((totalPrice - totalCogs) / totalPrice) * 100).toFixed(1) + '%'
+      : (typeof unitCogs === 'number' ? '0.0%' : "didn'tget");
 
     return {
-
       'Order ID': o['Order ID'] || o.orderId,
-
       'Date': o['Order Date'] || o.orderDate || o.date_created || '',
-
       'Customer Name': getExportCustomerName(o),
-
       'Phone': getExportPhoneNumber(o),
-
       'City': o.City || o.city || 'Dhaka',
-
       'Category': cat,
-
       'Sub-Category': subCat,
-
       'SIP Inventory': sipInventory,
-
       'Collection Line': isSelects ? 'DEEN Selects' : 'DEEN Regular',
-
       'Item Name': itemName,
-
       'SKU': sku,
-
       'Quantity': qty,
-
       'Unit Price (TK)': unitPrice,
-
       'Total Price (TK)': totalPrice,
-
       'Unit COGS (TK)': unitCogs,
-
       'Total COGS (TK)': totalCogs,
-
+      'Est. Gross Profit (TK)': grossProfit,
+      'Gross Margin (%)': grossMarginPct,
+      'COGS Source': cogsInfo.cogsSource,
       'Unit MRP (TK)': unitMrp,
-
       'Order Amount (TK)': orderAmt,
-
       'WooCommerce Status': String((o as Record<string, unknown>).rawWcStatus || (o as Record<string, unknown>)['WooCommerce Status'] || (o as Record<string, unknown>).status || 'completed'),
-
       'Pathao Courier Status': String(o['Courier Status'] || o.courierStatus || 'Untracked'),
-
       'Pathao Consignment ID': String(o['Consignment ID'] || o.consignmentId || o.tracking_number || 'N/A'),
-
       'Collected Amount (TK)': Number(o.collectedAmount ?? o['Collected Amount']) || 0,
-
       'Courier Discrepancy': o.hasDiscrepancy ? `Yes (${o.discrepancyType})` : 'None',
-
     };
 
   });
@@ -1585,9 +1439,7 @@ export function buildLiveShippedOrdersWorkbook(
         });
 
         const unitCogs = cogsInfo.cogs;
-
-        const totalCogs = unitCogs * qty;
-
+        const totalCogs = typeof unitCogs === 'number' ? Math.round(unitCogs * qty) : "didn'tget";
         const totalPrice = unitPrice * qty;
 
         const unitMrp = cogsInfo.mrp;
@@ -2403,55 +2255,36 @@ export function buildMonthlyNetSalesWorkbook(
 
 
     const avgPrice = it.deliveredQty > 0 ? Math.round(it.deliveredRevenue / it.deliveredQty) : 0;
-
-    const cogsInfo = getItemCogsInfo(it.masterSku, avgPrice);
-
+    const cogsInfo = getItemCogsInfo(it.masterSku, avgPrice, { itemName: it.mainName });
     const unitCogs = cogsInfo.cogs;
-
-    const totalDeliveredCogs = unitCogs * it.deliveredQty;
-
+    const totalDeliveredCogs = typeof unitCogs === 'number' ? Math.round(unitCogs * it.deliveredQty) : "didn'tget";
     const unitMrp = cogsInfo.mrp;
-
-
+    const grossProfit = typeof totalDeliveredCogs === 'number' ? Math.max(0, Math.round(it.deliveredRevenue) - totalDeliveredCogs) : "didn'tget";
+    const grossMarginPct = typeof totalDeliveredCogs === 'number' && it.deliveredRevenue > 0
+      ? (((Math.round(it.deliveredRevenue) - totalDeliveredCogs) / it.deliveredRevenue) * 100).toFixed(1) + '%'
+      : (typeof unitCogs === 'number' ? '0.0%' : "didn'tget");
 
     return {
-
       'Rank': idx + 1,
-
       'Category': it.category,
-
       'Product Style Name': it.mainName,
-
       'Master SKU': it.masterSku,
-
       'Performance Status': status,
-
       'Dispatched (Units)': it.grossQty,
-
       'Delivered (Units)': it.deliveredQty,
-
       'Returned (Units)': it.returnedQty,
-
       'Retention Rate (%)': retRate.toFixed(1) + '%',
-
       'Return Rate (%)': rtoRate.toFixed(1) + '%',
-
       'Unit Price (BDT)': avgPrice,
-
       'Gross Dispatched Sales (BDT)': Math.round(it.deliveredRevenue + it.returnLoss),
-
       'Return Revenue Loss (BDT)': Math.round(it.returnLoss),
-
       'Net Realized Revenue (BDT)': Math.round(it.deliveredRevenue),
-
       'Unit COGS (BDT)': unitCogs,
-
       'Total Delivered COGS (BDT)': totalDeliveredCogs,
-
       'Unit MRP (BDT)': unitMrp,
-
-      'Est. Gross Profit (BDT)': Math.max(0, Math.round(it.deliveredRevenue) - totalDeliveredCogs)
-
+      'Est. Gross Profit (BDT)': grossProfit,
+      'Est. Gross Margin (%)': grossMarginPct,
+      'COGS Source': cogsInfo.cogsSource,
     };
 
   });
@@ -2533,81 +2366,52 @@ export function buildMonthlyNetSalesWorkbook(
     const rRec = r as unknown as Record<string, unknown>;
 
     const cogsInfo = getItemCogsInfo(r.sku, unitPrice, {
-
       productId: (rRec.productId || rRec['Product ID'] || rRec.product_id) as string | number,
-
       variationId: (rRec.variationId || rRec['Variation ID'] || rRec.variation_id) as string | number,
-
+      itemName: r.itemName,
     });
 
     const qty = Number(r.quantity) || 1;
-
     const unitCogs = cogsInfo.cogs;
-
-    const totalCogs = unitCogs * qty;
-
+    const totalCogs = typeof unitCogs === 'number' ? Math.round(unitCogs * qty) : "didn'tget";
     const totalPrice = unitPrice * qty;
-
     const unitMrp = cogsInfo.mrp;
-
-
+    const grossProfit = typeof totalCogs === 'number' ? Math.max(0, Math.round(r.netRevenueImpact) - totalCogs) : "didn'tget";
+    const grossMarginPct = typeof grossProfit === 'number' && r.netRevenueImpact > 0
+      ? ((grossProfit / r.netRevenueImpact) * 100).toFixed(1) + '%'
+      : (typeof unitCogs === 'number' ? '0.0%' : "didn'tget");
 
     return {
-
       'Order ID': r.orderId,
-
       'Order Delivery Status': orderDeliveryStatus,
-
       'Item Delivery Status': itemDeliveryStatus,
-
       'Line Status': r.lineStatus,
-
       'Delivery Status': r.deliveryStatus,
-
       'Order Date': r.orderDate ? r.orderDate.toISOString().slice(0, 19).replace('T', ' ') : '',
-
       'Customer Name': getExportCustomerName(r),
-
       'Customer Phone': getExportPhoneNumber(r),
-
       'City': r.city || 'Dhaka',
-
       'Territory Area': r.districtArea || 'Inside Dhaka',
-
       'Category': cat,
-
       'Sub-Category': subCat,
-
       'SIP Inventory Origin': sipInventory,
-
       'Collection Line': collectionLine,
-
       'Product Description': r.itemName,
-
       'SKU': r.sku,
-
       'Quantity': r.quantity,
-
       'Unit Price (BDT)': unitPrice,
-
       'Total Price (BDT)': totalPrice,
-
       'Unit COGS (BDT)': unitCogs,
-
       'Total COGS (BDT)': totalCogs,
-
       'Unit MRP (BDT)': unitMrp,
-
+      'Realized Gross Profit (BDT)': grossProfit,
+      'Gross Margin (%)': grossMarginPct,
+      'COGS Source': cogsInfo.cogsSource,
       'Order Total (BDT)': r.orderAmount,
-
       'Net Revenue Recognized (BDT)': Math.round(r.netRevenueImpact),
-
       'Payment Method': r.paymentMethod,
-
       'Audit Flag': r.requiresManualReview ? 'FLAGGED FOR MANUAL AUDIT' : 'CONFIRMED OK',
-
       'Evidence & Notes': r.decisionEvidence?.explanation || r.aiAuditNote || ''
-
     };
 
   });
@@ -2641,65 +2445,36 @@ export function buildMonthlyNetSalesWorkbook(
     const sipInventory = String(i.sipInventory || 'Central Warehouse');
 
     const unitPrice = Number(i.itemCost) || 0;
-
-    const cogsInfo = getItemCogsInfo(i.sku, unitPrice);
-
+    const cogsInfo = getItemCogsInfo(i.sku, unitPrice, { itemName: i.itemName });
     const qty = Math.round(i.quantity) || 1;
-
     const unitCogs = cogsInfo.cogs;
-
-    const totalCogs = unitCogs * qty;
-
+    const totalCogs = typeof unitCogs === 'number' ? Math.round(unitCogs * qty) : "didn'tget";
     const totalPrice = unitPrice * qty;
-
     const unitMrp = cogsInfo.mrp;
 
-
-
     return {
-
       'Order ID': i.orderId,
-
       'Return Source': i.returnSource,
-
       'Delivery Status': i.deliveryStatus,
-
       'Order Date': i.orderDate ? i.orderDate.toISOString().slice(0, 19).replace('T', ' ') : '',
-
       'Customer Name': getExportCustomerName(i),
-
       'Customer Phone': getExportPhoneNumber(i),
-
       'Territory Area': i.districtArea,
-
       'Category': cat,
-
       'Sub-Category': subCat,
-
       'SIP Inventory Origin': sipInventory,
-
       'Collection Line': collectionLine,
-
       'Product Description': i.itemName,
-
       'SKU': i.sku,
-
       'Returned Qty': qty,
-
       'Unit Price (BDT)': unitPrice,
-
       'Total Price (BDT)': totalPrice,
-
       'Unit COGS (BDT)': unitCogs,
-
       'Total COGS (BDT)': totalCogs,
-
+      'COGS Source': cogsInfo.cogsSource,
       'Unit MRP (BDT)': unitMrp,
-
       'Total Return Loss (BDT)': Math.round(i.returnedValue),
-
       'Order Total (BDT)': i.orderAmount
-
     };
 
   });

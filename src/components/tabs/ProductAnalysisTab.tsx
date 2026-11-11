@@ -143,30 +143,49 @@ export function ProductAnalysisTab({
       'Returned Units',
       'Return Rate (%)',
       'Delivered Net Sales (BDT)',
+      'Unit COGS (BDT)',
+      'Total COGS (BDT)',
+      'Realized Gross Profit (BDT)',
       'Gross Margin (%)',
+      'COGS Source',
       'Daily Velocity (units/day)',
       'Sweet Spot Price (BDT)',
       'Active SKUs',
     ];
 
-    const rows = filteredProducts.map((p) => [
-      `"${p.title.replace(/"/g, '""')}"`,
-      `"${p.category}"`,
-      p.abcCategory,
-      p.performanceTier,
-      p.mrp,
-      p.avgSellingPrice,
-      p.avgDiscountPercent,
-      p.totalGrossUnits,
-      p.totalDeliveredUnits,
-      p.totalReturnedUnits,
-      p.returnRate,
-      p.deliveredRevenue,
-      p.grossMarginPercent,
-      p.dailyVelocity,
-      p.optimalPricePoint?.price || p.mrp,
-      `"${p.skus.join('; ')}"`,
-    ]);
+    const rows = filteredProducts.map((p) => {
+      const hasExact = p.hasExactCogs && p.totalDeliveredUnits > 0;
+      const unitCogs = hasExact
+        ? Math.round(p.estimatedCogs / (p.exactCogsUnits || p.totalDeliveredUnits))
+        : "didn'tget";
+      const totalCogs = hasExact ? Math.round(p.estimatedCogs) : "didn'tget";
+      const grossProfit = hasExact ? Math.max(0, Math.round(p.deliveredRevenue - p.estimatedCogs)) : "didn'tget";
+      const grossMargin = hasExact ? `${p.grossMarginPercent}%` : "didn'tget";
+      const cogsSource = hasExact ? 'Exact Catalog COGS' : "didn'tget";
+
+      return [
+        `"${p.title.replace(/"/g, '""')}"`,
+        `"${p.category}"`,
+        p.abcCategory,
+        p.performanceTier,
+        p.mrp,
+        p.avgSellingPrice,
+        p.avgDiscountPercent,
+        p.totalGrossUnits,
+        p.totalDeliveredUnits,
+        p.totalReturnedUnits,
+        p.returnRate,
+        p.deliveredRevenue,
+        unitCogs,
+        totalCogs,
+        grossProfit,
+        grossMargin,
+        `"${cogsSource}"`,
+        p.dailyVelocity,
+        p.optimalPricePoint?.price || p.mrp,
+        `"${p.skus.join('; ')}"`,
+      ];
+    });
 
     const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -675,8 +694,14 @@ export function ProductAnalysisTab({
                             )}
                             <span className="text-slate-300 dark:text-slate-600">•</span>
                             <span className="text-2xs text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1">
-                              <span>COGS: ৳{Math.round(p.totalDeliveredUnits > 0 ? p.estimatedCogs / p.totalDeliveredUnits : (p.avgSellingPrice * 0.42)).toLocaleString()}</span>
-                              <span className="font-semibold text-emerald-600 dark:text-emerald-400">({p.grossMarginPercent}%)</span>
+                              {p.hasExactCogs ? (
+                                <>
+                                  <span>COGS: ৳{Math.round(p.totalDeliveredUnits > 0 ? p.estimatedCogs / (p.exactCogsUnits || 1) : 0).toLocaleString()}</span>
+                                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">({p.grossMarginPercent}%)</span>
+                                </>
+                              ) : (
+                                <span className="font-semibold text-amber-600 dark:text-amber-400">COGS: didn'tget</span>
+                              )}
                             </span>
                           </div>
                         </td>
@@ -697,17 +722,19 @@ export function ProductAnalysisTab({
                             ৳{p.deliveredRevenue.toLocaleString()}
                           </div>
                           <div className="text-2xs text-slate-400 flex items-center gap-1">
-                            <span>Margin: {p.grossMarginPercent}%</span>
-                            {p.hasExactCogs && (
-                              <span
-                                className="inline-flex items-center px-1 py-0.2 rounded text-[9px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                                title={
-                                  p.cogsSource === 'EXACT_WOOCOMMERCE'
-                                    ? 'Exact buying price from WooCommerce REST API'
-                                    : 'Hybrid exact WooCommerce buying price'
-                                }
-                              >
-                                WC COGS
+                            {p.hasExactCogs ? (
+                              <>
+                                <span>Margin: {p.grossMarginPercent}%</span>
+                                <span
+                                  className="inline-flex items-center px-1 py-0.2 rounded text-[9px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                                  title="Exact buying price from WooCommerce REST API"
+                                >
+                                  WC COGS
+                                </span>
+                              </>
+                            ) : (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                didn'tget
                               </span>
                             )}
                           </div>
@@ -1389,10 +1416,16 @@ export function ProductAnalysisTab({
                   ৳{inspectingProduct.deliveredRevenue.toLocaleString()}
                 </div>
                 <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
-                  <span>Margin: {inspectingProduct.grossMarginPercent}%</span>
-                  {inspectingProduct.hasExactCogs && (
-                    <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
-                      (WC COGS: ৳{inspectingProduct.estimatedCogs.toLocaleString()})
+                  {inspectingProduct.hasExactCogs ? (
+                    <>
+                      <span>Margin: {inspectingProduct.grossMarginPercent}%</span>
+                      <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
+                        (WC COGS: ৳{inspectingProduct.estimatedCogs.toLocaleString()})
+                      </span>
+                    </>
+                  ) : (
+                    <span className="inline-flex items-center px-1 py-0.2 rounded text-[9px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                      didn'tget
                     </span>
                   )}
                 </div>
@@ -1431,10 +1464,13 @@ export function ProductAnalysisTab({
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-[#171717] font-mono text-2xs">
                     {inspectingProduct.pricePoints.map((pp) => {
-                      const unitCogs = inspectingProduct.hasExactCogs && inspectingProduct.totalDeliveredUnits > 0
-                        ? Math.round(inspectingProduct.estimatedCogs / inspectingProduct.totalDeliveredUnits)
-                        : Math.round(pp.price * (cogsPercent / 100));
-                      const ppMargin = pp.price > 0 ? Math.max(0, Number((((pp.price - unitCogs) / pp.price) * 100).toFixed(1))) : 0;
+                      const hasExact = inspectingProduct.hasExactCogs && inspectingProduct.totalDeliveredUnits > 0;
+                      const unitCogs = hasExact
+                        ? Math.round(inspectingProduct.estimatedCogs / (inspectingProduct.exactCogsUnits || inspectingProduct.totalDeliveredUnits))
+                        : null;
+                      const ppMargin = (hasExact && unitCogs !== null && pp.price > 0)
+                        ? Math.max(0, Number((((pp.price - unitCogs) / pp.price) * 100).toFixed(1)))
+                        : null;
 
                       return (
                         <tr
@@ -1445,10 +1481,10 @@ export function ProductAnalysisTab({
                             ৳{pp.price.toLocaleString()} {pp.isSweetSpot ? '👑' : ''}
                           </td>
                           <td className="py-2 px-2 text-right text-slate-600 dark:text-slate-400">
-                            ৳{unitCogs.toLocaleString()}
+                            {unitCogs !== null ? `৳${unitCogs.toLocaleString()}` : "didn'tget"}
                           </td>
                           <td className="py-2 px-2 text-right font-bold text-emerald-600 dark:text-emerald-400">
-                            {ppMargin}%
+                            {ppMargin !== null ? `${ppMargin}%` : "didn'tget"}
                           </td>
                           <td className="py-2 px-2 text-center text-slate-500">
                             {pp.discountPercent}%

@@ -86,7 +86,9 @@ export interface ProductAnalyticsItem {
   estimatedCogs: number;
   grossProfit: number;
   grossMarginPercent: number;
-  cogsSource?: 'EXACT_WOOCOMMERCE' | 'ESTIMATED_BASELINE' | 'HYBRID';
+  cogsSource?: 'EXACT_WOOCOMMERCE' | 'ESTIMATED_BASELINE' | 'HYBRID' | "didn'tget";
+  cogsDisplay?: string;
+  grossMarginDisplay?: string;
   hasExactCogs?: boolean;
   exactCogsUnits?: number;
   pricePoints: ProductPricePoint[];
@@ -432,12 +434,31 @@ export function computeProductAnalytics(
     if (delUnits > 0) {
       let unitCogs: number | null = null;
       const sku = (r.sku || '').trim();
+      const lowerSku = sku.toLowerCase();
+      const lowerName = (r.itemName || '').toLowerCase();
 
-      if (options.cogsMap && sku && options.cogsMap[sku] !== undefined) {
+      // 1. Management specified fixed COGS rules
+      if (lowerSku.startsWith('109-0501-') || lowerName.includes('water bottle') || (lowerName.includes('bottle') && !lowerName.includes('sweatshirt') && !lowerName.includes('hoodie'))) {
+        unitCogs = 195;
+      } else if (lowerSku.startsWith('109-0502-') || lowerName.includes('mask') || lowerName.includes('face mask')) {
+        unitCogs = 120;
+      } else if (lowerSku.startsWith('109-0104-') || lowerName.includes('card holder') || lowerName.includes('cardholder')) {
+        unitCogs = 280;
+      } else if (options.cogsMap && sku && options.cogsMap[sku] !== undefined) {
         unitCogs = options.cogsMap[sku];
       } else if (activeCogsData?.bySku && sku && activeCogsData.bySku[sku]?.cogs) {
         unitCogs = activeCogsData.bySku[sku].cogs;
-      } else if (activeCogsData?.byId) {
+      } else if (activeCogsData?.bySku && sku) {
+        const upper = sku.toUpperCase();
+        const stripped = sku.replace(/[-_](?:(?:[2-5]?X[SL])|[SML]|(?:[2-5]?XL)|XS|XXL|XXXL|\d{2})\s*$/i, '').trim();
+        if (activeCogsData.bySku[upper]?.cogs) {
+          unitCogs = activeCogsData.bySku[upper].cogs;
+        } else if (stripped && activeCogsData.bySku[stripped]?.cogs) {
+          unitCogs = activeCogsData.bySku[stripped].cogs;
+        }
+      }
+
+      if (unitCogs === null && activeCogsData?.byId) {
         const rRec = r as unknown as Record<string, unknown>;
         const prodId = String(rRec.productId || '').trim();
         const varId = String(rRec.variationId || '').trim();
@@ -454,7 +475,8 @@ export function computeProductAnalytics(
         p.exactDeliveredCogs += delUnits * unitCogs;
         p.exactCogsUnits += delUnits;
       } else {
-        p.estimatedDeliveredCogs += Math.round(netRev * cogsRate);
+        // DO NOT FALLBACK: if WooCommerce REST API has no buying price, mark as missing ("didn'tget")
+        p.estimatedDeliveredCogs += 0;
       }
     }
 
@@ -675,18 +697,26 @@ export function computeProductAnalytics(
     const avgDiscountPercent = mrp > 0 ? Math.max(0, Number((((mrp - avgSellingPrice) / mrp) * 100).toFixed(1))) : 0;
     const returnRate = p.totalGrossUnits > 0 ? Number(((p.totalReturnedUnits / p.totalGrossUnits) * 100).toFixed(1)) : 0;
 
-    // COGS & Gross Profit
-    const estimatedCogs = p.exactCogsUnits > 0 || p.estimatedDeliveredCogs > 0
-      ? Math.round(p.exactDeliveredCogs + p.estimatedDeliveredCogs)
-      : Math.round(p.deliveredRevenue * cogsRate);
-    const grossProfit = Math.round(p.deliveredRevenue - estimatedCogs);
-    const grossMarginPercent = p.deliveredRevenue > 0 ? Number(((grossProfit / p.deliveredRevenue) * 100).toFixed(1)) : 0;
+    // COGS & Gross Profit: Do not fallback. If missing from WooCommerce REST API, mark as "didn'tget"
     const hasExactCogs = p.exactCogsUnits > 0;
-    const cogsSource = p.exactCogsUnits === p.totalDeliveredUnits && p.totalDeliveredUnits > 0
-      ? 'EXACT_WOOCOMMERCE'
-      : p.exactCogsUnits > 0
-      ? 'HYBRID'
-      : 'ESTIMATED_BASELINE';
+    const cogsSource: 'EXACT_WOOCOMMERCE' | 'ESTIMATED_BASELINE' | 'HYBRID' | "didn'tget" =
+      p.exactCogsUnits === p.totalDeliveredUnits && p.totalDeliveredUnits > 0
+        ? 'EXACT_WOOCOMMERCE'
+        : p.exactCogsUnits > 0
+        ? 'HYBRID'
+        : "didn'tget";
+
+    const estimatedCogs = hasExactCogs ? Math.round(p.exactDeliveredCogs) : 0;
+    const grossProfit = hasExactCogs ? Math.round(p.deliveredRevenue - estimatedCogs) : 0;
+    const grossMarginPercent = hasExactCogs && p.deliveredRevenue > 0
+      ? Number(((grossProfit / p.deliveredRevenue) * 100).toFixed(1))
+      : 0;
+    const cogsDisplay = hasExactCogs
+      ? `৳${Math.round(estimatedCogs / (p.exactCogsUnits || 1)).toLocaleString()}`
+      : "didn'tget";
+    const grossMarginDisplay = hasExactCogs
+      ? `${grossMarginPercent}%`
+      : "didn'tget";
 
     // Sales Velocity
     const dailyVelocity = Number((p.totalGrossUnits / daysInScope).toFixed(2));
@@ -712,6 +742,8 @@ export function computeProductAnalytics(
       estimatedCogs,
       grossProfit,
       grossMarginPercent,
+      cogsDisplay,
+      grossMarginDisplay,
       hasExactCogs,
       cogsSource,
       exactCogsUnits: p.exactCogsUnits,

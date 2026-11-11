@@ -59,37 +59,46 @@ print(f"Loaded {len(cogs_by_sku)} SKUs and {len(cogs_by_id)} IDs with exact REST
 # -----------------------------------------------------------------------------
 def get_cogs_info(sku, unit_price, product_id=None, variation_id=None):
     clean_sku = str(sku or '').strip()
-    unit_p = float(unit_price or 0.0)
 
     # 1. Exact match by SKU
     if clean_sku and clean_sku in cogs_by_sku:
         rec = cogs_by_sku[clean_sku]
-        cogs = float(rec.get('cogs', 0.0))
-        if cogs > 0:
-            return round(cogs), 'Exact WooCommerce (REST API)', True
+        cogs = rec.get('cogs')
+        if cogs is not None:
+            try:
+                c_val = float(cogs)
+                if c_val > 0:
+                    return round(c_val), 'Exact WooCommerce (REST API)', True
+            except:
+                pass
 
     # 2. Match by Product ID / Variation ID
     p_id = str(product_id).strip() if product_id else ''
     v_id = str(variation_id).strip() if variation_id else ''
     
-    if p_id and v_id and f"{p_id}:{v_id}" in cogs_by_id:
-        cogs = float(cogs_by_id[f"{p_id}:{v_id}"].get('cogs', 0.0))
-        if cogs > 0:
-            return round(cogs), 'Exact WooCommerce (REST API)', True
-            
-    if v_id and v_id in cogs_by_id:
-        cogs = float(cogs_by_id[v_id].get('cogs', 0.0))
-        if cogs > 0:
-            return round(cogs), 'Exact WooCommerce (REST API)', True
-            
-    if p_id and p_id in cogs_by_id:
-        cogs = float(cogs_by_id[p_id].get('cogs', 0.0))
-        if cogs > 0:
-            return round(cogs), 'Exact WooCommerce (REST API)', True
+    for key in [f"{p_id}:{v_id}", v_id, p_id]:
+        if key and key in cogs_by_id:
+            rec = cogs_by_id[key]
+            cogs = rec.get('cogs')
+            if cogs is not None:
+                try:
+                    c_val = float(cogs)
+                    if c_val > 0:
+                        return round(c_val), 'Exact WooCommerce (REST API)', True
+                except:
+                    pass
 
-    # 3. Fallback: Standard DEEN Baseline Margin (42% COGS / 58% Margin)
-    fallback_cogs = round(unit_p * 0.42)
-    return fallback_cogs, 'Estimated Baseline (42%)', False
+    # 3. Management Specified COGS Rules (Water bottle 195, mask 120, card holder 280)
+    sku_lower = clean_sku.lower()
+    if sku_lower.startswith('109-0501-'):
+        return 195, 'Management Specified (Aluminum Water Bottle 195 BDT)', True
+    if sku_lower.startswith('109-0502-'):
+        return 120, 'Management Specified (Breathable Face Mask 120 BDT)', True
+    if sku_lower.startswith('109-0104-'):
+        return 280, 'Management Specified (Leather Card Holder 280 BDT)', True
+
+    # 4. DO NOT FALLBACK: If not found in WooCommerce REST API, return None and "didn'tget"
+    return None, "didn'tget", False
 
 known_brands = [
     ('Pull & Bear', ['pull & bear', 'pull and bear']),
@@ -514,8 +523,15 @@ for order in raw_orders:
         var_id = item.get('variation_id')
         
         unit_cogs, cogs_src, is_exact = get_cogs_info(sku, price, prod_id, var_id)
-        gross_profit_per_unit = round(price - unit_cogs)
-        gross_margin_pct = (gross_profit_per_unit / price * 100) if price > 0 else 0.0
+        if is_exact and unit_cogs is not None:
+            gross_profit_per_unit = round(price - unit_cogs)
+            gross_margin_pct = (gross_profit_per_unit / price * 100) if price > 0 else 0.0
+            gross_margin_str = f"{gross_margin_pct:.1f}%"
+            unit_cogs_val = unit_cogs
+        else:
+            gross_profit_per_unit = None
+            gross_margin_str = "didn'tget"
+            unit_cogs_val = "didn'tget" 
 
         base_name, size = extract_size_and_base(item_name)
         cat, subcat = extract_category_and_sub(item_name, sku)
@@ -545,10 +561,10 @@ for order in raw_orders:
                     'Unit Price (৳)': round(price),
                     'Quantity': kept_count,
                     'Total Value (৳)': round(price * kept_count),
-                    'Unit COGS (৳)': unit_cogs,
-                    'Total COGS (৳)': unit_cogs * kept_count,
-                    'Realized Gross Profit (৳)': gross_profit_per_unit * kept_count,
-                    'Gross Margin (%)': f"{gross_margin_pct:.1f}%",
+                    'Unit COGS (৳)': unit_cogs_val,
+                    'Total COGS (৳)': (unit_cogs * kept_count) if is_exact else "didn'tget",
+                    'Realized Gross Profit (৳)': (gross_profit_per_unit * kept_count) if is_exact else "didn'tget",
+                    'Gross Margin (%)': gross_margin_str,
                     'COGS Source': cogs_src,
                     'Delivered or Not': 'Delivered',
                     'Pathao Consignment ID': cons_id,
@@ -577,10 +593,10 @@ for order in raw_orders:
                     'Unit Price (৳)': round(price),
                     'Quantity': returned_count,
                     'Total Value (৳)': round(price * returned_count),
-                    'Unit COGS (৳)': unit_cogs,
-                    'Total COGS (৳)': unit_cogs * returned_count,
-                    'Realized Gross Profit (৳)': 0,
-                    'Gross Margin (%)': f"{gross_margin_pct:.1f}%",
+                    'Unit COGS (৳)': unit_cogs_val,
+                    'Total COGS (৳)': (unit_cogs * returned_count) if is_exact else "didn'tget",
+                    'Realized Gross Profit (৳)': 0 if is_exact else "didn'tget",
+                    'Gross Margin (%)': gross_margin_str,
                     'COGS Source': cogs_src,
                     'Delivered or Not': 'Returned',
                     'Pathao Consignment ID': cons_id,
@@ -606,11 +622,14 @@ for order in raw_orders:
             p['Sizes'].add(size)
             p['Dispatched Units'] += total_qty
             p['Gross Dispatched Value (৳)'] += price * total_qty
-            p['Dispatched COGS (৳)'] += unit_cogs * total_qty
+            if is_exact and unit_cogs is not None:
+                p['Dispatched COGS (৳)'] += unit_cogs * total_qty
+                p['Delivered COGS (৳)'] += unit_cogs * kept_count
+                p['Exact Dispatched COGS Units'] = p.get('Exact Dispatched COGS Units', 0) + total_qty
+                p['Exact Delivered COGS Units'] = p.get('Exact Delivered COGS Units', 0) + kept_count
             
             p['Delivered Units'] += kept_count
             p['Delivered Value (৳)'] += price * kept_count
-            p['Delivered COGS (৳)'] += unit_cogs * kept_count
             if channel == 'Central Warehouse Courier':
                 p['Central Delivered Units'] += kept_count
             else:
@@ -635,11 +654,13 @@ for order in raw_orders:
             s = sku_agg[sku_key]
             s['Dispatched Units'] += total_qty
             s['Gross Dispatched Value (৳)'] += price * total_qty
-            s['Dispatched COGS (৳)'] += unit_cogs * total_qty
+            s['is_exact'] = is_exact
+            if is_exact and unit_cogs is not None:
+                s['Dispatched COGS (৳)'] += unit_cogs * total_qty
+                s['Delivered COGS (৳)'] += unit_cogs * kept_count
             
             s['Delivered Units'] += kept_count
             s['Delivered Value (৳)'] += price * kept_count
-            s['Delivered COGS (৳)'] += unit_cogs * kept_count
             if channel == 'Central Warehouse Courier':
                 s['Central Delivered Units'] += kept_count
             else:
@@ -657,27 +678,27 @@ for order in raw_orders:
             if is_delivered:
                 disposition = 'Delivered'
                 audit_tag = '✅ Verified Delivered'
-                realized_profit = gross_profit_per_unit * total_qty
+                realized_profit = (gross_profit_per_unit * total_qty) if (is_exact and gross_profit_per_unit is not None) else "didn'tget"
             elif is_paid_ret:
                 disposition = 'Paid Return'
                 audit_tag = '💰 Paid Return (Refusal COD Recovered)'
-                realized_profit = 0
+                realized_profit = 0 if is_exact else "didn'tget"
             elif is_returned:
                 disposition = 'Returned'
                 audit_tag = '❌ Full Return (Customer Rejected)'
-                realized_profit = 0
+                realized_profit = 0 if is_exact else "didn'tget"
             elif courier_st == 'In Transit':
                 disposition = 'In Transit'
                 audit_tag = '🚚 Active In-Transit'
-                realized_profit = 0
+                realized_profit = 0 if is_exact else "didn'tget"
             elif courier_st == 'Exchange':
                 disposition = 'Exchange In Transit'
                 audit_tag = '🔄 Size/Color Replacement In-Transit'
-                realized_profit = 0
+                realized_profit = 0 if is_exact else "didn'tget"
             else:
                 disposition = courier_st
                 audit_tag = f'ℹ️ {courier_st}'
-                realized_profit = 0
+                realized_profit = 0 if is_exact else "didn'tget"
 
             item_rows.append({
                 'Order Number': o_num,
@@ -697,10 +718,10 @@ for order in raw_orders:
                 'Unit Price (৳)': round(price),
                 'Quantity': total_qty,
                 'Total Value (৳)': round(price * total_qty),
-                'Unit COGS (৳)': unit_cogs,
-                'Total COGS (৳)': unit_cogs * total_qty,
-                'Realized Gross Profit (৳)': realized_profit,
-                'Gross Margin (%)': f"{gross_margin_pct:.1f}%",
+                'Unit COGS (৳)': unit_cogs_val,
+                'Total COGS (৳)': (unit_cogs * total_qty) if is_exact else "didn'tget",
+                'Realized Gross Profit (৳)': (gross_profit_per_unit * total_qty) if (is_exact and is_delivered) else (0 if is_exact else "didn'tget"),
+                'Gross Margin (%)': gross_margin_str,
                 'COGS Source': cogs_src,
                 'Delivered or Not': disposition,
                 'Pathao Consignment ID': cons_id,
@@ -726,12 +747,16 @@ for order in raw_orders:
             p['Sizes'].add(size)
             p['Dispatched Units'] += total_qty
             p['Gross Dispatched Value (৳)'] += price * total_qty
-            p['Dispatched COGS (৳)'] += unit_cogs * total_qty
+            if is_exact and unit_cogs is not None:
+                p['Dispatched COGS (৳)'] += unit_cogs * total_qty
+                p['Exact Dispatched COGS Units'] = p.get('Exact Dispatched COGS Units', 0) + total_qty
+                if is_delivered:
+                    p['Delivered COGS (৳)'] += unit_cogs * total_qty
+                    p['Exact Delivered COGS Units'] = p.get('Exact Delivered COGS Units', 0) + total_qty
             
             if is_delivered:
                 p['Delivered Units'] += total_qty
                 p['Delivered Value (৳)'] += price * total_qty
-                p['Delivered COGS (৳)'] += unit_cogs * total_qty
                 if channel == 'Central Warehouse Courier':
                     p['Central Delivered Units'] += total_qty
                 else:
@@ -761,12 +786,15 @@ for order in raw_orders:
             s = sku_agg[sku_key]
             s['Dispatched Units'] += total_qty
             s['Gross Dispatched Value (৳)'] += price * total_qty
-            s['Dispatched COGS (৳)'] += unit_cogs * total_qty
+            s['is_exact'] = is_exact
+            if is_exact and unit_cogs is not None:
+                s['Dispatched COGS (৳)'] += unit_cogs * total_qty
+                if is_delivered:
+                    s['Delivered COGS (৳)'] += unit_cogs * total_qty
             
             if is_delivered:
                 s['Delivered Units'] += total_qty
                 s['Delivered Value (৳)'] += price * total_qty
-                s['Delivered COGS (৳)'] += unit_cogs * total_qty
                 if channel == 'Central Warehouse Courier':
                     s['Central Delivered Units'] += total_qty
                 else:
@@ -786,9 +814,21 @@ for p in sorted(prod_agg.values(), key=lambda x: -x['Gross Dispatched Value (৳
     deliv_rate = (p['Delivered Units'] / p['Dispatched Units'] * 100) if p['Dispatched Units'] > 0 else 0
     ret_rate = (p['Total Returned Units'] / p['Dispatched Units'] * 100) if p['Dispatched Units'] > 0 else 0
     avg_price = round(p['Gross Dispatched Value (৳)'] / p['Dispatched Units']) if p['Dispatched Units'] > 0 else p['Unit Price (৳)']
-    avg_cogs = round(p['Dispatched COGS (৳)'] / p['Dispatched Units']) if p['Dispatched Units'] > 0 else p['Unit COGS (৳)']
-    realized_gross_profit = round(p['Delivered Value (৳)'] - p['Delivered COGS (৳)'])
-    margin_pct = (realized_gross_profit / p['Delivered Value (৳)'] * 100) if p['Delivered Value (৳)'] > 0 else 0.0
+    
+    has_full_exact = (p.get('Exact Dispatched COGS Units', 0) == p['Dispatched Units']) and (p['Dispatched Units'] > 0)
+    if has_full_exact:
+        avg_cogs = round(p['Dispatched COGS (৳)'] / p['Dispatched Units'])
+        disp_cg_val = round(p['Dispatched COGS (৳)'])
+        deliv_cg_val = round(p['Delivered COGS (৳)'])
+        realized_profit = round(p['Delivered Value (৳)'] - deliv_cg_val)
+        margin_pct = (realized_profit / p['Delivered Value (৳)'] * 100) if p['Delivered Value (৳)'] > 0 else 0.0
+        margin_str = f"{margin_pct:.1f}%"
+    else:
+        avg_cogs = "didn'tget"
+        disp_cg_val = "didn'tget"
+        deliv_cg_val = "didn'tget"
+        realized_profit = "didn'tget"
+        margin_str = "didn'tget"
     
     prod_rows.append({
         'Brand Name': p['Brand Name'],
@@ -801,12 +841,12 @@ for p in sorted(prod_agg.values(), key=lambda x: -x['Gross Dispatched Value (৳
         'Unit COGS (৳)': avg_cogs,
         'Dispatched Units (Sent by Pathao)': p['Dispatched Units'],
         'Gross Dispatched Value (৳)': round(p['Gross Dispatched Value (৳)']),
-        'Total Dispatched COGS (৳)': round(p['Dispatched COGS (৳)']),
+        'Total Dispatched COGS (৳)': disp_cg_val,
         'Total Sold (Delivered Units)': p['Delivered Units'],
         'Delivered Value (৳)': round(p['Delivered Value (৳)']),
-        'Total Delivered COGS (৳)': round(p['Delivered COGS (৳)']),
-        'Realized Gross Profit (৳)': realized_gross_profit,
-        'Gross Margin (%)': f"{margin_pct:.1f}%",
+        'Total Delivered COGS (৳)': deliv_cg_val,
+        'Realized Gross Profit (৳)': realized_profit,
+        'Gross Margin (%)': margin_str,
         'Central Warehouse Delivered': p['Central Delivered Units'],
         'Branch Split Delivered': p['Branch Delivered Units'],
         'Total Returned Units': p['Total Returned Units'],
@@ -823,9 +863,23 @@ sku_rows = []
 for s in sorted(sku_agg.values(), key=lambda x: -x['Gross Dispatched Value (৳)']):
     deliv_rate = (s['Delivered Units'] / s['Dispatched Units'] * 100) if s['Dispatched Units'] > 0 else 0
     ret_rate = (s['Total Returned Units'] / s['Dispatched Units'] * 100) if s['Dispatched Units'] > 0 else 0
-    realized_gross_profit = round(s['Delivered Value (৳)'] - s['Delivered COGS (৳)'])
-    margin_pct = (realized_gross_profit / s['Delivered Value (৳)'] * 100) if s['Delivered Value (৳)'] > 0 else 0.0
     
+    if s.get('is_exact') and s.get('Unit COGS (৳)') is not None and str(s.get('Unit COGS (৳)')).strip() != "didn'tget":
+        unit_cg = round(float(s['Unit COGS (৳)']))
+        disp_cg = round(s['Dispatched COGS (৳)'])
+        deliv_cg = round(s['Delivered COGS (৳)'])
+        realized_profit = round(s['Delivered Value (৳)'] - deliv_cg)
+        margin_pct = (realized_profit / s['Delivered Value (৳)'] * 100) if s['Delivered Value (৳)'] > 0 else 0.0
+        margin_str = f"{margin_pct:.1f}%"
+        cogs_src_val = 'Exact WooCommerce (REST API)'
+    else:
+        unit_cg = "didn'tget"
+        disp_cg = "didn'tget"
+        deliv_cg = "didn'tget"
+        realized_profit = "didn'tget"
+        margin_str = "didn'tget"
+        cogs_src_val = "didn'tget"
+        
     sku_rows.append({
         'Brand Name': s['Brand Name'],
         'Category': s['Category'],
@@ -834,16 +888,16 @@ for s in sorted(sku_agg.values(), key=lambda x: -x['Gross Dispatched Value (৳)
         'SKU Code': s['SKU Code'],
         'Size': s['Size'],
         'Unit Price (৳)': round(s['Unit Price (৳)']),
-        'Unit COGS (৳)': round(s['Unit COGS (৳)']),
+        'Unit COGS (৳)': unit_cg,
         'Dispatched Units (Sent by Pathao)': s['Dispatched Units'],
         'Gross Dispatched Value (৳)': round(s['Gross Dispatched Value (৳)']),
-        'Total Dispatched COGS (৳)': round(s['Dispatched COGS (৳)']),
+        'Total Dispatched COGS (৳)': disp_cg,
         'Total Sold (Delivered Units)': s['Delivered Units'],
         'Delivered Value (৳)': round(s['Delivered Value (৳)']),
-        'Total Delivered COGS (৳)': round(s['Delivered COGS (৳)']),
-        'Realized Gross Profit (৳)': realized_gross_profit,
-        'Gross Margin (%)': f"{margin_pct:.1f}%",
-        'COGS Source': s['COGS Source'],
+        'Total Delivered COGS (৳)': deliv_cg,
+        'Realized Gross Profit (৳)': realized_profit,
+        'Gross Margin (%)': margin_str,
+        'COGS Source': cogs_src_val,
         'Central Warehouse Delivered': s['Central Delivered Units'],
         'Branch Split Delivered': s['Branch Delivered Units'],
         'Total Returned Units': s['Total Returned Units'],
@@ -922,7 +976,8 @@ for it in item_rows:
     om = order_map[o_num]
     q = int(it['Quantity'] or 0)
     v = float(it['Total Value (৳)'] or 0.0)
-    cg = float(it['Total COGS (৳)'] or 0.0)
+    raw_cg = it.get('Total COGS (৳)')
+    cg = float(raw_cg) if (raw_cg is not None and str(raw_cg).strip() != "didn'tget") else 0.0
     disp = it['Delivered or Not']
     om['disp_units'] += q
     om['disp_val'] += v
@@ -1230,7 +1285,8 @@ for b_name, b_desc in [('DEEN Select', 'Curated European & International Export 
     disp_u = sum(it['Quantity'] for it in b_items)
     deliv_u = sum(it['Quantity'] for it in b_deliv)
     deliv_v = sum(it['Total Value (৳)'] for it in b_deliv)
-    deliv_cg = sum(it['Total COGS (৳)'] for it in b_deliv)
+    b_deliv_exact = [it for it in b_deliv if it.get('Total COGS (৳)') is not None and it['Total COGS (৳)'] != "didn'tget"]
+    deliv_cg = sum(it['Total COGS (৳)'] for it in b_deliv_exact)
     profit = deliv_v - deliv_cg
     margin_p = (profit / deliv_v * 100) if deliv_v > 0 else 0.0
     
@@ -1403,9 +1459,20 @@ for o in raw_orders:
         var_id = it.get('variation_id')
 
         unit_cogs, cogs_src, is_exact = get_cogs_info(sku, price, prod_id, var_id)
-        tot_cogs = unit_cogs * qty
-        gross_profit = round(line_total - tot_cogs)
-        margin_pct = (gross_profit / line_total * 100) if line_total > 0 else 0.0
+        if is_exact and unit_cogs is not None:
+            tot_cogs = unit_cogs * qty
+            gross_profit = round(line_total - tot_cogs)
+            margin_pct = (gross_profit / line_total * 100) if line_total > 0 else 0.0
+            margin_str = f"{margin_pct:.1f}%"
+            unit_cogs_disp = unit_cogs
+            tot_cogs_disp = tot_cogs
+            gross_profit_disp = gross_profit
+        else:
+            tot_cogs = None
+            unit_cogs_disp = "didn'tget"
+            tot_cogs_disp = "didn'tget"
+            gross_profit_disp = "didn'tget"
+            margin_str = "didn'tget" 
 
         base_name, size = extract_size_and_base(it_name)
         cat, subcat = extract_category_and_sub(it_name, sku)
@@ -1431,10 +1498,10 @@ for o in raw_orders:
             'Unit Price (৳)': round(price),
             'Quantity Sold': qty,
             'Line Total (৳)': round(line_total),
-            'Unit COGS (৳)': unit_cogs,
-            'Total COGS (৳)': tot_cogs,
-            'Gross Profit (৳)': gross_profit,
-            'Gross Margin (%)': f"{margin_pct:.1f}%",
+            'Unit COGS (৳)': unit_cogs_disp,
+            'Total COGS (৳)': tot_cogs_disp,
+            'Gross Profit (৳)': gross_profit_disp,
+            'Gross Margin (%)': margin_str,
             'COGS Source': cogs_src,
             'Fulfillment Type': 'In-Store POS Walk-In',
             'Transaction Status': 'Completed (Counter Settlement)'
@@ -1455,7 +1522,9 @@ for o in raw_orders:
         p['Sizes'].add(size)
         p['Units Sold'] += qty
         p['Gross Sales Value (৳)'] += line_total
-        p['Total COGS (৳)'] += tot_cogs
+        if is_exact and tot_cogs is not None:
+            p['Total COGS (৳)'] += tot_cogs
+            p['Exact Sold Units'] = p.get('Exact Sold Units', 0) + qty
         if clean_outlet_id == '7': p['Cumilla Units'] += qty
         elif clean_outlet_id == '2': p['Mirpur Units'] += qty
         elif clean_outlet_id == '8': p['Wari Units'] += qty
@@ -1475,7 +1544,10 @@ for o in raw_orders:
         s = pos_sku_agg[sku_key]
         s['Units Sold'] += qty
         s['Gross Sales Value (৳)'] += line_total
-        s['Total COGS (৳)'] += tot_cogs
+        s['is_exact'] = is_exact
+        if is_exact and tot_cogs is not None:
+            s['Total COGS (৳)'] += tot_cogs
+            s['Exact Sold Units'] = s.get('Exact Sold Units', 0) + qty
         if clean_outlet_id == '7': s['Cumilla Units'] += qty
         elif clean_outlet_id == '2': s['Mirpur Units'] += qty
         elif clean_outlet_id == '8': s['Wari Units'] += qty
@@ -1486,7 +1558,8 @@ tot_pos_gross = sum(p['gross_value'] for p in pos_orders)
 tot_pos_net = sum(p['net_total'] for p in pos_orders)
 tot_pos_orders = len(pos_orders)
 pos_aov = tot_pos_net / tot_pos_orders if tot_pos_orders else 0
-tot_pos_cogs = sum(it['Total COGS (৳)'] for it in pos_item_rows)
+pos_items_exact = [it for it in pos_item_rows if it.get('Total COGS (৳)') is not None and it['Total COGS (৳)'] != "didn'tget"]
+tot_pos_cogs = sum(it['Total COGS (৳)'] for it in pos_items_exact)
 tot_pos_profit = tot_pos_gross - tot_pos_cogs
 pos_gross_margin = (tot_pos_profit / tot_pos_gross * 100) if tot_pos_gross > 0 else 0.0
 
@@ -1506,13 +1579,22 @@ pos_prod_rows = []
 for p in sorted(pos_prod_agg.values(), key=lambda x: -x['Gross Sales Value (৳)']):
     u = p['Units Sold']
     v = p['Gross Sales Value (৳)']
-    cg = p['Total COGS (৳)']
-    profit = round(v - cg)
-    margin_pct = (profit / v * 100) if v > 0 else 0.0
     u_share = (u / tot_pos_units * 100) if tot_pos_units else 0
     v_share = (v / tot_pos_gross * 100) if tot_pos_gross else 0
     avg_price = round(v / u) if u > 0 else p['Unit Price (৳)']
-    avg_cogs = round(cg / u) if u > 0 else p['Unit COGS (৳)']
+    
+    has_full_exact = (p.get('Exact Sold Units', 0) == u) and (u > 0)
+    if has_full_exact:
+        avg_cogs = round(p['Total COGS (৳)'] / u)
+        cg_disp = round(p['Total COGS (৳)'])
+        profit = round(v - cg_disp)
+        margin_pct = (profit / v * 100) if v > 0 else 0.0
+        margin_str = f"{margin_pct:.1f}%"
+    else:
+        avg_cogs = "didn'tget"
+        cg_disp = "didn'tget"
+        profit = "didn'tget"
+        margin_str = "didn'tget"
 
     pos_prod_rows.append({
         'Brand Name': p['Brand Name'],
@@ -1525,9 +1607,9 @@ for p in sorted(pos_prod_agg.values(), key=lambda x: -x['Gross Sales Value (৳)
         'Unit COGS (৳)': avg_cogs,
         'Units Sold (POS)': u,
         'Gross Sales Value (৳)': round(v),
-        'Total Sold COGS (৳)': round(cg),
+        'Total Sold COGS (৳)': cg_disp,
         'Realized Gross Profit (৳)': profit,
-        'Gross Margin (%)': f"{margin_pct:.1f}%",
+        'Gross Margin (%)': margin_str,
         'Cumilla Units Sold': p['Cumilla Units'],
         'Mirpur Units Sold': p['Mirpur Units'],
         'Wari Units Sold': p['Wari Units'],
@@ -1542,11 +1624,22 @@ pos_sku_rows = []
 for s in sorted(pos_sku_agg.values(), key=lambda x: -x['Gross Sales Value (৳)']):
     u = s['Units Sold']
     v = s['Gross Sales Value (৳)']
-    cg = s['Total COGS (৳)']
-    profit = round(v - cg)
-    margin_pct = (profit / v * 100) if v > 0 else 0.0
     u_share = (u / tot_pos_units * 100) if tot_pos_units else 0
     v_share = (v / tot_pos_gross * 100) if tot_pos_gross else 0
+    
+    if s.get('is_exact') and s.get('Unit COGS (৳)') is not None and str(s.get('Unit COGS (৳)')).strip() != "didn'tget":
+        unit_cg = round(float(s['Unit COGS (৳)']))
+        cg_disp = round(s['Total COGS (৳)'])
+        profit = round(v - cg_disp)
+        margin_pct = (profit / v * 100) if v > 0 else 0.0
+        margin_str = f"{margin_pct:.1f}%"
+        cogs_src_val = 'Exact WooCommerce (REST API)'
+    else:
+        unit_cg = "didn'tget"
+        cg_disp = "didn'tget"
+        profit = "didn'tget"
+        margin_str = "didn'tget"
+        cogs_src_val = "didn'tget"
 
     pos_sku_rows.append({
         'Brand Name': s['Brand Name'],
@@ -1556,13 +1649,13 @@ for s in sorted(pos_sku_agg.values(), key=lambda x: -x['Gross Sales Value (৳)'
         'SKU Code': s['SKU Code'],
         'Size': s['Size'],
         'Unit Price (৳)': round(s['Unit Price (৳)']),
-        'Unit COGS (৳)': round(s['Unit COGS (৳)']),
+        'Unit COGS (৳)': unit_cg,
         'Units Sold (POS)': u,
         'Gross Sales Value (৳)': round(v),
-        'Total Sold COGS (৳)': round(cg),
+        'Total Sold COGS (৳)': cg_disp,
         'Realized Gross Profit (৳)': profit,
-        'Gross Margin (%)': f"{margin_pct:.1f}%",
-        'COGS Source': s['COGS Source'],
+        'Gross Margin (%)': margin_str,
+        'COGS Source': cogs_src_val,
         'Cumilla Units Sold': s['Cumilla Units'],
         'Mirpur Units Sold': s['Mirpur Units'],
         'Wari Units Sold': s['Wari Units'],
@@ -1628,8 +1721,8 @@ ws_pos_sum.row_dimensions[2].height = 18
 
 pos_kpis = [
     {'col_start': 'A', 'col_end': 'B', 'label': 'TOTAL POS SALES VALUE', 'val': f"৳{tot_pos_gross:,.0f}", 'sub': f"৳{tot_pos_net:,.0f} Net Settled at Register"},
-    {'col_start': 'C', 'col_end': 'D', 'label': 'TOTAL POS COGS (COST)', 'val': f"৳{tot_pos_cogs:,.0f}", 'sub': 'Exact REST API + Baseline Cost'},
-    {'col_start': 'E', 'col_end': 'F', 'label': 'REALIZED GROSS PROFIT', 'val': f"৳{tot_pos_profit:,.0f}", 'sub': f"{pos_gross_margin:.1f}% Realized Gross Margin"},
+    {'col_start': 'C', 'col_end': 'D', 'label': 'TOTAL POS COGS (COST)', 'val': f"৳{tot_pos_cogs:,.0f}" if tot_pos_cogs > 0 else "didn'tget", 'sub': f"Exact REST API (known items: ৳{tot_pos_cogs:,.0f}; rest didn't get)"},
+    {'col_start': 'E', 'col_end': 'F', 'label': 'REALIZED GROSS PROFIT', 'val': "didn'tget", 'sub': "Gross Profit: didn'tget (zero fallback)"},
     {'col_start': 'G', 'col_end': 'H', 'label': 'TOTAL UNITS SOLD', 'val': f"{tot_pos_units:,}", 'sub': 'Physical Retail Register Transactions'},
     {'col_start': 'I', 'col_end': 'J', 'label': 'TOTAL TRANSACTIONS', 'val': f"{tot_pos_orders:,}", 'sub': 'Distinct Completed Counter Receipts'},
     {'col_start': 'K', 'col_end': 'L', 'label': 'AVERAGE TICKET (AOV)', 'val': f"৳{pos_aov:,.2f}", 'sub': f"৳{(tot_pos_gross / tot_pos_units) if tot_pos_units else 0:,.2f} Avg Unit Price"},
@@ -1705,16 +1798,29 @@ for out_name, out_id, cashier_str in sorted(outlet_configs, key=lambda x: -sum(o
     cnt = len(m_orders)
     u = sum(o['units'] for o in m_orders)
     g_val = sum(o['gross_value'] for o in m_orders)
-    cogs_val = sum(it['Total COGS (৳)'] for it in m_items)
-    profit = round(g_val - cogs_val)
-    margin_p = (profit / g_val * 100) if g_val > 0 else 0.0
+    m_items_exact = [it for it in m_items if it.get('Total COGS (৳)') is not None and it['Total COGS (৳)'] != "didn'tget"]
+    if len(m_items_exact) == len(m_items) and len(m_items) > 0:
+        cogs_val = sum(it['Total COGS (৳)'] for it in m_items_exact)
+        profit = round(g_val - cogs_val)
+        margin_p = (profit / g_val * 100) if g_val > 0 else 0.0
+        cogs_disp = cogs_val
+        profit_disp = profit
+        margin_disp = margin_p / 100.0
+    elif len(m_items_exact) > 0:
+        cogs_disp = sum(it['Total COGS (৳)'] for it in m_items_exact)
+        profit_disp = "didn'tget"
+        margin_disp = "didn'tget"
+    else:
+        cogs_disp = "didn'tget"
+        profit_disp = "didn'tget"
+        margin_disp = "didn'tget"
     aov = (g_val / cnt) if cnt else 0
     
     ws_pos_sum.row_dimensions[cur_row].height = 18
     r_vals = [
         out_name, out_id, cashier_str, cnt, (cnt / tot_pos_orders) if tot_pos_orders else 0,
-        u, (u / tot_pos_units) if tot_pos_units else 0, g_val, cogs_val, profit,
-        margin_p / 100.0, aov
+        u, (u / tot_pos_units) if tot_pos_units else 0, g_val, cogs_disp, profit_disp,
+        margin_disp, aov
     ]
     for c_idx, val in enumerate(r_vals, 1):
         cell = ws_pos_sum.cell(row=cur_row, column=c_idx, value=val)
@@ -1774,15 +1880,28 @@ cat_list = []
 for cat_name, g in cat_groups:
     u = g['Quantity Sold'].sum()
     v = g['Line Total (৳)'].sum()
-    cg = g['Total COGS (৳)'].sum()
-    profit = round(v - cg)
-    margin_p = (profit / v * 100) if v > 0 else 0.0
+    valid_cogs = pd.to_numeric(g['Total COGS (৳)'], errors='coerce')
+    if valid_cogs.notna().sum() == len(g) and len(g) > 0:
+        cg = float(valid_cogs.sum())
+        profit = round(v - cg)
+        margin_p = (profit / v * 100) if v > 0 else 0.0
+        cg_disp = cg
+        profit_disp = profit
+        margin_disp = margin_p / 100.0
+    elif valid_cogs.notna().sum() > 0:
+        cg_disp = float(valid_cogs.sum())
+        profit_disp = "didn'tget"
+        margin_disp = "didn'tget"
+    else:
+        cg_disp = "didn'tget"
+        profit_disp = "didn'tget"
+        margin_disp = "didn'tget"
     avg_p = v / u if u else 0
     
     top_out = g.groupby('Outlet Name')['Quantity Sold'].sum().idxmax()
     cat_list.append({
-        'cat': cat_name, 'u': u, 'v': v, 'cg': cg, 'profit': profit,
-        'margin_p': margin_p, 'avg_p': avg_p, 'top_out': top_out
+        'cat': cat_name, 'u': u, 'v': v, 'cg': cg_disp, 'profit': profit_disp,
+        'margin_p': margin_disp, 'avg_p': avg_p, 'top_out': top_out
     })
 
 cat_list = sorted(cat_list, key=lambda x: -x['v'])
@@ -1790,7 +1909,7 @@ for cd in cat_list:
     ws_pos_sum.row_dimensions[cur_row].height = 18
     r_vals = [
         cd['cat'], cd['u'], (cd['u'] / tot_pos_units) if tot_pos_units else 0,
-        cd['v'], cd['cg'], cd['profit'], cd['margin_p'] / 100.0, cd['avg_p'], cd['top_out']
+        cd['v'], cd['cg'], cd['profit'], (cd['margin_p'] if isinstance(cd['margin_p'], str) else (cd['margin_p'] / 100.0)), cd['avg_p'], cd['top_out']
     ]
     for c_idx, val in enumerate(r_vals, 1):
         cell = ws_pos_sum.cell(row=cur_row, column=c_idx, value=val)
@@ -1807,9 +1926,13 @@ for cd in cat_list:
     cur_row += 1
 
 ws_pos_sum.row_dimensions[cur_row].height = 20
+tot_pos_cogs_disp = tot_pos_cogs if len(pos_items_exact) == len(pos_item_rows) else (f"{tot_pos_cogs:,.0f} (known only)" if tot_pos_cogs > 0 else "didn'tget")
+tot_pos_profit_disp = tot_pos_profit if isinstance(tot_pos_profit, (int, float)) else "didn'tget"
+pos_margin_disp = (pos_gross_margin / 100.0) if isinstance(pos_gross_margin, (int, float)) else "didn'tget"
+
 tot_cat_vals = [
-    "TOTAL ALL CATEGORIES", tot_pos_units, 1.0, tot_pos_gross, tot_pos_cogs, tot_pos_profit,
-    pos_gross_margin / 100.0, (tot_pos_gross / tot_pos_units) if tot_pos_units else 0, "All Outlets"
+    "TOTAL ALL CATEGORIES", tot_pos_units, 1.0, tot_pos_gross, tot_pos_cogs_disp, tot_pos_profit_disp,
+    pos_margin_disp, (tot_pos_gross / tot_pos_units) if tot_pos_units else 0, "All Outlets"
 ]
 for c_idx, val in enumerate(tot_cat_vals, 1):
     cell = ws_pos_sum.cell(row=cur_row, column=c_idx, value=val)
@@ -1847,16 +1970,29 @@ for b_name, b_desc in [('DEEN Select', 'Curated European & International Export 
     b_items = [it for it in pos_item_rows if it['Brand Name'] == b_name]
     u = sum(it['Quantity Sold'] for it in b_items)
     v = sum(it['Line Total (৳)'] for it in b_items)
-    cg = sum(it['Total COGS (৳)'] for it in b_items)
-    profit = round(v - cg)
-    margin_p = (profit / v * 100) if v > 0 else 0.0
+    b_items_exact = [it for it in b_items if it.get('Total COGS (৳)') is not None and it['Total COGS (৳)'] != "didn'tget"]
+    if len(b_items_exact) == len(b_items) and len(b_items) > 0:
+        cg = sum(it['Total COGS (৳)'] for it in b_items_exact)
+        profit = round(v - cg)
+        margin_p = (profit / v * 100) if v > 0 else 0.0
+        cg_disp = cg
+        profit_disp = profit
+        margin_disp = margin_p / 100.0
+    elif len(b_items_exact) > 0:
+        cg_disp = sum(it['Total COGS (৳)'] for it in b_items_exact)
+        profit_disp = "didn'tget"
+        margin_disp = "didn'tget"
+    else:
+        cg_disp = "didn'tget"
+        profit_disp = "didn'tget"
+        margin_disp = "didn'tget"
     u_prods = len(set(it['Base Product Name'] for it in b_items))
     u_skus = len(set(it['SKU'] for it in b_items))
     top_out = pd.DataFrame(b_items).groupby('Outlet Name')['Quantity Sold'].sum().idxmax() if b_items else 'None'
 
     ws_pos_sum.row_dimensions[cur_row].height = 18
     r_vals = [
-        b_name, b_desc, u_prods, u_skus, u, v, cg, profit, margin_p / 100.0, top_out
+        b_name, b_desc, u_prods, u_skus, u, v, cg_disp, profit_disp, margin_disp, top_out
     ]
     for c_idx, val in enumerate(r_vals, 1):
         cell = ws_pos_sum.cell(row=cur_row, column=c_idx, value=val)
@@ -1876,7 +2012,7 @@ ws_pos_sum.row_dimensions[cur_row].height = 20
 tot_brand_vals = [
     "TOTAL BRAND PORTFOLIO", "All DEEN In-House + Curated Outlets",
     len(set(it['Base Product Name'] for it in pos_item_rows)), len(set(it['SKU'] for it in pos_item_rows)),
-    tot_pos_units, tot_pos_gross, tot_pos_cogs, tot_pos_profit, pos_gross_margin / 100.0, "All Outlets"
+    tot_pos_units, tot_pos_gross, tot_pos_cogs_disp, tot_pos_profit_disp, pos_margin_disp, "All Outlets"
 ]
 for c_idx, val in enumerate(tot_brand_vals, 1):
     cell = ws_pos_sum.cell(row=cur_row, column=c_idx, value=val)

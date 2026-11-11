@@ -52,8 +52,9 @@ describe('WooCommerce SKU COGS Extraction & API Engine', () => {
     expect(info.isExact).toBe(true);
 
     const fallback = getItemCogsInfo('UNKNOWN-SKU-999', 1200);
-    expect(fallback.cogs).toBe(Math.round(1200 * 0.42));
+    expect(fallback.cogs).toBe("didn'tget");
     expect(fallback.mrp).toBe(1200);
     expect(fallback.isExact).toBe(false);
+    expect(fallback.cogsSource).toBe("didn'tget");
   });
 });
