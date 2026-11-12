@@ -372,10 +372,11 @@ export function DraggableAssistantButton({
         <button
           type="button"
           onClick={handleResetPosition}
-          className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          aria-label="Reset assistant button position"
+          className="min-w-[28px] min-h-[28px] inline-flex items-center justify-center rounded-md text-slate-300 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
           title="Reset position to bottom-right corner"
         >
-          <RotateCcw className="w-3 h-3" />
+          <RotateCcw className="w-3.5 h-3.5" />
         </button>
       </div>
 

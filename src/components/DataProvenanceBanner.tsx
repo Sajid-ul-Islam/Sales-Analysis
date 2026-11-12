@@ -70,25 +70,25 @@ export function DataProvenanceBanner({
               </span>
 
               <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase ${
+                className={`px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase ${
                   isOffline
-                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
+                    : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
                 }`}
               >
                 {isOffline ? 'Strict File Isolation' : 'Real-Time Sync'}
               </span>
 
               {isPartiallyFiltered && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center gap-1">
-                  <Filter className="w-2.5 h-2.5" />
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20 flex items-center gap-1">
+                  <Filter className="w-2.5 h-2.5" aria-hidden="true" />
                   <span>Filtered ({dateScopeLabel})</span>
                 </span>
               )}
             </div>
 
             {/* From - To Range */}
-            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex-wrap">
+            <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 mt-0.5 flex-wrap">
               <span className="flex items-center gap-1 font-medium">
                 <Calendar className="w-3.5 h-3.5 text-primary" />
                 <span>Rendered Range:</span>
@@ -123,10 +123,10 @@ export function DataProvenanceBanner({
             <button
               type="button"
               onClick={onSwitchToApi}
-              className="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1.5"
+              className="px-2.5 py-1.5 min-h-[36px] rounded-xl text-xs font-semibold bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
               title="Switch to live cloud API sync"
             >
-              <Cloud className="w-3.5 h-3.5" />
+              <Cloud className="w-3.5 h-3.5" aria-hidden="true" />
               <span className="hidden sm:inline">Switch to Live API</span>
             </button>
           )}
@@ -134,9 +134,10 @@ export function DataProvenanceBanner({
           <button
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+            aria-expanded={isExpanded}
+            className="min-w-[36px] min-h-[36px] inline-flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
             title={isExpanded ? 'Hide dataset details' : 'Show dataset details'}
-            aria-label="Toggle details"
+            aria-label="Toggle dataset provenance details"
           >
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
@@ -148,28 +149,28 @@ export function DataProvenanceBanner({
         <div className="px-4 py-3 sm:px-5 sm:py-4 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-[#070707] text-xs space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <div className="p-2.5 rounded-xl bg-white dark:bg-[#121212] border border-slate-200/80 dark:border-white/10">
-              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Origin Source</span>
+              <span className="text-[11px] text-slate-600 dark:text-slate-400 uppercase font-bold tracking-wider block">Origin Source</span>
               <span className="font-semibold text-slate-800 dark:text-slate-200 mt-0.5 block truncate">
                 {isOffline ? 'Disk Spreadsheet Upload' : 'WooCommerce REST API v3'}
               </span>
             </div>
 
             <div className="p-2.5 rounded-xl bg-white dark:bg-[#121212] border border-slate-200/80 dark:border-white/10">
-              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Earliest Timestamp</span>
+              <span className="text-[11px] text-slate-600 dark:text-slate-400 uppercase font-bold tracking-wider block">Earliest Timestamp</span>
               <span className="font-semibold text-slate-800 dark:text-slate-200 mt-0.5 block truncate">
                 {provenance?.dateFrom ? new Date(provenance.dateFrom).toLocaleString('en-GB') : 'N/A'}
               </span>
             </div>
 
             <div className="p-2.5 rounded-xl bg-white dark:bg-[#121212] border border-slate-200/80 dark:border-white/10">
-              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Latest Timestamp</span>
+              <span className="text-[11px] text-slate-600 dark:text-slate-400 uppercase font-bold tracking-wider block">Latest Timestamp</span>
               <span className="font-semibold text-slate-800 dark:text-slate-200 mt-0.5 block truncate">
                 {provenance?.dateTo ? new Date(provenance.dateTo).toLocaleString('en-GB') : 'N/A'}
               </span>
             </div>
 
             <div className="p-2.5 rounded-xl bg-white dark:bg-[#121212] border border-slate-200/80 dark:border-white/10">
-              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Privacy & Audit</span>
+              <span className="text-[11px] text-slate-600 dark:text-slate-400 uppercase font-bold tracking-wider block">Privacy & Audit</span>
               <span className="font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1 truncate">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>Isolated & Reconciled</span>

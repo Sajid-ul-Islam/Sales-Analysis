@@ -116,7 +116,7 @@ When couriers deliver a multi-item parcel partially, they collect a cash amount.
 
 ## 5. Unbreakable CSS & UI Contracts
 
-The user interface has strict zero-breakage contracts codified in [.agents/rules/css_and_styling_rules.md](.agents/rules/css_and_styling_rules.md). All AI agents must adhere to:
+The user interface has strict zero-breakage contracts codified in [.agents/rules/css_and_styling_rules.md](.agents/rules/css_and_styling_rules.md) and [.agents/rules/ui_ux_laws_and_principles.md](.agents/rules/ui_ux_laws_and_principles.md) (with the audit skill at [.agents/skills/ui-ux-audit-and-design/SKILL.md](.agents/skills/ui-ux-audit-and-design/SKILL.md)). All AI agents must adhere to:
 
 1. **Table Containment**:
    - Every `<table>` element MUST be wrapped in a container with `overflow-x-auto min-w-0 w-full`.

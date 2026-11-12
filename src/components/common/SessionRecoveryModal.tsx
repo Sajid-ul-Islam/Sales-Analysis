@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { KeyRound, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -19,6 +19,15 @@ export function SessionRecoveryModal({
   const [pin, setPin] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen || !onCancel) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onCancel]);
 
   if (!isOpen) return null;
 
@@ -50,24 +59,29 @@ export function SessionRecoveryModal({
     <div
       role="dialog"
       aria-modal="true"
+      aria-labelledby="session-recovery-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn"
     >
       <div className="w-full max-w-sm rounded-3xl bg-[#0A0A0A] border border-neutral-800 p-6 shadow-2xl text-center animate-scaleUp">
         <div className="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 mb-4 mx-auto">
-          <KeyRound className="w-6 h-6" />
+          <KeyRound className="w-6 h-6" aria-hidden="true" />
         </div>
 
-        <h3 className="text-lg font-bold text-white mb-1.5">
+        <h3 id="session-recovery-title" className="text-lg font-bold text-white mb-1.5">
           Session Expired
         </h3>
 
-        <p className="text-xs text-neutral-400 mb-5 leading-relaxed">
+        <p className="text-xs text-neutral-300 mb-5 leading-relaxed">
           Your active working state and filter settings have been <span className="text-emerald-400 font-semibold">safely preserved</span>. Enter your Quick PIN to resume instantly.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
+            <label htmlFor="session-recovery-pin" className="sr-only">
+              Enter 4-Digit Quick PIN
+            </label>
             <input
+              id="session-recovery-pin"
               type="password"
               inputMode="numeric"
               maxLength={8}
@@ -78,13 +92,13 @@ export function SessionRecoveryModal({
                 if (errorMsg) setErrorMsg('');
               }}
               placeholder="Enter 4-Digit Quick PIN (e.g. 1234)"
-              className="w-full px-4 py-3 rounded-xl bg-neutral-900 border border-neutral-800 focus:border-orange-500 text-center font-mono text-lg tracking-widest text-white placeholder:text-neutral-600 focus:outline-none transition-colors"
+              className="w-full px-4 py-3 rounded-xl bg-neutral-900 border border-neutral-800 focus:border-orange-500 text-center font-mono text-lg tracking-widest text-white placeholder:text-neutral-500 focus:outline-none transition-colors"
             />
           </div>
 
           {errorMsg && (
-            <div className="flex items-center justify-center gap-1.5 text-xs text-red-400 font-medium">
-              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+            <div role="alert" className="flex items-center justify-center gap-1.5 text-xs text-red-400 font-medium">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
               <span>{errorMsg}</span>
             </div>
           )}
@@ -93,7 +107,7 @@ export function SessionRecoveryModal({
             <button
               type="submit"
               disabled={isVerifying || pin.length < 4}
-              className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white shadow-lg shadow-orange-950/40 transition-all flex items-center justify-center gap-2"
+              className="w-full min-h-[40px] py-2.5 px-4 rounded-xl text-xs font-bold bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white shadow-lg shadow-orange-950/40 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               {isVerifying ? (
                 <>

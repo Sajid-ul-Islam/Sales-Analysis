@@ -1331,15 +1331,21 @@ export default function DashboardPage() {
         >
           {/* Status Alert Toast — Floating non-layout-shifting overlay */}
           {statusMessage && (
-            <div className="fixed bottom-6 right-6 z-50 max-w-md bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md border border-slate-200 dark:border-[#222] shadow-2xl px-4 py-3 rounded-2xl text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-2 duration-150">
+            <div
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              className="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-50 max-w-md bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md border border-slate-200 dark:border-[#222] shadow-2xl px-4 py-3 rounded-2xl text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-2 duration-150"
+            >
               <div className="flex items-center gap-2.5 min-w-0">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />
                 <span className="font-semibold truncate">{statusMessage}</span>
               </div>
               <button
                 type="button"
                 onClick={() => setStatusMessage(null)}
-                className="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs font-bold ml-2 shrink-0 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="Dismiss status notification"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-bold ml-1 shrink-0 min-w-[32px] min-h-[32px] inline-flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
                 title="Dismiss message"
               >
                 ✕

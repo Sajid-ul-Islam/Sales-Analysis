@@ -115,20 +115,22 @@ export function SkuHistoryModal({
                   {skuData?.itemName || matchedRows[0]?.itemName || 'Product Order History'}
                 </h2>
                 {skuData?.category && (
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-deepBlack-hover text-slate-700 dark:text-slate-300">
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-deepBlack-hover text-slate-700 dark:text-slate-300">
                     {skuData.category}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                 Order-by-order audit log and customer delivery outcomes across all recorded manifests.
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-deepBlack-hover transition-colors"
+            aria-label="Close SKU order history"
+            className="min-w-[40px] min-h-[40px] inline-flex items-center justify-center rounded-xl text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-deepBlack-hover active:scale-95 transition-all cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -137,29 +139,29 @@ export function SkuHistoryModal({
         {/* Aggregate KPI Strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-slate-50 dark:bg-deepBlack-sidebar border-b border-slate-200/80 dark:border-deepBlack-border">
           <div className="p-3 bg-white dark:bg-deepBlack-card rounded-xl border border-slate-200 dark:border-deepBlack-border shadow-2xs">
-            <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-400 block">Total Dispatched</span>
+            <span className="text-[11px] uppercase font-bold text-slate-600 dark:text-slate-400 block">Total Dispatched</span>
             <span className="text-lg font-black text-navy-deep dark:text-white font-headline">{totalDispatched} units</span>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5">{matchedRows.length} distinct orders</span>
+            <span className="text-[11px] text-slate-600 dark:text-slate-400 block mt-0.5">{matchedRows.length} distinct orders</span>
           </div>
 
           <div className="p-3 bg-white dark:bg-deepBlack-card rounded-xl border border-slate-200 dark:border-deepBlack-border shadow-2xs">
-            <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">Net Delivered</span>
+            <span className="text-[11px] uppercase font-bold text-emerald-700 dark:text-emerald-400 block">Net Delivered</span>
             <span className="text-lg font-black text-emerald-700 dark:text-emerald-400 font-headline">{totalDelivered} units</span>
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold block mt-0.5">৳ {Math.round(totalRevenue).toLocaleString()}</span>
+            <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold block mt-0.5">৳ {Math.round(totalRevenue).toLocaleString()}</span>
           </div>
 
           <div className="p-3 bg-white dark:bg-deepBlack-card rounded-xl border border-slate-200 dark:border-deepBlack-border shadow-2xs">
-            <span className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400 block">Total Returned</span>
-            <span className="text-lg font-black text-rose-600 dark:text-rose-400 font-headline">{totalReturned} units</span>
-            <span className="text-[10px] text-rose-600 dark:text-rose-400 font-semibold block mt-0.5">{returnRate}% return rate</span>
+            <span className="text-[11px] uppercase font-bold text-rose-700 dark:text-rose-400 block">Total Returned</span>
+            <span className="text-lg font-black text-rose-700 dark:text-rose-400 font-headline">{totalReturned} units</span>
+            <span className="text-[11px] text-rose-700 dark:text-rose-400 font-semibold block mt-0.5">{returnRate}% return rate</span>
           </div>
 
           <div className="p-3 bg-white dark:bg-deepBlack-card rounded-xl border border-slate-200 dark:border-deepBlack-border shadow-2xs">
-            <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-400 block">Unit Cost</span>
+            <span className="text-[11px] uppercase font-bold text-slate-600 dark:text-slate-400 block">Unit Cost</span>
             <span className="text-lg font-black text-slate-800 dark:text-white font-headline">
               ৳ {Math.round(skuData?.unitPrice || matchedRows[0]?.itemCost || 0).toLocaleString()}
             </span>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5">Catalog base price</span>
+            <span className="text-[11px] text-slate-600 dark:text-slate-400 block mt-0.5">Catalog base price</span>
           </div>
         </div>
 
@@ -169,8 +171,9 @@ export function SkuHistoryModal({
             {(['ALL', 'DELIVERED', 'RETURNED', 'EXCHANGE'] as const).map((tab) => (
               <button
                 key={tab}
+                type="button"
                 onClick={() => setFilterStatus(tab)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 min-h-[34px] rounded-lg text-xs font-bold active:scale-95 transition-all cursor-pointer ${
                   filterStatus === tab
                     ? 'bg-white dark:bg-deepBlack-card text-navy-deep dark:text-white shadow-2xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-navy-deep dark:hover:text-white'
@@ -182,22 +185,36 @@ export function SkuHistoryModal({
           </div>
 
           <div className="relative w-full sm:w-64">
-            <Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               ref={searchRef}
               type="text"
               placeholder="Search order ID, phone..."
+              aria-label="Search SKU orders by order ID, customer name, or phone"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-primary dark:focus:border-primary focus:bg-white dark:focus:bg-deepBlack-sidebar"
+              className="w-full bg-slate-50 dark:bg-deepBlack-sidebar border border-slate-200 dark:border-deepBlack-border rounded-xl pl-8 pr-8 py-2 text-xs text-slate-800 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:border-primary dark:focus:border-primary focus:bg-white dark:focus:bg-deepBlack-sidebar"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm('');
+                  searchRef.current?.focus();
+                }}
+                aria-label="Clear SKU order search"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 min-w-[28px] min-h-[28px] inline-flex items-center justify-center rounded-md text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-white/10 active:scale-95 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
         {/* Orders Table */}
         <div className="p-4 overflow-y-auto flex-1 bg-white dark:bg-deepBlack-card">
-          <div className="border border-slate-200 dark:border-deepBlack-border rounded-xl overflow-hidden shadow-2xs">
-            <table className="w-full text-left text-xs">
+          <div className="w-full min-w-0 overflow-x-auto border border-slate-200 dark:border-deepBlack-border rounded-xl shadow-2xs">
+            <table className="w-full text-left text-xs min-w-[640px]">
               <thead className="bg-slate-50 dark:bg-deepBlack-sidebar border-b border-slate-200 dark:border-deepBlack-border text-slate-600 dark:text-slate-300 font-bold">
                 <tr>
                   <th className="py-2.5 px-3">Order ID</th>

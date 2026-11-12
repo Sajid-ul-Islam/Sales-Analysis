@@ -1006,13 +1006,15 @@ export function InventoryStockTab({ orders = [] }: InventoryStockTabProps) {
                       <td className="py-3 px-3.5">
                         <div className="flex flex-wrap items-center gap-1.5">
                           {g.variations.map((v) => (
-                            <div
+                            <button
+                              type="button"
                               key={v.sku}
                               onClick={() => {
                                 setSelectedSize(v.size);
                                 setViewMode('VARIATION');
                               }}
-                              className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-mono border transition-all cursor-pointer ${
+                              aria-label={`Inspect ${g.productTitle} size ${v.size}, ${v.totalStock} pcs in stock`}
+                              className={`flex items-center gap-1 px-2.5 py-1 min-h-[30px] rounded-md text-[11px] font-mono border active:scale-95 transition-all cursor-pointer ${
                                 v.stockStatus === 'IN_STOCK'
                                   ? 'bg-emerald-50/80 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/80 hover:bg-emerald-100'
                                   : v.stockStatus === 'LOW_STOCK'
@@ -1023,7 +1025,7 @@ export function InventoryStockTab({ orders = [] }: InventoryStockTabProps) {
                             >
                               <span className="font-bold">{v.size}:</span>
                               <span>{v.totalStock} pcs</span>
-                            </div>
+                            </button>
                           ))}
                         </div>
                       </td>

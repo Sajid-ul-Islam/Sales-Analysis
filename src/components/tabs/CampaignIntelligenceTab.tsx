@@ -25,6 +25,7 @@ import {
   CalendarDays,
   FileSpreadsheet,
   Globe,
+  X,
 } from 'lucide-react';
 import { ReconciledOrderRow, SummaryMetrics } from '@/types';
 import { DateScope, CustomDateRange, DateScopeCounts } from '@/lib/dateFilter';
@@ -193,6 +194,15 @@ export function CampaignIntelligenceTab({
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [formCampaign, setFormCampaign] = useState<Partial<Campaign>>({});
 
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsModalOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isModalOpen]);
+
   const handleOpenCreateModal = () => {
     setFormCampaign({
       id: `camp-${Date.now()}`,
@@ -336,9 +346,11 @@ export function CampaignIntelligenceTab({
               New Campaign
             </button>
             <button
+              type="button"
               onClick={handleResetDefaults}
               title="Reset to default winter campaigns"
-              className="p-2 rounded-lg bg-deepBlack-hover hover:bg-deepBlack-border text-neutral-400 hover:text-white transition-colors"
+              aria-label="Reset to default winter campaigns"
+              className="min-w-[36px] min-h-[36px] inline-flex items-center justify-center rounded-lg bg-deepBlack-hover hover:bg-deepBlack-border text-neutral-300 hover:text-white active:scale-95 transition-all cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
@@ -1462,10 +1474,35 @@ export function CampaignIntelligenceTab({
 
       {/* CREATE / EDIT CAMPAIGN MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-deepBlack-card border border-deepBlack-border rounded-xl p-6 w-full max-w-xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-base font-bold text-white mb-1">Create Winter Seasonal Campaign</h3>
-            <p className="text-xs text-neutral-400 mb-4">Define budget, target audience, and promotional rules for the marketing engine.</p>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-campaign-title"
+          onClick={() => setIsModalOpen(false)}
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-deepBlack-card border border-deepBlack-border rounded-xl p-6 w-full max-w-xl max-h-[90vh] overflow-y-auto cursor-default"
+          >
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <h3 id="create-campaign-title" className="text-base font-bold text-white mb-1">
+                  Create Winter Seasonal Campaign
+                </h3>
+                <p className="text-xs text-neutral-300">
+                  Define budget, target audience, and promotional rules for the marketing engine.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                aria-label="Close campaign modal"
+                className="min-w-[36px] min-h-[36px] inline-flex items-center justify-center rounded-lg text-neutral-400 hover:text-white hover:bg-deepBlack-hover active:scale-95 transition-all cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
             <form onSubmit={handleSaveCampaign} className="space-y-4 text-xs">
               <div>

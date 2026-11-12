@@ -118,9 +118,16 @@ export function Header({
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('touchstart', handleClickOutside);
     }
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMoreMenuOpen(false);
+    };
+    if (moreMenuOpen) {
+      window.addEventListener('keydown', handleEsc);
+    }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
+      window.removeEventListener('keydown', handleEsc);
     };
   }, [moreMenuOpen]);
 
@@ -246,23 +253,23 @@ export function Header({
             className="w-full min-w-0 pl-9 pr-16 sm:pr-24 py-2 sm:py-2.5 min-h-[40px] sm:min-h-[44px] bg-slate-100/70 hover:bg-slate-100 focus:bg-white dark:bg-deepBlack-sidebar dark:hover:bg-deepBlack-card dark:focus:bg-deepBlack-canvas text-xs border border-transparent hover:border-slate-200 dark:hover:border-deepBlack-border focus:border-slate-300 dark:focus:border-slate-700 rounded-xl placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all text-slate-800 dark:text-slate-100"
           />
           {searchTerm ? (
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => {
                   onToggleCopilot?.(searchTerm.trim());
                   setSearchTerm('');
                 }}
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-[10px] font-bold shadow-2xs active:scale-95 transition-all cursor-pointer"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-primary hover:bg-primary-hover text-white text-[11px] font-bold shadow-2xs active:scale-95 transition-all cursor-pointer"
                 title="Ask DEEN Assistant about this search"
               >
-                <Sparkles className="w-3 h-3 text-white" />
+                <Sparkles className="w-3 h-3 text-white" aria-hidden="true" />
                 <span className="hidden sm:inline">Ask AI</span>
               </button>
               <button
                 type="button"
                 onClick={handleClearSearch}
-                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                className="min-w-[32px] min-h-[32px] inline-flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
                 aria-label="Clear search query"
               >
                 <X className="w-3.5 h-3.5" />
@@ -274,10 +281,10 @@ export function Header({
                 <button
                   type="button"
                   onClick={() => onToggleCopilot()}
-                  className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold text-primary-dark dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/40 rounded transition-colors cursor-pointer"
+                  className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-primary-dark dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/40 rounded-lg active:scale-95 transition-all cursor-pointer"
                   title="Ask DEEN Assistant AI (⌘J)"
                 >
-                  <Sparkles className="w-2.5 h-2.5 text-primary shrink-0 animate-pulse" />
+                  <Sparkles className="w-3 h-3 text-primary shrink-0 animate-pulse" aria-hidden="true" />
                   <span>AI</span>
                 </button>
               )}
@@ -302,10 +309,10 @@ export function Header({
           <button
             type="button"
             onClick={() => onSwitchSourceMode?.('UPLOAD')}
-            className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold active:scale-95 transition-all cursor-pointer ${
               activeSourceMode === 'UPLOAD'
                 ? 'bg-white dark:bg-deepBlack-hover text-primary-dark dark:text-orange-400 shadow-2xs font-bold'
-                : 'text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300'
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
             title="Render from uploaded spreadsheets & offline manifests (.xlsx / .csv)"
             aria-label="Switch data source to uploaded spreadsheets"
@@ -318,10 +325,10 @@ export function Header({
           <button
             type="button"
             onClick={() => onSwitchSourceMode?.('API')}
-            className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold active:scale-95 transition-all cursor-pointer ${
               activeSourceMode === 'API'
-                ? 'bg-white dark:bg-deepBlack-hover text-emerald-600 dark:text-emerald-400 shadow-2xs font-bold'
-                : 'text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300'
+                ? 'bg-white dark:bg-deepBlack-hover text-emerald-700 dark:text-emerald-400 shadow-2xs font-bold'
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
             title="Render from live WooCommerce & Pathao Hermes API"
             aria-label="Switch data source to Cloud API"

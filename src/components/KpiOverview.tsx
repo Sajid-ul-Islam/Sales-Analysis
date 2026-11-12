@@ -276,7 +276,16 @@ export function KpiOverview({
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-4.5 xl:gap-5">
         {/* 1. Gross Dispatched Orders & Items */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => onKpiClick?.('tabOrders', 'ALL')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onKpiClick?.('tabOrders', 'ALL');
+            }
+          }}
+          aria-label="Dispatched orders summary, open all orders in Orders Ledger"
           className="kpi-card bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-sm hover:border-orange-300 dark:hover:border-orange-500/50 hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group cursor-pointer active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           title="Click to view all orders in Orders Ledger"
         >
@@ -405,7 +414,16 @@ export function KpiOverview({
 
         {/* 2. Net Delivered Orders & Items */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => onKpiClick?.('tabOrders', 'DELIVERED')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onKpiClick?.('tabOrders', 'DELIVERED');
+            }
+          }}
+          aria-label="Delivered orders summary, open Delivered orders in Orders Ledger"
           className="kpi-card bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-sm hover:border-emerald-300 dark:hover:border-emerald-500/50 hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group cursor-pointer active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
           title="Click to view Delivered orders in Orders Ledger"
         >
@@ -502,7 +520,16 @@ export function KpiOverview({
 
         {/* 3. Returned Orders & Items (with Paid vs Unpaid Return Split) */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => onKpiClick?.('tabItemReturns')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onKpiClick?.('tabItemReturns');
+            }
+          }}
+          aria-label="Returned orders summary, open Returned Items and RTO breakdown"
           className="kpi-card bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-rose-300 dark:hover:border-rose-500/50 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all flex flex-col justify-between relative overflow-hidden group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40"
           title="Click to view Returned Items & RTO breakdown"
         >
@@ -616,7 +643,16 @@ export function KpiOverview({
 
         {/* 4. Partial Orders & Items */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => onKpiClick?.('tabOrders', 'PARTIAL')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onKpiClick?.('tabOrders', 'PARTIAL');
+            }
+          }}
+          aria-label="Partial orders summary, open Partial orders in Orders Ledger"
           className="kpi-card bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-amber-300 dark:hover:border-amber-500/50 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all flex flex-col justify-between relative overflow-hidden group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40"
           title="Click to view Partial orders in Orders Ledger"
         >
@@ -714,7 +750,16 @@ export function KpiOverview({
 
         {/* 5. Exchange Orders & Items */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => onKpiClick?.('tabExchanges')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onKpiClick?.('tabExchanges');
+            }
+          }}
+          aria-label="Exchange orders summary, open Exchanged Orders log"
           className="kpi-card bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-xs hover:border-purple-300 dark:hover:border-purple-500/50 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all flex flex-col justify-between relative overflow-hidden group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/40"
           title="Click to view Exchanged Orders log"
         >
@@ -820,7 +865,16 @@ export function KpiOverview({
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-4.5 xl:gap-5">
         {/* 1. Realized Net Revenue with Realization Rate & Return Leakage Donut */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => onKpiClick?.('tabExecutive')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onKpiClick?.('tabExecutive');
+            }
+          }}
+          aria-label="Realized Net Revenue summary, open Executive Performance Breakdown"
           className="kpi-card bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-emerald-300 dark:hover:border-emerald-500/50 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
           title="Click to view Executive Performance Breakdown"
         >
@@ -902,7 +956,16 @@ export function KpiOverview({
 
         {/* 2. Net Contribution Margin with Donut Chart & Unit Profit */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => onKpiClick?.('tabUnitEconomics')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onKpiClick?.('tabUnitEconomics');
+            }
+          }}
+          aria-label="Net Contribution Margin summary, open Unit Economics and Sales Calculation"
           className="kpi-card bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-amber-300 dark:hover:border-amber-500/50 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40"
           title="Click to view Unit Economics & Sales Calculation"
         >
@@ -1022,7 +1085,16 @@ export function KpiOverview({
 
         {/* 3. Pathao Courier Cost & Fee Recovery */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => onKpiClick?.('tabCourierMismatch')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onKpiClick?.('tabCourierMismatch');
+            }
+          }}
+          aria-label="Pathao Courier Cost summary, open Pathao Courier Audit and manifests"
           className="kpi-card bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-blue-300 dark:hover:border-blue-500/50 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
           title="Click to view Pathao Courier Audit & manifests"
         >
@@ -1105,7 +1177,16 @@ export function KpiOverview({
 
         {/* 4. Territory Outside vs Inside with Donut Chart and Integers */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => onKpiClick?.('tabTerritory')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onKpiClick?.('tabTerritory');
+            }
+          }}
+          aria-label="Territory Outside vs Inside summary, open Territory Performance"
           className="kpi-card bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
           title="Click to view Territory Performance"
         >
@@ -1182,7 +1263,16 @@ export function KpiOverview({
 
         {/* 5. Payment Settlement Ratio: COD vs Online Paid with Donut Chart */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => onKpiClick?.('tabStatus')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onKpiClick?.('tabStatus');
+            }
+          }}
+          aria-label="Payment Settlement Ratio summary, open Status Matrix and Payment Breakdown"
           className="kpi-card bg-white dark:bg-deepBlack-card rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-deepBlack-border shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-orange-300 dark:hover:border-orange-500/50 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
           title="Click to view Status Matrix & Payment Breakdown"
         >

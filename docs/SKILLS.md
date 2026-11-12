@@ -32,6 +32,9 @@ The **DEEN Commerce Skills Registry** defines autonomous, modular skills that so
 ├────────────────────────────┼───────────────────────────┤
 │ campaign-auditor           │ Delivered ROAS and CAC    │
 │                            │ attribution analyzer      │
+├────────────────────────────┼───────────────────────────┤
+│ ui-ux-audit-and-design     │ 17-point Core UI, UX      │
+│                            │ Honeycomb & Laws auditor  │
 └────────────────────────────┴───────────────────────────┘
 ```
 
@@ -140,3 +143,10 @@ The **DEEN Commerce Skills Registry** defines autonomous, modular skills that so
     "border_surface": "#E5E7EB"
   }
   ```
+
+---
+
+### 2.6 `ui-ux-audit-and-design`
+- **Skill File:** [`.agents/skills/ui-ux-audit-and-design/SKILL.md`](.agents/skills/ui-ux-audit-and-design/SKILL.md)
+- **Rule Reference:** [`.agents/rules/ui_ux_laws_and_principles.md`](.agents/rules/ui_ux_laws_and_principles.md)
+- **Description:** Audits and enforces the 5 Core UI Principles, 7 UX Honeycomb traits, and 5 Psychological Laws of UI/UX (Hick's, Fitts's, Jakob's, Miller's, Aesthetic-Usability) across React/Next.js/Tailwind components.

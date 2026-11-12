@@ -457,11 +457,19 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                   return (
                     <tr
                       key={`${o.orderId}-${idx}`}
+                      tabIndex={0}
                       onClick={() => {
                         setSelectedOrderId(o.orderId);
                         setIsModalOpen(true);
                       }}
-                      className="hover:bg-orange-50/40 dark:hover:bg-deepBlack-hover cursor-pointer transition-colors group"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedOrderId(o.orderId);
+                          setIsModalOpen(true);
+                        }
+                      }}
+                      className="hover:bg-orange-50/40 dark:hover:bg-deepBlack-hover cursor-pointer transition-colors group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                       title="Click to view full order drill-down & item outcomes"
                     >
                       <td className="py-3 px-3.5 font-bold text-slate-900 dark:text-white whitespace-nowrap sticky left-0 bg-white dark:bg-deepBlack-card group-hover:bg-[#FFF7ED] dark:group-hover:bg-deepBlack-hover z-10 min-w-[140px] border-r border-slate-200 dark:border-deepBlack-border shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
@@ -469,12 +477,13 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
                           <span className="group-hover:text-primary transition-colors flex items-center gap-1 font-mono">
                             {o.orderId}
                             <SuffixHygieneBadge orderId={o.orderId} />
-                            <Eye className="w-3 h-3 text-slate-400 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <Eye className="w-3 h-3 text-slate-400 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
                           </span>
                           <button
                             type="button"
                             onClick={(e) => handleCopyOrderId(e, o.orderId)}
-                            className="p-1 rounded text-slate-400 hover:text-primary dark:hover:text-primary hover:bg-slate-100 dark:hover:bg-deepBlack-elevated transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                            aria-label={copiedOrderId === o.orderId ? `Copied Order ID ${o.orderId}` : `Copy Order ID ${o.orderId}`}
+                            className="min-w-[28px] min-h-[28px] inline-flex items-center justify-center rounded-md text-slate-500 hover:text-primary dark:hover:text-primary hover:bg-slate-100 dark:hover:bg-deepBlack-elevated active:scale-95 transition-all opacity-75 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 cursor-pointer"
                             title={copiedOrderId === o.orderId ? "Copied!" : "Copy Order ID"}
                           >
                             {copiedOrderId === o.orderId ? (

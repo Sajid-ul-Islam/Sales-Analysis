@@ -213,7 +213,8 @@ export function SyncNotificationCenter({
                   <button
                     type="button"
                     onClick={handleClearHistory}
-                    className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                    aria-label="Clear notification history"
+                    className="min-w-[36px] min-h-[36px] inline-flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
                     title="Clear history"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -222,7 +223,9 @@ export function SyncNotificationCenter({
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
+                  aria-label="Close notifications drawer"
+                  className="min-w-[36px] min-h-[36px] inline-flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
+                  title="Close"
                 >
                   <X className="w-4 h-4" />
                 </button>

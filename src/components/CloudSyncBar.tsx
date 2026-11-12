@@ -1010,7 +1010,8 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
                   <button
                     type="button"
                     onClick={handleClearApiCaches}
-                    className="p-1.5 rounded-lg bg-white dark:bg-deepBlack-card hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 border border-slate-200 dark:border-deepBlack-border text-[11px] transition-all shadow-2xs active:scale-95"
+                    aria-label="Clear browser cache"
+                    className="min-w-[36px] min-h-[36px] inline-flex items-center justify-center rounded-lg bg-white dark:bg-deepBlack-card hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 border border-slate-200 dark:border-deepBlack-border text-[11px] transition-all shadow-2xs active:scale-95 cursor-pointer"
                     title="Clear Browser Cache"
                   >
                     <Trash2 className="w-3.5 h-3.5" />

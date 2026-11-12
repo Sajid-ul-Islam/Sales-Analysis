@@ -2781,17 +2781,13 @@ export function OutletSalesTab({
               </span>
 
               <button
-
+                type="button"
                 onClick={handleClearCache}
-
                 title="Clear local browser cache"
-
-                className="ml-1 text-purple-400 hover:text-purple-900 dark:hover:text-purple-200 transition-colors cursor-pointer p-0.5 rounded hover:bg-purple-100 dark:hover:bg-purple-900/50"
-
+                aria-label="Clear local browser cache"
+                className="ml-1 text-purple-600 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-200 transition-all cursor-pointer min-w-[28px] min-h-[28px] inline-flex items-center justify-center rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/50 active:scale-95"
               >
-
-                <Trash2 className="w-3 h-3" />
-
+                <Trash2 className="w-3.5 h-3.5" />
               </button>
 
             </div>

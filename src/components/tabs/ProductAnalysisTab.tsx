@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ReconciledOrderRow, SkuAnalytics } from '@/types';
 import {
   computeProductAnalytics,
@@ -63,6 +63,15 @@ export function ProductAnalysisTab({
 
   // Selected product for deep-dive modal
   const [inspectingProduct, setInspectingProduct] = useState<ProductAnalyticsItem | null>(null);
+
+  useEffect(() => {
+    if (!inspectingProduct) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setInspectingProduct(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [inspectingProduct]);
 
   // Basket simulator selection
   const [simulatorProductTitle, setSimulatorProductTitle] = useState<string>('');
@@ -663,8 +672,15 @@ export function ProductAnalysisTab({
                     return (
                       <tr
                         key={p.id}
-                        className="hover:bg-slate-50/80 dark:hover:bg-[#121212]/80 transition-colors group cursor-pointer"
+                        tabIndex={0}
+                        className="hover:bg-slate-50/80 dark:hover:bg-[#121212]/80 transition-colors group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                         onClick={() => setInspectingProduct(p)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setInspectingProduct(p);
+                          }
+                        }}
                       >
                         {/* ABC Badge */}
                         <td className="py-3 px-3.5 whitespace-nowrap">
@@ -1444,14 +1460,23 @@ export function ProductAnalysisTab({
 
       {/* 4. PRODUCT DEEP-DIVE MODAL */}
       {inspectingProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-[#0F0F0F] border border-slate-200 dark:border-[#222] rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 space-y-5 animate-in zoom-in-95 duration-150">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="product-deepdive-title"
+          onClick={() => setInspectingProduct(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150 cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-[#0F0F0F] border border-slate-200 dark:border-[#222] rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 space-y-5 animate-in zoom-in-95 duration-150 cursor-default"
+          >
             {/* Header */}
             <div className="flex items-start justify-between gap-3 pb-4 border-b border-slate-100 dark:border-[#1F1F1F]">
               <div>
                 <div className="flex items-center gap-2">
                   <span
-                    className={`px-2 py-0.5 rounded-md font-black text-2xs ${
+                    className={`px-2 py-0.5 rounded-md font-black text-[11px] ${
                       inspectingProduct.abcCategory === 'A'
                         ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300'
                         : inspectingProduct.abcCategory === 'B'
@@ -1461,14 +1486,14 @@ export function ProductAnalysisTab({
                   >
                     Class {inspectingProduct.abcCategory}
                   </span>
-                  <span className="text-2xs font-bold uppercase tracking-wider text-slate-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                     {inspectingProduct.category}
                   </span>
                 </div>
-                <h3 className="text-base sm:text-lg font-bold font-headline text-slate-900 dark:text-white mt-1">
+                <h3 id="product-deepdive-title" className="text-base sm:text-lg font-bold font-headline text-slate-900 dark:text-white mt-1">
                   {inspectingProduct.title}
                 </h3>
-                <div className="text-xs text-slate-400 font-mono mt-0.5">
+                <div className="text-xs text-slate-600 dark:text-slate-400 font-mono mt-0.5">
                   SKUs: {inspectingProduct.skus.slice(0, 3).join(', ')}
                   {inspectingProduct.skus.length > 3 ? ` +${inspectingProduct.skus.length - 3} more` : ''}
                 </div>
@@ -1477,7 +1502,8 @@ export function ProductAnalysisTab({
               <button
                 type="button"
                 onClick={() => setInspectingProduct(null)}
-                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1A1A1A] dark:hover:bg-[#252525] text-slate-500 dark:text-slate-300 transition-colors cursor-pointer"
+                aria-label="Close product details"
+                className="min-w-[40px] min-h-[40px] inline-flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1A1A1A] dark:hover:bg-[#252525] text-slate-600 dark:text-slate-300 active:scale-95 transition-all cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>

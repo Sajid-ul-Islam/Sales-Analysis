@@ -485,8 +485,18 @@ export function DateRangeSelector({
         <div className="flex items-center gap-1 shrink-0 ml-1">
           {isNonDefault ? (
             <span
+              role="button"
+              tabIndex={0}
+              aria-label="Reset date filter to default Last 30 Days"
               onClick={handleResetToDefault}
-              className="p-0.5 rounded-md hover:bg-orange-200/60 dark:hover:bg-orange-900/60 text-slate-400 hover:text-rose-600 transition-colors"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleResetToDefault(e as unknown as React.MouseEvent);
+                }
+              }}
+              className="p-1 rounded-md hover:bg-orange-200/60 dark:hover:bg-orange-900/60 text-slate-600 dark:text-slate-300 hover:text-rose-600 active:scale-95 transition-all cursor-pointer"
               title="Reset date filter to default (Last 30 Days)"
             >
               <X className="w-3.5 h-3.5" />

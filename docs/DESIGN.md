@@ -132,3 +132,13 @@ Pill Badge:    text-xs font-semibold px-2.5 py-0.5 rounded-full
   </table>
 </div>
 ```
+
+---
+
+## 6. Core UI Principles, UX Honeycomb & Psychological Laws
+
+All interface components enforce the mandatory contract in [.agents/rules/ui_ux_laws_and_principles.md](.agents/rules/ui_ux_laws_and_principles.md) (and audit workflow [.agents/skills/ui-ux-audit-and-design/SKILL.md](.agents/skills/ui-ux-audit-and-design/SKILL.md)):
+
+- **Core UI Design Principles**: Visual Hierarchy, Consistency, Proximity & Alignment (Gestalt grids & `overflow-x-auto` table wrappers), Contrast & Accessibility (WCAG AA `>= 4.5:1`, 11px floor, `aria-label` on icon buttons, `role="dialog"` + `Esc` on modals, keyboard handlers on interactive cards/rows), and Feedback (`active:scale-95`, `role="status" aria-live="polite"` toast notifications, immediate copy/export confirmations).
+- **The UX Honeycomb (Peter Morville)**: Usefulness, Usability, Findability (`⌘K` Command Palette & clearable searches), Credibility (`DataProvenanceBanner`), Desirability, Accessibility, and Value.
+- **Psychological Laws of UI/UX**: Hick's Law (progressive disclosure & simple choices), Fitts's Law (minimum `36–48px` target sizing & colocated controls), Jakob's Law (familiar dashboard conventions & `Esc` dismissal), Miller's Law (`5–7` chunked nav items & KPI grids), and Aesthetic-Usability Effect.

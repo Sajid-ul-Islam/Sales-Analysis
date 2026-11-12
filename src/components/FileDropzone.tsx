@@ -190,9 +190,18 @@ export function FileDropzone({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
         {/* Dropzone 1: Order Files */}
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Upload Sales and Orders spreadsheet files"
           onClick={(e) => {
             if ((e.target as HTMLElement).closest('button')) return;
             inputOrdersRef.current?.click();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              inputOrdersRef.current?.click();
+            }
           }}
           onDragEnter={(e) => {
             e.preventDefault();
@@ -290,9 +299,18 @@ export function FileDropzone({
 
         {/* Dropzone 2: Pathao Master Delivery Report (PRIMARY CHECK) */}
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Upload Pathao Master Delivery Report files"
           onClick={(e) => {
             if ((e.target as HTMLElement).closest('button')) return;
             inputPathaoRef.current?.click();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              inputPathaoRef.current?.click();
+            }
           }}
           onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragActivePathao(true); }}
           onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'copy'; setDragActivePathao(true); }}
@@ -376,9 +394,18 @@ export function FileDropzone({
 
         {/* Dropzone 3: Return Manifest (FALLBACK) */}
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Upload Return Manifest files"
           onClick={(e) => {
             if ((e.target as HTMLElement).closest('button')) return;
             inputReturnsRef.current?.click();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              inputReturnsRef.current?.click();
+            }
           }}
           onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragActive2(true); }}
           onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'copy'; setDragActive2(true); }}
@@ -460,9 +487,18 @@ export function FileDropzone({
 
         {/* Dropzone 4: Partial Deliveries (FALLBACK) */}
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Upload Partial Deliveries files"
           onClick={(e) => {
             if ((e.target as HTMLElement).closest('button')) return;
             inputPartialsRef.current?.click();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              inputPartialsRef.current?.click();
+            }
           }}
           onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragActive3(true); }}
           onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'copy'; setDragActive3(true); }}
@@ -544,9 +580,18 @@ export function FileDropzone({
 
         {/* Dropzone 5: Exchanged Orders (FALLBACK) */}
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Upload Exchanged Orders files"
           onClick={(e) => {
             if ((e.target as HTMLElement).closest('button')) return;
             inputExchangesRef.current?.click();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              inputExchangesRef.current?.click();
+            }
           }}
           onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragActive4(true); }}
           onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'copy'; setDragActive4(true); }}
