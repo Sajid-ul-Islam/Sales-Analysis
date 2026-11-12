@@ -1553,6 +1553,52 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(report.activeOrders).toHaveLength(1);
       expect(report.activeOrders[0].orderId).toBe('16048');
     });
+
+    it('computes real catalog-verified profitPercent and totalCogs on salesRevenue for Today Shipped', () => {
+      const targetDate = '2026-10-25';
+      const orders: RawOrderRow[] = [
+        {
+          'Order ID': '18001',
+          orderId: '18001',
+          'Order Date': `${targetDate} 10:00:00`,
+          'Date Modified': `${targetDate} 11:00:00`,
+          'Delivery Status': 'completed',
+          status: 'completed',
+          'Created Via': 'checkout',
+          SKU: '109-0102-085', // WC COGS = 450
+          'Item Name': 'DEEN Catalog Item',
+          Quantity: 1,
+          'Item Cost': 900,
+          'Order Amount': 900,
+        },
+        {
+          'Order ID': '18002',
+          orderId: '18002',
+          'Order Date': `${targetDate} 10:30:00`,
+          'Date Modified': `${targetDate} 11:30:00`,
+          'Delivery Status': 'completed',
+          status: 'completed',
+          'Created Via': 'checkout',
+          SKU: '108-0101-010', // Clearance item: WC COGS = 565 vs Sale = 494
+          'Item Name': 'DEEN Off-white Sweatshirt in French-Terry - M',
+          Quantity: 1,
+          'Item Cost': 494,
+          'Order Amount': 494,
+        },
+      ];
+
+      const report = processLiveOpsData(orders, {
+        view: 'Today Shipped',
+        anchorDate: targetDate,
+        customDate: targetDate,
+      });
+
+      expect(report.salesRevenue.rawValue).toBe(1394);
+      expect(report.salesRevenue.totalCogs).toBe(1015);
+      expect(report.salesRevenue.profitAmount).toBe(379);
+      expect(report.salesRevenue.profitPercent).toBe(27.2);
+      expect(report.salesRevenue.cogsCoveragePercent).toBe(100);
+    });
   });
 });
 

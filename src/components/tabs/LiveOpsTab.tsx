@@ -1672,6 +1672,34 @@ export function LiveOpsTab({
               {report.salesRevenue.value}
             </div>
 
+            <div className="mt-1 flex items-center gap-1.5 flex-wrap min-w-0 text-[11px] font-mono">
+              {typeof report.salesRevenue.profitPercent === 'number' ? (
+                <span
+                  className={`font-bold ${
+                    report.salesRevenue.profitPercent < 0
+                      ? 'text-rose-600 dark:text-rose-400'
+                      : 'text-emerald-600 dark:text-emerald-400'
+                  }`}
+                  title={`Gross Profit: TK ${(report.salesRevenue.profitAmount ?? 0).toLocaleString()} • Actual COGS: TK ${(report.salesRevenue.totalCogs ?? 0).toLocaleString()} (${report.salesRevenue.cogsCoveragePercent ?? 0}% catalog coverage)`}
+                >
+                  Profit: {report.salesRevenue.profitPercent.toFixed(1)}% (TK {(report.salesRevenue.profitAmount ?? 0).toLocaleString()})
+                </span>
+              ) : report.salesRevenue.rawValue > 0 ? (
+                <span className="font-semibold text-amber-600 dark:text-amber-400">
+                  Profit: didn&apos;tget
+                </span>
+              ) : (
+                <span className="text-slate-400 dark:text-slate-500">Profit: 0.0%</span>
+              )}
+              {typeof report.salesRevenue.cogsCoveragePercent === 'number' &&
+                report.salesRevenue.cogsCoveragePercent > 0 &&
+                report.salesRevenue.cogsCoveragePercent < 100 && (
+                  <span className="text-[9.5px] text-slate-400 dark:text-slate-500">
+                    ({report.salesRevenue.cogsCoveragePercent}% cov)
+                  </span>
+                )}
+            </div>
+
             <div className="mt-1.5 min-w-0">
               <span
                 className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border truncate ${

@@ -9,7 +9,7 @@ import { RawOrderRow } from '@/types';
 import { classifyProductLine, computeSelectsStats, SelectsStats } from './selectsAnalytics';
 import { getCategoryForSales, getSubCategoryForSales, getShortCategoryLabel, getShortSubCategoryLabel, CATEGORY_COLOR_MAP } from './liveCategoryEngine';
 import { computeCustomerMix } from './customerMixCalculator';
-import { isEcomPaymentMethod } from './woocommerceClient';
+import { isEcomPaymentMethod, getItemCogsInfo } from './woocommerceClient';
 import { detectFulfillmentBranch } from './fulfillmentUtils';
 import {
   getDhakaIsoDate,
@@ -34,6 +34,10 @@ export interface LiveKpiMetric {
   deltaFormatted: string;
   isPositive: boolean;
   sparkline: number[];
+  profitPercent?: number | null;
+  profitAmount?: number | null;
+  totalCogs?: number | null;
+  cogsCoveragePercent?: number;
 }
 
 export interface CustomerMixMetric {
@@ -1394,6 +1398,35 @@ export function processLiveOpsData(
   const activeRevenue = commercialActiveOrders.reduce((sum, o) => sum + getOrderRowAmount(o), 0);
   const activeBasket = activeOrdersCount > 0 ? Math.round(activeRevenue / activeOrdersCount) : 0;
 
+  // Actual catalog/management COGS & realized gross profit % for active revenue
+  let activeTotalCogs = 0;
+  let activeCogsCoveredRevenue = 0;
+  let activeCoveredUnits = 0;
+  for (const o of commercialActiveOrders) {
+    const qty = Number(o.Quantity ?? o.quantity ?? o.qty) || 1;
+    const rev = getOrderRowAmount(o);
+    const unitPrice = Number(o['Item Cost'] ?? o.itemCost ?? o.price) || (qty > 0 ? rev / qty : 0);
+    const rawO = o as unknown as Record<string, unknown>;
+    const cogsInfo = getItemCogsInfo(String(o.SKU || o.sku || ''), unitPrice, {
+      productId: (rawO.productId ?? rawO.product_id) as number | string | undefined,
+      variationId: (rawO.variationId ?? rawO.variation_id) as number | string | undefined,
+      itemName: String(o['Item Name'] || o.itemName || o.name || ''),
+    });
+    if (cogsInfo.isExact && typeof cogsInfo.cogs === 'number') {
+      activeTotalCogs += cogsInfo.cogs * qty;
+      activeCogsCoveredRevenue += rev;
+      activeCoveredUnits += qty;
+    }
+  }
+  const hasActiveCogs = activeCoveredUnits > 0 && activeCogsCoveredRevenue > 0;
+  const activeProfitAmount = hasActiveCogs ? Math.round(activeCogsCoveredRevenue - activeTotalCogs) : null;
+  const activeProfitPercent = hasActiveCogs
+    ? Number((((activeCogsCoveredRevenue - activeTotalCogs) / activeCogsCoveredRevenue) * 100).toFixed(1))
+    : null;
+  const activeCogsCoveragePct = activeRevenue > 0
+    ? Number(((activeCogsCoveredRevenue / activeRevenue) * 100).toFixed(1))
+    : 0;
+
   // Build 7 calendar days ending on anchor (keeps 7-day strip stable and responsive)
   const last7DaysHistory: DayHistorySummary[] = [];
   const dailyStats: {
@@ -1921,6 +1954,10 @@ export function processLiveOpsData(
       deltaFormatted: format7dDelta(deltaRev, deltaRevPct, 'TK ', avg7dRevenue),
       isPositive: deltaRev >= 0,
       sparkline: sparklineRevenue,
+      profitPercent: activeProfitPercent,
+      profitAmount: activeProfitAmount,
+      totalCogs: hasActiveCogs ? Math.round(activeTotalCogs) : null,
+      cogsCoveragePercent: activeCogsCoveragePct,
     },
 
     shippedOrders: {
