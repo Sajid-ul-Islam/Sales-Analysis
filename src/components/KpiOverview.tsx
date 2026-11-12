@@ -920,23 +920,44 @@ export function KpiOverview({
 
           {(() => {
             const netMarginAmount = Math.round(s.unitEconomics.netContributionMargin);
-            const marginPct = Math.min(100, Math.max(0, Math.round(s.unitEconomics.netMarginPercentage)));
-            const costPct = 100 - marginPct;
+            const actualNetPct = Number((s.unitEconomics.netMarginPercentage || 0).toFixed(1));
+            const marginPct = Math.min(100, Math.max(0, Math.round(actualNetPct)));
+            const costPct = Math.max(0, 100 - marginPct);
             const roasVal = s.unitEconomics.roas ? s.unitEconomics.roas.toFixed(1) : '0.0';
+            const actualCogsVal = Math.round(s.unitEconomics.actualCogs ?? s.unitEconomics.estimatedCogs ?? 0);
+            const actualGrossMarginPct = Number(
+              (
+                s.unitEconomics.grossMarginPercent ??
+                (s.unitEconomics.netRealizedSales > 0
+                  ? (s.unitEconomics.grossMargin / s.unitEconomics.netRealizedSales) * 100
+                  : 0)
+              ).toFixed(1)
+            );
+            const isNetNegative = netMarginAmount < 0 || actualNetPct < 0;
 
             return (
               <div className="my-2.5 sm:my-3">
                 <div className="flex items-center justify-between gap-2 sm:gap-3">
                   <div className="min-w-0 flex-1 pr-1">
                     <div
-                      className="kpi-metric-number text-xl sm:text-2xl xl:text-3xl font-black text-amber-600 dark:text-amber-400 font-headline tracking-tight truncate block"
-                      title={`৳ ${netMarginAmount.toLocaleString()}`}
+                      className={`kpi-metric-number text-xl sm:text-2xl xl:text-3xl font-black font-headline tracking-tight truncate block ${
+                        isNetNegative
+                          ? 'text-rose-600 dark:text-rose-400'
+                          : 'text-amber-600 dark:text-amber-400'
+                      }`}
+                      title={`৳ ${netMarginAmount.toLocaleString()} (Gross Margin: ${actualGrossMarginPct}%, COGS: ৳${actualCogsVal.toLocaleString()})`}
                     >
                       ৳ {netMarginAmount.toLocaleString()}
                     </div>
                     <div className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 min-w-0">
-                      <span className="text-emerald-700 dark:text-emerald-400 font-bold truncate">
-                        ৳ {s.fullDeliveredOrders > 0 ? Math.round(netMarginAmount / s.fullDeliveredOrders).toLocaleString() : '700'}
+                      <span
+                        className={`font-bold truncate ${
+                          isNetNegative
+                            ? 'text-rose-600 dark:text-rose-400'
+                            : 'text-emerald-700 dark:text-emerald-400'
+                        }`}
+                      >
+                        ৳ {s.fullDeliveredOrders > 0 ? Math.round(netMarginAmount / s.fullDeliveredOrders).toLocaleString() : '0'}
                       </span>
                       <span className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0">/ kept</span>
                     </div>
@@ -945,20 +966,35 @@ export function KpiOverview({
                   {/* Donut Chart with Numbers directly attached */}
                   <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
                     <MiniDonutChart
-                      tooltip={`Margin Yield: ${marginPct}% Net Profit • ${costPct}% COGS, Logistics & Ads`}
+                      tooltip={`Net Profit: ${actualNetPct}% • Gross Margin: ${actualGrossMarginPct}% • Actual COGS: ৳${actualCogsVal.toLocaleString()} • ${costPct}% Cost Load`}
                       trackColorClass="text-amber-100 dark:text-amber-950/40"
                       strokeLinecap="round"
-                      centerText={`${marginPct}%`}
-                      centerTextClass="text-emerald-700 dark:text-emerald-400"
-                      arcs={[{ pct: marginPct, colorClass: 'text-emerald-500' }]}
+                      centerText={`${Math.round(actualNetPct)}%`}
+                      centerTextClass={
+                        isNetNegative
+                          ? 'text-rose-600 dark:text-rose-400'
+                          : 'text-emerald-700 dark:text-emerald-400'
+                      }
+                      arcs={[{ pct: marginPct, colorClass: isNetNegative ? 'text-rose-500' : 'text-emerald-500' }]}
                     />
 
                     {/* Number Rendering with Donut Chart with Semantic Labels */}
                     <div className="kpi-donut-micro-metrics flex flex-col text-[10px] sm:text-[11px] font-black leading-tight shrink-0">
-                      <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1" title={`৳ ${netMarginAmount.toLocaleString()} Net Cash Yield`}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                        <span>৳{netMarginAmount >= 1000000 ? `${(netMarginAmount / 1000000).toFixed(2)}M` : `${Math.round(netMarginAmount / 1000)}k`}</span>
-                        <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold">Net</span>
+                      <span
+                        className={`flex items-center gap-1 ${
+                          actualGrossMarginPct < 0
+                            ? 'text-rose-600 dark:text-rose-400'
+                            : 'text-emerald-700 dark:text-emerald-400'
+                        }`}
+                        title={`Actual Gross Margin ${actualGrossMarginPct}% after ৳${actualCogsVal.toLocaleString()} COGS`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                            actualGrossMarginPct < 0 ? 'bg-rose-500' : 'bg-emerald-500'
+                          }`}
+                        ></span>
+                        <span>{actualGrossMarginPct}%</span>
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold">GM</span>
                       </span>
                       <span className="text-purple-700 dark:text-purple-400 flex items-center gap-1 mt-1" title={`${roasVal}x Return on Ad Spend`}>
                         <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0"></span>
@@ -973,7 +1009,10 @@ export function KpiOverview({
           })()}
 
           <div className="text-[10px] text-slate-500 dark:text-slate-400 pt-2.5 border-t border-slate-100 dark:border-deepBlack-border flex flex-wrap items-center justify-between gap-1 min-w-0">
-            <span className="truncate">After COGS, Courier & Ads</span>
+            <span className="truncate font-mono">
+              COGS: ৳{Math.round(s.unitEconomics.actualCogs ?? s.unitEconomics.estimatedCogs ?? 0).toLocaleString()}
+              {typeof s.unitEconomics.cogsRatioPercent === 'number' ? ` (${s.unitEconomics.cogsRatioPercent}%)` : ''}
+            </span>
             <span className="text-[10px] text-slate-400 dark:text-slate-500 group-hover:text-amber-700 dark:group-hover:text-amber-400 font-medium transition-colors shrink-0">
               Details →
             </span>

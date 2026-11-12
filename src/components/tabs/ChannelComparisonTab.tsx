@@ -3,6 +3,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { ReconciledOrderRow } from '@/types';
 import { getCategoryForSales } from '@/lib/liveCategoryEngine';
+import { getItemCogsInfo } from '@/lib/woocommerceClient';
 import posBaselineRaw from '@/data/pos-outlet-baseline.json';
 import {
   BarChart3,
@@ -125,9 +126,10 @@ export interface PosBaselineItem {
   unitPrice: number;
   quantity: number;
   lineTotal: number;
-  unitCogs: number;
-  totalCogs: number;
-  profit: number;
+  unitCogs: number | null;
+  totalCogs: number | null;
+  profit: number | null;
+  cogsSource?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -243,10 +245,18 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
             const lineItems = Array.isArray(o.lineItems) ? o.lineItems : [];
             for (const li of lineItems) {
               const name = String(li.name || '');
+              const sku = String(li.sku || '');
               const qty = Number(li.quantity || 1);
               const total = Number(li.total || 0);
               const price = qty > 0 ? total / qty : Number(li.price || 0);
-              const cogs = total * 0.425; // standard POS margin baseline
+              const cInfo = getItemCogsInfo(sku, price, {
+                productId: li.product_id as string | number | undefined,
+                variationId: li.variation_id as string | number | undefined,
+                itemName: name,
+              });
+              const unitCogs = typeof cInfo.cogs === 'number' ? cInfo.cogs : null;
+              const totalCogs = unitCogs !== null ? Math.round(unitCogs * qty) : null;
+              const profit = totalCogs !== null ? total - totalCogs : null;
               const brand = detectBrand(name);
               const cat = normalizeCategory(getCategoryForSales(name), name);
 
@@ -260,13 +270,14 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
                 category: cat,
                 subCategory: cat,
                 itemName: name,
-                sku: String(li.sku || ''),
+                sku,
                 unitPrice: price,
                 quantity: qty,
                 lineTotal: total,
-                unitCogs: cogs / qty,
-                totalCogs: cogs,
-                profit: total - cogs,
+                unitCogs,
+                totalCogs,
+                profit,
+                cogsSource: cInfo.cogsSource,
               });
             }
           }
@@ -309,6 +320,21 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
 
   // ── CORE DATA COMPILATION ──────────────────────────────────────────────────
   const { channelMetrics, categoryRows, brandRows, productRows, grandTotals } = useMemo(() => {
+    const resolveEcomCogs = (r: ReconciledOrderRow): number | null => {
+      if (typeof r.actualCogs === 'number' && r.isExactCogs) return r.actualCogs;
+      if (typeof r.unitCogs === 'number') return Math.round(r.unitCogs * (r.quantity ?? 1));
+      const info = getItemCogsInfo(r.sku, Number(r.itemCost) || 0, { itemName: r.itemName });
+      return typeof info.cogs === 'number' ? Math.round(info.cogs * (r.quantity ?? 1)) : null;
+    };
+
+    const resolvePosCogs = (item: PosBaselineItem): number | null => {
+      if (typeof item.totalCogs === 'number' && item.totalCogs > 0 && item.cogsSource && item.cogsSource !== "didn'tget") {
+        return item.totalCogs;
+      }
+      const info = getItemCogsInfo(item.sku, item.unitPrice, { itemName: item.itemName });
+      return typeof info.cogs === 'number' ? Math.round(info.cogs * (item.quantity || 1)) : null;
+    };
+
     // 1. Process E-Commerce Delivered Rows
     const deliveredEcom = orders.filter((r) => {
       const st = r.orderCategory || r.orderDeliveryStatus || r.lineStatus;
@@ -316,28 +342,44 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
     });
 
     const ecomOrderIds = new Set(deliveredEcom.map((r) => r.orderId));
-    const ecomUnits = deliveredEcom.reduce((s, r) => s + (r.quantity ?? 1), 0);
-    const ecomNet = deliveredEcom.reduce((s, r) => s + (r.netRevenueImpact ?? r.orderAmount ?? 0), 0);
-    const ecomCogs = deliveredEcom.reduce((s, r) => s + (r.cogsEstimate ?? (r.netRevenueImpact ?? 0) * 0.425), 0);
-    const ecomProfit = ecomNet - ecomCogs;
+    let ecomUnits = 0;
+    let ecomNet = 0;
+    let ecomCoveredNet = 0;
+    let ecomCogs = 0;
+    for (const r of deliveredEcom) {
+      const rev = r.netRevenueImpact ?? r.orderAmount ?? 0;
+      const cogs = resolveEcomCogs(r);
+      ecomUnits += r.quantity ?? 1;
+      ecomNet += rev;
+      if (cogs !== null) {
+        ecomCogs += cogs;
+        ecomCoveredNet += rev;
+      }
+    }
+    const ecomProfit = ecomCoveredNet > 0 ? ecomCoveredNet - ecomCogs : 0;
     const ecomOrders = ecomOrderIds.size || 859;
 
     // 2. Process POS Outlet Rows by Outlet ID
-    const posByOutlet: Record<string, { units: number; net: number; cogs: number; orderIds: Set<string> }> = {
-      '7': { units: 0, net: 0, cogs: 0, orderIds: new Set() }, // Cumilla
-      '2': { units: 0, net: 0, cogs: 0, orderIds: new Set() }, // Mirpur
-      '8': { units: 0, net: 0, cogs: 0, orderIds: new Set() }, // Wari
-      '9': { units: 0, net: 0, cogs: 0, orderIds: new Set() }, // Sylhet
+    const posByOutlet: Record<string, { units: number; net: number; coveredNet: number; cogs: number; orderIds: Set<string> }> = {
+      '7': { units: 0, net: 0, coveredNet: 0, cogs: 0, orderIds: new Set() }, // Cumilla
+      '2': { units: 0, net: 0, coveredNet: 0, cogs: 0, orderIds: new Set() }, // Mirpur
+      '8': { units: 0, net: 0, coveredNet: 0, cogs: 0, orderIds: new Set() }, // Wari
+      '9': { units: 0, net: 0, coveredNet: 0, cogs: 0, orderIds: new Set() }, // Sylhet
     };
 
     for (const item of posItems) {
       const oid = String(item.outletId);
       if (!posByOutlet[oid]) {
-        posByOutlet[oid] = { units: 0, net: 0, cogs: 0, orderIds: new Set() };
+        posByOutlet[oid] = { units: 0, net: 0, coveredNet: 0, cogs: 0, orderIds: new Set() };
       }
+      const lineTotal = item.lineTotal || 0;
+      const cogs = resolvePosCogs(item);
       posByOutlet[oid].units += item.quantity || 1;
-      posByOutlet[oid].net += item.lineTotal || 0;
-      posByOutlet[oid].cogs += item.totalCogs || 0;
+      posByOutlet[oid].net += lineTotal;
+      if (cogs !== null) {
+        posByOutlet[oid].cogs += cogs;
+        posByOutlet[oid].coveredNet += lineTotal;
+      }
       posByOutlet[oid].orderIds.add(item.orderNumber);
     }
 
@@ -352,20 +394,22 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
     // Calculate company grand totals
     let totUnits = ecomUnits;
     let totNet = ecomNet;
+    let totCoveredNet = ecomCoveredNet;
     let totCogs = ecomCogs;
 
     for (const oid of ['7', '2', '8', '9']) {
       totUnits += posByOutlet[oid].units;
       totNet += posByOutlet[oid].net;
+      totCoveredNet += posByOutlet[oid].coveredNet;
       totCogs += posByOutlet[oid].cogs;
     }
-    const totProfit = totNet - totCogs;
-    const totMargin = totNet > 0 ? totProfit / totNet : 0;
+    const totProfit = totCoveredNet > 0 ? totCoveredNet - totCogs : 0;
+    const totMargin = totCoveredNet > 0 ? totProfit / totCoveredNet : 0;
 
     // Build metrics for all 5 channels
     const channelMetrics: ChannelMetrics[] = CHANNELS.map((ch) => {
       if (ch.key === 'ecom') {
-        const margin = ecomNet > 0 ? ecomProfit / ecomNet : 0;
+        const margin = ecomCoveredNet > 0 ? ecomProfit / ecomCoveredNet : 0;
         return {
           key: 'ecom',
           units: ecomUnits,
@@ -385,8 +429,8 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
       // POS channels
       const targetOid = Object.keys(outletToKey).find((k) => outletToKey[k] === ch.key)!;
       const d = posByOutlet[targetOid];
-      const profit = d.net - d.cogs;
-      const margin = d.net > 0 ? profit / d.net : 0;
+      const profit = d.coveredNet > 0 ? d.coveredNet - d.cogs : 0;
+      const margin = d.coveredNet > 0 ? profit / d.coveredNet : 0;
       const ordersCount = d.orderIds.size || 1;
       return {
         key: ch.key,
@@ -405,16 +449,21 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
     });
 
     // 3. Category matrix across all 5 channels
-    const catMap: Record<string, Record<string, { units: number; revenue: number; cogs: number }>> = {};
+    const catMap: Record<string, Record<string, { units: number; revenue: number; coveredRev: number; cogs: number }>> = {};
 
     // Ingest E-com
     for (const r of deliveredEcom) {
       const cat = normalizeCategory(getCategoryForSales(r.itemName), r.itemName);
       if (!catMap[cat]) catMap[cat] = {};
-      if (!catMap[cat]['ecom']) catMap[cat]['ecom'] = { units: 0, revenue: 0, cogs: 0 };
+      if (!catMap[cat]['ecom']) catMap[cat]['ecom'] = { units: 0, revenue: 0, coveredRev: 0, cogs: 0 };
+      const rev = r.netRevenueImpact ?? r.orderAmount ?? 0;
+      const cogs = resolveEcomCogs(r);
       catMap[cat]['ecom'].units += r.quantity ?? 1;
-      catMap[cat]['ecom'].revenue += r.netRevenueImpact ?? r.orderAmount ?? 0;
-      catMap[cat]['ecom'].cogs += r.cogsEstimate ?? (r.netRevenueImpact ?? 0) * 0.425;
+      catMap[cat]['ecom'].revenue += rev;
+      if (cogs !== null) {
+        catMap[cat]['ecom'].cogs += cogs;
+        catMap[cat]['ecom'].coveredRev += rev;
+      }
     }
 
     // Ingest POS
@@ -423,27 +472,34 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
       const chKey = outletToKey[String(item.outletId)];
       if (!chKey) continue;
       if (!catMap[cat]) catMap[cat] = {};
-      if (!catMap[cat][chKey]) catMap[cat][chKey] = { units: 0, revenue: 0, cogs: 0 };
+      if (!catMap[cat][chKey]) catMap[cat][chKey] = { units: 0, revenue: 0, coveredRev: 0, cogs: 0 };
+      const rev = item.lineTotal || 0;
+      const cogs = resolvePosCogs(item);
       catMap[cat][chKey].units += item.quantity || 1;
-      catMap[cat][chKey].revenue += item.lineTotal || 0;
-      catMap[cat][chKey].cogs += item.totalCogs || 0;
+      catMap[cat][chKey].revenue += rev;
+      if (cogs !== null) {
+        catMap[cat][chKey].cogs += cogs;
+        catMap[cat][chKey].coveredRev += rev;
+      }
     }
 
     const categoryRows: CategoryRow[] = Object.entries(catMap).map(([cat, chData]) => {
       let cUnits = 0;
       let cRev = 0;
+      let cCoveredRev = 0;
       let cCogs = 0;
       const channels: CategoryRow['channels'] = {};
       for (const ch of CHANNELS) {
-        const d = chData[ch.key] ?? { units: 0, revenue: 0, cogs: 0 };
+        const d = chData[ch.key] ?? { units: 0, revenue: 0, coveredRev: 0, cogs: 0 };
         channels[ch.key] = {
           units: d.units,
           revenue: d.revenue,
           cogs: d.cogs,
-          margin: d.revenue > 0 ? (d.revenue - d.cogs) / d.revenue : 0,
+          margin: d.coveredRev > 0 ? (d.coveredRev - d.cogs) / d.coveredRev : 0,
         };
         cUnits += d.units;
         cRev += d.revenue;
+        cCoveredRev += d.coveredRev;
         cCogs += d.cogs;
       }
       return {
@@ -452,27 +508,32 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
         totalUnits: cUnits,
         totalRevenue: cRev,
         totalCogs: cCogs,
-        totalMargin: cRev > 0 ? (cRev - cCogs) / cRev : 0,
+        totalMargin: cCoveredRev > 0 ? (cCoveredRev - cCogs) / cCoveredRev : 0,
       };
     });
 
     // 4. Brand tier (DEEN Select vs DEEN Regular)
-    const brandMap: Record<string, Record<string, { units: number; revenue: number; cogs: number }>> = {
+    const brandMap: Record<string, Record<string, { units: number; revenue: number; coveredRev: number; cogs: number }>> = {
       'DEEN Select': {},
       'DEEN Regular': {},
     };
     for (const ch of CHANNELS) {
-      brandMap['DEEN Select'][ch.key] = { units: 0, revenue: 0, cogs: 0 };
-      brandMap['DEEN Regular'][ch.key] = { units: 0, revenue: 0, cogs: 0 };
+      brandMap['DEEN Select'][ch.key] = { units: 0, revenue: 0, coveredRev: 0, cogs: 0 };
+      brandMap['DEEN Regular'][ch.key] = { units: 0, revenue: 0, coveredRev: 0, cogs: 0 };
     }
 
     // Ecom Brand
     for (const r of deliveredEcom) {
       const brand = detectBrand(r.itemName);
       const targetBrand = brand === 'DEEN Select' ? 'DEEN Select' : 'DEEN Regular';
+      const rev = r.netRevenueImpact ?? r.orderAmount ?? 0;
+      const cogs = resolveEcomCogs(r);
       brandMap[targetBrand]['ecom'].units += r.quantity ?? 1;
-      brandMap[targetBrand]['ecom'].revenue += r.netRevenueImpact ?? r.orderAmount ?? 0;
-      brandMap[targetBrand]['ecom'].cogs += r.cogsEstimate ?? (r.netRevenueImpact ?? 0) * 0.425;
+      brandMap[targetBrand]['ecom'].revenue += rev;
+      if (cogs !== null) {
+        brandMap[targetBrand]['ecom'].cogs += cogs;
+        brandMap[targetBrand]['ecom'].coveredRev += rev;
+      }
     }
 
     // POS Brand
@@ -480,26 +541,33 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
       const chKey = outletToKey[String(item.outletId)];
       if (!chKey) continue;
       const targetBrand = item.brand === 'DEEN Select' ? 'DEEN Select' : 'DEEN Regular';
+      const rev = item.lineTotal || 0;
+      const cogs = resolvePosCogs(item);
       brandMap[targetBrand][chKey].units += item.quantity || 1;
-      brandMap[targetBrand][chKey].revenue += item.lineTotal || 0;
-      brandMap[targetBrand][chKey].cogs += item.totalCogs || 0;
+      brandMap[targetBrand][chKey].revenue += rev;
+      if (cogs !== null) {
+        brandMap[targetBrand][chKey].cogs += cogs;
+        brandMap[targetBrand][chKey].coveredRev += rev;
+      }
     }
 
     const brandRows: BrandRow[] = Object.entries(brandMap).map(([brand, chData]) => {
       let bUnits = 0;
       let bRev = 0;
+      let bCoveredRev = 0;
       let bCogs = 0;
       const channels: BrandRow['channels'] = {};
       for (const ch of CHANNELS) {
-        const d = chData[ch.key] ?? { units: 0, revenue: 0, cogs: 0 };
+        const d = chData[ch.key] ?? { units: 0, revenue: 0, coveredRev: 0, cogs: 0 };
         channels[ch.key] = {
           units: d.units,
           revenue: d.revenue,
           cogs: d.cogs,
-          margin: d.revenue > 0 ? (d.revenue - d.cogs) / d.revenue : 0,
+          margin: d.coveredRev > 0 ? (d.coveredRev - d.cogs) / d.coveredRev : 0,
         };
         bUnits += d.units;
         bRev += d.revenue;
+        bCoveredRev += d.coveredRev;
         bCogs += d.cogs;
       }
       return {
@@ -508,12 +576,12 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
         totalUnits: bUnits,
         totalRevenue: bRev,
         totalCogs: bCogs,
-        totalMargin: bRev > 0 ? (bRev - bCogs) / bRev : 0,
+        totalMargin: bCoveredRev > 0 ? (bCoveredRev - bCogs) / bCoveredRev : 0,
       };
     });
 
     // 5. Product Level breakdown
-    const prodMap: Record<string, { category: string; brand: string; channels: Record<string, { units: number; revenue: number; cogs: number }> }> = {};
+    const prodMap: Record<string, { category: string; brand: string; channels: Record<string, { units: number; revenue: number; coveredRev: number; cogs: number }> }> = {};
 
     // Ecom products
     for (const r of deliveredEcom) {
@@ -524,11 +592,16 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
           brand: detectBrand(r.itemName),
           channels: {},
         };
-        for (const ch of CHANNELS) prodMap[name].channels[ch.key] = { units: 0, revenue: 0, cogs: 0 };
+        for (const ch of CHANNELS) prodMap[name].channels[ch.key] = { units: 0, revenue: 0, coveredRev: 0, cogs: 0 };
       }
+      const rev = r.netRevenueImpact ?? r.orderAmount ?? 0;
+      const cogs = resolveEcomCogs(r);
       prodMap[name].channels['ecom'].units += r.quantity ?? 1;
-      prodMap[name].channels['ecom'].revenue += r.netRevenueImpact ?? r.orderAmount ?? 0;
-      prodMap[name].channels['ecom'].cogs += r.cogsEstimate ?? (r.netRevenueImpact ?? 0) * 0.425;
+      prodMap[name].channels['ecom'].revenue += rev;
+      if (cogs !== null) {
+        prodMap[name].channels['ecom'].cogs += cogs;
+        prodMap[name].channels['ecom'].coveredRev += rev;
+      }
     }
 
     // POS products
@@ -542,20 +615,27 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
           brand: item.brand || detectBrand(item.itemName),
           channels: {},
         };
-        for (const ch of CHANNELS) prodMap[name].channels[ch.key] = { units: 0, revenue: 0, cogs: 0 };
+        for (const ch of CHANNELS) prodMap[name].channels[ch.key] = { units: 0, revenue: 0, coveredRev: 0, cogs: 0 };
       }
+      const rev = item.lineTotal || 0;
+      const cogs = resolvePosCogs(item);
       prodMap[name].channels[chKey].units += item.quantity || 1;
-      prodMap[name].channels[chKey].revenue += item.lineTotal || 0;
-      prodMap[name].channels[chKey].cogs += item.totalCogs || 0;
+      prodMap[name].channels[chKey].revenue += rev;
+      if (cogs !== null) {
+        prodMap[name].channels[chKey].cogs += cogs;
+        prodMap[name].channels[chKey].coveredRev += rev;
+      }
     }
 
     const productRows: ProductRow[] = Object.entries(prodMap).map(([name, data]) => {
       let pUnits = 0;
       let pRev = 0;
+      let pCoveredRev = 0;
       let pCogs = 0;
       for (const ch of CHANNELS) {
         pUnits += data.channels[ch.key].units;
         pRev += data.channels[ch.key].revenue;
+        pCoveredRev += data.channels[ch.key].coveredRev;
         pCogs += data.channels[ch.key].cogs;
       }
       return {
@@ -566,7 +646,7 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
         totalUnits: pUnits,
         totalRevenue: pRev,
         totalCogs: pCogs,
-        totalMargin: pRev > 0 ? (pRev - pCogs) / pRev : 0,
+        totalMargin: pCoveredRev > 0 ? (pCoveredRev - pCogs) / pCoveredRev : 0,
       };
     });
 

@@ -5,6 +5,7 @@ import { Calendar, FileSpreadsheet } from 'lucide-react';
 import { exportMonthlyNetSalesExcel } from '@/lib/excelExport';
 import { ReconciliationResult } from '@/lib/reconciliationEngine';
 import { ReconciledOrderRow, SummaryAnalytics } from '@/types';
+import { getItemCogsInfo } from '@/lib/woocommerceClient';
 
 export interface MonthEndCloseCardProps {
   orders?: ReconciledOrderRow[];
@@ -61,6 +62,43 @@ export function MonthEndCloseCard({
           monthLabel: closingPeriod.monthName,
         });
       } else {
+        let actualCogs = 0;
+        let cogsCoveredRevenue = 0;
+        const realizedSales = orders.reduce((sum, o) => sum + (o.netRevenueImpact || 0), 0);
+
+        for (const o of orders) {
+          const isRowDelivered = o.itemDeliveryStatus
+            ? o.itemDeliveryStatus === 'Delivered'
+            : o.orderDeliveryStatus === 'Delivered' ||
+              o.orderCategory === 'DELIVERED' ||
+              ((o.orderDeliveryStatus === 'Partial' || o.orderCategory === 'PARTIAL') &&
+                (Number(o.netRevenueImpact) || 0) > 0);
+          if (!isRowDelivered) continue;
+          const delQty = Number(o.quantity) || 1;
+          const rowRev = Number(o.netRevenueImpact) || (Number(o.itemCost) || 0) * delQty;
+          if (typeof o.actualCogs === 'number' && o.actualCogs > 0) {
+            actualCogs += o.actualCogs;
+            cogsCoveredRevenue += rowRev;
+          } else {
+            const unitPrice = Number(o.itemCost) || (delQty > 0 ? rowRev / delQty : 0);
+            const cInfo = getItemCogsInfo(o.sku, unitPrice, {
+              itemName: o.itemName,
+            });
+            if (cInfo.isExact && typeof cInfo.cogs === 'number') {
+              actualCogs += cInfo.cogs * delQty;
+              cogsCoveredRevenue += rowRev;
+            }
+          }
+        }
+
+        const grossMargin = Math.round(cogsCoveredRevenue - actualCogs);
+        const grossMarginPercent =
+          cogsCoveredRevenue > 0 ? Number(((grossMargin / cogsCoveredRevenue) * 100).toFixed(1)) : 0;
+        const cogsRatioPercent =
+          cogsCoveredRevenue > 0 ? Number(((actualCogs / cogsCoveredRevenue) * 100).toFixed(1)) : 0;
+        const exactCoveragePercent =
+          realizedSales > 0 ? Number(((cogsCoveredRevenue / realizedSales) * 100).toFixed(1)) : 0;
+
         const fallbackSummary: SummaryAnalytics = summary || ({
           grossOrders: orders.length,
           totalGrossItems: orders.length,
@@ -79,7 +117,7 @@ export function MonthEndCloseCard({
           fullReturnRate: 0,
           partialRate: 0,
           grossRevenue: orders.reduce((sum, o) => sum + (o.orderAmount || 0), 0),
-          netDeliveredRevenue: orders.reduce((sum, o) => sum + (o.netRevenueImpact || 0), 0),
+          netDeliveredRevenue: realizedSales,
           totalItemsDelivered: 0,
           insideOrders: 0,
           outsideOrders: 0,
@@ -101,15 +139,26 @@ export function MonthEndCloseCard({
             netCourierBurden: 0,
           },
           unitEconomics: {
-            cogs: 0,
-            cogsPercentage: 0.45,
-            courierCost: 0,
-            packagingCost: 0,
-            metaAdSpend: 0,
-            grossProfit: 0,
-            grossMarginPercentage: 0,
-            netProfit: 0,
-            netProfitMarginPercentage: 0,
+            grossInvoicedSales: orders.reduce((sum, o) => sum + (o.orderAmount || 0), 0),
+            netRealizedSales: realizedSales,
+            estimatedCogs: Math.round(actualCogs),
+            actualCogs: Math.round(actualCogs),
+            grossMargin,
+            grossMarginPercent,
+            cogsRatioPercent,
+            exactCogsCoveragePercent: exactCoveragePercent,
+            cogsCoveredRevenue: Math.round(cogsCoveredRevenue),
+            cogsMethod:
+              cogsCoveredRevenue > 0
+                ? exactCoveragePercent >= 99.9
+                  ? 'ACTUAL_CATALOG_COGS'
+                  : 'HYBRID'
+                : 'NO_CATALOG_MATCH',
+            totalCourierExpense: 0,
+            packagingLoss: 0,
+            metaAdCost: 0,
+            netContributionMargin: grossMargin,
+            netMarginPercentage: grossMarginPercent,
             roas: 0,
             cac: 0,
           },

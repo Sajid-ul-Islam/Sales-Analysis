@@ -880,21 +880,39 @@ export function ItemReturnsTab({ returnedItems, onSelectOrder }: ItemReturnsTabP
                                               ৳ {Math.round(subItem.itemCost).toLocaleString()}
                                             </div>
                                             {(() => {
-                                              const cInfo = getItemCogsInfo(subItem.sku, subItem.itemCost);
+                                              const cInfo = getItemCogsInfo(subItem.sku, subItem.itemCost, {
+                                                itemName: subItem.itemName,
+                                              });
+                                              if (!cInfo.isExact || typeof cInfo.cogs !== 'number') {
+                                                return (
+                                                  <div className="text-[10px] font-mono font-semibold text-amber-600 dark:text-amber-400 mt-0.5">
+                                                    COGS: didn&apos;tget
+                                                  </div>
+                                                );
+                                              }
+                                              const marginNum = typeof cInfo.marginPercent === 'number' ? cInfo.marginPercent : 0;
                                               return (
                                                 <div className="text-[10px] text-slate-400 font-mono flex items-center justify-end gap-1 mt-0.5">
                                                   <span>COGS: ৳{cInfo.cogs.toLocaleString()}</span>
-                                                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                                                    ({cInfo.marginPercent}%)
+                                                  <span
+                                                    className={`font-semibold ${
+                                                      marginNum < 0
+                                                        ? 'text-rose-600 dark:text-rose-400'
+                                                        : 'text-emerald-600 dark:text-emerald-400'
+                                                    }`}
+                                                  >
+                                                    ({marginNum}%)
                                                   </span>
-                                                  {cInfo.isExact && (
-                                                    <span
-                                                      className="text-[8px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded px-0.5"
-                                                      title="Exact WooCommerce buying price"
-                                                    >
-                                                      WC
-                                                    </span>
-                                                  )}
+                                                  <span
+                                                    className="text-[8px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded px-0.5"
+                                                    title={
+                                                      cInfo.cogsSource === 'MANAGEMENT_SPECIFIED'
+                                                        ? 'Management-specified product COGS'
+                                                        : 'Exact WooCommerce buying price'
+                                                    }
+                                                  >
+                                                    {cInfo.cogsSource === 'MANAGEMENT_SPECIFIED' ? 'MGMT' : 'WC'}
+                                                  </span>
                                                 </div>
                                               );
                                             })()}

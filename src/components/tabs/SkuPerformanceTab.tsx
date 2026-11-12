@@ -127,7 +127,7 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
       const cogsInfo = getItemCogsInfo(s.sku, avgPrice, { itemName: s.itemName });
       const unitCogs = cogsInfo.cogs;
       const totalCogs = typeof unitCogs === 'number' ? Math.round(unitCogs * s.deliveredQty) : "didn'tget";
-      const grossProfit = typeof totalCogs === 'number' ? Math.max(0, Math.round(s.deliveredRevenue) - totalCogs) : "didn'tget";
+      const grossProfit = typeof totalCogs === 'number' ? Math.round(s.deliveredRevenue) - totalCogs : "didn'tget";
       const grossMarginPct = typeof grossProfit === 'number' && s.deliveredRevenue > 0
         ? ((grossProfit / s.deliveredRevenue) * 100).toFixed(1) + '%'
         : (typeof unitCogs === 'number' ? '0.0%' : "didn'tget");
@@ -473,6 +473,9 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
                 <th className="py-3 px-3">Product Description</th>
                 <th className="py-3 px-3">Category</th>
                 <th className="py-3 px-3 text-right">Unit Price</th>
+                <th className="py-3 px-3 text-right">Unit COGS</th>
+                <th className="py-3 px-3 text-right">Total COGS</th>
+                <th className="py-3 px-3 text-right">Margin %</th>
                 <th className="py-3 px-3 text-center">Gross Dispatched</th>
                 <th className="py-3 px-3 text-center">Delivered</th>
                 <th className="py-3 px-3 text-center">Returned</th>
@@ -484,7 +487,7 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
             <tbody className="divide-y divide-slate-100 dark:divide-deepBlack-border font-medium text-slate-700 dark:text-slate-200">
               {paginatedSkus.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-slate-400 dark:text-slate-500">
+                  <td colSpan={13} className="py-12 text-center text-slate-400 dark:text-slate-500">
                     <Shirt className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
                     <p className="font-medium text-slate-600 dark:text-slate-300">No SKU items match your search or filter</p>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Try clearing the category filter or searching by code.</p>
@@ -492,6 +495,32 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
                 </tr>
               ) : (
                 paginatedSkus.map((s, idx) => {
+                  const avgDelPrice = s.deliveredQty > 0 ? s.deliveredRevenue / s.deliveredQty : (s.unitPrice || 0);
+                  const fallbackInfo = s.unitCogs === undefined
+                    ? getItemCogsInfo(s.sku, avgDelPrice, { itemName: s.itemName })
+                    : null;
+                  const unitCogsVal =
+                    typeof s.unitCogs === 'number'
+                      ? s.unitCogs
+                      : fallbackInfo && fallbackInfo.isExact && typeof fallbackInfo.cogs === 'number'
+                      ? fallbackInfo.cogs
+                      : null;
+                  const totalCogsVal =
+                    typeof s.totalDeliveredCogs === 'number'
+                      ? s.totalDeliveredCogs
+                      : unitCogsVal !== null
+                      ? Math.round(unitCogsVal * s.deliveredQty)
+                      : null;
+                  const grossMarginVal =
+                    typeof s.grossMarginPercent === 'number'
+                      ? s.grossMarginPercent
+                      : unitCogsVal !== null && s.deliveredRevenue > 0
+                      ? Number((((s.deliveredRevenue - (totalCogsVal ?? 0)) / s.deliveredRevenue) * 100).toFixed(1))
+                      : fallbackInfo && fallbackInfo.isExact && typeof fallbackInfo.marginPercent === 'number'
+                      ? fallbackInfo.marginPercent
+                      : null;
+                  const cogsSrc = s.cogsSource || fallbackInfo?.cogsSource || "didn'tget";
+
                   const rateColor =
                     s.returnRate > 25
                        ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200/60 dark:border-rose-900/50'
@@ -535,6 +564,46 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
                       {/* Unit Price */}
                       <td className="py-3 px-3 text-right font-mono text-slate-700 dark:text-slate-300">
                         ৳ {s.unitPrice ? s.unitPrice.toLocaleString() : '—'}
+                      </td>
+
+                      {/* Unit COGS */}
+                      <td className="py-3 px-3 text-right font-mono whitespace-nowrap">
+                        {unitCogsVal !== null ? (
+                          <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                            <span>৳ {Math.round(unitCogsVal).toLocaleString()}</span>
+                            <span className="text-[8px] font-bold px-1 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                              {cogsSrc === 'MANAGEMENT_SPECIFIED' ? 'MGMT' : 'WC'}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">didn&apos;tget</span>
+                        )}
+                      </td>
+
+                      {/* Total Delivered COGS */}
+                      <td className="py-3 px-3 text-right font-mono whitespace-nowrap text-slate-600 dark:text-slate-300">
+                        {totalCogsVal !== null ? `৳ ${Math.round(totalCogsVal).toLocaleString()}` : (
+                          <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">didn&apos;tget</span>
+                        )}
+                      </td>
+
+                      {/* Margin % */}
+                      <td className="py-3 px-3 text-right font-mono font-bold whitespace-nowrap">
+                        {grossMarginVal !== null ? (
+                          <span
+                            className={
+                              grossMarginVal < 0
+                                ? 'text-rose-600 dark:text-rose-400'
+                                : grossMarginVal >= 50
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-amber-600 dark:text-amber-400'
+                            }
+                          >
+                            {grossMarginVal.toFixed(1)}%
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">didn&apos;tget</span>
+                        )}
                       </td>
 
                       {/* Gross Dispatched */}

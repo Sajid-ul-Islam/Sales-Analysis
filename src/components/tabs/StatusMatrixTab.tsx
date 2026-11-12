@@ -89,9 +89,17 @@ export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProp
   const outsidePaidReturnPct = outsideTotal > 0 ? Math.round((paidReturnOutside / outsideTotal) * 100) : 0;
   const outsideNotPaidPct = outsideTotal > 0 ? Math.max(0, 100 - outsideDeliveredPct - outsidePartialPct - outsidePaidReturnPct) : 0;
 
-  // 2. Unit Economics & Courier Cost Logic
+  // 2. Unit Economics & Courier Cost Logic (Actual WooCommerce + Management COGS)
   const u = s.unitEconomics;
   const c = s.courierCost;
+  const actualCogsVal = u.actualCogs ?? u.estimatedCogs;
+  const cogsPctDisplay = u.cogsRatioPercent !== undefined
+    ? u.cogsRatioPercent.toFixed(1)
+    : (u.netRealizedSales > 0 ? ((actualCogsVal / u.netRealizedSales) * 100).toFixed(1) : '0.0');
+  const grossMarginPctDisplay = u.grossMarginPercent !== undefined
+    ? u.grossMarginPercent.toFixed(1)
+    : (u.netRealizedSales > 0 ? ((u.grossMargin / u.netRealizedSales) * 100).toFixed(1) : '0.0');
+  const cogsCoveragePct = u.exactCogsCoveragePercent;
   const preAdMargin = u.grossMargin - u.totalCourierExpense - u.packagingLoss + (c.paidReturnCollectedCod || 0);
 
   return (
@@ -202,10 +210,12 @@ export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProp
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500"></div>
           </div>
 
-          {/* 2. Estimated COGS */}
+          {/* 2. Actual Product COGS */}
           <div className="bg-white dark:bg-black rounded-2xl p-3.5 sm:p-4.5 xl:p-5 border border-slate-200/90 dark:border-[#1F1F1F] shadow-xs hover:border-amber-300 hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between relative overflow-hidden group">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">COGS (42%)</span>
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
+                Actual COGS ({cogsPctDisplay}%)
+              </span>
               <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-2xs group-hover:scale-105 transition-transform shrink-0">
                 <Package className="w-4.5 h-4.5" />
               </div>
@@ -213,16 +223,18 @@ export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProp
             <div className="my-2.5 sm:my-3 min-w-0">
               <div
                 className="text-xl sm:text-2xl xl:text-3xl font-black text-amber-600 dark:text-amber-400 font-headline tracking-tight truncate block"
-                title={`৳ ${Math.round(u.estimatedCogs).toLocaleString()}`}
+                title={`৳ ${Math.round(actualCogsVal).toLocaleString()} (Actual Catalog COGS)`}
               >
-                ৳ {Math.round(u.estimatedCogs).toLocaleString()}
+                ৳ {Math.round(actualCogsVal).toLocaleString()}
               </div>
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mt-1 truncate">Fabric & Production</span>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mt-1 truncate">
+                {cogsCoveragePct !== undefined ? `Verified Catalog (${cogsCoveragePct}% covered)` : 'Verified SKU Cost Base'}
+              </span>
             </div>
             <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-2.5 border-t border-slate-100 dark:border-[#1F1F1F] flex flex-wrap items-center justify-between gap-1 font-medium min-w-0">
-              <span className="truncate">Gross Margin: ৳ {Math.round(u.grossMargin).toLocaleString()}</span>
+              <span className="truncate">Gross Profit: ৳ {Math.round(u.grossMargin).toLocaleString()}</span>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200/60 text-amber-700 dark:text-amber-400 shrink-0">
-                58% Margin
+                {grossMarginPctDisplay}% Margin
               </span>
             </div>
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500"></div>
@@ -508,12 +520,12 @@ export function StatusMatrixTab({ summary: s, orders = [] }: StatusMatrixTabProp
               </div>
 
               <div className="flex items-center justify-between py-1 text-amber-700 dark:text-amber-400">
-                <span className="font-semibold">(-) Estimated COGS (Fabric & Production @ 42%)</span>
-                <span className="font-bold">- ৳ {Math.round(u.estimatedCogs).toLocaleString()}</span>
+                <span className="font-semibold">(-) Actual Product COGS (WooCommerce Catalog @ {cogsPctDisplay}%)</span>
+                <span className="font-bold">- ৳ {Math.round(actualCogsVal).toLocaleString()}</span>
               </div>
 
               <div className="flex items-center justify-between py-1 text-slate-600 dark:text-slate-400 font-semibold">
-                <span>3. Gross Margin (58%)</span>
+                <span>3. Realized Gross Profit Margin ({grossMarginPctDisplay}%)</span>
                 <span className="text-slate-900 dark:text-white font-bold">৳ {Math.round(u.grossMargin).toLocaleString()}</span>
               </div>
 

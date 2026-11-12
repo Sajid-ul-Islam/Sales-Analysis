@@ -149,7 +149,23 @@ export function TopProductsLeaderboardChart({
                   Delivered: {prod.totalDeliveredUnits} pcs • Returned: {prod.totalReturnedUnits} pcs
                 </span>
                 <span>
-                  Gross Margin: {(prod.grossMarginPercent).toFixed(1)}% • AOV: ৳{Math.round(prod.avgSellingPrice)}
+                  {prod.hasExactCogs ? (
+                    <>
+                      COGS: {prod.cogsDisplay} •{' '}
+                      <span
+                        className={
+                          prod.grossMarginPercent < 0
+                            ? 'text-rose-500 font-semibold'
+                            : 'text-emerald-500 font-semibold'
+                        }
+                      >
+                        Margin: {prod.grossMarginPercent.toFixed(1)}%
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-amber-500 font-semibold">COGS: didn&apos;tget</span>
+                  )}{' '}
+                  • AOV: ৳{Math.round(prod.avgSellingPrice)}
                 </span>
               </div>
             </div>

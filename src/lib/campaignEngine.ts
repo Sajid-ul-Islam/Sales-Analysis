@@ -25,6 +25,7 @@ import {
   MarketingChannel,
 } from '@/types/campaign';
 import { computeProductAnalytics, ProductAnalyticsItem } from './productAnalytics';
+import { getItemCogsInfo } from './woocommerceClient';
 import { normalizeCustomerPhone } from './customerRatingTypes';
 
 /**
@@ -170,13 +171,18 @@ export function generateBundleProposals(
   ): BundleProposal => {
     const specs: BundleItemSpec[] = selectedItems.map((p) => {
       const regularPrice = p.mrp || p.avgSellingPrice || 1250;
-      const cogs = p.estimatedCogs || Math.round(regularPrice * 0.42);
+      const resolvedUnitCogs =
+        p.hasExactCogs && typeof p.unitCogs === 'number'
+          ? Math.round(p.unitCogs)
+          : p.hasExactCogs && (p.exactCogsUnits || p.totalDeliveredUnits) > 0
+          ? Math.round(p.estimatedCogs / (p.exactCogsUnits || p.totalDeliveredUnits))
+          : 0;
       return {
         productId: p.id,
         title: p.title,
         category: p.category,
         regularPrice,
-        estimatedCogs: cogs,
+        estimatedCogs: resolvedUnitCogs,
         stockAvailable: Math.max(p.totalGrossUnits - p.totalDeliveredUnits, 40),
         returnRate: p.returnRate,
       };
@@ -349,7 +355,7 @@ export function detectPromotionConflicts(options: {
     couponDiscountAmount = 0,
     bundleDiscountPercent = 0,
     freeShippingCost = 0,
-    estimatedCogs = Math.round(regularPrice * 0.42),
+    estimatedCogs = 0,
   } = options;
 
   const warnings: string[] = [];
@@ -572,7 +578,7 @@ export function analyzeProductOpportunities(
     const grossUnits = p.totalGrossUnits || 0;
     const deliveredUnits = p.totalDeliveredUnits || 0;
     const returnRate = p.returnRate || 0;
-    const marginPercent = p.grossMarginPercent || 55;
+    const marginPercent = p.hasExactCogs ? p.grossMarginPercent : 0;
     const velocity = p.dailyVelocity || 0;
     const estimatedStock = Math.max(grossUnits - deliveredUnits, 35);
 
@@ -982,8 +988,34 @@ export function aggregateCampaignPerformance(
       ? Math.round(campaignAdSpend / deliveredOrdersCount)
       : 0;
 
-  // Approx COGS at 42%
-  const estimatedCogs = Math.round(deliveredCampaignRevenue * 0.42);
+  // Actual catalog-verified COGS across delivered campaign order rows
+  let actualDeliveredCogs = 0;
+  for (const row of orders) {
+    const isRowDelivered = row.itemDeliveryStatus
+      ? row.itemDeliveryStatus === 'Delivered'
+      : row.orderDeliveryStatus === 'Delivered' ||
+        row.orderCategory === 'DELIVERED' ||
+        ((row.orderDeliveryStatus === 'Partial' || row.orderCategory === 'PARTIAL') &&
+          (Number(row.netRevenueImpact) || 0) > 0);
+    if (!isRowDelivered) continue;
+    const delQty = Number(row.quantity) || 1;
+    if (delQty <= 0) continue;
+    if (typeof row.actualCogs === 'number' && row.actualCogs > 0) {
+      actualDeliveredCogs += row.actualCogs;
+    } else if (typeof row.unitCogs === 'number' && row.unitCogs > 0) {
+      actualDeliveredCogs += row.unitCogs * delQty;
+    } else {
+      const unitPrice = Number(row.itemCost) || (delQty > 0 ? (Number(row.netRevenueImpact) || 0) / delQty : 0);
+      const cInfo = getItemCogsInfo(row.sku, unitPrice, {
+        itemName: row.itemName,
+      });
+      if (cInfo.isExact && typeof cInfo.cogs === 'number') {
+        actualDeliveredCogs += cInfo.cogs * delQty;
+      }
+    }
+  }
+
+  const estimatedCogs = Math.round(actualDeliveredCogs);
   const estimatedCourierBurden =
     deliveredOrdersCount * 30 + returnedOrdersCount * 135; // Net burden after COD
   const discountCost = Math.round(placedOrdersCount * 75); // Blended discount
@@ -1076,7 +1108,7 @@ export function aggregateCampaignPerformance(
     const realizedRev = Math.round(deliveredCampaignRevenue * c.share);
     const roas = c.adSpend > 0 ? Number((realizedRev / c.adSpend).toFixed(2)) : 0;
     const cac = delivered > 0 ? Math.round(c.adSpend / delivered) : 0;
-    const cogs = Math.round(realizedRev * 0.42);
+    const cogs = Math.round(estimatedCogs * c.share);
     const courier = delivered * 30;
     const margin = realizedRev - cogs - c.adSpend - courier;
     const retRate = placed > 0 ? Number((((placed - delivered) / placed) * 100).toFixed(1)) : 0;

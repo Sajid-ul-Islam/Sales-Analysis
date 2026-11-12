@@ -18,6 +18,7 @@ import { matchPartialItemsWithAudit, AuditedSubsetMatchResult } from './subsetSu
 import { assertNoDoubleCounting } from './accounting/accountingContract';
 import { getLiveWebhookUpdates } from './pathaoWebhookEngine';
 import { getCategoryForSales } from './liveCategoryEngine';
+import { getItemCogsInfo } from './woocommerceClient';
 
 export interface IngestionOptions {
   excludeAugust?: boolean;
@@ -1009,6 +1010,14 @@ export function runReconciliationEngine(
       const rPathaoStatus = (r.pathaoPluginStatus || r['Pathao Status']) ? String(r.pathaoPluginStatus || r['Pathao Status']) : undefined;
       const rPathaoCollectedAmount = (r.pathaoCollectedAmount || r['Pathao Collected Amount']) ? Number(r.pathaoCollectedAmount || r['Pathao Collected Amount']) : undefined;
       const itemSip = String(r.sipInventory || r.sip_inventory || r.inventorySource || branchInfo.branch || 'Central Warehouse').trim();
+      const cogsInfo = getItemCogsInfo(sku, itemCost, {
+        productId: (r.productId || r['Product ID'] || r.product_id) as string | number | undefined,
+        variationId: (r.variationId || r['Variation ID'] || r.variation_id) as string | number | undefined,
+        itemName,
+      });
+      const resolvedUnitCogs: number | "didn'tget" = typeof cogsInfo.cogs === 'number' ? cogsInfo.cogs : "didn'tget";
+      const resolvedCogsSource = cogsInfo.cogsSource;
+      const isExactCogs = cogsInfo.isExact;
 
       if (orderDeliveryCategory === 'FULL_RETURN') {
         const displayDeliveryStatus = hasAnyPaidParcel ? 'Paid Return (Full)' : 'Returned (Non-Paid Return)';
@@ -1034,7 +1043,11 @@ export function runReconciliationEngine(
           paymentMethod,
           hasSplitSuffix,
           rawNote: note || undefined,
-          cogsEstimate: (itemCost * rawQty) * cogsRate,
+          cogsEstimate: 0,
+          unitCogs: resolvedUnitCogs,
+          actualCogs: 0,
+          cogsSource: resolvedCogsSource,
+          isExactCogs,
           fulfillmentLocation: branchInfo.branch,
           sipInventory: itemSip,
           branchSuffix: branchInfo.suffix || undefined,
@@ -1052,6 +1065,7 @@ export function runReconciliationEngine(
 
         // Kept item(s) - delivered price recognized
         if (keptQty > 0) {
+          const keptActualCogs = typeof cogsInfo.cogs === 'number' ? Math.round(cogsInfo.cogs * keptQty) : "didn'tget";
           reconciled.push({
             orderId: cleanOid,
             lineStatus,
@@ -1073,7 +1087,11 @@ export function runReconciliationEngine(
             paymentMethod,
             hasSplitSuffix,
             rawNote: note || undefined,
-            cogsEstimate: (itemCost * keptQty) * cogsRate,
+            cogsEstimate: typeof keptActualCogs === 'number' ? keptActualCogs : 0,
+            unitCogs: resolvedUnitCogs,
+            actualCogs: keptActualCogs,
+            cogsSource: resolvedCogsSource,
+            isExactCogs,
             fulfillmentLocation: branchInfo.branch,
             sipInventory: itemSip,
             branchSuffix: branchInfo.suffix || undefined,
@@ -1111,7 +1129,11 @@ export function runReconciliationEngine(
             paymentMethod,
             hasSplitSuffix,
             rawNote: note || undefined,
-            cogsEstimate: (itemCost * returnedQty) * cogsRate,
+            cogsEstimate: 0,
+            unitCogs: resolvedUnitCogs,
+            actualCogs: 0,
+            cogsSource: resolvedCogsSource,
+            isExactCogs,
             fulfillmentLocation: branchInfo.branch,
             sipInventory: itemSip,
             branchSuffix: branchInfo.suffix || undefined,
@@ -1148,6 +1170,10 @@ export function runReconciliationEngine(
           hasSplitSuffix,
           rawNote: note || undefined,
           cogsEstimate: 0,
+          unitCogs: resolvedUnitCogs,
+          actualCogs: 0,
+          cogsSource: resolvedCogsSource,
+          isExactCogs,
           fulfillmentLocation: branchInfo.branch,
           sipInventory: itemSip,
           branchSuffix: branchInfo.suffix || undefined,
@@ -1160,6 +1186,7 @@ export function runReconciliationEngine(
         });
       } else if (orderDeliveryCategory === 'EXCHANGE') {
         const exStatus = exchEntries[0]?.status || 'Exchange';
+        const exchActualCogs = typeof cogsInfo.cogs === 'number' ? Math.round(cogsInfo.cogs * rawQty) : "didn'tget";
         reconciled.push({
           orderId: cleanOid,
           lineStatus,
@@ -1181,7 +1208,11 @@ export function runReconciliationEngine(
           paymentMethod,
           hasSplitSuffix,
           rawNote: note || undefined,
-          cogsEstimate: (itemCost * rawQty) * cogsRate,
+          cogsEstimate: typeof exchActualCogs === 'number' ? exchActualCogs : 0,
+          unitCogs: resolvedUnitCogs,
+          actualCogs: exchActualCogs,
+          cogsSource: resolvedCogsSource,
+          isExactCogs,
           fulfillmentLocation: branchInfo.branch,
           sipInventory: itemSip,
           branchSuffix: branchInfo.suffix || undefined,
@@ -1194,6 +1225,7 @@ export function runReconciliationEngine(
         });
       } else {
         // Delivered (Full)
+        const delActualCogs = typeof cogsInfo.cogs === 'number' ? Math.round(cogsInfo.cogs * rawQty) : "didn'tget";
         reconciled.push({
           orderId: cleanOid,
           lineStatus,
@@ -1215,7 +1247,11 @@ export function runReconciliationEngine(
           paymentMethod,
           hasSplitSuffix,
           rawNote: note || undefined,
-          cogsEstimate: (itemCost * rawQty) * cogsRate,
+          cogsEstimate: typeof delActualCogs === 'number' ? delActualCogs : 0,
+          unitCogs: resolvedUnitCogs,
+          actualCogs: delActualCogs,
+          cogsSource: resolvedCogsSource,
+          isExactCogs,
           fulfillmentLocation: branchInfo.branch,
           sipInventory: itemSip,
           branchSuffix: branchInfo.suffix || undefined,
@@ -1327,10 +1363,29 @@ export function runReconciliationEngine(
     }
   }
 
-  const skuAnalytics = Array.from(skuMap.values()).map(s => ({
-    ...s,
-    returnRate: s.grossQty > 0 ? (s.returnedQty / s.grossQty) * 100 : 0
-  })).sort((a, b) => b.deliveredRevenue - a.deliveredRevenue);
+  const skuAnalytics = Array.from(skuMap.values()).map(s => {
+    const avgDeliveredPrice = s.deliveredQty > 0 ? Math.round(s.deliveredRevenue / s.deliveredQty) : (s.unitPrice || 0);
+    const cInfo = getItemCogsInfo(s.sku, avgDeliveredPrice, { itemName: s.itemName });
+    const unitCogs: number | "didn'tget" = typeof cInfo.cogs === 'number' ? cInfo.cogs : "didn'tget";
+    const totalDeliveredCogs: number | "didn'tget" = typeof unitCogs === 'number' ? Math.round(unitCogs * s.deliveredQty) : "didn'tget";
+    const grossProfit: number | "didn'tget" = typeof totalDeliveredCogs === 'number' ? Math.round(s.deliveredRevenue - totalDeliveredCogs) : "didn'tget";
+    const grossMarginPercent: number | "didn'tget" =
+      typeof grossProfit === 'number' && s.deliveredRevenue > 0
+        ? Number(((grossProfit / s.deliveredRevenue) * 100).toFixed(1))
+        : typeof unitCogs === 'number' && avgDeliveredPrice > 0
+        ? Number((((avgDeliveredPrice - unitCogs) / avgDeliveredPrice) * 100).toFixed(1))
+        : "didn'tget";
+
+    return {
+      ...s,
+      returnRate: s.grossQty > 0 ? (s.returnedQty / s.grossQty) * 100 : 0,
+      unitCogs,
+      totalDeliveredCogs,
+      grossProfit,
+      grossMarginPercent,
+      cogsSource: cInfo.cogsSource,
+    };
+  }).sort((a, b) => b.deliveredRevenue - a.deliveredRevenue);
 
   // 7. Customer RTO Risk Profiling & Blacklisting Intelligence
   const customerMap = new Map<string, CustomerRiskProfile>();
@@ -1532,21 +1587,63 @@ export function runReconciliationEngine(
     netCourierCostAfterDeliveryFee: finalCourierNet - customerDeliveryFeeCollected
   };
 
-  // Unit Economics: Dynamic COGS %, Courier, Packaging Loss, and Meta Performance Ads
-  const estimatedCogs = netDeliveredRevenue * cogsRate;
-  const grossMargin = netDeliveredRevenue - estimatedCogs;
+  // Unit Economics: Actual SKU-Level Catalog COGS, Courier, Packaging Loss, and Meta Performance Ads
+  let actualDeliveredCogsSum = 0;
+  let cogsCoveredRevenueSum = 0;
+  let missingCogsDeliveredUnits = 0;
+
+  for (const r of reconciled) {
+    if (r.netRevenueImpact > 0) {
+      if (r.isExactCogs && typeof r.actualCogs === 'number') {
+        actualDeliveredCogsSum += r.actualCogs;
+        cogsCoveredRevenueSum += r.netRevenueImpact;
+      } else {
+        missingCogsDeliveredUnits += r.quantity;
+      }
+    }
+  }
+
+  const actualCogs = Math.round(actualDeliveredCogsSum);
+  const cogsCoveredRevenue = Math.round(cogsCoveredRevenueSum);
+  const exactCogsCoveragePercent = netDeliveredRevenue > 0
+    ? Number(((cogsCoveredRevenue / netDeliveredRevenue) * 100).toFixed(1))
+    : 0;
+  const cogsMethod: UnitEconomics['cogsMethod'] =
+    exactCogsCoveragePercent >= 95
+      ? 'ACTUAL_CATALOG_COGS'
+      : actualCogs > 0
+      ? 'HYBRID'
+      : 'NO_CATALOG_MATCH';
+
+  const estimatedCogs = actualCogs;
+  const grossMargin = netDeliveredRevenue - actualCogs;
+  const grossMarginPercent = cogsCoveredRevenue > 0
+    ? Number((((cogsCoveredRevenue - actualCogs) / cogsCoveredRevenue) * 100).toFixed(1))
+    : 0;
+  const cogsRatioPercent = cogsCoveredRevenue > 0
+    ? Number(((actualCogs / cogsCoveredRevenue) * 100).toFixed(1))
+    : 0;
+
   const packagingLoss = (fullReturnedOrders + partialOrders) * packagingFee; // unboxing depreciation
   const preAdContributionMargin = grossMargin - courierCost.netCharge - packagingLoss + courierCost.paidReturnCollectedCod;
   const netContributionMargin = preAdContributionMargin - metaAdCost;
   const netMarginPercentage = netDeliveredRevenue > 0 ? (netContributionMargin / netDeliveredRevenue) * 100 : 0;
   const roas = metaAdCost > 0 ? netDeliveredRevenue / metaAdCost : 0;
   const cac = fullDeliveredOrders > 0 ? metaAdCost / fullDeliveredOrders : 0;
+  void cogsRate;
 
   const unitEconomics: UnitEconomics = {
     grossInvoicedSales: grossRevenue,
     netRealizedSales: netDeliveredRevenue,
     estimatedCogs,
+    actualCogs,
+    cogsCoveredRevenue,
+    exactCogsCoveragePercent,
+    missingCogsDeliveredUnits,
     grossMargin,
+    grossMarginPercent,
+    cogsRatioPercent,
+    cogsMethod,
     totalCourierExpense: courierCost.netCharge,
     packagingLoss,
     metaAdCost,

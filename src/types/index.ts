@@ -30,7 +30,11 @@ export interface ReconciledOrderRow {
   paymentMethod: string;
   hasSplitSuffix: boolean;
   rawNote?: string;
-  cogsEstimate: number; // estimated production/fabric cost (typically 45% of retail)
+  cogsEstimate: number; // actual unit*qty COGS when catalog matches, or 0 when missing ("didn'tget")
+  unitCogs?: number | "didn'tget";
+  actualCogs?: number | "didn'tget";
+  cogsSource?: 'EXACT_WOOCOMMERCE' | 'MANAGEMENT_SPECIFIED' | "didn'tget";
+  isExactCogs?: boolean;
   fulfillmentLocation?: 'Online Store (Central Warehouse)' | 'Mirpur Outlet POS' | 'Mirpur Outlet' | 'Cumilla Branch' | 'Wari Branch' | 'Sylhet Branch' | 'Warehouse (Mirpur)' | 'Exchange Replacement';
   sipInventory?: string;
   branchSuffix?: string; // 'c' | 'w' | 's' | 'm' | ''
@@ -86,6 +90,11 @@ export interface SkuAnalytics {
   deliveredRevenue: number;
   returnRate: number;
   totalLossFromReturns: number;
+  unitCogs?: number | "didn'tget";
+  totalDeliveredCogs?: number | "didn'tget";
+  grossProfit?: number | "didn'tget";
+  grossMarginPercent?: number | "didn'tget";
+  cogsSource?: 'EXACT_WOOCOMMERCE' | 'MANAGEMENT_SPECIFIED' | "didn'tget";
 }
 
 export interface CustomerRiskProfile {
@@ -129,6 +138,13 @@ export interface UnitEconomics {
   netMarginPercentage: number;
   roas: number; // Blended Return on Ad Spend (Realized Net Sales / Meta Ad Spend)
   cac: number; // Blended Customer Acquisition Cost per delivered order
+  actualCogs?: number;
+  exactCogsCoveragePercent?: number;
+  cogsCoveredRevenue?: number;
+  missingCogsDeliveredUnits?: number;
+  grossMarginPercent?: number;
+  cogsRatioPercent?: number;
+  cogsMethod?: 'ACTUAL_CATALOG_COGS' | 'HYBRID' | 'NO_CATALOG_MATCH';
 }
 
 export interface SummaryAnalytics {

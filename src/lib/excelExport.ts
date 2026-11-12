@@ -402,29 +402,33 @@ export function exportReconciledExcel(
 
   const s = result.summary;
 
-  const ueRec = s.unitEconomics || {
-
-    netRealizedSales: s.netDeliveredRevenue || 0,
-
-    estimatedCogs: (s.netDeliveredRevenue || 0) * 0.42,
-
-    grossMargin: (s.netDeliveredRevenue || 0) * 0.58,
-
-    totalCourierExpense: (s as { pathaoTotalCourierCharge?: number }).pathaoTotalCourierCharge || 0,
-
-    packagingLoss: 0,
-
-    metaAdCost: 0,
-
-    netContributionMargin: (s.netDeliveredRevenue || 0) * 0.58,
-
-    netMarginPercentage: 58.0,
-
-    roas: 0,
-
-    cac: 0,
-
-  };
+  const ueRec = s.unitEconomics || (() => {
+    let sumCogs = 0;
+    for (const r of result.reconciledOrders) {
+      if (r.netRevenueImpact > 0) {
+        const uInfo = getItemCogsInfo(r.sku, Number(r.itemCost) || 0, { itemName: r.itemName });
+        if (typeof uInfo.cogs === 'number') {
+          sumCogs += uInfo.cogs * (Number(r.quantity) || 1);
+        }
+      }
+    }
+    const netRev = s.netDeliveredRevenue || 0;
+    const gm = netRev - sumCogs;
+    const courierFee = (s as { pathaoTotalCourierCharge?: number }).pathaoTotalCourierCharge || 0;
+    const cm3 = gm - courierFee;
+    return {
+      netRealizedSales: netRev,
+      estimatedCogs: sumCogs,
+      grossMargin: gm,
+      totalCourierExpense: courierFee,
+      packagingLoss: 0,
+      metaAdCost: 0,
+      netContributionMargin: cm3,
+      netMarginPercentage: netRev > 0 ? (cm3 / netRev) * 100 : 0,
+      roas: 0,
+      cac: 0,
+    };
+  })();
 
 
 
@@ -482,9 +486,11 @@ export function exportReconciledExcel(
 
     ['Net Realized Sales', Math.round(ueRec.netRealizedSales), 'Recognized top-line revenue'],
 
-    ['Estimated COGS (Production & Fabric ~42%)', Math.round(ueRec.estimatedCogs), 'Direct cost of delivered goods'],
+    ['Actual Product COGS (Catalog-Verified)', Math.round(ueRec.estimatedCogs), 'Direct buying/manufacturing cost of delivered apparel'],
 
-    ['Gross Margin', Math.round(ueRec.grossMargin), 'Revenue minus product manufacturing costs'],
+    ['Realized Gross Profit', Math.round(ueRec.grossMargin), 'Revenue minus verified product COGS'],
+
+    ['Gross Profit Margin (%)', ueRec.netRealizedSales > 0 ? ((ueRec.grossMargin / ueRec.netRealizedSales) * 100).toFixed(2) + '%' : '0.00%', 'Gross profit margin ratio on realized sales'],
 
     ['Courier Logistics Cost', Math.round(ueRec.totalCourierExpense), 'Courier payable for dispatched deliveries & returns'],
 
@@ -1670,29 +1676,33 @@ export function buildMonthlyNetSalesWorkbook(
 
   };
 
-  const ue = s.unitEconomics || {
-
-    netRealizedSales: s.netDeliveredRevenue || 0,
-
-    estimatedCogs: (s.netDeliveredRevenue || 0) * 0.42,
-
-    grossMargin: (s.netDeliveredRevenue || 0) * 0.58,
-
-    totalCourierExpense: sExt.pathaoTotalCourierCharge || 0,
-
-    packagingLoss: 0,
-
-    metaAdCost: 0,
-
-    netContributionMargin: (s.netDeliveredRevenue || 0) * 0.58,
-
-    netMarginPercentage: 58.0,
-
-    roas: 0,
-
-    cac: 0,
-
-  };
+  const ue = s.unitEconomics || (() => {
+    let sumCogs = 0;
+    for (const r of result.reconciledOrders) {
+      if (r.netRevenueImpact > 0) {
+        const uInfo = getItemCogsInfo(r.sku, Number(r.itemCost) || 0, { itemName: r.itemName });
+        if (typeof uInfo.cogs === 'number') {
+          sumCogs += uInfo.cogs * (Number(r.quantity) || 1);
+        }
+      }
+    }
+    const netRev = s.netDeliveredRevenue || 0;
+    const gm = netRev - sumCogs;
+    const courierFee = sExt.pathaoTotalCourierCharge || 0;
+    const cm3 = gm - courierFee;
+    return {
+      netRealizedSales: netRev,
+      estimatedCogs: sumCogs,
+      grossMargin: gm,
+      totalCourierExpense: courierFee,
+      packagingLoss: 0,
+      metaAdCost: 0,
+      netContributionMargin: cm3,
+      netMarginPercentage: netRev > 0 ? (cm3 / netRev) * 100 : 0,
+      roas: 0,
+      cac: 0,
+    };
+  })();
 
   const cc = s.courierCost || {
 
@@ -1760,9 +1770,9 @@ export function buildMonthlyNetSalesWorkbook(
 
     ['Net Realized Sales', Math.round(ue.netRealizedSales), 'Top-line realized revenue baseline'],
 
-    ['Estimated COGS (Production & Fabric ~42%)', Math.round(ue.estimatedCogs), 'Direct manufacturing & fabric costs of delivered apparel'],
+    ['Actual Product COGS (Catalog-Verified)', Math.round(ue.estimatedCogs), 'Direct buying/manufacturing costs of delivered apparel'],
 
-    ['Gross Product Margin', Math.round(ue.grossMargin), 'Realized Sales minus direct manufacturing COGS'],
+    ['Gross Product Margin', Math.round(ue.grossMargin), 'Realized Sales minus verified product COGS'],
 
     ['Gross Product Margin Ratio (%)', grossMarginRatio.toFixed(2) + '%', 'Gross profit margin as percentage of realized sales'],
 

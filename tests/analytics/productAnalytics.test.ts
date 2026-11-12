@@ -326,5 +326,72 @@ describe('Product Analytics Engine', () => {
       expect(shirt!.hasExactCogs).toBe(false);
       expect(shirt!.cogsSource).toBe("didn'tget");
     });
+
+    it('preserves negative clearance margins and resolves management COGS (195/120/280) with zero 42% fallback', () => {
+      const clearanceOrders: ReconciledOrderRow[] = [
+        {
+          orderId: 'CLR-1',
+          lineStatus: 'Primary Item (Unique Order)',
+          deliveryStatus: 'Delivered',
+          orderCategory: 'DELIVERED',
+          orderDeliveryStatus: 'Delivered',
+          itemDeliveryStatus: 'Delivered',
+          orderDate: new Date('2026-10-12T10:00:00Z'),
+          customerName: 'Test Buyer',
+          phone: '01700000001',
+          city: 'Dhaka',
+          districtArea: 'Inside Dhaka',
+          sku: '108-0101-010',
+          itemName: 'DEEN Off-white Sweatshirt in French-Terry - M',
+          quantity: 1,
+          itemCost: 494,
+          orderAmount: 494,
+          netRevenueImpact: 494,
+          paymentMethod: 'cod',
+          hasSplitSuffix: false,
+          cogsEstimate: 565,
+        },
+        {
+          orderId: 'CLR-2',
+          lineStatus: 'Primary Item (Unique Order)',
+          deliveryStatus: 'Delivered',
+          orderCategory: 'DELIVERED',
+          orderDeliveryStatus: 'Delivered',
+          itemDeliveryStatus: 'Delivered',
+          orderDate: new Date('2026-10-12T11:00:00Z'),
+          customerName: 'Test Buyer 2',
+          phone: '01700000002',
+          city: 'Dhaka',
+          districtArea: 'Inside Dhaka',
+          sku: '109-0501-001',
+          itemName: 'DEEN Aluminum Water Bottle - Black',
+          quantity: 2,
+          itemCost: 495,
+          orderAmount: 990,
+          netRevenueImpact: 990,
+          paymentMethod: 'cod',
+          hasSplitSuffix: false,
+          cogsEstimate: 390,
+        },
+      ];
+
+      const result = computeProductAnalytics(clearanceOrders);
+      const sweatshirt = result.products.find((p) => p.skus.includes('108-0101-010'));
+      expect(sweatshirt).toBeDefined();
+      expect(sweatshirt!.unitCogs).toBe(565);
+      expect(sweatshirt!.grossMarginPercent).toBe(-14.4);
+      expect(sweatshirt!.hasExactCogs).toBe(true);
+
+      const bottle = result.products.find((p) => p.title.includes('Water Bottle'));
+      expect(bottle).toBeDefined();
+      expect(bottle!.unitCogs).toBe(195);
+      expect(bottle!.estimatedCogs).toBe(390);
+      expect(bottle!.cogsSource).toBe('MANAGEMENT_SPECIFIED');
+
+      // Summary totals strictly reflect actual COGS (565 + 390 = 955) and real profit (1484 - 955 = 529)
+      expect(result.summary.totalExactCogs).toBe(955);
+      expect(result.summary.blendedGrossProfit).toBe(529);
+      expect(result.summary.cogsCoveragePercent).toBe(100);
+    });
   });
 });

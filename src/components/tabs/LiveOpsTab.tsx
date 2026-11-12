@@ -3386,17 +3386,20 @@ export function LiveOpsTab({
                                           </td>
                                           <td className="py-2 px-3 text-right font-mono text-slate-600 dark:text-slate-400">
                                             {(() => {
-                                              const cInfo = getItemCogsInfo(item.sku, item.itemCost);
-                                              const itemCogs = typeof item.cogs === 'number' && item.cogs > 0
-                                                ? item.cogs
-                                                : typeof cInfo.cogs === 'number'
-                                                ? cInfo.cogs
-                                                : null;
-                                              const isExact = item.isExactCogs || cInfo.isExact;
+                                              const cInfo = getItemCogsInfo(item.sku, item.itemCost, {
+                                                itemName: item.itemName,
+                                              });
+                                              const itemCogs =
+                                                typeof item.cogs === 'number' && item.cogs > 0
+                                                  ? item.cogs
+                                                  : typeof cInfo.cogs === 'number' && cInfo.cogs > 0
+                                                  ? cInfo.cogs
+                                                  : null;
+                                              const isExact = Boolean(item.isExactCogs || cInfo.isExact);
                                               if (itemCogs === null) {
                                                 return (
                                                   <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-                                                    didn'tget
+                                                    didn&apos;tget
                                                   </span>
                                                 );
                                               }
@@ -3406,9 +3409,13 @@ export function LiveOpsTab({
                                                   {isExact && (
                                                     <span
                                                       className="text-[8.5px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded px-1"
-                                                      title="Exact buying price from WooCommerce REST API"
+                                                      title={
+                                                        cInfo.cogsSource === 'MANAGEMENT_SPECIFIED'
+                                                          ? 'Management-specified product COGS'
+                                                          : 'Exact buying price from WooCommerce REST API'
+                                                      }
                                                     >
-                                                      WC
+                                                      {cInfo.cogsSource === 'MANAGEMENT_SPECIFIED' ? 'MGMT' : 'WC'}
                                                     </span>
                                                   )}
                                                 </span>
@@ -3417,23 +3424,30 @@ export function LiveOpsTab({
                                           </td>
                                           <td className="py-2 px-3 text-right font-mono">
                                             {(() => {
-                                              const cInfo = getItemCogsInfo(item.sku, item.itemCost);
-                                              const itemMargin = typeof item.marginPercent === 'number' && item.marginPercent > 0
-                                                ? item.marginPercent
-                                                : typeof cInfo.marginPercent === 'number'
-                                                ? cInfo.marginPercent
-                                                : null;
+                                              const cInfo = getItemCogsInfo(item.sku, item.itemCost, {
+                                                itemName: item.itemName,
+                                              });
+                                              const itemMargin =
+                                                typeof item.cogs === 'number' && item.cogs > 0 && item.itemCost > 0
+                                                  ? typeof item.marginPercent === 'number'
+                                                    ? item.marginPercent
+                                                    : Number((((item.itemCost - item.cogs) / item.itemCost) * 100).toFixed(1))
+                                                  : typeof cInfo.marginPercent === 'number'
+                                                  ? cInfo.marginPercent
+                                                  : null;
                                               if (itemMargin === null) {
                                                 return (
                                                   <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-                                                    didn'tget
+                                                    didn&apos;tget
                                                   </span>
                                                 );
                                               }
                                               return (
                                                 <span
                                                   className={`text-[11px] font-bold ${
-                                                    itemMargin >= 50
+                                                    itemMargin < 0
+                                                      ? 'text-rose-600 dark:text-rose-400'
+                                                      : itemMargin >= 50
                                                       ? 'text-emerald-600 dark:text-emerald-400'
                                                       : itemMargin >= 35
                                                       ? 'text-blue-600 dark:text-blue-400'
@@ -3676,21 +3690,39 @@ export function LiveOpsTab({
                             ৳ {itemCost.toLocaleString()}
                           </div>
                           {(() => {
-                            const cInfo = getItemCogsInfo(sku, itemCost);
+                            const cInfo = getItemCogsInfo(sku, itemCost, {
+                              itemName: prodName,
+                            });
+                            if (!cInfo.isExact || typeof cInfo.cogs !== 'number') {
+                              return (
+                                <div className="text-[10px] font-mono font-semibold text-amber-600 dark:text-amber-400 mt-0.5">
+                                  COGS: didn&apos;tget
+                                </div>
+                              );
+                            }
+                            const marginNum = typeof cInfo.marginPercent === 'number' ? cInfo.marginPercent : 0;
                             return (
                               <div className="text-[10px] text-slate-400 font-mono flex items-center justify-end gap-1 mt-0.5">
                                 <span>COGS: ৳{cInfo.cogs.toLocaleString()}</span>
-                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                                  ({cInfo.marginPercent}%)
+                                <span
+                                  className={`font-semibold ${
+                                    marginNum < 0
+                                      ? 'text-rose-600 dark:text-rose-400'
+                                      : 'text-emerald-600 dark:text-emerald-400'
+                                  }`}
+                                >
+                                  ({marginNum}%)
                                 </span>
-                                {cInfo.isExact && (
-                                  <span
-                                    className="text-[8px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded px-0.5"
-                                    title="Exact buying price from WooCommerce REST API"
-                                  >
-                                    WC
-                                  </span>
-                                )}
+                                <span
+                                  className="text-[8px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded px-0.5"
+                                  title={
+                                    cInfo.cogsSource === 'MANAGEMENT_SPECIFIED'
+                                      ? 'Management-specified product COGS'
+                                      : 'Exact buying price from WooCommerce REST API'
+                                  }
+                                >
+                                  {cInfo.cogsSource === 'MANAGEMENT_SPECIFIED' ? 'MGMT' : 'WC'}
+                                </span>
                               </div>
                             );
                           })()}

@@ -2088,7 +2088,21 @@ export function getItemCogsInfo(
   // - All Aluminum Water Bottle COGS is 195 BDT
   // - All Mask COGS is 120 BDT
   // - All Card Holder COGS is 280 BDT
-  if (lowerSku.startsWith('109-0501-') || lowerName.includes('water bottle') || (lowerName.includes('bottle') && !lowerName.includes('sweatshirt') && !lowerName.includes('hoodie'))) {
+  const isApparelColorBottle =
+    lowerName.includes('sweatshirt') ||
+    lowerName.includes('hoodie') ||
+    lowerName.includes('polo') ||
+    lowerName.includes('shirt') ||
+    lowerName.includes('jeans') ||
+    lowerName.includes('pant') ||
+    lowerName.includes('chino') ||
+    lowerName.includes('trouser');
+
+  if (
+    lowerSku.startsWith('109-0501-') ||
+    lowerName.includes('water bottle') ||
+    (lowerName.includes('bottle') && !isApparelColorBottle)
+  ) {
     cogs = 195;
     regularPrice = 498;
     isExact = true;
@@ -2106,6 +2120,11 @@ export function getItemCogsInfo(
   }
 
   const dataset = wcSkuCogsData as unknown as WcCogsData;
+
+  // Resolve exact catalog regularPrice even when a management rule already set COGS
+  if (cleanSku && dataset?.bySku?.[cleanSku]?.regularPrice) {
+    regularPrice = Number(dataset.bySku[cleanSku].regularPrice) || regularPrice;
+  }
 
   // 2. Exact match in dataset by SKU
   if (!isExact && cleanSku && dataset?.bySku?.[cleanSku]?.cogs) {
@@ -2174,7 +2193,7 @@ export function getItemCogsInfo(
     };
   }
 
-  const marginAmount = Math.max(0, salePrice - cogs);
+  const marginAmount = salePrice - cogs;
   const marginPercent = salePrice > 0 ? Number(((marginAmount / salePrice) * 100).toFixed(1)) : 0;
 
   return {

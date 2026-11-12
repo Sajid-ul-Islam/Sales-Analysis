@@ -1832,32 +1832,38 @@ export function OutletSalesTab({
 
       ordersCount: number;
 
+      totalCogs: number;
+
+      cogsCoveredRevenue: number;
+
+      coveredUnits: number;
+
       branchSales: Record<string, number>;
 
     }> = {
 
-      'Jeans': { name: 'Jeans', sub: 'Slim & Regular Fit Jeans', icon: '👖', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'Jeans': { name: 'Jeans', sub: 'Slim & Regular Fit Jeans', icon: '👖', unitsSold: 0, revenue: 0, ordersCount: 0, totalCogs: 0, cogsCoveredRevenue: 0, coveredUnits: 0, branchSales: {} },
 
-      'Twill Chino': { name: 'Twill Chino', sub: 'Five Pocket Twill & Chino Pants', icon: '👖', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'Twill Chino': { name: 'Twill Chino', sub: 'Five Pocket Twill & Chino Pants', icon: '👖', unitsSold: 0, revenue: 0, ordersCount: 0, totalCogs: 0, cogsCoveredRevenue: 0, coveredUnits: 0, branchSales: {} },
 
-      'Shirt': { name: 'Shirt', sub: 'Denim, Flannel, Cuban, Full Sleeve & Half Shirts', icon: '👔', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'Shirt': { name: 'Shirt', sub: 'Denim, Flannel, Cuban, Full Sleeve & Half Shirts', icon: '👔', unitsSold: 0, revenue: 0, ordersCount: 0, totalCogs: 0, cogsCoveredRevenue: 0, coveredUnits: 0, branchSales: {} },
 
-      'Polo': { name: 'Polo', sub: 'Classic Pique, Solid & Knitted Polos', icon: '👕', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'Polo': { name: 'Polo', sub: 'Classic Pique, Solid & Knitted Polos', icon: '👕', unitsSold: 0, revenue: 0, ordersCount: 0, totalCogs: 0, cogsCoveredRevenue: 0, coveredUnits: 0, branchSales: {} },
 
-      'T-Shirt': { name: 'T-Shirt', sub: 'Solid Tees, Tank Tops & Drop Shoulder', icon: '👕', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'T-Shirt': { name: 'T-Shirt', sub: 'Solid Tees, Tank Tops & Drop Shoulder', icon: '👕', unitsSold: 0, revenue: 0, ordersCount: 0, totalCogs: 0, cogsCoveredRevenue: 0, coveredUnits: 0, branchSales: {} },
 
-      'Jacket': { name: 'Jacket', sub: 'Denim Jackets & Outerwear', icon: '🧥', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'Jacket': { name: 'Jacket', sub: 'Denim Jackets & Outerwear', icon: '🧥', unitsSold: 0, revenue: 0, ordersCount: 0, totalCogs: 0, cogsCoveredRevenue: 0, coveredUnits: 0, branchSales: {} },
 
-      'Sweatshirt': { name: 'Sweatshirt', sub: 'Cotton Terry & French Terry Sweatshirts & Hoodies', icon: '🧥', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'Sweatshirt': { name: 'Sweatshirt', sub: 'Cotton Terry & French Terry Sweatshirts & Hoodies', icon: '🧥', unitsSold: 0, revenue: 0, ordersCount: 0, totalCogs: 0, cogsCoveredRevenue: 0, coveredUnits: 0, branchSales: {} },
 
-      'Cargo': { name: 'Cargo', sub: 'Cargo Trousers & Pants', icon: '📦', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
-      'Trouser': { name: 'Trouser', sub: 'Formal & Casual Trousers', icon: '👖', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'Cargo': { name: 'Cargo', sub: 'Cargo Trousers & Pants', icon: '📦', unitsSold: 0, revenue: 0, ordersCount: 0, totalCogs: 0, cogsCoveredRevenue: 0, coveredUnits: 0, branchSales: {} },
+      'Trouser': { name: 'Trouser', sub: 'Formal & Casual Trousers', icon: '👖', unitsSold: 0, revenue: 0, ordersCount: 0, totalCogs: 0, cogsCoveredRevenue: 0, coveredUnits: 0, branchSales: {} },
 
-      'Panjabi': { name: 'Panjabi', sub: 'Semi-Formal & Regular Panjabi', icon: '✨', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'Panjabi': { name: 'Panjabi', sub: 'Semi-Formal & Regular Panjabi', icon: '✨', unitsSold: 0, revenue: 0, ordersCount: 0, totalCogs: 0, cogsCoveredRevenue: 0, coveredUnits: 0, branchSales: {} },
 
-      'Accessories': { name: 'Accessories', sub: 'Boxers, Wallets, Card Holders, Masks & Belts', icon: '📦', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} },
+      'Accessories': { name: 'Accessories', sub: 'Boxers, Wallets, Card Holders, Masks & Belts', icon: '📦', unitsSold: 0, revenue: 0, ordersCount: 0, totalCogs: 0, cogsCoveredRevenue: 0, coveredUnits: 0, branchSales: {} },
 
-      'General Apparel': { name: 'General Apparel', sub: 'Core Garments & Essentials', icon: '🏷️', unitsSold: 0, revenue: 0, ordersCount: 0, branchSales: {} }
+      'General Apparel': { name: 'General Apparel', sub: 'Core Garments & Essentials', icon: '🏷️', unitsSold: 0, revenue: 0, ordersCount: 0, totalCogs: 0, cogsCoveredRevenue: 0, coveredUnits: 0, branchSales: {} }
 
     };
 
@@ -1930,6 +1936,14 @@ export function OutletSalesTab({
 
         target.ordersCount++;
 
+        const unitPrice = it.quantity > 0 ? lineTotal / it.quantity : (it.price || 0);
+        const cInfo = getItemCogsInfo(it.sku, unitPrice, { itemName: it.name });
+        if (cInfo.isExact && typeof cInfo.cogs === 'number') {
+          target.totalCogs += cInfo.cogs * it.quantity;
+          target.cogsCoveredRevenue += lineTotal;
+          target.coveredUnits += it.quantity;
+        }
+
         target.branchSales[orderBranch] = (target.branchSales[orderBranch] || 0) + lineTotal;
 
         totalCatRevenue += lineTotal;
@@ -1946,7 +1960,17 @@ export function OutletSalesTab({
 
       .filter(g => g.unitsSold > 0 || g.revenue > 0)
 
-      .map(g => ({
+      .map(g => {
+        const hasExactCogs = g.coveredUnits > 0;
+        const grossProfit = hasExactCogs ? Math.round(g.cogsCoveredRevenue - g.totalCogs) : null;
+        const marginPercent = hasExactCogs && g.cogsCoveredRevenue > 0
+          ? Number((((g.cogsCoveredRevenue - g.totalCogs) / g.cogsCoveredRevenue) * 100).toFixed(1))
+          : null;
+        const cogsCoveragePercent = g.revenue > 0
+          ? Number(((g.cogsCoveredRevenue / g.revenue) * 100).toFixed(1))
+          : 0;
+
+        return {
 
         ...g,
 
@@ -1954,9 +1978,16 @@ export function OutletSalesTab({
 
         revenueShare: totalCatRevenue > 0 ? (g.revenue / totalCatRevenue) * 100 : 0,
 
+        hasExactCogs,
+        totalCogsRounded: hasExactCogs ? Math.round(g.totalCogs) : null,
+        grossProfit,
+        marginPercent,
+        cogsCoveragePercent,
+
         topBranchName: Object.entries(g.branchSales).sort((a, b) => b[1] - a[1])[0]?.[0] || (selectedOutletFilter !== 'ALL' ? selectedOutletFilter : 'All Outlets')
 
-      }))
+      };
+      })
 
       .sort((a, b) => b.revenue - a.revenue);
 
@@ -1985,6 +2016,14 @@ export function OutletSalesTab({
       revenue: number;
 
       ordersCount: number;
+
+      totalCogs: number;
+
+      cogsCoveredRevenue: number;
+
+      coveredUnits: number;
+
+      cogsSource: 'EXACT_WOOCOMMERCE' | 'MANAGEMENT_SPECIFIED' | "didn'tget";
 
       branches: Set<string>;
 
@@ -2026,6 +2065,14 @@ export function OutletSalesTab({
 
             ordersCount: 0,
 
+            totalCogs: 0,
+
+            cogsCoveredRevenue: 0,
+
+            coveredUnits: 0,
+
+            cogsSource: "didn'tget",
+
             branches: new Set()
 
           });
@@ -2041,6 +2088,17 @@ export function OutletSalesTab({
         entry.revenue += lineTotal;
 
         entry.ordersCount++;
+
+        const unitPrice = it.quantity > 0 ? lineTotal / it.quantity : (it.price || 0);
+        const cInfo = getItemCogsInfo(it.sku || mSku, unitPrice, { itemName: it.name || mName });
+        if (cInfo.isExact && typeof cInfo.cogs === 'number') {
+          entry.totalCogs += cInfo.cogs * it.quantity;
+          entry.cogsCoveredRevenue += lineTotal;
+          entry.coveredUnits += it.quantity;
+          if (entry.cogsSource === "didn'tget") {
+            entry.cogsSource = cInfo.cogsSource;
+          }
+        }
 
         entry.branches.add(order.outletName);
 
@@ -2060,7 +2118,16 @@ export function OutletSalesTab({
 
     return Array.from(map.values())
 
-      .map(it => ({
+      .map(it => {
+        const hasExactCogs = it.coveredUnits > 0;
+        const unitCogs = hasExactCogs ? Math.round(it.totalCogs / it.coveredUnits) : null;
+        const totalCogsRounded = hasExactCogs ? Math.round(it.totalCogs) : null;
+        const grossProfit = hasExactCogs ? Math.round(it.cogsCoveredRevenue - it.totalCogs) : null;
+        const marginPercent = hasExactCogs && it.cogsCoveredRevenue > 0
+          ? Number((((it.cogsCoveredRevenue - it.totalCogs) / it.cogsCoveredRevenue) * 100).toFixed(1))
+          : null;
+
+        return {
 
         ...it,
 
@@ -2068,11 +2135,18 @@ export function OutletSalesTab({
 
         revenueShare: totalItemRevenue > 0 ? (it.revenue / totalItemRevenue) * 100 : 0,
 
+        hasExactCogs,
+        unitCogs,
+        totalCogsRounded,
+        grossProfit,
+        marginPercent,
+
         branchesCount: it.branches.size,
 
         branchesList: Array.from(it.branches).map(b => b.replace(' Branch POS', '').replace(' POS', '')).join(', ')
 
-      }))
+      };
+      })
 
       .sort((a, b) => b.revenue - a.revenue);
 
@@ -2259,27 +2333,10 @@ export function OutletSalesTab({
     // Sheet 2: Category Wise Sales
 
     const categoryData = categorySales.map((c, idx) => {
-      let catCogs = 0;
-      let hasMissing = false;
-      let catItemCount = 0;
-
-      for (const item of itemWiseSales) {
-        if ((item.category || '').toLowerCase().trim() === (c.name || '').toLowerCase().trim()) {
-          catItemCount++;
-          const info = getItemCogsInfo(item.masterSku, item.asp, { itemName: item.mainName });
-          if (typeof info.cogs === 'number') {
-            catCogs += info.cogs * item.unitsSold;
-          } else {
-            hasMissing = true;
-          }
-        }
-      }
-
-      const totalCatCogs = (catItemCount > 0 && !hasMissing) ? Math.round(catCogs) : "didn'tget";
-      const catProfit = typeof totalCatCogs === 'number' ? Math.max(0, Math.round(c.revenue) - totalCatCogs) : "didn'tget";
-      const catMargin = typeof catProfit === 'number' && c.revenue > 0
-        ? ((catProfit / c.revenue) * 100).toFixed(1) + '%'
-        : (typeof totalCatCogs === 'number' ? '0.0%' : "didn'tget");
+      const hasExactCatCogs = c.hasExactCogs && c.totalCogsRounded !== null;
+      const totalCatCogs = hasExactCatCogs ? c.totalCogsRounded! : "didn'tget";
+      const catProfit = hasExactCatCogs && c.grossProfit !== null ? c.grossProfit : "didn'tget";
+      const catMargin = hasExactCatCogs && c.marginPercent !== null ? `${c.marginPercent}%` : "didn'tget";
 
       return {
         'SL': idx + 1,
@@ -2291,6 +2348,7 @@ export function OutletSalesTab({
         'Total COGS (BDT)': totalCatCogs,
         'Realized Gross Profit (BDT)': catProfit,
         'Gross Margin (%)': catMargin,
+        'COGS Coverage (%)': `${c.cogsCoveragePercent}%`,
         'Revenue Share (%)': c.revenueShare.toFixed(1) + '%',
         'Top Performing Branch': c.topBranchName
       };
@@ -2302,12 +2360,28 @@ export function OutletSalesTab({
     // Sheet 3: Item Wise Sales
     const itemData = itemWiseSales.map((item, idx) => {
       const cogsInfo = getItemCogsInfo(item.masterSku, item.asp, { itemName: item.mainName });
-      const unitCogs = cogsInfo.cogs;
-      const totalCogs = typeof unitCogs === 'number' ? Math.round(unitCogs * item.unitsSold) : "didn'tget";
-      const grossProfit = typeof totalCogs === 'number' ? Math.max(0, Math.round(item.revenue) - totalCogs) : "didn'tget";
-      const grossMarginPct = typeof grossProfit === 'number' && item.revenue > 0
-        ? ((grossProfit / item.revenue) * 100).toFixed(1) + '%'
-        : (typeof unitCogs === 'number' ? '0.0%' : "didn'tget");
+      const unitCogs = item.unitCogs ?? cogsInfo.cogs;
+      const totalCogs =
+        item.totalCogsRounded !== null && item.totalCogsRounded !== undefined
+          ? item.totalCogsRounded
+          : typeof unitCogs === 'number'
+          ? Math.round(unitCogs * item.unitsSold)
+          : "didn'tget";
+      const grossProfit =
+        item.grossProfit !== null && item.grossProfit !== undefined
+          ? item.grossProfit
+          : typeof totalCogs === 'number'
+          ? Math.round(item.revenue) - totalCogs
+          : "didn'tget";
+      const grossMarginPct =
+        item.marginPercent !== null && item.marginPercent !== undefined
+          ? `${item.marginPercent}%`
+          : typeof grossProfit === 'number' && item.revenue > 0
+          ? ((grossProfit / item.revenue) * 100).toFixed(1) + '%'
+          : typeof unitCogs === 'number'
+          ? '0.0%'
+          : "didn'tget";
+      const src = item.cogsSource !== "didn'tget" ? item.cogsSource : cogsInfo.cogsSource;
 
       return {
         'SL': idx + 1,
@@ -2321,7 +2395,7 @@ export function OutletSalesTab({
         'Total COGS (BDT)': totalCogs,
         'Realized Gross Profit (BDT)': grossProfit,
         'Gross Margin (%)': grossMarginPct,
-        'COGS Source': cogsInfo.cogsSource,
+        'COGS Source': src,
         'Revenue Share (%)': item.revenueShare.toFixed(1) + '%',
         'Branches Active': item.branchesList
       };
@@ -4322,6 +4396,12 @@ export function OutletSalesTab({
 
                   <th className="py-3.5 px-4 text-right">Avg Unit Price (ASP)</th>
 
+                  <th className="py-3.5 px-4 text-right">Total COGS</th>
+
+                  <th className="py-3.5 px-4 text-right">Gross Profit</th>
+
+                  <th className="py-3.5 px-4 text-right">Margin %</th>
+
                   <th className="py-3.5 px-4 text-right">Revenue Share</th>
 
                   <th className="py-3.5 px-5 text-right">Net POS Revenue (BDT)</th>
@@ -4336,7 +4416,7 @@ export function OutletSalesTab({
 
                   <tr>
 
-                    <td colSpan={6} className="py-12 text-center text-slate-400 dark:text-slate-500 font-medium">
+                    <td colSpan={9} className="py-12 text-center text-slate-400 dark:text-slate-500 font-medium">
 
                       No category sales data recorded in the active date range.
 
@@ -4400,6 +4480,47 @@ export function OutletSalesTab({
 
                         ৳ {c.asp.toLocaleString()}
 
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right font-mono font-medium text-slate-600 dark:text-slate-300 text-xs whitespace-nowrap">
+                        {c.hasExactCogs && c.totalCogsRounded !== null ? (
+                          <div>
+                            <div>৳ {c.totalCogsRounded.toLocaleString()}</div>
+                            {c.cogsCoveragePercent < 100 && (
+                              <div className="text-[9px] text-slate-400">{c.cogsCoveragePercent}% cov</div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">didn&apos;tget</span>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs whitespace-nowrap">
+                        {c.hasExactCogs && c.grossProfit !== null ? (
+                          <span className={c.grossProfit < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}>
+                            ৳ {c.grossProfit.toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">didn&apos;tget</span>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs whitespace-nowrap">
+                        {c.hasExactCogs && c.marginPercent !== null ? (
+                          <span
+                            className={
+                              c.marginPercent < 0
+                                ? 'text-rose-600 dark:text-rose-400'
+                                : c.marginPercent >= 50
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-amber-600 dark:text-amber-400'
+                            }
+                          >
+                            {c.marginPercent.toFixed(1)}%
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">didn&apos;tget</span>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-4 text-right">
@@ -4467,6 +4588,26 @@ export function OutletSalesTab({
                       : 0}
 
                   </td>
+
+                  {(() => {
+                    const totCogs = categorySales.reduce((acc, c) => acc + c.totalCogs, 0);
+                    const totCovRev = categorySales.reduce((acc, c) => acc + c.cogsCoveredRevenue, 0);
+                    const totProfit = Math.round(totCovRev - totCogs);
+                    const totMargin = totCovRev > 0 ? Number(((totProfit / totCovRev) * 100).toFixed(1)) : null;
+                    return (
+                      <>
+                        <td className="py-3 px-4 text-right font-mono text-slate-700 dark:text-slate-200">
+                          {totCovRev > 0 ? `৳ ${Math.round(totCogs).toLocaleString()}` : "didn'tget"}
+                        </td>
+                        <td className={`py-3 px-4 text-right font-mono font-bold ${totProfit < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                          {totCovRev > 0 ? `৳ ${totProfit.toLocaleString()}` : "didn'tget"}
+                        </td>
+                        <td className={`py-3 px-4 text-right font-mono font-bold ${totMargin !== null && totMargin < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                          {totMargin !== null ? `${totMargin.toFixed(1)}%` : "didn'tget"}
+                        </td>
+                      </>
+                    );
+                  })()}
 
                   <td className="py-3 px-4 text-right text-purple-700 dark:text-purple-400 font-bold">
 
@@ -4646,6 +4787,12 @@ export function OutletSalesTab({
 
                   <th className="py-3 px-4 text-right">Unit ASP (BDT)</th>
 
+                  <th className="py-3 px-3 text-right">Unit COGS</th>
+
+                  <th className="py-3 px-3 text-right">Total COGS</th>
+
+                  <th className="py-3 px-3 text-right">Margin %</th>
+
                   <th className="py-3 px-4 text-right">Revenue Share</th>
 
                   <th className="py-3 px-4 text-right">Total Net Revenue (BDT)</th>
@@ -4660,7 +4807,7 @@ export function OutletSalesTab({
 
                   <tr>
 
-                    <td colSpan={7} className="py-12 text-center text-slate-400 dark:text-slate-500 font-semibold">
+                    <td colSpan={10} className="py-12 text-center text-slate-400 dark:text-slate-500 font-semibold">
 
                       No master garment items match the active search and filter criteria.
 
@@ -4724,64 +4871,76 @@ export function OutletSalesTab({
 
                       </td>
 
-
-
                       {/* Units Sold */}
-
                       <td className="py-3 px-3 text-right font-headline font-bold text-slate-900 dark:text-slate-100">
-
-                        {item.unitsSold.toLocaleString()} <span className="text-slate-400 dark:text-slate-500 font-normal">pcs</span>
-
+                        {item.unitsSold.toLocaleString()}
                       </td>
-
-
 
                       {/* Unit ASP */}
-
                       <td className="py-3 px-4 text-right font-mono font-medium text-slate-700 dark:text-slate-300">
-
                         ৳ {item.asp.toLocaleString()}
-
                       </td>
 
+                      {/* Unit COGS */}
+                      <td className="py-3 px-3 text-right font-mono whitespace-nowrap">
+                        {item.hasExactCogs && item.unitCogs !== null ? (
+                          <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                            <span>৳ {item.unitCogs.toLocaleString()}</span>
+                            <span className="text-[8px] font-bold px-1 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                              {item.cogsSource === 'MANAGEMENT_SPECIFIED' ? 'MGMT' : 'WC'}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">didn&apos;tget</span>
+                        )}
+                      </td>
 
+                      {/* Total COGS */}
+                      <td className="py-3 px-3 text-right font-mono whitespace-nowrap text-slate-600 dark:text-slate-300">
+                        {item.hasExactCogs && item.totalCogsRounded !== null ? (
+                          `৳ ${item.totalCogsRounded.toLocaleString()}`
+                        ) : (
+                          <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">didn&apos;tget</span>
+                        )}
+                      </td>
+
+                      {/* Margin % */}
+                      <td className="py-3 px-3 text-right font-mono font-bold whitespace-nowrap">
+                        {item.hasExactCogs && item.marginPercent !== null ? (
+                          <span
+                            className={
+                              item.marginPercent < 0
+                                ? 'text-rose-600 dark:text-rose-400'
+                                : item.marginPercent >= 50
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-amber-600 dark:text-amber-400'
+                            }
+                          >
+                            {item.marginPercent.toFixed(1)}%
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">didn&apos;tget</span>
+                        )}
+                      </td>
 
                       {/* Revenue Share */}
-
                       <td className="py-3 px-4 text-right">
-
                         <div className="flex flex-col items-end gap-1">
-
                           <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 font-mono">
-
                             {item.revenueShare.toFixed(1)}%
-
                           </span>
-
                           <div className="w-16 bg-slate-100 dark:bg-deepBlack-sidebar rounded-full h-1.5 overflow-hidden">
-
                             <div
-
                               className="h-full bg-purple-600 rounded-full"
-
                               style={{ width: `${Math.min(item.revenueShare, 100)}%` }}
-
                             ></div>
-
                           </div>
-
                         </div>
-
                       </td>
 
-
-
                       {/* Total Net Revenue */}
-
                       <td className="py-3 px-4 text-right font-headline font-black text-emerald-600 dark:text-emerald-400">
-
                         ৳ {item.revenue.toLocaleString()}
-
                       </td>
 
                     </tr>

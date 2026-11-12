@@ -154,14 +154,30 @@ export function ProductAnalysisTab({
     ];
 
     const rows = filteredProducts.map((p) => {
-      const hasExact = p.hasExactCogs && p.totalDeliveredUnits > 0;
-      const unitCogs = hasExact
-        ? Math.round(p.estimatedCogs / (p.exactCogsUnits || p.totalDeliveredUnits))
-        : "didn'tget";
+      const hasExact = p.hasExactCogs;
+      const unitCogsVal =
+        p.unitCogs ??
+        (p.exactCogsUnits && p.exactCogsUnits > 0
+          ? Math.round(p.estimatedCogs / p.exactCogsUnits)
+          : null);
+      const unitCogs = hasExact && unitCogsVal !== null ? Math.round(unitCogsVal) : "didn'tget";
       const totalCogs = hasExact ? Math.round(p.estimatedCogs) : "didn'tget";
-      const grossProfit = hasExact ? Math.max(0, Math.round(p.deliveredRevenue - p.estimatedCogs)) : "didn'tget";
-      const grossMargin = hasExact ? `${p.grossMarginPercent}%` : "didn'tget";
-      const cogsSource = hasExact ? 'Exact Catalog COGS' : "didn'tget";
+      const coveredRev = p.matchedDeliveredRevenue ?? p.deliveredRevenue;
+      const grossProfit =
+        hasExact && p.totalDeliveredUnits > 0
+          ? Math.round(coveredRev - p.estimatedCogs)
+          : hasExact
+          ? 0
+          : "didn'tget";
+      const grossMargin =
+        hasExact && (coveredRev > 0 || p.avgSellingPrice > 0)
+          ? `${p.grossMarginPercent}%`
+          : "didn'tget";
+      const cogsSource = hasExact
+        ? p.cogsSource === 'MANAGEMENT_SPECIFIED'
+          ? 'Management COGS Rule'
+          : 'Exact Catalog COGS'
+        : "didn'tget";
 
       return [
         `"${p.title.replace(/"/g, '""')}"`,
@@ -335,11 +351,29 @@ export function ProductAnalysisTab({
             <div className="text-xl sm:text-2xl font-black font-headline text-slate-900 dark:text-white">
               ৳{summary.totalDeliveredRevenue.toLocaleString()}
             </div>
-            <div className="flex items-center gap-1.5 text-2xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <div className="flex items-center gap-1.5 text-2xs text-slate-500 dark:text-slate-400 mt-0.5 flex-wrap">
               <span className="font-bold text-slate-700 dark:text-slate-300 font-mono">
                 {summary.totalDeliveredUnits.toLocaleString()} units
               </span>
               <span>delivered of {summary.totalUnitsSold.toLocaleString()} ordered</span>
+            </div>
+            <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-mono flex-wrap">
+              <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#141414] text-slate-700 dark:text-slate-300 font-semibold">
+                {summary.cogsCoveragePercent > 0
+                  ? `COGS: ৳${Math.round(summary.totalExactCogs).toLocaleString()}`
+                  : "COGS: didn'tget"}
+              </span>
+              {summary.cogsCoveragePercent > 0 && (
+                <span
+                  className={`px-1.5 py-0.5 rounded font-bold ${
+                    summary.blendedGrossMarginPercent < 0
+                      ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300'
+                      : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300'
+                  }`}
+                >
+                  Margin: {summary.blendedGrossMarginPercent}% ({summary.cogsCoveragePercent}% cov)
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -696,11 +730,19 @@ export function ProductAnalysisTab({
                             <span className="text-2xs text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1">
                               {p.hasExactCogs ? (
                                 <>
-                                  <span>COGS: ৳{Math.round(p.totalDeliveredUnits > 0 ? p.estimatedCogs / (p.exactCogsUnits || 1) : 0).toLocaleString()}</span>
-                                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">({p.grossMarginPercent}%)</span>
+                                  <span>COGS: {p.cogsDisplay}</span>
+                                  <span
+                                    className={`font-semibold ${
+                                      p.grossMarginPercent < 0
+                                        ? 'text-rose-600 dark:text-rose-400'
+                                        : 'text-emerald-600 dark:text-emerald-400'
+                                    }`}
+                                  >
+                                    ({p.grossMarginPercent}%)
+                                  </span>
                                 </>
                               ) : (
-                                <span className="font-semibold text-amber-600 dark:text-amber-400">COGS: didn'tget</span>
+                                <span className="font-semibold text-amber-600 dark:text-amber-400">COGS: didn&apos;tget</span>
                               )}
                             </span>
                           </div>
@@ -724,17 +766,29 @@ export function ProductAnalysisTab({
                           <div className="text-2xs text-slate-400 flex items-center gap-1">
                             {p.hasExactCogs ? (
                               <>
-                                <span>Margin: {p.grossMarginPercent}%</span>
+                                <span
+                                  className={`font-semibold ${
+                                    p.grossMarginPercent < 0
+                                      ? 'text-rose-600 dark:text-rose-400'
+                                      : 'text-emerald-600 dark:text-emerald-400'
+                                  }`}
+                                >
+                                  Margin: {p.grossMarginPercent}%
+                                </span>
                                 <span
                                   className="inline-flex items-center px-1 py-0.2 rounded text-[9px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                                  title="Exact buying price from WooCommerce REST API"
+                                  title={
+                                    p.cogsSource === 'MANAGEMENT_SPECIFIED'
+                                      ? 'Management-specified product COGS'
+                                      : 'Exact buying price from WooCommerce REST API'
+                                  }
                                 >
-                                  WC COGS
+                                  {p.cogsSource === 'MANAGEMENT_SPECIFIED' ? 'MGMT COGS' : 'WC COGS'}
                                 </span>
                               </>
                             ) : (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                                didn'tget
+                                didn&apos;tget
                               </span>
                             )}
                           </div>
@@ -887,11 +941,13 @@ export function ProductAnalysisTab({
                     </div>
 
                     {/* Price Points Table */}
-                    <div className="mt-3.5 overflow-x-auto rounded-xl border border-slate-100 dark:border-[#171717]">
+                    <div className="mt-3.5 overflow-x-auto min-w-0 w-full rounded-xl border border-slate-100 dark:border-[#171717]">
                       <table className="w-full text-left text-xs">
                         <thead className="bg-slate-50/75 dark:bg-[#0E0E0E] text-2xs font-bold text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-[#171717]">
                           <tr>
                             <th className="py-2 px-2.5">Sold Price</th>
+                            <th className="py-2 px-2 text-right">COGS</th>
+                            <th className="py-2 px-2 text-right">Margin %</th>
                             <th className="py-2 px-2 text-center">Discount</th>
                             <th className="py-2 px-2 text-center">Units Sold</th>
                             <th className="py-2 px-2">Net Sales</th>
@@ -900,13 +956,37 @@ export function ProductAnalysisTab({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-[#171717] font-mono text-2xs">
-                          {p.pricePoints.map((pp) => (
+                          {p.pricePoints.map((pp) => {
+                            const unitCogsVal =
+                              p.unitCogs ??
+                              (p.exactCogsUnits && p.exactCogsUnits > 0
+                                ? Math.round(p.estimatedCogs / p.exactCogsUnits)
+                                : null);
+                            const ppMargin =
+                              p.hasExactCogs && unitCogsVal !== null && pp.price > 0
+                                ? Number((((pp.price - unitCogsVal) / pp.price) * 100).toFixed(1))
+                                : null;
+                            return (
                             <tr
                               key={pp.price}
                               className={pp.isSweetSpot ? 'bg-emerald-50/50 dark:bg-emerald-950/20 font-bold' : ''}
                             >
                               <td className="py-2 px-2.5 text-slate-900 dark:text-white">
                                 ৳{pp.price.toLocaleString()}
+                              </td>
+                              <td className="py-2 px-2 text-right text-slate-600 dark:text-slate-400">
+                                {p.hasExactCogs && unitCogsVal !== null ? `৳${Math.round(unitCogsVal).toLocaleString()}` : "didn'tget"}
+                              </td>
+                              <td
+                                className={`py-2 px-2 text-right font-bold ${
+                                  ppMargin === null
+                                    ? 'text-amber-600 dark:text-amber-400'
+                                    : ppMargin < 0
+                                    ? 'text-rose-600 dark:text-rose-400'
+                                    : 'text-emerald-600 dark:text-emerald-400'
+                                }`}
+                              >
+                                {ppMargin !== null ? `${ppMargin}%` : "didn'tget"}
                               </td>
                               <td className="py-2 px-2 text-center text-slate-600 dark:text-slate-400">
                                 {pp.discountPercent > 0 ? `${pp.discountPercent}%` : 'MRP'}
@@ -930,7 +1010,8 @@ export function ProductAnalysisTab({
                                 )}
                               </td>
                             </tr>
-                          ))}
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -1415,17 +1496,25 @@ export function ProductAnalysisTab({
                 <div className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
                   ৳{inspectingProduct.deliveredRevenue.toLocaleString()}
                 </div>
-                <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1 flex-wrap">
                   {inspectingProduct.hasExactCogs ? (
                     <>
-                      <span>Margin: {inspectingProduct.grossMarginPercent}%</span>
-                      <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
-                        (WC COGS: ৳{inspectingProduct.estimatedCogs.toLocaleString()})
+                      <span
+                        className={`font-semibold ${
+                          inspectingProduct.grossMarginPercent < 0
+                            ? 'text-rose-600 dark:text-rose-400'
+                            : 'text-emerald-600 dark:text-emerald-400'
+                        }`}
+                      >
+                        Margin: {inspectingProduct.grossMarginPercent}%
+                      </span>
+                      <span className="text-[9px] font-semibold text-slate-500 dark:text-slate-400">
+                        ({inspectingProduct.cogsSource === 'MANAGEMENT_SPECIFIED' ? 'MGMT' : 'WC'} COGS: ৳{Math.round(inspectingProduct.estimatedCogs).toLocaleString()})
                       </span>
                     </>
                   ) : (
                     <span className="inline-flex items-center px-1 py-0.2 rounded text-[9px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                      didn'tget
+                      didn&apos;tget
                     </span>
                   )}
                 </div>
@@ -1449,7 +1538,7 @@ export function ProductAnalysisTab({
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
                 Price Elasticity Breakdown
               </h4>
-              <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-[#1F1F1F]">
+              <div className="overflow-x-auto min-w-0 w-full rounded-xl border border-slate-100 dark:border-[#1F1F1F]">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 dark:bg-[#141414] text-2xs font-bold text-slate-500 dark:text-slate-400">
                     <tr>
@@ -1464,13 +1553,16 @@ export function ProductAnalysisTab({
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-[#171717] font-mono text-2xs">
                     {inspectingProduct.pricePoints.map((pp) => {
-                      const hasExact = inspectingProduct.hasExactCogs && inspectingProduct.totalDeliveredUnits > 0;
-                      const unitCogs = hasExact
-                        ? Math.round(inspectingProduct.estimatedCogs / (inspectingProduct.exactCogsUnits || inspectingProduct.totalDeliveredUnits))
-                        : null;
-                      const ppMargin = (hasExact && unitCogs !== null && pp.price > 0)
-                        ? Math.max(0, Number((((pp.price - unitCogs) / pp.price) * 100).toFixed(1)))
-                        : null;
+                      const hasExact = inspectingProduct.hasExactCogs;
+                      const unitCogs =
+                        inspectingProduct.unitCogs ??
+                        (hasExact && (inspectingProduct.exactCogsUnits || inspectingProduct.totalDeliveredUnits) > 0
+                          ? Math.round(inspectingProduct.estimatedCogs / (inspectingProduct.exactCogsUnits || inspectingProduct.totalDeliveredUnits))
+                          : null);
+                      const ppMargin =
+                        hasExact && unitCogs !== null && pp.price > 0
+                          ? Number((((pp.price - unitCogs) / pp.price) * 100).toFixed(1))
+                          : null;
 
                       return (
                         <tr
@@ -1481,9 +1573,17 @@ export function ProductAnalysisTab({
                             ৳{pp.price.toLocaleString()} {pp.isSweetSpot ? '👑' : ''}
                           </td>
                           <td className="py-2 px-2 text-right text-slate-600 dark:text-slate-400">
-                            {unitCogs !== null ? `৳${unitCogs.toLocaleString()}` : "didn'tget"}
+                            {hasExact && unitCogs !== null ? `৳${Math.round(unitCogs).toLocaleString()}` : "didn'tget"}
                           </td>
-                          <td className="py-2 px-2 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                          <td
+                            className={`py-2 px-2 text-right font-bold ${
+                              ppMargin === null
+                                ? 'text-amber-600 dark:text-amber-400'
+                                : ppMargin < 0
+                                ? 'text-rose-600 dark:text-rose-400'
+                                : 'text-emerald-600 dark:text-emerald-400'
+                            }`}
+                          >
                             {ppMargin !== null ? `${ppMargin}%` : "didn'tget"}
                           </td>
                           <td className="py-2 px-2 text-center text-slate-500">

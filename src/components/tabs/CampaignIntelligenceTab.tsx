@@ -471,7 +471,7 @@ export function CampaignIntelligenceTab({
             <div className="text-xs text-neutral-300 space-y-1">
               <p className="font-semibold text-white">Financial Grounding Standard for Executive Decisions:</p>
               <p>
-                In Bangladesh apparel e-commerce, gross placed order volume is heavily distorted by COD cancellations and return transit. All metrics above strictly isolate realized delivered cash (৳{overviewKpis.deliveredCampaignRevenue.toLocaleString()}) after deducting product manufacturing costs (~42% COGS), two-way courier burden, packaging loss (৳25/return), and discount costs.
+                In Bangladesh apparel e-commerce, gross placed order volume is heavily distorted by COD cancellations and return transit. All metrics above strictly isolate realized delivered cash (৳{overviewKpis.deliveredCampaignRevenue.toLocaleString()}) after deducting actual catalog-verified SKU COGS (where available), two-way courier burden, packaging loss (৳25/return), and discount costs.
               </p>
             </div>
           </div>

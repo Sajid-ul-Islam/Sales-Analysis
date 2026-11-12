@@ -57,4 +57,28 @@ describe('WooCommerce SKU COGS Extraction & API Engine', () => {
     expect(fallback.isExact).toBe(false);
     expect(fallback.cogsSource).toBe("didn'tget");
   });
+
+  it('applies management COGS rules (195 bottle, 120 mask, 280 card holder) and preserves negative clearance margins', () => {
+    const bottle = getItemCogsInfo('109-0501-001', 495, { itemName: 'Aluminum Water Bottle - 750ml' });
+    expect(bottle.cogs).toBe(195);
+    expect(bottle.isExact).toBe(true);
+    expect(bottle.cogsSource).toBe('MANAGEMENT_SPECIFIED');
+
+    const mask = getItemCogsInfo('109-0502-001', 250, { itemName: 'DEEN Face Mask' });
+    expect(mask.cogs).toBe(120);
+    expect(mask.isExact).toBe(true);
+    expect(mask.cogsSource).toBe('MANAGEMENT_SPECIFIED');
+
+    const holder = getItemCogsInfo('109-0104-001', 550, { itemName: 'Leather Card Holder' });
+    expect(holder.cogs).toBe(280);
+    expect(holder.isExact).toBe(true);
+    expect(holder.cogsSource).toBe('MANAGEMENT_SPECIFIED');
+
+    // Clearance sweatshirt: sold at 494 against WC COGS 565 -> must NOT clamp negative margin to 0
+    const clearance = getItemCogsInfo('108-0101-010', 494, { itemName: 'DEEN Off-white Sweatshirt in French-Terry - M' });
+    expect(clearance.cogs).toBe(565);
+    expect(clearance.marginAmount).toBe(-71);
+    expect(clearance.marginPercent).toBe(-14.4);
+    expect(clearance.isExact).toBe(true);
+  });
 });

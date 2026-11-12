@@ -361,5 +361,80 @@ describe('DEEN Commerce Reconciliation Engine — Domain Invariant Tests', () =>
       expect(result.summary.totalExchangedOrders).toBe(1);
       expect(result.exchangedOrders.length).toBe(1);
     });
+
+    it('computes actual SKU/management COGS and uncapped unitEconomics margins without 42% fabrication', () => {
+      const mixedOrders = [
+        {
+          'Order ID': '40001',
+          'Order Date': '2026-10-18',
+          'Customer Name': 'Customer A',
+          'Phone': '01711111111',
+          'City': 'Dhaka',
+          'SKU': '109-0102-085', // Exact WC COGS = 450
+          'Item Name': 'DEEN Catalog Item',
+          'Quantity': 1,
+          'Item Cost': 850,
+          'Order Amount': 850,
+          'Delivery Status': 'delivered',
+          'status': 'completed',
+          'wpDeliveryStatus': 'Delivered',
+        },
+        {
+          'Order ID': '40002',
+          'Order Date': '2026-10-18',
+          'Customer Name': 'Customer B',
+          'Phone': '01722222222',
+          'City': 'Dhaka',
+          'SKU': '108-0101-010', // Clearance item: COGS = 565 vs Sale = 494 => -14.4%
+          'Item Name': 'DEEN Off-white Sweatshirt in French-Terry - M',
+          'Quantity': 1,
+          'Item Cost': 494,
+          'Order Amount': 494,
+          'Delivery Status': 'delivered',
+          'status': 'completed',
+          'wpDeliveryStatus': 'Delivered',
+        },
+        {
+          'Order ID': '40003',
+          'Order Date': '2026-10-18',
+          'Customer Name': 'Customer C',
+          'Phone': '01733333333',
+          'City': 'Dhaka',
+          'SKU': 'UNKNOWN-UNCATALOGED-999', // Missing COGS => must NOT fall back to 42%
+          'Item Name': 'Unknown Custom Piece',
+          'Quantity': 1,
+          'Item Cost': 1000,
+          'Order Amount': 1000,
+          'Delivery Status': 'delivered',
+          'status': 'completed',
+          'wpDeliveryStatus': 'Delivered',
+        },
+      ];
+
+      const result = runReconciliationEngine(
+        mixedOrders,
+        [],
+        [],
+        { excludeAugust: false, excludePOS: false },
+        [],
+        []
+      );
+
+      // Actual delivered COGS = 450 + 565 + 0 = 1015 (NOT 42% of 2344 = 984)
+      expect(result.summary.unitEconomics.actualCogs).toBe(1015);
+      expect(result.summary.unitEconomics.estimatedCogs).toBe(1015);
+      expect(result.summary.unitEconomics.cogsMethod).toBe('HYBRID');
+
+      const clearanceSku = result.skuAnalytics.find((s) => s.sku === '108-0101-010');
+      expect(clearanceSku).toBeDefined();
+      expect(clearanceSku!.unitCogs).toBe(565);
+      expect(clearanceSku!.grossProfit).toBe(-71);
+      expect(clearanceSku!.grossMarginPercent).toBe(-14.4);
+
+      const unknownSku = result.skuAnalytics.find((s) => s.sku === 'UNKNOWN-UNCATALOGED-999');
+      expect(unknownSku).toBeDefined();
+      expect(unknownSku!.unitCogs).toBe("didn'tget");
+      expect(unknownSku!.cogsSource).toBe("didn'tget");
+    });
   });
 });
