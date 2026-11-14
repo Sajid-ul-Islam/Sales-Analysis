@@ -92,7 +92,7 @@ export async function POST(req: Request) {
       ordersCount: rawOrders.length,
       lineItemsCount: formattedRows.length,
       orders: returnRows,
-      rawOrders: isPrivileged
+      rawOrders: isPrivileged && Boolean(body.includeRaw)
         ? rawOrders.map((o) => trimWooCommerceOrder(o as Record<string, unknown>))
         : [],
       breakdown: {

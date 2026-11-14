@@ -226,23 +226,25 @@ export async function syncLiveTerminalData(options: {
         //    have date_modified = today! Fetching by modified ensures they appear on Page 1.
         // 3. Fetch active processing/hold queue orders awaiting fulfillment
         const [recentByDate, recentByModified, queueOrders] = await Promise.all([
-          fetchWooCommerceOrders({
-            perPage: 50,
-            fetchAllPages: maxPagesToFetch > 1,
-            maxPages: maxPagesToFetch,
-            orderBy: 'date',
-            order: 'desc',
-            timeoutMs: 25000,
-            credentials: options.wcCredentials,
-            after: deltaAfter,
-          }).catch((err) => {
-            console.warn('[liveTerminalSync] WooCommerce fetch by date notice:', err);
-            return [];
-          }),
+          options.isDelta
+            ? Promise.resolve([])
+            : fetchWooCommerceOrders({
+                perPage: 50,
+                fetchAllPages: maxPagesToFetch > 1,
+                maxPages: maxPagesToFetch,
+                orderBy: 'date',
+                order: 'desc',
+                timeoutMs: 25000,
+                credentials: options.wcCredentials,
+                after: deltaAfter,
+              }).catch((err) => {
+                console.warn('[liveTerminalSync] WooCommerce fetch by date notice:', err);
+                return [];
+              }),
           fetchWooCommerceOrders({
             perPage: 50,
             fetchAllPages: true,
-            maxPages: Math.min(maxPagesToFetch, 4),
+            maxPages: options.isDelta ? Math.min(maxPagesToFetch, 3) : Math.min(maxPagesToFetch, 4),
             orderBy: 'modified',
             order: 'desc',
             timeoutMs: 25000,
@@ -349,9 +351,14 @@ export async function syncLiveTerminalData(options: {
       row.consignment_id ||
       row.tracking_number ||
       row['Tracking ID'];
+    const currentStatus = String(row.courierStatus || row['Delivery Status'] || '').toLowerCase();
+    const isTerminal = /delivered|returned|paid return/i.test(currentStatus);
+
     if (cid && typeof cid === 'string' && cid.trim().length > 3) {
-      consignmentIdSet.add(cid.trim());
-    } else {
+      if (!isTerminal) {
+        consignmentIdSet.add(cid.trim());
+      }
+    } else if (!isTerminal) {
       const oid = cleanOrderId(row['Order ID'] || row.orderId);
       if (oid) unconsignedOrderIds.add(oid);
       const rawPhone = row.Phone || row.phone || (row as Record<string, unknown>)['Billing Phone'] || (row as Record<string, unknown>)['Shipping Phone'] || '';
