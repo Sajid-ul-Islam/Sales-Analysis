@@ -44,7 +44,7 @@ export function DataProvenanceBanner({
   const isOffline = dataSourceMode === 'UPLOAD';
   const fileNames = provenance?.fileNames || [];
   const primaryFileName = fileNames.length > 0 ? fileNames[0] : (isOffline ? 'Offline Spreadsheet' : 'Cloud Sync');
-  const dateRangeStr = provenance?.dateRangeFormatted || 'Historical Records';
+  const dateRangeStr = provenance?.dateRangeFormatted || (isOffline ? 'Historical Records' : (dateScopeLabel ? `Active View (${dateScopeLabel})` : 'Live Cloud Feed'));
   const isPartiallyFiltered = matchedOrders < totalOrders && activeScope !== 'all';
 
   return (
@@ -112,10 +112,10 @@ export function DataProvenanceBanner({
               type="button"
               onClick={onSetScopeAll}
               className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-primary hover:bg-primary-dark text-white transition-all shadow-xs active:scale-95 flex items-center gap-1.5"
-              title="Show all records from the uploaded file without date filter"
+              title={isOffline ? "Show all records from the uploaded file without date filter" : "Show all synced records without date filter"}
             >
               <Clock className="w-3.5 h-3.5" />
-              <span>Show All File Dates</span>
+              <span>{isOffline ? 'Show All File Dates' : 'View All Synced Dates'}</span>
             </button>
           )}
 

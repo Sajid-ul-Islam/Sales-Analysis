@@ -524,7 +524,7 @@ export function LiveOpsTab({
   const displayHistoryDays = useMemo(() => {
     return report.last7DaysHistory.filter((day) => {
       const isFriday = day.dayName.toLowerCase().startsWith('fri') || (day.dateLabel && day.dateLabel.toLowerCase().startsWith('fri'));
-      if (isFriday && (day.isFridayClosed || day.orderCount === 0)) {
+      if (isFriday && (day.isFridayClosed || (day.orderCount === 0 && (!day.exchangeCount || day.exchangeCount === 0)))) {
         return false;
       }
       return true;
@@ -1510,73 +1510,75 @@ export function LiveOpsTab({
           </div>
 
           {/* Day Cards Grid */}
-          <div
-            className={`grid gap-2 ${
-              displayHistoryDays.length <= 6
-                ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-6'
-                : 'grid-cols-2 sm:grid-cols-4 md:grid-cols-7'
-            }`}
-          >
-            {displayHistoryDays.map((day) => {
-              const isSelected = selectedHistoricalDate
-                ? selectedHistoricalDate === day.dateIso
-                : day.isToday && selectedView === 'Today Shipped';
-              return (
-                <button
-                  key={day.dateIso}
-                  type="button"
-                  onClick={() => {
-                    if (day.isToday && selectedHistoricalDate === day.dateIso) {
-                      setSelectedHistoricalDate(null);
-                    } else {
-                      setSelectedHistoricalDate(day.dateIso);
-                    }
-                    setSelectedView('Today Shipped');
-                    setCategoryFilter('ALL');
-                  }}
-                  className={`p-2.5 rounded-2xl border text-left transition-all ${
-                    isSelected
-                      ? 'bg-blue-50/90 dark:bg-blue-950/40 border-blue-400 dark:border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
-                      : 'bg-slate-50/70 dark:bg-[#121212] border-slate-200/80 dark:border-[#1F1F1F] hover:bg-slate-100 dark:hover:bg-[#171717] hover:border-slate-300 dark:hover:border-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className={`text-[11px] font-black ${isSelected ? 'text-blue-900 dark:text-blue-300' : 'text-slate-800 dark:text-slate-100'}`}>
-                      {day.dayName.slice(0, 3)}
-                    </span>
-                    {day.isToday && (
-                      <span className="text-[9px] font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 px-1 py-0.2 rounded-full">
-                        Today
+          <div className="w-full overflow-x-auto min-w-0 pb-1">
+            <div
+              className={`grid gap-2 ${
+                displayHistoryDays.length <= 6
+                  ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-6 min-w-full'
+                  : 'grid-cols-2 sm:grid-cols-4 md:grid-cols-7 min-w-[720px] md:min-w-0'
+              }`}
+            >
+              {displayHistoryDays.map((day) => {
+                const isSelected = selectedHistoricalDate
+                  ? selectedHistoricalDate === day.dateIso
+                  : day.isToday && selectedView === 'Today Shipped';
+                return (
+                  <button
+                    key={day.dateIso}
+                    type="button"
+                    onClick={() => {
+                      if (day.isToday && selectedHistoricalDate === day.dateIso) {
+                        setSelectedHistoricalDate(null);
+                      } else {
+                        setSelectedHistoricalDate(day.dateIso);
+                      }
+                      setSelectedView('Today Shipped');
+                      setCategoryFilter('ALL');
+                    }}
+                    className={`p-2.5 rounded-2xl border text-left transition-all min-w-0 w-full overflow-hidden ${
+                      isSelected
+                        ? 'bg-blue-50/90 dark:bg-blue-950/40 border-blue-400 dark:border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+                        : 'bg-slate-50/70 dark:bg-[#121212] border-slate-200/80 dark:border-[#1F1F1F] hover:bg-slate-100 dark:hover:bg-[#171717] hover:border-slate-300 dark:hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between min-w-0 gap-1">
+                      <span className={`text-[11px] font-black truncate ${isSelected ? 'text-blue-900 dark:text-blue-300' : 'text-slate-800 dark:text-slate-100'}`}>
+                        {day.dayName.slice(0, 3)}
                       </span>
-                    )}
-                    {day.isPrevDay && !day.isToday && (
-                      <span className="text-[9px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1 py-0.2 rounded-full">
-                        Prev
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                    {day.dateLabel.includes(',') ? day.dateLabel.split(',')[1].trim() : day.dateIso.slice(5)}
-                  </div>
-                  <div className="mt-1 flex items-baseline justify-between text-[11px]">
-                    <span className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                      <span>📦 {day.orderCount}</span>
-                      {day.exchangeCount !== undefined && day.exchangeCount > 0 && (
-                        <span
-                          className="text-[9.5px] font-bold px-1.5 py-0.2 rounded-md bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60"
-                          title={`${day.exchangeCount} exchange replacement parcel(s)`}
-                        >
-                          🔄 {day.exchangeCount}
+                      {day.isToday && (
+                        <span className="text-[9px] font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 px-1.5 py-0.2 rounded-full shrink-0">
+                          Today
                         </span>
                       )}
-                    </span>
-                    <span className="font-semibold text-slate-600 dark:text-slate-400">
-                      ৳{Math.round(day.revenue / 1000)}k
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
+                      {day.isPrevDay && !day.isToday && (
+                        <span className="text-[9px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.2 rounded-full shrink-0">
+                          Prev
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 truncate">
+                      {day.dateLabel.includes(',') ? day.dateLabel.split(',')[1].trim() : day.dateIso.slice(5)}
+                    </div>
+                    <div className="mt-1 flex items-baseline justify-between text-[11px] min-w-0 gap-1">
+                      <span className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1 min-w-0 truncate">
+                        <span>📦 {day.orderCount}</span>
+                        {day.exchangeCount !== undefined && day.exchangeCount > 0 && (
+                          <span
+                            className="text-[9.5px] font-bold px-1.5 py-0.2 rounded-md bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60 shrink-0"
+                            title={`${day.exchangeCount} exchange replacement parcel(s)`}
+                          >
+                            🔄 {day.exchangeCount}
+                          </span>
+                        )}
+                      </span>
+                      <span className="font-semibold text-slate-600 dark:text-slate-400 shrink-0">
+                        ৳{Math.round(day.revenue / 1000)}k
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -1961,6 +1963,13 @@ export function LiveOpsTab({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Revenue Split Bar */}
           <div className="space-y-1.5 px-0.5 group cursor-pointer">
+            <div className="flex items-center justify-between text-[11px] mb-0.5">
+              <span className="font-bold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <span>💰</span>
+                <span>Revenue Share Contribution</span>
+              </span>
+              <span className="text-[10px] font-semibold text-slate-400">Total: ৳{report.salesRevenue.rawValue.toLocaleString()}</span>
+            </div>
             <div className="flex justify-between items-center text-[11px]">
               <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1 group-hover:scale-105 transition-transform duration-200 origin-left">
                 <span>💎 Selects:</span>
@@ -1990,6 +1999,13 @@ export function LiveOpsTab({
 
           {/* Volume Split Bar */}
           <div className="space-y-1.5 px-0.5 group cursor-pointer">
+            <div className="flex items-center justify-between text-[11px] mb-0.5">
+              <span className="font-bold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <span>📦</span>
+                <span>Shipped Volume Split</span>
+              </span>
+              <span className="text-[10px] font-semibold text-slate-400">Total: {report.shippedItems.rawValue} pcs</span>
+            </div>
             <div className="flex justify-between items-center text-[11px]">
               <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1 group-hover:scale-105 transition-transform duration-200 origin-left">
                 <span>💎 Selects:</span>
