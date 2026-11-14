@@ -37,6 +37,7 @@ Always reference the canonical documentation hierarchy before modifying architec
 | **CHANGELOG.md** | `CHANGELOG.md` / `docs/CHANGELOG.md` | Semantic version history & detailed release notes |
 | **CONTEXT.md** | `CONTEXT.md` / `docs/CONTEXT.md` | Domain context, Bangladesh logistics realities & retail ecosystem |
 | **CONTRIBUTING.md** | `CONTRIBUTING.md` / `docs/CONTRIBUTING.md` | Developer onboarding, Git conventions & PR guidelines |
+| **DATA_SYNC_AND_PARTITIONING.md** | `docs/DATA_SYNC_AND_PARTITIONING.md` | Partitioned month lakehouse, non-destructive upsert merger & fast slicing |
 | **DEPLOYMENT.md** | `DEPLOYMENT.md` / `docs/DEPLOYMENT.md` | Vercel deployment, Docker setup, edge proxies & CDN configs |
 | **DESIGN.md** | `DESIGN.md` / `docs/DESIGN.md` | Unbreakable UI design system, color tokens & 10 Golden Rules |
 | **OPERATIONS.md** | `OPERATIONS.md` / `docs/OPERATIONS.md` | Warehouse, retail branch & finance department standard SOPs |
@@ -141,6 +142,11 @@ The user interface has strict zero-breakage contracts codified in [.agents/rules
 - Webhook payloads received from WooCommerce or Pathao Hermes are captured to `src/data/sync-events.jsonl`.
 - Processing is decoupled: incoming webhooks return HTTP 200 immediately, and reconciliation state re-computes incrementally on-demand or during scheduled worker runs.
 - Webhook signature verification uses HMAC-SHA256 (`src/app/api/sync/...`).
+
+### 6.1 Partitioned Month Store & Upsert Merger Invariant
+- **Non-Destructive Sync Rule**: Never replace the entire `rawOrders` master array with a single date-window sync. Always use `upsertOrderRows(existing, incoming)` from `src/lib/sync/partitionStore.ts` to merge newly fetched orders by primary key (`orderId`).
+- **Monthly Partitioning**: Store orders partitioned by `YYYY-MM` in IndexedDB (`deen_partition_orders_YYYY_MM`). Historical closed months (e.g. September, October) have permanent/30-day TTLs.
+- **Fast Filter-Wise Slicing**: Slicing by date scope, outlet branch, or delivery status must run in-memory against the local dataset (<5ms) rather than issuing new network queries. Full specification: `docs/DATA_SYNC_AND_PARTITIONING.md`.
 
 ---
 

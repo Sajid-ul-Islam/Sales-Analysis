@@ -103,7 +103,14 @@ import {
 } from '@/lib/reconciliationEngine';
 import { loadSavedThemeSettings, saveThemeSettings, applyThemeToDocument, BackgroundStyleId } from '@/lib/themeManager';
 import { loadAppSettings } from '@/lib/settingsStore';
-import { DateScope, filterOrdersByDateScope, CustomDateRange, getDynamicDatasetTitle, DateScopeBoundaries } from '@/lib/dateFilter';
+import {
+  DateScope,
+  filterOrdersByDateScope,
+  CustomDateRange,
+  getDynamicDatasetTitle,
+  DateScopeBoundaries,
+  getDateScopeBoundaries
+} from '@/lib/dateFilter';
 import { RawOrderRow, AgenticActionProposal, DatasetSnapshot } from '@/types';
 import { applyAgenticAction, clearAgenticTags } from '@/lib/ai/agenticActions';
 import { CheckCircle2, Calendar, RotateCcw, Scale } from 'lucide-react';
@@ -134,6 +141,13 @@ import {
   SuccessCelebrationModal,
 } from '@/components/common';
 import type { SyncEvent } from '@/lib/sync/eventLog';
+import {
+  upsertOrderRows,
+  upsertGenericRows,
+  saveOrdersToPartitions,
+  loadPartitionsForDateRange,
+  getRowOrderId,
+} from '@/lib/sync/partitionStore';
 
 export type DataSourceMode = 'UPLOAD' | 'API';
 
@@ -199,31 +213,6 @@ export default function DashboardPage() {
   const [isWeekComparisonOpen, setIsWeekComparisonOpen] = useState(false);
   const [comparisonMode, setComparisonMode] = useState<'week' | 'month'>('week');
   const [, startScopeTransition] = React.useTransition();
-
-  const handleDateScopeChange = (range: DateScope, customRange?: CustomDateRange) => {
-    startScopeTransition(() => {
-      setDateScope(range);
-      if (customRange) {
-        setCustomDateRange(customRange);
-      } else if (range !== 'custom') {
-        setCustomDateRange(undefined);
-      }
-      setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, range, { days: 30 });
-
-      // Automatically re-run reconciliation engine on filtered order set
-      const filtered = filterOrdersByDateScope(rawOrders, range, customRange);
-      computeReconciliation(
-        filtered.filteredOrders,
-        rawReturns,
-        rawPartials,
-        excludeAugust,
-        excludePOS,
-        rawExchanges,
-        rawPathaoDelivery
-      );
-      setStatusMessage(`Date filter active: ${filtered.label}${filtered.subLabel ? ` (${filtered.subLabel})` : ''} — ${filtered.matchedOrders.toLocaleString()} orders reconciled.`);
-    });
-  };
 
   const handleToggleExcludeAugust = (val: boolean) => {
     setExcludeAugust(val);
@@ -443,6 +432,54 @@ export default function DashboardPage() {
     }
   }, [rawOrders.length, insideDeliveryFee, outsideDeliveryFee, packagingCost, cogsPercent, exactTolerance, metaAdCost]);
 
+  const handleDateScopeChange = useCallback(async (range: DateScope, customRange?: CustomDateRange) => {
+    setDateScope(range);
+    if (customRange) {
+      setCustomDateRange(customRange);
+    } else if (range !== 'custom') {
+      setCustomDateRange(undefined);
+    }
+    setCookie(DEEN_COOKIE_KEYS.DATE_SCOPE, range, { days: 30 });
+
+    let currentOrders = rawOrders;
+    let filtered = filterOrdersByDateScope(currentOrders, range, customRange);
+
+    // If 0 orders matched in memory, check if month partitions in IndexedDB contain this period
+    if (filtered.matchedOrders === 0) {
+      const boundaries = getDateScopeBoundaries(range, customRange);
+      if (boundaries.startDate && boundaries.endDate) {
+        try {
+          const partitionRes = await loadPartitionsForDateRange(boundaries.startDate, boundaries.endDate);
+          if (partitionRes && partitionRes.rows && partitionRes.rows.length > 0) {
+            const upsertResult = upsertOrderRows(currentOrders, partitionRes.rows);
+            currentOrders = upsertResult.merged;
+            setRawOrders(currentOrders);
+            filtered = filterOrdersByDateScope(currentOrders, range, customRange);
+            setStatusMessage(`⚡ Instant 0ms Load: Restored ${partitionRes.rows.length.toLocaleString()} orders from local partition store (${partitionRes.matchedMonths.join(', ')}).`);
+          }
+        } catch (err) {
+          console.warn('[PartitionStore] Failed to probe partition store:', err);
+        }
+      }
+    }
+
+    computeReconciliation(
+      filtered.filteredOrders,
+      rawReturns,
+      rawPartials,
+      excludeAugust,
+      excludePOS,
+      rawExchanges,
+      rawPathaoDelivery
+    );
+
+    if (filtered.matchedOrders > 0) {
+      setStatusMessage(`Date filter active: ${filtered.label}${filtered.subLabel ? ` (${filtered.subLabel})` : ''} — ${filtered.matchedOrders.toLocaleString()} orders reconciled.`);
+    } else {
+      setStatusMessage(`No orders found in active dataset for ${filtered.label}. Use "Sync WooCommerce" to fetch this period.`);
+    }
+  }, [rawOrders, rawReturns, rawPartials, excludeAugust, excludePOS, rawExchanges, rawPathaoDelivery, computeReconciliation]);
+
   // Reactive Executive Sampling: Samples dataset to 15% across all components
   useEffect(() => {
     if (sampleRatio && sampleRatio < 1 && rawOrders.length > 0) {
@@ -492,6 +529,7 @@ export default function DashboardPage() {
         setUploadedDataset(cached);
         setDataSourceMode('UPLOAD');
         setRawOrders(cached.orders || []);
+        saveOrdersToPartitions(cached.orders || []).catch(() => {});
         setRawPathaoDelivery(cached.pathaoDelivery || []);
         setRawReturns(cached.returns || []);
         setRawPartials(cached.partials || []);
@@ -531,6 +569,7 @@ export default function DashboardPage() {
           setUploadedDataset(cached);
           setDataSourceMode('UPLOAD');
           setRawOrders(cached.orders || []);
+        saveOrdersToPartitions(cached.orders || []).catch(() => {});
           setRawPathaoDelivery(cached.pathaoDelivery || []);
           setRawReturns(cached.returns || []);
           setRawPartials(cached.partials || []);
@@ -581,6 +620,7 @@ export default function DashboardPage() {
         setCacheItem(DEEN_CACHE_KEYS.ACTIVE_DATASET, snapshot, { ttlMs: 7 * 24 * 3600 * 1000, tag: 'dataset' });
 
         setRawOrders(snapshot.orders || []);
+        saveOrdersToPartitions(snapshot.orders || []).catch(() => {});
         setRawPathaoDelivery(snapshot.pathaoDelivery || []);
         setRawReturns(snapshot.returns || []);
         setRawPartials(snapshot.partials || []);
@@ -1021,12 +1061,27 @@ export default function DashboardPage() {
     if (targetCustomRange !== undefined && targetCustomRange !== customDateRange) {
       setCustomDateRange(targetCustomRange);
     }
-    const updatedOrders = type === 'orders' ? rows : (cloudApiDataset?.orders || rawOrders);
-    const updatedReturns = type === 'returns' ? rows : (cloudApiDataset?.returns || rawReturns);
+    let updatedOrders = rawOrders;
+    let updatedReturns = rawReturns;
+    let upsertDetails = '';
+
+    if (type === 'orders') {
+      const upsertResult = upsertOrderRows(rawOrders, rows);
+      updatedOrders = upsertResult.merged;
+      upsertDetails = ` (+${upsertResult.addedCount} new, ${upsertResult.updatedCount} updated)`;
+      // Persist newly fetched orders into partitioned month store in background
+      saveOrdersToPartitions(rows).catch((err) => {
+        console.warn('[PartitionStore] Background partition save failed:', err);
+      });
+    } else {
+      updatedReturns = upsertGenericRows(rawReturns, rows);
+      upsertDetails = ` (${rows.length} updated)`;
+    }
+
     const updatedDelivery = cloudApiDataset?.pathaoDelivery || rawPathaoDelivery;
     const updatedPartials = cloudApiDataset?.partials || rawPartials;
     const updatedExchanges = cloudApiDataset?.exchanges || rawExchanges;
-    const sourceLabel = `☁️ Live Cloud (${type === 'orders' ? `${rows.length} WooCommerce orders` : `${rows.length} Pathao returns`})`;
+    const sourceLabel = `☁️ Live Cloud (${updatedOrders.length.toLocaleString()} orders total)`;
 
     const snapshot: DatasetSnapshot = {
       orders: updatedOrders,
@@ -1051,12 +1106,12 @@ export default function DashboardPage() {
     setDataSourceName(sourceLabel);
     const filtered = filterOrdersByDateScope(updatedOrders, activeDateScope, activeCustomRange);
     computeReconciliation(filtered.filteredOrders, updatedReturns, updatedPartials, excludeAugust, excludePOS, updatedExchanges, updatedDelivery);
-    setStatusMessage(`Live Cloud API Active: reconciled ${filtered.matchedOrders.toLocaleString()} orders (${filtered.label}) with ${rows.length} ${type === 'orders' ? 'WooCommerce items' : 'Pathao records'}.`);
+    setStatusMessage(`Live Cloud API Active: reconciled ${filtered.matchedOrders.toLocaleString()} orders (${filtered.label}) from master pool of ${updatedOrders.length.toLocaleString()}${upsertDetails}.`);
 
     dispatchSyncNotification({
       type: type === 'orders' ? 'orders_synced' : 'courier_updated',
       title: type === 'orders' ? 'WooCommerce Orders Synced' : 'Pathao Courier Synced',
-      description: `Reconciled ${filtered.matchedOrders.toLocaleString()} orders with ${rows.length} ${type === 'orders' ? 'WooCommerce items' : 'Pathao records'} (${filtered.label}).`,
+      description: `Reconciled ${filtered.matchedOrders.toLocaleString()} orders (${filtered.label}) from master pool of ${updatedOrders.length.toLocaleString()}${upsertDetails}.`,
       targetTab: type === 'orders' ? 'tabOrders' : 'tabCourierMismatch'
     });
   }, [cloudApiDataset, rawOrders, rawReturns, rawPathaoDelivery, rawPartials, rawExchanges, dateScope, customDateRange, computeReconciliation, excludeAugust, excludePOS]);

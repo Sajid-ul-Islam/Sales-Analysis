@@ -179,10 +179,12 @@ D:\Repo\DEEN Sales Analysis\
   4. Backtrack to reconstruct the delivered item set $S_{delivered}$ and returned set $S_{returned} = S_{all} \setminus S_{delivered}$.
   5. Enforce integer constraint: Quantity per line item must be $\in \mathbb{Z}^+$.
 
-### 4.2 Multi-Layer Cache Hierarchy
-1. **L1 In-Memory State**: React state (`useState`, `useMemo`) for instant UI re-renders and sub-millisecond filtering.
+### 4.2 Multi-Layer Cache & Partitioned Month Store
+1. **L1 In-Memory State**: React state (`useState`, `useMemo`) and in-browser AlaSQL database tables for instant UI re-renders and sub-5ms filter-wise slicing across 15,000+ rows.
 2. **L2 Local Storage**: Key-value settings (`settingsStore.ts`), theme overrides (`themeManager.ts`), and operator session tokens.
-3. **L3 IndexedDB Persistent Blob**: Compressed offline copy of historical order ledgers and Pathao delivery statuses to allow full dashboard functionality during network outages.
+3. **L3 Partitioned Month Store (IndexedDB)**: `deen_partition_orders_YYYY_MM` partitioned monthly lakehouse. Historical closed months (e.g. September, October) enjoy an adaptive 30-day/indefinite TTL, enabling instant 0ms restoration without making any external API requests.
+4. **Non-Destructive Upsert Merger (`src/lib/sync/partitionStore.ts`)**: When on-demand date ranges or live webhooks arrive, orders are merged by primary key (`orderId`), preserving historical months and updating statuses in place without duplicating records.
+5. **Full Specification Reference**: See [docs/DATA_SYNC_AND_PARTITIONING.md](file:///d:/Repo/DEEN%20Sales%20Analysis/docs/DATA_SYNC_AND_PARTITIONING.md).
 
 ### 4.3 Native Super White & Dynamic CSS Architecture
 - The application defaults to **Native Super White** (`#FFFFFF`) to mimic native macOS/Windows desktop enterprise applications.

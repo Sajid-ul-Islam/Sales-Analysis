@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Cloud,
   CheckCircle2,
@@ -31,6 +31,13 @@ import {
   getSyncCacheStats,
   isHistoricalDateRange
 } from '@/lib/apiCache';
+import {
+  getPartitionStoreStats,
+  loadPartitionsForDateRange,
+  saveOrdersToPartitions,
+  clearAllPartitions,
+  PartitionMetadata
+} from '@/lib/sync/partitionStore';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 
 interface ApiSyncStatus {
@@ -75,6 +82,20 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
   const [forceLiveSync, setForceLiveSync] = useState(false);
   const [cacheStats, setCacheStats] = useState(() => getSyncCacheStats());
   const [_lastSyncFromCache, setLastSyncFromCache] = useState<{ wc?: boolean; pathao?: boolean; age?: string } | null>(null);
+  const [partitionStats, setPartitionStats] = useState<{
+    totalPartitions: number;
+    totalOrders: number;
+    totalRows: number;
+    totalEstimatedBytes: number;
+    partitions: PartitionMetadata[];
+  } | null>(null);
+
+  const refreshPartitionStats = useCallback(async () => {
+    try {
+      const stats = await getPartitionStoreStats();
+      setPartitionStats(stats);
+    } catch {}
+  }, []);
 
   // Vercel Blob & Storage State (Method 1, 2, 3)
   const [blobStatus, setBlobStatus] = useState<{ configured: boolean; latestBlob?: { pathname?: string; uploadedAt?: string; size?: number; [key: string]: unknown } } | null>(null);
@@ -166,7 +187,8 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
     checkStatus();
     checkBlobStatus();
     setCacheStats(getSyncCacheStats());
-  }, [checkStatus, checkBlobStatus]);
+    refreshPartitionStats();
+  }, [checkStatus, checkBlobStatus, refreshPartitionStats]);
 
   // Quick Preset Handlers
   const handleApplyPreset = (preset: string) => {
@@ -199,7 +221,9 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
   const handleClearApiCaches = () => {
     const cleared = clearAllSyncCaches();
     setCacheStats(getSyncCacheStats());
-    setMessage(`Cleared ${cleared} API sync cache snapshots. Subsequent requests will query live endpoints.`);
+    clearAllPartitions().catch(() => {});
+    refreshPartitionStats();
+    setMessage(`Cleared ${cleared} API sync cache snapshots & reset local monthly partitions.`);
   };
 
   // Method 1: Client Download JSON Snapshot
@@ -344,6 +368,20 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
         setCacheStats(getSyncCacheStats());
         return;
       }
+
+      // Check partitioned month store in IndexedDB
+      try {
+        const partitionRes = await loadPartitionsForDateRange(startDate, endDate);
+        if (partitionRes.allMonthsCovered && partitionRes.rows.length > 0) {
+          onDataSynced('orders', partitionRes.rows);
+          setMessage(`⚡ Instant 0ms Load: Retrieved ${partitionRes.rows.length.toLocaleString()} orders from local month partition (${partitionRes.matchedMonths.join(', ')}). Zero external API calls.`);
+          setLastSyncFromCache(prev => ({ ...prev, wc: true, age: 'local partition' }));
+          setCacheStats(getSyncCacheStats());
+          return;
+        }
+      } catch (err) {
+        console.warn('[PartitionStore] Failed to probe partition store:', err);
+      }
     }
 
     setSyncingWc(true);
@@ -369,11 +407,13 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
           ordersCount: data.ordersCount || data.orders.length,
           lineItemsCount: data.lineItemsCount,
         });
+        saveOrdersToPartitions(data.orders).catch(() => {});
+        refreshPartitionStats();
         if (data.provenance) {
           setCurrentProvenance(data.provenance);
         }
         onDataSynced('orders', data.orders, data.provenance);
-        setMessage(`Success: Synced ${data.ordersCount} orders (${data.lineItemsCount} items) from live WooCommerce API & stored in local cache.`);
+        setMessage(`Success: Synced ${data.ordersCount} orders (${data.lineItemsCount} items) from live WooCommerce API & stored in local partition store.`);
         setLastSyncFromCache(prev => ({ ...prev, wc: false }));
         setCacheStats(getSyncCacheStats());
       } else {
@@ -403,6 +443,14 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
       if (wcCache?.hit && wcCache.data && wcCache.data.length > 0) {
         wcData = wcCache.data;
         wcMsg = `WooCommerce: ⚡ ${wcCache.ordersCount} orders (cached ${wcCache.ageFormatted})`;
+      } else if (!forceLiveSync) {
+        try {
+          const partitionRes = await loadPartitionsForDateRange(startDate, endDate);
+          if (partitionRes.allMonthsCovered && partitionRes.rows.length > 0) {
+            wcData = partitionRes.rows;
+            wcMsg = `WooCommerce: ⚡ ${partitionRes.rows.length.toLocaleString()} orders (cached partition ${partitionRes.matchedMonths.join(', ')})`;
+          }
+        } catch {}
       }
 
       // Check Pathao Cache
@@ -451,6 +499,8 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
             ordersCount: wcRes.ordersCount || wcRes.orders.length,
             lineItemsCount: wcRes.lineItemsCount,
           });
+          saveOrdersToPartitions(wcRes.orders).catch(() => {});
+          refreshPartitionStats();
           wcMsg = `WooCommerce: 🌐 ${wcRes.ordersCount} orders (Live API)`;
         } else {
           wcMsg = `WooCommerce: ${wcRes.message || 'No orders found'}`;
@@ -672,6 +722,16 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
                     • ~{cacheStats.savedApiCallsEstimate} calls saved
                   </span>
                 </span>
+
+                {partitionStats && partitionStats.totalPartitions > 0 && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-800 shadow-2xs">
+                    <Database className="w-3 h-3 text-indigo-500" />
+                    <span>Partitions:</span>
+                    <span className="text-indigo-600 dark:text-indigo-400 font-mono font-bold">
+                      {partitionStats.partitions.map(p => p.shortLabel || p.monthKey).join(', ')} ({partitionStats.totalOrders.toLocaleString()} orders)
+                    </span>
+                  </span>
+                )}
 
                 {currentProvenance && (
                   <span
