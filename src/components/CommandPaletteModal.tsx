@@ -25,7 +25,9 @@ import {
   Clock,
   PanelLeftClose,
   Boxes,
-  GitCompareArrows
+  GitCompareArrows,
+  Calendar,
+  Filter
 } from 'lucide-react';
 import { ReconciliationResult } from '@/lib/reconciliationEngine';
 import { RawOrderRow } from '@/types';
@@ -48,11 +50,14 @@ export interface CommandPaletteModalProps {
   onExportMonthlyNetSales?: () => void;
   onInspectOrder?: (order: RawOrderRow) => void;
   onToggleSidebar?: () => void;
+  onSetDateScope?: (scope: any, customRange?: any) => void;
+  onSetStatusFilter?: (status: string) => void;
+  onSetBranchFilter?: (branch: string) => void;
 }
 
 interface PaletteItem {
   id: string;
-  category: 'AI Assistant' | 'Actions' | 'Tabs' | 'Orders' | 'Customers' | 'SKUs';
+  category: 'Filters' | 'AI Assistant' | 'Actions' | 'Tabs' | 'Orders' | 'Customers' | 'SKUs';
   title: string;
   subtitle?: string;
   badge?: string;
@@ -95,10 +100,13 @@ export function CommandPaletteModal({
   onExportExcel,
   onExportMonthlyNetSales,
   onInspectOrder,
-  onToggleSidebar
+  onToggleSidebar,
+  onSetDateScope,
+  onSetStatusFilter,
+  onSetBranchFilter,
 }: CommandPaletteModalProps) {
   const [query, setQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState<'All' | 'AI Assistant' | 'Actions' | 'Tabs' | 'Orders' | 'Customers' | 'SKUs'>('All');
+  const [activeCategory, setActiveCategory] = useState<'All' | 'Filters' | 'AI Assistant' | 'Actions' | 'Tabs' | 'Orders' | 'Customers' | 'SKUs'>('All');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -198,7 +206,219 @@ export function CommandPaletteModal({
       });
     });
 
-    // 2. Actions
+    // 2. Filters & Scopes (Fast Keyboard-Driven Filtering)
+    if (onSetDateScope) {
+      items.push({
+        id: 'filter-scope-today',
+        category: 'Filters',
+        title: 'Filter Date Scope: Today',
+        subtitle: 'Switch application date scope to current day live transactions',
+        badge: 'Today',
+        badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300',
+        icon: <Calendar className="w-4 h-4 text-emerald-500" />,
+        action: () => {
+          onClose();
+          onSetDateScope('today');
+        }
+      });
+
+      items.push({
+        id: 'filter-scope-7d',
+        category: 'Filters',
+        title: 'Filter Date Scope: Last 7 Days (7D)',
+        subtitle: 'Switch scope to rolling 7-day operational baseline',
+        badge: '7 Days',
+        badgeColor: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300',
+        icon: <Clock className="w-4 h-4 text-sky-500" />,
+        action: () => {
+          onClose();
+          onSetDateScope('7d');
+        }
+      });
+
+      items.push({
+        id: 'filter-scope-30d',
+        category: 'Filters',
+        title: 'Filter Date Scope: Last 30 Days (30D)',
+        subtitle: 'Switch scope to monthly performance window',
+        badge: '30 Days',
+        badgeColor: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300',
+        icon: <Calendar className="w-4 h-4 text-blue-500" />,
+        action: () => {
+          onClose();
+          onSetDateScope('30d');
+        }
+      });
+
+      items.push({
+        id: 'filter-scope-october',
+        category: 'Filters',
+        title: 'Filter Date Scope: October 2026',
+        subtitle: 'Audit closed October monthly ledger (5-channel reconciled)',
+        badge: 'Oct 2026',
+        badgeColor: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300',
+        icon: <Calendar className="w-4 h-4 text-purple-500" />,
+        action: () => {
+          onClose();
+          onSetDateScope('month-2026-10');
+        }
+      });
+
+      items.push({
+        id: 'filter-scope-all',
+        category: 'Filters',
+        title: 'Filter Date Scope: All History',
+        subtitle: 'Display all available synchronized records without date boundary',
+        badge: 'All Time',
+        badgeColor: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300',
+        icon: <Layers className="w-4 h-4 text-slate-500" />,
+        action: () => {
+          onClose();
+          onSetDateScope('all');
+        }
+      });
+    }
+
+    if (onSetStatusFilter) {
+      items.push({
+        id: 'filter-status-delivered',
+        category: 'Filters',
+        title: 'Filter Status: Delivered Orders',
+        subtitle: 'Jump to Orders Ledger filtered to fully delivered parcels',
+        badge: 'Delivered',
+        badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300',
+        icon: <Filter className="w-4 h-4 text-emerald-500" />,
+        action: () => {
+          onClose();
+          onSetStatusFilter('DELIVERED');
+          onSelectTab('tabOrders');
+        }
+      });
+
+      items.push({
+        id: 'filter-status-partial',
+        category: 'Filters',
+        title: 'Filter Status: Partial Returns',
+        subtitle: 'Jump to Orders Ledger filtered to partial acceptances (knapsack solved)',
+        badge: 'Partial',
+        badgeColor: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300',
+        icon: <Filter className="w-4 h-4 text-amber-500" />,
+        action: () => {
+          onClose();
+          onSetStatusFilter('PARTIAL');
+          onSelectTab('tabOrders');
+        }
+      });
+
+      items.push({
+        id: 'filter-status-returns',
+        category: 'Filters',
+        title: 'Filter Status: Full Returns',
+        subtitle: 'Jump to Orders Ledger filtered to non-delivered returned parcels',
+        badge: 'Returns',
+        badgeColor: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300',
+        icon: <RotateCcw className="w-4 h-4 text-rose-500" />,
+        action: () => {
+          onClose();
+          onSetStatusFilter('FULL_RETURN');
+          onSelectTab('tabOrders');
+        }
+      });
+
+      items.push({
+        id: 'filter-status-exchanges',
+        category: 'Filters',
+        title: 'Filter Status: Exchanges (D- / DD-)',
+        subtitle: 'Jump to Orders Ledger filtered to post-sale customer replacements',
+        badge: 'Exchanges',
+        badgeColor: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300',
+        icon: <Filter className="w-4 h-4 text-violet-500" />,
+        action: () => {
+          onClose();
+          onSetStatusFilter('EXCHANGE');
+          onSelectTab('tabOrders');
+        }
+      });
+    }
+
+    if (onSetBranchFilter) {
+      items.push({
+        id: 'filter-branch-mirpur',
+        category: 'Filters',
+        title: 'Filter Channel: Mirpur Outlet (POS 2)',
+        subtitle: 'Focus analytics on Mirpur physical retail outlet (Cashier 3, suffix m)',
+        badge: 'Mirpur (m)',
+        badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300',
+        icon: <Store className="w-4 h-4 text-emerald-500" />,
+        action: () => {
+          onClose();
+          onSetBranchFilter('Mirpur Outlet POS');
+          onSelectTab('tabChannelComparison', 'mirpur');
+        }
+      });
+
+      items.push({
+        id: 'filter-branch-cumilla',
+        category: 'Filters',
+        title: 'Filter Channel: Cumilla Branch (POS 7)',
+        subtitle: 'Focus analytics on Cumilla retail branch (Cashier 35, suffix c)',
+        badge: 'Cumilla (c)',
+        badgeColor: 'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300',
+        icon: <Store className="w-4 h-4 text-cyan-500" />,
+        action: () => {
+          onClose();
+          onSetBranchFilter('Cumilla Branch');
+          onSelectTab('tabChannelComparison', 'cumilla');
+        }
+      });
+
+      items.push({
+        id: 'filter-branch-wari',
+        category: 'Filters',
+        title: 'Filter Channel: Wari Branch (POS 8)',
+        subtitle: 'Focus analytics on Wari retail branch (Cashier 69, suffix w)',
+        badge: 'Wari (w)',
+        badgeColor: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300',
+        icon: <Store className="w-4 h-4 text-violet-500" />,
+        action: () => {
+          onClose();
+          onSetBranchFilter('Wari Branch');
+          onSelectTab('tabChannelComparison', 'wari');
+        }
+      });
+
+      items.push({
+        id: 'filter-branch-sylhet',
+        category: 'Filters',
+        title: 'Filter Channel: Sylhet Branch (POS 9)',
+        subtitle: 'Focus analytics on Sylhet retail branch (Cashier 572, suffix s)',
+        badge: 'Sylhet (s)',
+        badgeColor: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300',
+        icon: <Store className="w-4 h-4 text-amber-500" />,
+        action: () => {
+          onClose();
+          onSetBranchFilter('Sylhet Branch');
+          onSelectTab('tabChannelComparison', 'sylhet');
+        }
+      });
+
+      items.push({
+        id: 'filter-branch-ecom',
+        category: 'Filters',
+        title: 'Filter Channel: Central Online Store',
+        subtitle: 'Focus analytics on e-commerce central warehouse dispatches (Hermes)',
+        badge: 'Ecom',
+        badgeColor: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300',
+        icon: <Truck className="w-4 h-4 text-sky-500" />,
+        action: () => {
+          onClose();
+          onSetBranchFilter('Online Store (Central Warehouse)');
+          onSelectTab('tabChannelComparison', 'ecom');
+        }
+      });
+    }
+
+    // 3. Actions
 
     items.push({
       id: 'action-sync',
@@ -380,7 +600,7 @@ export function CommandPaletteModal({
     }
 
     return items;
-  }, [reconciliationResult, liveOrders, onClose, onSelectTab, onToggleCopilot, onTriggerSync, onExportExcel, onToggleTheme, onInspectOrder, onToggleSidebar, onExportMonthlyNetSales]);
+  }, [reconciliationResult, liveOrders, onClose, onSelectTab, onToggleCopilot, onTriggerSync, onExportExcel, onToggleTheme, onInspectOrder, onToggleSidebar, onExportMonthlyNetSales, onSetDateScope, onSetStatusFilter, onSetBranchFilter]);
 
   // Filter items by search query and category
   const filteredItems = useMemo(() => {
@@ -500,7 +720,7 @@ export function CommandPaletteModal({
 
         {/* Filter Category Pills */}
         <div className="px-3 sm:px-4 py-2 bg-white dark:bg-deepBlack-card border-b border-slate-100 dark:border-deepBlack-border flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
-          {(['All', 'AI Assistant', 'Actions', 'Tabs', 'Orders', 'Customers', 'SKUs'] as const).map((cat) => (
+          {(['All', 'Filters', 'AI Assistant', 'Actions', 'Tabs', 'Orders', 'Customers', 'SKUs'] as const).map((cat) => (
             <button
               key={cat}
               type="button"
@@ -511,7 +731,7 @@ export function CommandPaletteModal({
                   : 'bg-slate-100 dark:bg-deepBlack-hover text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-deepBlack-border'
               }`}
             >
-              {cat === 'AI Assistant' ? '✨ AI Assistant' : cat}
+              {cat === 'AI Assistant' ? '✨ AI Assistant' : cat === 'Filters' ? '⚡ Filters' : cat}
             </button>
           ))}
           <span className="ml-auto text-[11px] text-slate-400 dark:text-slate-500 shrink-0 hidden sm:inline">

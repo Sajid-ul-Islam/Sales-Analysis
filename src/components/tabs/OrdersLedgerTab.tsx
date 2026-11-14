@@ -5,7 +5,7 @@ import { ReconciledOrderRow } from '@/types';
 import { Search, ChevronLeft, ChevronRight, Eye, Copy, Check, Download, FileSpreadsheet } from 'lucide-react';
 import { OrderDetailModal } from '@/components/OrderDetailModal';
 import { getManualOverrides, ManualOverride } from '@/lib/overrideStore';
-import { FulfillmentBadge, StatusBadge, SuffixHygieneBadge, NoSearchResults } from '@/components/common';
+import { FulfillmentBadge, StatusBadge, SuffixHygieneBadge, NoSearchResults, FilterChipBar, FilterChipItem } from '@/components/common';
 import {
   compareOrdersByNumber,
   getExportCustomerName,
@@ -57,6 +57,40 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
       if (o.aiAuditTag) tagSet.add(o.aiAuditTag);
     });
     return Array.from(tagSet);
+  }, [orders]);
+
+  const statusFilterChips: FilterChipItem[] = useMemo(() => {
+    let deliveredCount = 0;
+    let partialCount = 0;
+    let fullReturnCount = 0;
+    let paidReturnCount = 0;
+    let exchangeCount = 0;
+
+    for (const o of orders) {
+      if (o.orderCategory === 'DELIVERED') {
+        deliveredCount++;
+      } else if (o.orderCategory === 'PARTIAL') {
+        partialCount++;
+      } else if (o.orderCategory === 'FULL_RETURN') {
+        fullReturnCount++;
+        if (o.isPaidReturn) {
+          paidReturnCount++;
+        }
+      }
+
+      if (o.isExchange || o.orderCategory === 'EXCHANGE' || o.orderId.startsWith('D-') || o.orderId.startsWith('DD-')) {
+        exchangeCount++;
+      }
+    }
+
+    return [
+      { id: 'ALL', label: 'All Orders', count: orders.length },
+      { id: 'DELIVERED', label: 'Delivered', count: deliveredCount },
+      { id: 'PARTIAL', label: 'Partial', count: partialCount },
+      { id: 'FULL_RETURN', label: 'Full Returns', count: fullReturnCount },
+      { id: 'PAID_RETURN', label: 'Paid Returns', count: paidReturnCount },
+      { id: 'EXCHANGE', label: 'Exchanges', count: exchangeCount },
+    ];
   }, [orders]);
 
   const hasActiveFilter =
@@ -264,6 +298,27 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
           )}
         </div>
       )}
+
+      {/* Quick Status Filter Chips (Static Priority-Ranked Ergonomic Bar) */}
+      <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-3 sm:p-3.5 border border-slate-200/90 dark:border-deepBlack-border shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide shrink-0">
+            Quick Status:
+          </span>
+          <div className="flex-1 min-w-0">
+            <FilterChipBar
+              items={statusFilterChips}
+              selectedId={statusFilter}
+              onSelect={(id) => {
+                setStatusFilter(id);
+                setCurrentPage(1);
+              }}
+              ariaLabel="Filter orders ledger by delivery status"
+              size="sm"
+            />
+          </div>
+        </div>
+      </div>
 
       {/* Search and Filters Bar */}
       <div className="bg-white dark:bg-deepBlack-card rounded-2xl p-4 border border-slate-200 dark:border-deepBlack-border shadow-sm flex flex-col xl:flex-row gap-3 items-stretch xl:items-center justify-between min-w-0">

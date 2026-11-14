@@ -25,6 +25,7 @@ import {
   PieChart
 } from 'lucide-react';
 import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
+import { FilterChipBar, FilterChipItem } from '@/components/common';
 import {
   ChannelComparisonBarChart,
   ChannelContributionDonutChart,
@@ -724,6 +725,22 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
     { id: 'efficiency', label: 'Channel Efficiency', icon: Zap },
   ];
 
+  const channelFilterChips: FilterChipItem[] = useMemo(() => {
+    return [
+      {
+        id: 'ALL',
+        label: 'All Channels',
+        count: grandTotals.units,
+      },
+      ...CHANNELS.map((ch) => ({
+        id: ch.key,
+        label: ch.shortLabel,
+        count: channelMetrics[ch.key]?.units,
+        icon: ch.icon,
+      })),
+    ];
+  }, [channelMetrics, grandTotals.units]);
+
   const handleExportDynamicChannelPerformance = () => {
     import('xlsx').then((XLSX) => {
       const wb = XLSX.utils.book_new();
@@ -851,33 +868,27 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
           </div>
         )}
 
-        {/* Channel quick toggles */}
-        <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-deepBlack-border">
-          <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide mr-1">
+        {/* Channel quick toggles (Ergonomic FilterChipBar) */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-deepBlack-border">
+          <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide shrink-0">
             Focus Channel:
           </span>
-          {CHANNELS.map((ch) => (
-            <button
-              key={ch.key}
-              type="button"
-              onClick={() => setHighlightChannel((prev) => (prev === ch.key ? null : ch.key))}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                highlightChannel === null || highlightChannel === ch.key
-                  ? ch.badgeClass
-                  : 'bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-900 dark:text-slate-600 dark:border-slate-800 opacity-40'
-              }`}
-            >
-              <ch.icon className="w-3 h-3" />
-              <span>{ch.shortLabel}</span>
-            </button>
-          ))}
+          <div className="flex-1 min-w-0">
+            <FilterChipBar
+              items={channelFilterChips}
+              selectedId={highlightChannel || 'ALL'}
+              onSelect={(id) => setHighlightChannel(id === 'ALL' ? null : id)}
+              ariaLabel="Select retail channel focus"
+              size="sm"
+            />
+          </div>
           {highlightChannel && (
             <button
               type="button"
               onClick={() => setHighlightChannel(null)}
-              className="text-xs text-primary font-semibold hover:underline ml-1 cursor-pointer"
+              className="text-xs text-primary font-semibold hover:underline shrink-0 cursor-pointer self-start sm:self-auto"
             >
-              Show All Channels
+              Reset Channel
             </button>
           )}
         </div>

@@ -18,3 +18,5 @@ export { SuffixHygieneBadge } from './SuffixHygieneBadge';
 export { MonthEndCloseCard } from './MonthEndCloseCard';
 export { MonthlyStatementsHub } from './MonthlyStatementsHub';
 export type { MonthlyStatementsHubProps } from './MonthlyStatementsHub';
+export { FilterChipBar } from './FilterChipBar';
+export type { FilterChipItem, FilterChipBarProps } from './FilterChipBar';

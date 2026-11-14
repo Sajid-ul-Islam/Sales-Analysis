@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { SkuAnalytics, ReconciledOrderRow } from '@/types';
 import { getItemCogsInfo } from '@/lib/woocommerceClient';
 import { SkuHistoryModal } from '@/components/SkuHistoryModal';
+import { FilterChipBar, FilterChipItem } from '@/components/common';
 import {
   Search,
   Download,
@@ -42,6 +43,25 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
     });
     return Array.from(set).sort();
   }, [skuList]);
+
+  const categoryChipItems: FilterChipItem[] = useMemo(() => {
+    const list: FilterChipItem[] = [
+      {
+        id: 'ALL',
+        label: 'All Categories',
+        count: skuList.length,
+      },
+    ];
+    categories.forEach((cat) => {
+      const count = skuList.filter((s) => s.category === cat).length;
+      list.push({
+        id: cat,
+        label: cat,
+        count,
+      });
+    });
+    return list;
+  }, [categories, skuList]);
 
   const filteredSkus = useMemo(() => {
     return skuList
@@ -382,35 +402,16 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
 
       {/* Category Pills & Filters Bar */}
       <div className="bg-white dark:bg-deepBlack-card rounded-xl border border-slate-200/80 dark:border-deepBlack-border p-4 shadow-xs flex flex-col gap-3">
-        {/* Category Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-          <button
-            onClick={() => { setSelectedCategory('ALL'); setCurrentPage(1); }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shrink-0 ${
-              selectedCategory === 'ALL'
-                ? 'bg-primary text-white shadow-2xs'
-                : 'bg-slate-100 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-deepBlack-hover'
-            }`}
-          >
-            All Categories ({skuList.length})
-          </button>
-          {categories.map((cat) => {
-            const count = skuList.filter(s => s.category === cat).length;
-            return (
-              <button
-                key={cat}
-                onClick={() => { setSelectedCategory(cat); setCurrentPage(1); }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shrink-0 ${
-                  selectedCategory === cat
-                    ? 'bg-primary text-white shadow-2xs'
-                    : 'bg-slate-100 dark:bg-deepBlack-sidebar text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-deepBlack-hover'
-                }`}
-              >
-                {cat} ({count})
-              </button>
-            );
-          })}
-        </div>
+        {/* Category Filter Chips (Ergonomic Static Drag / Scroll with Fade Masks) */}
+        <FilterChipBar
+          items={categoryChipItems}
+          selectedId={selectedCategory}
+          onSelect={(id) => {
+            setSelectedCategory(id);
+            setCurrentPage(1);
+          }}
+          ariaLabel="Filter SKUs by apparel category"
+        />
 
         {/* Search, Filter & Sort Controls */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-deepBlack-border">

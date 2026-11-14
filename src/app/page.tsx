@@ -1968,7 +1968,7 @@ export default function DashboardPage() {
           onSelectTab={(tabId, filter) => {
             handleSelectTab(tabId);
             if (filter && tabId === 'tabOrders') {
-              setLedgerStatusFilter('ALL');
+              setLedgerStatusFilter(filter);
             }
           }}
           reconciliationResult={result}
@@ -1979,6 +1979,14 @@ export default function DashboardPage() {
           onExportExcel={handleExport}
           onExportMonthlyNetSales={handleExportMonthlyNetSales}
           onToggleSidebar={handleToggleSidebarCollapse}
+          onSetDateScope={(scope, range) => handleDateScopeChange(scope, range)}
+          onSetStatusFilter={(status) => {
+            setLedgerStatusFilter(status);
+            handleSelectTab('tabOrders');
+          }}
+          onSetBranchFilter={(_branch) => {
+            handleSelectTab('tabChannelComparison');
+          }}
         />
 
         {/* Real-Time Sync & Logistics Notification Center & Event Drawer */}
