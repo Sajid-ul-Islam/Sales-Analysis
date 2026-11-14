@@ -5,7 +5,7 @@
  * by customer phone number across Pathao Courier network and DEEN historical fulfillment records.
  */
 
-import baselineData from '@/data/baselineSample.json';
+import { getBaselineDataset } from './baselineLoader';
 import { getSecretsWithOverrides } from './secrets';
 import { getPathaoToken, PathaoCredentials } from './pathaoClient';
 import { RawOrderRow } from '@/types';
@@ -57,7 +57,7 @@ export function getStoreHistoryIndex(): Map<string, PhoneStats> {
   };
 
   try {
-    const b = baselineData as Record<string, unknown>;
+    const b = getBaselineDataset() as unknown as Record<string, unknown>;
     const pathaoList = (b?.pathaoDelivery as Record<string, unknown>[]) || [];
     for (const row of pathaoList) {
       addRecord(row['Recipient phone'] || row.recipient_phone, row['Order status'] || row.order_status);

@@ -7,7 +7,7 @@ import { validateApiRequest } from '@/lib/auth/apiAuth';
 import { checkRateLimit } from '@/lib/auth/rateLimiter';
 import { sanitizeOrdersResponse } from '@/lib/auth/dataMasking';
 import { createDataProvenance } from '@/lib/dataAudit';
-import baselineData from '@/data/baselineSample.json';
+import { getBaselineDataset } from '@/lib/baselineLoader';
 import { RawOrderRow } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -64,8 +64,8 @@ export async function POST(req: Request) {
     }
 
     // 2. Fallback to bundled baseline dataset tracking IDs (guaranteed to work on Vercel)
-    if (consignmentIds.length === 0 && baselineData) {
-      const b = baselineData as Record<string, unknown>;
+    if (consignmentIds.length === 0) {
+      const b = getBaselineDataset() as unknown as Record<string, unknown>;
       const combined = [...((b.pathaoDelivery as RawOrderRow[]) || []), ...((b.returns as RawOrderRow[]) || [])];
       for (const r of combined) {
         const cid = r['Consignment ID'] || r.consignmentId || r.consignment_id || r['Tracking ID'];

@@ -3,7 +3,7 @@ import { fetchDatasetFromBlob, uploadDatasetToBlob, isBlobConfigured } from '@/l
 import { batchFetchPathaoOrders, formatPathaoToReturnRows } from '@/lib/pathaoClient';
 import { fetchWooCommerceOrders, formatWooCommerceToOrderRows } from '@/lib/woocommerceClient';
 import { validateApiRequest } from '@/lib/auth/apiAuth';
-import baselineData from '@/data/baselineSample.json';
+import { getBaselineDataset } from '@/lib/baselineLoader';
 import { DatasetSnapshot, RawOrderRow } from '@/types';
 import { getDhakaDaysAgoIso, getDhakaTodayIso } from '@/lib/timezone';
 
@@ -48,7 +48,7 @@ export async function GET(req: Request) {
     }
 
     if (!baseDataset.orders || baseDataset.orders.length === 0) {
-      const b = (baselineData || {}) as Record<string, unknown>;
+      const b = (getBaselineDataset() || {}) as Record<string, unknown>;
       baseDataset = {
         orders: (b.orders as RawOrderRow[]) || [],
         pathaoDelivery: (b.pathaoDelivery as RawOrderRow[]) || [],

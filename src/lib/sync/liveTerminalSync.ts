@@ -6,7 +6,7 @@ import { createDataProvenance, DataProvenanceInfo } from '@/lib/dataAudit';
 import { buildTimelineIndex, extractCustomerBilling, classifyCustomer } from '@/lib/customerRegistry';
 import { fetchDatasetFromBlob, isBlobConfigured } from '@/lib/blobStorage';
 import { getLiveWebhookUpdates, PathaoWebhookRecord } from '@/lib/pathaoWebhookEngine';
-import baselineData from '@/data/baselineSample.json';
+import { getBaselineDataset } from '@/lib/baselineLoader';
 
 export {
   type StandardCourierStatus,
@@ -318,8 +318,11 @@ export async function syncLiveTerminalData(options: {
       }
     }
 
-    if (rawOrders.length === 0 && baselineData && Array.isArray((baselineData as { orders?: RawOrderRow[] }).orders)) {
-      rawOrders = (baselineData as { orders: RawOrderRow[] }).orders;
+    if (rawOrders.length === 0) {
+      const baselineData = getBaselineDataset();
+      if (baselineData && Array.isArray((baselineData as { orders?: RawOrderRow[] }).orders)) {
+        rawOrders = (baselineData as { orders: RawOrderRow[] }).orders;
+      }
     }
   }
 
@@ -429,10 +432,11 @@ export async function syncLiveTerminalData(options: {
   }
 
   // Fallback: Populate courier data from Vercel Blob or bundled baseline data (pathaoDelivery) if unmapped
+  const baselineFallback = getBaselineDataset();
   const fallbackDelivery = (blobDataset?.pathaoDelivery && blobDataset.pathaoDelivery.length > 0)
     ? (blobDataset.pathaoDelivery as Record<string, unknown>[])
-    : (baselineData && Array.isArray((baselineData as { pathaoDelivery?: Record<string, unknown>[] }).pathaoDelivery))
-      ? (baselineData as { pathaoDelivery: Record<string, unknown>[] }).pathaoDelivery
+    : (baselineFallback && Array.isArray((baselineFallback as { pathaoDelivery?: Record<string, unknown>[] }).pathaoDelivery))
+      ? (baselineFallback as { pathaoDelivery: Record<string, unknown>[] }).pathaoDelivery
       : [];
 
   if (fallbackDelivery.length > 0) {

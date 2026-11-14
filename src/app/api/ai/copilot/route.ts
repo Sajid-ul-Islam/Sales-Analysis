@@ -15,7 +15,7 @@ import {
   getOrdersTableSchemaDescription,
   SqlQueryResult,
 } from '@/lib/ai/sqlEngine';
-import baselineData from '@/data/baselineSample.json';
+import { getBaselineDataset } from '@/lib/baselineLoader';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
         ? orders
         : (summary && summary.grossOrders === 0)
           ? []
-          : ((baselineData as unknown as { orders?: RawOrderRow[] }).orders || []);
+          : (getBaselineDataset().orders || []);
 
       const sqlResult = executeInMemorySql(directSql, ordersToQuery);
       const tableMarkdown = formatSqlResultToMarkdownTable(sqlResult);
@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
         ? orders
         : (summary && summary.grossOrders === 0)
           ? []
-          : ((baselineData as unknown as { orders?: RawOrderRow[] }).orders || []);
+          : (getBaselineDataset().orders || []);
       if (ordersToQuery.length > 0) {
         executedSqlResult = executeInMemorySql(intentSql, ordersToQuery);
       }

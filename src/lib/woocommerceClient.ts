@@ -187,6 +187,7 @@ export interface WcFetchOptions {
   offset?: number;
   datesAreGmt?: boolean;
   timeoutMs?: number;
+  fields?: string;
 }
 
 /**
@@ -1411,6 +1412,12 @@ export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Prom
     url.searchParams.set('per_page', String(perPage));
     url.searchParams.set('orderby', orderBy);
     url.searchParams.set('order', order);
+
+    const defaultFields = 'id,number,created_via,status,date_created,date_modified,date_modified_gmt,date_completed,date_completed_gmt,customer_note,total,shipping_total,discount_total,payment_method,payment_method_title,billing,shipping,meta_data,line_items,shipping_lines,coupon_lines';
+    const fieldsToRequest = options.fields || defaultFields;
+    if (fieldsToRequest !== 'all') {
+      url.searchParams.set('_fields', fieldsToRequest);
+    }
 
     if (options.status && options.status !== 'any') {
       const statusParam = Array.isArray(options.status)

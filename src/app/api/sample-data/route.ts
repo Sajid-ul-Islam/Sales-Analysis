@@ -5,7 +5,7 @@ import fs from 'fs';
 import { sanitizeOrdersResponse } from '@/lib/auth/dataMasking';
 import { validateApiRequest } from '@/lib/auth/apiAuth';
 import { createDataProvenance } from '@/lib/dataAudit';
-import baselineData from '@/data/baselineSample.json';
+import { getBaselineDataset } from '@/lib/baselineLoader';
 import { fetchDatasetFromBlob, isBlobConfigured } from '@/lib/blobStorage';
 import { DatasetSnapshot, RawOrderRow } from '@/types';
 import { sampleDatasetSnapshot } from '@/lib/orderSampling';
@@ -185,7 +185,7 @@ export async function GET(req: Request) {
     // 3. TIER 3 ZERO-500 FALLBACK: Bundled Static JSON in Repository (Method 1 Production)
     // If individual files are absent on disk (e.g. Vercel serverless environment where Sample Docs is gitignored),
     // fallback directly to the bundled, precompiled baseline dataset to guarantee 100% data availability.
-    const fallback = (baselineData || {}) as {
+    const fallback = (getBaselineDataset() || {}) as {
       orders?: RawOrderRow[];
       returns?: RawOrderRow[];
       partials?: RawOrderRow[];
