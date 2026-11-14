@@ -51,6 +51,7 @@ import {
   saveSingleCampaign,
   deleteStoredCampaign,
   resetCampaignsToDefault,
+  seedExampleCampaignTemplates,
   DEFAULT_SPENDING_THRESHOLDS,
   INITIAL_WINTER_CAMPAIGNS,
 } from '@/lib/campaignStore';
@@ -101,17 +102,29 @@ export function CampaignIntelligenceTab({
   maxDateIso,
 }: CampaignIntelligenceTabProps) {
   const [activeSubView, setActiveSubView] = useState<SubView>(initialSubView || 'overview');
-  const [campaigns, setCampaigns] = useState<Campaign[]>(INITIAL_WINTER_CAMPAIGNS);
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string>('camp-winter-upgrade-flagship');
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Load campaigns from persistent store
+  // Load campaigns from persistent store (starts clean, no mock data)
   useEffect(() => {
-    setCampaigns(getStoredCampaigns());
+    const loaded = getStoredCampaigns();
+    setCampaigns(loaded);
+    if (loaded.length > 0) {
+      setSelectedCampaignId(loaded[0].id);
+    }
   }, []);
 
+  const handleLoadTemplates = () => {
+    const seeded = seedExampleCampaignTemplates();
+    setCampaigns(seeded);
+    if (seeded.length > 0) {
+      setSelectedCampaignId(seeded[0].id);
+    }
+  };
+
   const activeCampaign = useMemo(() => {
-    return campaigns.find((c) => c.id === selectedCampaignId) || campaigns[0] || INITIAL_WINTER_CAMPAIGNS[0];
+    return campaigns.find((c) => c.id === selectedCampaignId) || campaigns[0] || null;
   }, [campaigns, selectedCampaignId]);
 
   // Analytical aggregates
@@ -507,7 +520,30 @@ export function CampaignIntelligenceTab({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {campaigns.map((camp) => {
+            {campaigns.length === 0 ? (
+              <div className="col-span-full p-8 border border-dashed border-deepBlack-border rounded-xl text-center bg-deepBlack-elevated/40">
+                <Target className="w-8 h-8 text-neutral-500 mx-auto mb-2" />
+                <h4 className="text-sm font-bold text-white mb-1">No Active Campaigns</h4>
+                <p className="text-xs text-neutral-400 max-w-md mx-auto mb-4">
+                  Create a custom marketing campaign tailored to your active collections, or load verified seasonal templates to get started.
+                </p>
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    onClick={handleOpenCreateModal}
+                    className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark text-xs font-semibold text-white transition-colors flex items-center gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Create Campaign
+                  </button>
+                  <button
+                    onClick={handleLoadTemplates}
+                    className="px-4 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-xs font-semibold text-neutral-200 border border-neutral-700 transition-colors flex items-center gap-1.5"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-primary" /> Load Seasonal Templates
+                  </button>
+                </div>
+              </div>
+            ) : (
+              campaigns.map((camp) => {
               const isSelected = camp.id === selectedCampaignId;
               const statusColors = {
                 ACTIVE: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
@@ -584,7 +620,7 @@ export function CampaignIntelligenceTab({
                   </div>
                 </div>
               );
-            })}
+            }))}
           </div>
         </div>
       )}
@@ -1258,38 +1294,44 @@ export function CampaignIntelligenceTab({
             </p>
 
             <div className="space-y-4 relative before:absolute before:inset-0 before:left-3.5 before:w-0.5 before:bg-deepBlack-border">
-              {campaigns.map((camp) => (
-                <div key={camp.id} className="relative pl-8 flex items-start gap-4">
-                  <div className="absolute left-2 top-1.5 w-3.5 h-3.5 rounded-full bg-primary border-2 border-deepBlack-card shadow-sm" />
-                  <div className="bg-deepBlack-elevated border border-deepBlack-border rounded-xl p-4 flex-1">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-bold text-white">{camp.name}</h4>
-                        <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-semibold border border-primary/20">
-                          {camp.templateType}
+              {campaigns.length === 0 ? (
+                <div className="p-8 border border-dashed border-deepBlack-border rounded-xl text-center bg-deepBlack-elevated/40">
+                  <p className="text-xs text-neutral-400">No scheduled campaigns on calendar yet.</p>
+                </div>
+              ) : (
+                campaigns.map((camp) => (
+                  <div key={camp.id} className="relative pl-8 flex items-start gap-4">
+                    <div className="absolute left-2 top-1.5 w-3.5 h-3.5 rounded-full bg-primary border-2 border-deepBlack-card shadow-sm" />
+                    <div className="bg-deepBlack-elevated border border-deepBlack-border rounded-xl p-4 flex-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-bold text-white">{camp.name}</h4>
+                          <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-semibold border border-primary/20">
+                            {camp.templateType}
+                          </span>
+                        </div>
+                        <span className="text-xs text-neutral-400 font-medium">
+                          {camp.startDate} — {camp.endDate}
                         </span>
                       </div>
-                      <span className="text-xs text-neutral-400 font-medium">
-                        {camp.startDate} — {camp.endDate}
-                      </span>
-                    </div>
 
-                    <p className="text-xs text-primary font-medium mt-1">{camp.tagline}</p>
-                    <p className="text-xs text-neutral-300 mt-1.5">{camp.notes || camp.targetAudience}</p>
+                      <p className="text-xs text-primary font-medium mt-1">{camp.tagline}</p>
+                      <p className="text-xs text-neutral-300 mt-1.5">{camp.notes || camp.targetAudience}</p>
 
-                    <div className="mt-3 flex items-center gap-4 text-xs text-neutral-400 flex-wrap">
-                      <span>Budget: <strong className="text-white">৳{camp.adBudget.toLocaleString()}</strong></span>
-                      <span>Target Orders: <strong className="text-white">{camp.expectedOrders}</strong></span>
-                      <span>Exp. Revenue: <strong className="text-emerald-400">৳{camp.expectedDeliveredRevenue.toLocaleString()}</strong></span>
-                      {camp.isWeatherTriggered && (
-                        <span className="text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20 text-[11px]">
-                          ❄️ Weather Trigger: {camp.weatherCondition || 'Temp < 14°C'}
-                        </span>
-                      )}
+                      <div className="mt-3 flex items-center gap-4 text-xs text-neutral-400 flex-wrap">
+                        <span>Budget: <strong className="text-white">৳{camp.adBudget.toLocaleString()}</strong></span>
+                        <span>Target Orders: <strong className="text-white">{camp.expectedOrders}</strong></span>
+                        <span>Exp. Revenue: <strong className="text-emerald-400">৳{camp.expectedDeliveredRevenue.toLocaleString()}</strong></span>
+                        {camp.isWeatherTriggered && (
+                          <span className="text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20 text-[11px]">
+                            ❄️ Weather Trigger: {camp.weatherCondition || 'Temp < 14°C'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -1410,64 +1452,70 @@ export function CampaignIntelligenceTab({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {creativeBriefs.map((brief) => (
-              <div key={brief.id} className="bg-deepBlack-card border border-deepBlack-border rounded-xl p-5 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-primary uppercase tracking-wider">{brief.format}</span>
-                    <span className="text-[11px] text-neutral-400 bg-deepBlack-elevated px-2 py-0.5 rounded border border-deepBlack-border">
-                      {brief.cta}
-                    </span>
-                  </div>
-
-                  <h4 className="text-sm font-bold text-white mt-2">{brief.title}</h4>
-
-                  {/* English Copy Section */}
-                  <div className="mt-3.5 bg-deepBlack-elevated p-3 rounded-lg border border-deepBlack-border/70 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-neutral-400 uppercase">English Copy</span>
-                      <button
-                        onClick={() => copyToClipboard(`${brief.headlineEn}\n\n${brief.primaryTextEn}`, `${brief.id}-en`)}
-                        className="text-[10px] text-neutral-400 hover:text-white flex items-center gap-1"
-                      >
-                        {copiedId === `${brief.id}-en` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                        {copiedId === `${brief.id}-en` ? 'Copied' : 'Copy'}
-                      </button>
-                    </div>
-                    <div className="text-xs font-semibold text-white">{brief.headlineEn}</div>
-                    <p className="text-xs text-neutral-300 leading-relaxed">{brief.primaryTextEn}</p>
-                  </div>
-
-                  {/* Bengali Copy Section */}
-                  <div className="mt-2.5 bg-deepBlack-elevated p-3 rounded-lg border border-deepBlack-border/70 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-primary uppercase">বাংলা কপি (Bengali)</span>
-                      <button
-                        onClick={() => copyToClipboard(`${brief.headlineBn}\n\n${brief.primaryTextBn}`, `${brief.id}-bn`)}
-                        className="text-[10px] text-neutral-400 hover:text-white flex items-center gap-1"
-                      >
-                        {copiedId === `${brief.id}-bn` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                        {copiedId === `${brief.id}-bn` ? 'কপি হয়েছে' : 'কপি করুন'}
-                      </button>
-                    </div>
-                    <div className="text-xs font-semibold text-white">{brief.headlineBn}</div>
-                    <p className="text-xs text-neutral-300 leading-relaxed font-sans">{brief.primaryTextBn}</p>
-                  </div>
-
-                  {brief.videoScriptOutline && (
-                    <div className="mt-2.5 bg-deepBlack-card p-3 rounded border border-deepBlack-border/60 text-xs text-neutral-300">
-                      <span className="text-[10px] font-bold text-amber-400 uppercase block mb-1">Video Storyboard / Script Outline</span>
-                      <pre className="text-[11px] font-mono whitespace-pre-wrap text-neutral-300">{brief.videoScriptOutline}</pre>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-deepBlack-border text-xs text-neutral-400 space-y-1">
-                  <div><strong>Concept:</strong> {brief.creativeConcept}</div>
-                  <div><strong>Photography Direction:</strong> {brief.photographySuggestion}</div>
-                </div>
+            {campaigns.length === 0 ? (
+              <div className="col-span-full p-8 border border-dashed border-deepBlack-border rounded-xl text-center bg-deepBlack-elevated/40">
+                <p className="text-xs text-neutral-400">Create or load a campaign to generate localized creative briefs.</p>
               </div>
-            ))}
+            ) : (
+              creativeBriefs.map((brief) => (
+                <div key={brief.id} className="bg-deepBlack-card border border-deepBlack-border rounded-xl p-5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-primary uppercase tracking-wider">{brief.format}</span>
+                      <span className="text-[11px] text-neutral-400 bg-deepBlack-elevated px-2 py-0.5 rounded border border-deepBlack-border">
+                        {brief.cta}
+                      </span>
+                    </div>
+
+                    <h4 className="text-sm font-bold text-white mt-2">{brief.title}</h4>
+
+                    {/* English Copy Section */}
+                    <div className="mt-3.5 bg-deepBlack-elevated p-3 rounded-lg border border-deepBlack-border/70 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-neutral-400 uppercase">English Copy</span>
+                        <button
+                          onClick={() => copyToClipboard(`${brief.headlineEn}\n\n${brief.primaryTextEn}`, `${brief.id}-en`)}
+                          className="text-[10px] text-neutral-400 hover:text-white flex items-center gap-1"
+                        >
+                          {copiedId === `${brief.id}-en` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          {copiedId === `${brief.id}-en` ? 'Copied' : 'Copy'}
+                        </button>
+                      </div>
+                      <div className="text-xs font-semibold text-white">{brief.headlineEn}</div>
+                      <p className="text-xs text-neutral-300 leading-relaxed">{brief.primaryTextEn}</p>
+                    </div>
+
+                    {/* Bengali Copy Section */}
+                    <div className="mt-2.5 bg-deepBlack-elevated p-3 rounded-lg border border-deepBlack-border/70 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-primary uppercase">বাংলা কপি (Bengali)</span>
+                        <button
+                          onClick={() => copyToClipboard(`${brief.headlineBn}\n\n${brief.primaryTextBn}`, `${brief.id}-bn`)}
+                          className="text-[10px] text-neutral-400 hover:text-white flex items-center gap-1"
+                        >
+                          {copiedId === `${brief.id}-bn` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          {copiedId === `${brief.id}-bn` ? 'কপি হয়েছে' : 'কপি করুন'}
+                        </button>
+                      </div>
+                      <div className="text-xs font-semibold text-white">{brief.headlineBn}</div>
+                      <p className="text-xs text-neutral-300 leading-relaxed font-sans">{brief.primaryTextBn}</p>
+                    </div>
+
+                    {brief.videoScriptOutline && (
+                      <div className="mt-2.5 bg-deepBlack-card p-3 rounded border border-deepBlack-border/60 text-xs text-neutral-300">
+                        <span className="text-[10px] font-bold text-amber-400 uppercase block mb-1">Video Storyboard / Script Outline</span>
+                        <pre className="text-[11px] font-mono whitespace-pre-wrap text-neutral-300">{brief.videoScriptOutline}</pre>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-deepBlack-border text-xs text-neutral-400 space-y-1">
+                    <div><strong>Concept:</strong> {brief.creativeConcept}</div>
+                    <div><strong>Photography Direction:</strong> {brief.photographySuggestion}</div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}

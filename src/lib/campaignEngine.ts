@@ -1139,8 +1139,10 @@ export function aggregateCampaignPerformance(
  * Generates structured creative briefs for a campaign in English and Bangla.
  */
 export function generateCreativeBriefsForCampaign(
-  campaign: Campaign
+  campaign?: Campaign | null
 ): CampaignCreativeBrief[] {
+  if (!campaign) return [];
+
   const formats: CampaignCreativeBrief['format'][] = [
     'FACEBOOK_FEED',
     'INSTAGRAM_REEL',

@@ -239,22 +239,21 @@ const LOCAL_STORAGE_KEY = 'deen_marketing_campaigns_v1';
 
 export function getStoredCampaigns(): Campaign[] {
   if (typeof window === 'undefined') {
-    return INITIAL_WINTER_CAMPAIGNS;
+    return [];
   }
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(INITIAL_WINTER_CAMPAIGNS));
-      return INITIAL_WINTER_CAMPAIGNS;
+      return [];
     }
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
+    if (Array.isArray(parsed)) {
       return parsed;
     }
-    return INITIAL_WINTER_CAMPAIGNS;
+    return [];
   } catch (err) {
-    console.warn('Failed to parse stored campaigns, using defaults:', err);
-    return INITIAL_WINTER_CAMPAIGNS;
+    console.warn('Failed to parse stored campaigns:', err);
+    return [];
   }
 }
 
@@ -298,5 +297,10 @@ export function resetCampaignsToDefault(): Campaign[] {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(LOCAL_STORAGE_KEY);
   }
+  return [];
+}
+
+export function seedExampleCampaignTemplates(): Campaign[] {
+  saveCampaignsToStore(INITIAL_WINTER_CAMPAIGNS);
   return INITIAL_WINTER_CAMPAIGNS;
 }

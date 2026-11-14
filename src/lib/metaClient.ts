@@ -273,101 +273,31 @@ export async function fetchFullMetaAnalytics(
         isBenchmark: false,
       };
     } catch (err: unknown) {
-      console.warn('Live Meta query failed, falling back to benchmark analytics:', err);
+      console.warn('Live Meta query failed:', err);
     }
   }
 
-  // Fallback: Token expired or unavailable -> Return calibrated benchmark analytics grounded in DEEN store metrics
-  const fallbackAdCost = configuredMetaCost && configuredMetaCost > 0 ? configuredMetaCost : 185000;
-  const benchmarkImpressions = 824500;
-  const benchmarkClicks = 24650;
-  const benchmarkCtr = 2.99;
-  const benchmarkCpc = parseFloat((fallbackAdCost / benchmarkClicks).toFixed(2));
-  const benchmarkCpm = parseFloat(((fallbackAdCost / benchmarkImpressions) * 1000).toFixed(2));
-  const benchmarkPurchases = 1040;
-  const benchmarkRevenue = 788500; // ~4.26x ROAS matching store average
-  const benchmarkRoas = parseFloat((benchmarkRevenue / fallbackAdCost).toFixed(2));
-  const benchmarkCostPerPurchase = Math.round(fallbackAdCost / benchmarkPurchases);
-
-  const pixelEvents: MetaPixelEventStat[] = [
-    { event: 'PageView', label: '1. Store Visits (PageView)', count: 184200, deviceSharePercent: { mobile: 91, desktop: 9 } },
-    { event: 'ViewContent', label: '2. Product Catalog Views (ViewContent)', count: 68400, deviceSharePercent: { mobile: 93, desktop: 7 } },
-    { event: 'AddToCart', label: '3. Added to Cart (AddToCart)', count: 3850, deviceSharePercent: { mobile: 94, desktop: 6 } },
-    { event: 'InitiateCheckout', label: '4. Checkout Started (InitiateCheckout)', count: 2620, deviceSharePercent: { mobile: 94, desktop: 6 } },
-    { event: 'Purchase', label: '5. Attributed Sales (Purchase)', count: benchmarkPurchases, deviceSharePercent: { mobile: 95, desktop: 5 } },
-  ];
-
-  const campaigns: MetaCampaignSummary[] = [
-    {
-      id: 'camp_2385102941',
-      name: 'DEEN Core Polo & T-Shirt Catalog - Advantage+ Sales',
-      status: 'ACTIVE',
-      objective: 'OUTCOME_SALES',
-      dailyBudget: 3500,
-      spend: Math.round(fallbackAdCost * 0.48),
-      impressions: 412000,
-      clicks: 12800,
-      purchases: 540,
-      roas: 4.4,
-    },
-    {
-      id: 'camp_2385102942',
-      name: 'Men Winter Premium Jackets - Pre-Order & Conversions',
-      status: 'ACTIVE',
-      objective: 'OUTCOME_SALES',
-      dailyBudget: 2500,
-      spend: Math.round(fallbackAdCost * 0.32),
-      impressions: 245000,
-      clicks: 7450,
-      purchases: 320,
-      roas: 4.6,
-    },
-    {
-      id: 'camp_2385102943',
-      name: 'High-Intent Cart Retargeting (7-Day Dynamic Product Ads)',
-      status: 'ACTIVE',
-      objective: 'OUTCOME_SALES',
-      dailyBudget: 1200,
-      spend: Math.round(fallbackAdCost * 0.14),
-      impressions: 118000,
-      clicks: 3400,
-      purchases: 145,
-      roas: 5.1,
-    },
-    {
-      id: 'camp_2385102944',
-      name: 'Store Brand Awareness & Video Reels Showcase',
-      status: 'PAUSED',
-      objective: 'OUTCOME_AWARENESS',
-      dailyBudget: 500,
-      spend: Math.round(fallbackAdCost * 0.06),
-      impressions: 49500,
-      clicks: 1000,
-      purchases: 35,
-      roas: 2.1,
-    },
-  ];
-
+  // When Meta API is not connected or token is missing, return clean zeroed metrics (no fake/mockup data)
   return {
-    success: true,
+    success: false,
     status: connStatus,
     insights: {
-      spend: fallbackAdCost,
-      impressions: benchmarkImpressions,
-      clicks: benchmarkClicks,
-      ctrPercent: benchmarkCtr,
-      cpc: benchmarkCpc,
-      cpm: benchmarkCpm,
-      purchases: benchmarkPurchases,
-      costPerPurchase: benchmarkCostPerPurchase,
-      purchaseRoas: benchmarkRoas,
-      reportedRevenue: benchmarkRevenue,
+      spend: 0,
+      impressions: 0,
+      clicks: 0,
+      ctrPercent: 0,
+      cpc: 0,
+      cpm: 0,
+      purchases: 0,
+      costPerPurchase: 0,
+      purchaseRoas: 0,
+      reportedRevenue: 0,
       currency: 'BDT',
       datePreset,
-      isBenchmark: true,
+      isBenchmark: false,
     },
-    pixelEvents,
-    campaigns,
-    isBenchmark: true,
+    pixelEvents: [],
+    campaigns: [],
+    isBenchmark: false,
   };
 }

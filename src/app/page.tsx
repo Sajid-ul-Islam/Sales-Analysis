@@ -146,6 +146,7 @@ import {
   upsertGenericRows,
   saveOrdersToPartitions,
   loadPartitionsForDateRange,
+  loadAllPartitionOrders,
   getRowOrderId,
 } from '@/lib/sync/partitionStore';
 
@@ -552,9 +553,43 @@ export default function DashboardPage() {
         setInitialLoading(false);
         return;
       }
+
+      // 1b. Check Partitioned Month Store (IndexedDB)
+      try {
+        const partitionOrders = await loadAllPartitionOrders();
+        if (partitionOrders && partitionOrders.length > 0) {
+          const dynamicTitle = getDynamicDatasetTitle(partitionOrders, 'UPLOAD', '⚡ Partitioned Store');
+          setRawOrders(partitionOrders);
+          setDataSourceMode('UPLOAD');
+          setDataSourceName(dynamicTitle);
+          const filtered = filterOrdersByDateScope(partitionOrders, dateScope, customDateRange);
+          computeReconciliation(
+            filtered.filteredOrders,
+            [],
+            [],
+            excludeAugust,
+            excludePOS,
+            [],
+            []
+          );
+          setStatusMessage(`⚡ Restored from Partitioned Store: ${filtered.filteredOrders.length.toLocaleString()} orders (${filtered.label}).`);
+          setIsProcessing(false);
+          setInitialLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.warn('Notice reading partition store on mount:', err);
+      }
+
+      // 1c. Fresh startup with no cached data: DO NOT auto-download mockup/sample data!
+      // Keep UI clean, ready for live sync from WooCommerce/Pathao or manual file upload.
+      setIsProcessing(false);
+      setInitialLoading(false);
+      setStatusMessage('⚡ Ready for Real Data: Sync live orders from WooCommerce & Pathao in Cloud Sync, or upload reports.');
+      return;
     }
 
-    // 2. Fetch baseline from local API and cache in browser memory
+    // 2. Fetch baseline from local API (only when forceBypassCache is explicitly requested by user)
     try {
       const storedEtag = typeof window !== 'undefined' ? localStorage.getItem('deen_dataset_etag') : null;
       const res = await fetch('/api/sample-data', {

@@ -300,7 +300,7 @@ export function ExecutiveOverviewTab({
     return (
       <EmptyState
         title="Executive Overview Ready"
-        description="No orders loaded yet. Load the 15% executive sample dataset or sync from WooCommerce to view executive KPIs and net revenue."
+        description="No orders loaded yet. Connect Cloud Sync with WooCommerce and Pathao, or upload reports to view live executive KPIs and net revenue."
       />
     );
   }

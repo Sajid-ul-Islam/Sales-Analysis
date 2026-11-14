@@ -3,8 +3,8 @@ import { validateApiRequest } from '@/lib/auth/apiAuth';
 import { INITIAL_WINTER_CAMPAIGNS } from '@/lib/campaignStore';
 import { Campaign } from '@/types/campaign';
 
-// In-memory server-side fallback store for active sessions
-let inMemoryCampaigns: Campaign[] = [...INITIAL_WINTER_CAMPAIGNS];
+// In-memory server-side fallback store for active sessions (starts clean, no mock campaigns)
+let inMemoryCampaigns: Campaign[] = [];
 
 export const dynamic = 'force-dynamic';
 

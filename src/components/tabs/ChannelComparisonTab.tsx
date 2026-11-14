@@ -724,6 +724,76 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
     { id: 'efficiency', label: 'Channel Efficiency', icon: Zap },
   ];
 
+  const handleExportDynamicChannelPerformance = () => {
+    import('xlsx').then((XLSX) => {
+      const wb = XLSX.utils.book_new();
+
+      // Sheet 1: Channels Summary
+      const summarySheetData: Record<string, unknown>[] = CHANNELS.map((ch) => {
+        const m = channelMetrics[ch.key];
+        return {
+          'Channel': ch.label,
+          'Terminal': ch.terminal,
+          'Net Sales (৳)': m?.revenue || 0,
+          'Units Sold': m?.units || 0,
+          'Total COGS (৳)': m?.cogs || 0,
+          'Gross Profit (৳)': m?.profit || 0,
+          'Gross Margin %': m ? `${(m.margin * 100).toFixed(1)}%` : '0.0%',
+          'Revenue Share %': m ? `${(m.revShare * 100).toFixed(1)}%` : '0.0%',
+        };
+      });
+      summarySheetData.push({
+        'Channel': 'Grand Total (All Channels)',
+        'Terminal': 'Multi-Channel Master',
+        'Net Sales (৳)': grandTotals.revenue,
+        'Units Sold': grandTotals.units,
+        'Total COGS (৳)': grandTotals.cogs,
+        'Gross Profit (৳)': grandTotals.profit,
+        'Gross Margin %': `${(grandTotals.margin * 100).toFixed(1)}%`,
+        'Revenue Share %': '100.0%',
+      });
+      const wsSummary = XLSX.utils.json_to_sheet(summarySheetData);
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'Channel Summary');
+
+      // Sheet 2: Category Breakdown
+      const catSheetData = categoryRows.map((cat) => ({
+        'Category': cat.category,
+        'Total Units': cat.totalUnits,
+        'Total Net Sales (৳)': cat.totalRevenue,
+        'Total COGS (৳)': cat.totalCogs,
+        'Gross Margin %': `${(cat.totalMargin * 100).toFixed(1)}%`,
+        'E-Com Units': cat.channels['ecom']?.units || 0,
+        'E-Com Sales (৳)': cat.channels['ecom']?.revenue || 0,
+        'Mirpur Units': cat.channels['mirpur']?.units || 0,
+        'Mirpur Sales (৳)': cat.channels['mirpur']?.revenue || 0,
+        'Cumilla Units': cat.channels['cumilla']?.units || 0,
+        'Cumilla Sales (৳)': cat.channels['cumilla']?.revenue || 0,
+        'Wari Units': cat.channels['wari']?.units || 0,
+        'Wari Sales (৳)': cat.channels['wari']?.revenue || 0,
+        'Sylhet Units': cat.channels['sylhet']?.units || 0,
+        'Sylhet Sales (৳)': cat.channels['sylhet']?.revenue || 0,
+      }));
+      const wsCat = XLSX.utils.json_to_sheet(catSheetData);
+      XLSX.utils.book_append_sheet(wb, wsCat, 'Category Breakdown');
+
+      // Sheet 3: Top Products
+      const prodSheetData = productRows.slice(0, 500).map((p) => ({
+        'Item Name': p.name,
+        'Category': p.category,
+        'Brand': p.brand,
+        'Total Units': p.totalUnits,
+        'Total Net Sales (৳)': p.totalRevenue,
+        'Total COGS (৳)': p.totalCogs,
+        'Gross Margin %': `${(p.totalMargin * 100).toFixed(1)}%`,
+      }));
+      const wsProd = XLSX.utils.json_to_sheet(prodSheetData);
+      XLSX.utils.book_append_sheet(wb, wsProd, 'Product Performance');
+
+      const dateStr = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `DEEN_Channel_Performance_${dateStr}.xlsx`);
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* ── TOP HEADER HUB ──────────────────────────────────────────────── */}
@@ -761,14 +831,15 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
               <span>{isSyncingPos ? 'Syncing...' : 'Sync Live POS'}</span>
             </button>
 
-            <a
-              href="/Sample%20Docs/October%202026%20Overall%20Sales%20&%20Channel%20Performance%20(Ecom%20&%204%20Outlets).xlsx"
-              download="DEEN_October_2026_Overall_Sales_and_Channel_Performance.xlsx"
+            <button
+              type="button"
+              onClick={handleExportDynamicChannelPerformance}
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-primary hover:bg-primary/90 text-white shadow-xs transition-all cursor-pointer"
+              title="Export live channel performance report to Excel"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Export Master Excel</span>
-            </a>
+            </button>
           </div>
         </div>
 

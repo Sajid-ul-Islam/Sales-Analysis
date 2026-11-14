@@ -533,6 +533,16 @@ export function getMonthKeysForDateRange(startDate: string, endDate: string): st
 }
 
 /**
+ * Loads order rows across all existing partitions in the catalog.
+ */
+export async function loadAllPartitionOrders(): Promise<RawOrderRow[]> {
+  const catalog = await getPartitionCatalog();
+  const keys = Object.keys(catalog.partitions || {});
+  if (keys.length === 0) return [];
+  return loadPartitionsForMonths(keys);
+}
+
+/**
  * Loads cached partitions for a date range, identifying which months are present vs missing.
  */
 export async function loadPartitionsForDateRange(
