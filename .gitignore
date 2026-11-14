@@ -15,6 +15,7 @@ node_modules/
 # Next.js, Web Builds & TypeScript
 # ==============================================================================
 .next/
+.netlify/
 out/
 build/
 dist/
