@@ -12,7 +12,7 @@ interface ChannelContributionDonutChartProps {
 
 export function ChannelContributionDonutChart({
   channels,
-  title = "Omnichannel Market Share Breakdown",
+  title = "Multi-Channel Market Share Breakdown",
   className = "",
 }: ChannelContributionDonutChartProps) {
   const [metricMode, setMetricMode] = useState<'revenue' | 'units'>('revenue');

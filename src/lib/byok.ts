@@ -73,7 +73,7 @@ export const PROVIDERS_METADATA: Record<AIProvider, ProviderMetadata> = {
     badge: 'Lightning Fast LPU',
     defaultModel: 'llama-3.3-70b-versatile',
     models: [
-      { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B Versatile', description: 'Ultra-fast open source intelligence' },
+      { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B Versatile', description: 'Ultra-fast open source engine' },
       { id: 'mixtral-8x7b-32768', label: 'Mixtral 8x7B', description: 'High speed MoE processing' },
     ],
     isFreeTierAvailable: true,

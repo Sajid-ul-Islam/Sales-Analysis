@@ -763,7 +763,7 @@ export function ChannelComparisonTab({ orders = [] }: ChannelComparisonTabProps)
 
             <a
               href="/Sample%20Docs/October%202026%20Overall%20Sales%20&%20Channel%20Performance%20(Ecom%20&%204%20Outlets).xlsx"
-              download="DEEN_October_2026_Omnichannel_Overall_Sales_and_Channel_Performance.xlsx"
+              download="DEEN_October_2026_Overall_Sales_and_Channel_Performance.xlsx"
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-primary hover:bg-primary/90 text-white shadow-xs transition-all cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />

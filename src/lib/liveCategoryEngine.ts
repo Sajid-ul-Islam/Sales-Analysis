@@ -110,6 +110,8 @@ export function getShortCategoryLabel(name: string): string {
   if (lower.includes('corduroy')) return 'Corduroy';
   if (lower.includes('cuban')) return 'Cuban';
   if (lower.includes('panjabi') || lower.includes('punjabi')) return 'Panjabi';
+  if (lower.includes('formal trouser') || lower.includes('formal trousers')) return 'Formal Trousers';
+  if (lower.includes('cargo trouser') || lower.includes('cargo trousers')) return 'Cargo Trouser';
   if (lower.includes('formal') || lower.includes('executive')) return 'Formal';
   if (lower.includes('sweatshirt')) return 'Sweatshirt';
   if (lower.includes('hoodie')) return 'Hoodie';
@@ -299,6 +301,8 @@ export function getShortSubCategoryLabel(subCategory?: string | null): string {
   if (lower.includes('flannel')) return 'Flannel';
   if (lower.includes('oxford')) return 'Oxford';
   if (lower.includes('denim shirt')) return 'Denim Shirt';
+  if (lower.includes('formal trouser') || lower.includes('formal trousers')) return 'Formal Trousers';
+  if (lower.includes('cargo trouser') || lower.includes('cargo trousers')) return 'Cargo Trouser';
   if (lower.includes('formal') || lower.includes('executive')) return 'Formal';
   if (lower.includes('kaftan')) return 'Kaftan';
   if (lower.includes('casual')) return 'Casual (FS)';

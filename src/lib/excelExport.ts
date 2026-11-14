@@ -788,7 +788,7 @@ export function exportReconciledExcel(
 
   autoFitSheetColumns(wsRisk, riskData);
 
-  XLSX.utils.book_append_sheet(wb, wsRisk, 'Customer Risk Intelligence');
+  XLSX.utils.book_append_sheet(wb, wsRisk, 'Customer Risk Analysis');
 
 
 

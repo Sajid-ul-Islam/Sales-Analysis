@@ -601,7 +601,7 @@ export function generateQueryAnalyticalFacts(
     activeTab?.includes('Campaign');
 
   if (mentionsMarketing) {
-    facts.push("Deterministic Campaign Intelligence & Winter Strategy:");
+    facts.push("Deterministic Campaign & Winter Strategy:");
     facts.push("- **Active Season Campaign:** DEEN Winter Upgrade 2026–2027 (\"Buy More. Save More.\")");
     facts.push("- **Configured Threshold Tiers:** ৳2,500+ (Free Shipping), ৳3,500+ (৳150 Off + Free Delivery), ৳5,000+ (৳350 Off + Free Delivery), ৳7,000+ (৳600 Off + Free Delivery)");
     facts.push("- **Recommended Winter Bundles:** Complete Winter Look (Denim Jacket + Jeans at 20% discount), Urban Combo (Hoodie + Tee at 16% off), Cozy Weekend Set (Sweatshirt + Jeans at 18% off)");

@@ -20,7 +20,7 @@ interface AggregatedSize {
 
 export function SizeRunHistogramChart({
   products,
-  title = "Omnichannel Size Run & Fit Return Distribution",
+  title = "Combined Size Run & Fit Return Distribution",
   className = "",
 }: SizeRunHistogramChartProps) {
   const [sizeType, setSizeType] = useState<'all' | 'waist' | 'alpha'>('all');
