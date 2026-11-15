@@ -21,6 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `OrdersLedgerTab.tsx`: Added `📥 .parquet` and Excel export buttons directly into the Everyday Orders Ledger table control bar.
   - `SkuPerformanceTab.tsx`: Added `📥 Export .parquet` button beside CSV export.
   - `CloudSyncBar.tsx`: Added `⚡ Parquet Lakehouse: ACTIVE (Snappy)` status badge and Method 4 Lakehouse download card with live byte size reporting.
+- **Draggable Expandable Sidebar (`src/components/Sidebar.tsx`)**:
+  - Full mouse and touch drag-to-resize support allowing horizontal expansion between 200px and 460px.
+  - Interactive resizer handle with `GripVertical` indicator, hover highlight, and instant 60fps zero-lag dragging (CSS transitions disabled during active drag).
+  - Bi-directional drag expand/collapse: dragging below 140px snaps to collapsed icon rail; dragging out from the collapsed rail expands into the full sidebar.
+  - Double-click resizer to instantly reset to standard 256px width.
+  - Persistent width saved in `localStorage` under `deen_sidebar_width`.
+  - Full keyboard accessibility with ARIA separator role (`ArrowRight`, `ArrowLeft`, `Enter`).
+  - Unit test suite added in `tests/responsive/draggableSidebar.test.ts`.
 - **Parquet Test Suite**: 15 new Vitest tests across 5 test suites (`tests/parquet/`) verifying schema invariants, compression ratios, client parsing, API endpoints, and IndexedDB lakehouse persistence.
 
 ---

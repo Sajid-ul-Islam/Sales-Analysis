@@ -17,6 +17,7 @@ import {
   Sparkles,
   LogOut,
   GitCompareArrows,
+  GripVertical,
 } from 'lucide-react';
 
 import { DeenLogo, DeenLogoMark } from './DeenLogo';
@@ -34,6 +35,8 @@ export interface SidebarProps {
   onCloseMobile?: () => void;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  width?: number;
+  onWidthChange?: (width: number) => void;
 }
 
 interface NavItemConfig {
@@ -49,6 +52,12 @@ interface NavGroupConfig {
   items: NavItemConfig[];
 }
 
+const DEFAULT_SIDEBAR_WIDTH = 256;
+const MIN_SIDEBAR_WIDTH = 200;
+const MAX_SIDEBAR_WIDTH = 460;
+const COLLAPSE_THRESHOLD = 140;
+const STORAGE_KEY_WIDTH = 'deen_sidebar_width';
+
 export function Sidebar({
   activeTab,
   setActiveTab,
@@ -60,11 +69,47 @@ export function Sidebar({
   mobileOpen = false,
   onCloseMobile,
   isCollapsed: propIsCollapsed,
-  onToggleCollapse: propOnToggleCollapse
+  onToggleCollapse: propOnToggleCollapse,
+  width: propWidth,
+  onWidthChange: propOnWidthChange,
 }: SidebarProps) {
   // Internal collapse state with localStorage persistence
   const { user, logout } = useAuth();
   const [internalCollapsed, setInternalCollapsed] = useState<boolean>(false);
+
+  // Draggable sidebar width state
+  const [internalWidth, setInternalWidth] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY_WIDTH);
+        if (saved !== null) {
+          const parsed = Number(saved);
+          if (!isNaN(parsed) && parsed >= MIN_SIDEBAR_WIDTH && parsed <= MAX_SIDEBAR_WIDTH) {
+            return parsed;
+          }
+        }
+      } catch {}
+    }
+    return DEFAULT_SIDEBAR_WIDTH;
+  });
+
+  const sidebarWidth = propWidth !== undefined ? propWidth : internalWidth;
+
+  const updateWidth = React.useCallback((newWidth: number) => {
+    if (propOnWidthChange) {
+      propOnWidthChange(newWidth);
+    } else {
+      setInternalWidth(newWidth);
+      try {
+        localStorage.setItem(STORAGE_KEY_WIDTH, String(newWidth));
+      } catch {}
+    }
+  }, [propOnWidthChange]);
+
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const dragStartXRef = React.useRef<number>(0);
+  const dragStartWidthRef = React.useRef<number>(DEFAULT_SIDEBAR_WIDTH);
+  const wasCollapsedOnDragStart = React.useRef<boolean>(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -104,6 +149,109 @@ export function Sidebar({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleToggleCollapse]);
+
+  // Draggable sidebar handlers
+  const handleStartDrag = React.useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    dragStartXRef.current = clientX;
+    wasCollapsedOnDragStart.current = isCollapsed;
+    dragStartWidthRef.current = isCollapsed ? 64 : sidebarWidth;
+    setIsDragging(true);
+  }, [isCollapsed, sidebarWidth]);
+
+  const handleResetWidth = React.useCallback(() => {
+    updateWidth(DEFAULT_SIDEBAR_WIDTH);
+  }, [updateWidth]);
+
+  const handleResizerKeyDown = React.useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (isCollapsed) {
+        handleToggleCollapse();
+      } else {
+        updateWidth(Math.min(MAX_SIDEBAR_WIDTH, sidebarWidth + 16));
+      }
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (!isCollapsed) {
+        if (sidebarWidth - 16 < COLLAPSE_THRESHOLD) {
+          handleToggleCollapse();
+        } else {
+          updateWidth(Math.max(MIN_SIDEBAR_WIDTH, sidebarWidth - 16));
+        }
+      }
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleResetWidth();
+    }
+  }, [isCollapsed, handleToggleCollapse, updateWidth, sidebarWidth, handleResetWidth]);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const onMove = (clientX: number) => {
+      const deltaX = clientX - dragStartXRef.current;
+      const targetWidth = dragStartWidthRef.current + deltaX;
+
+      if (wasCollapsedOnDragStart.current) {
+        if (targetWidth > COLLAPSE_THRESHOLD) {
+          if (isCollapsed) {
+            handleToggleCollapse();
+          }
+          wasCollapsedOnDragStart.current = false;
+          dragStartWidthRef.current = MIN_SIDEBAR_WIDTH;
+          dragStartXRef.current = clientX;
+          updateWidth(MIN_SIDEBAR_WIDTH);
+        }
+      } else {
+        if (targetWidth < COLLAPSE_THRESHOLD) {
+          if (!isCollapsed) {
+            handleToggleCollapse();
+          }
+        } else {
+          if (isCollapsed) {
+            handleToggleCollapse();
+          }
+          const clamped = Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, targetWidth));
+          updateWidth(clamped);
+        }
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      onMove(e.clientX);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        onMove(e.touches[0].clientX);
+      }
+    };
+
+    const handleEndDrag = () => {
+      setIsDragging(false);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleEndDrag);
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchend', handleEndDrag);
+
+    const prevUserSelect = document.body.style.userSelect;
+    const prevCursor = document.body.style.cursor;
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleEndDrag);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleEndDrag);
+      document.body.style.userSelect = prevUserSelect;
+      document.body.style.cursor = prevCursor;
+    };
+  }, [isDragging, isCollapsed, handleToggleCollapse, sidebarWidth, updateWidth]);
 
   // Floating tooltip state for tablet icon rail
   const [activeTooltip, setActiveTooltip] = useState<{
@@ -214,7 +362,7 @@ export function Sidebar({
       {/* Maximizes screen real estate for wide data tables on 768px-1024px screens  */}
       {/* ========================================================================= */}
       <aside
-        className={`${isCollapsed ? 'hidden md:flex w-16' : 'hidden md:flex lg:hidden w-16'} border-r border-slate-200 dark:border-[#1F1F1F] bg-white dark:bg-[#050505] flex-col justify-between shrink-0 h-screen sticky top-0 z-30 select-none shadow-2xs transition-all duration-200`}
+        className={`${isCollapsed ? 'hidden md:flex w-16' : 'hidden md:flex lg:hidden w-16'} border-r border-slate-200 dark:border-[#1F1F1F] bg-white dark:bg-[#050505] flex-col justify-between shrink-0 h-screen sticky top-0 z-30 select-none shadow-2xs relative transition-all duration-200`}
         aria-label="Tablet navigation rail"
       >
         <div className="flex flex-col min-h-0 flex-1">
@@ -336,6 +484,42 @@ export function Sidebar({
             )}
           </div>
         )}
+
+        {/* Draggable Expand Handle on Collapsed Rail */}
+        <div
+          role="separator"
+          tabIndex={0}
+          aria-orientation="vertical"
+          aria-valuenow={64}
+          aria-valuemin={64}
+          aria-valuemax={MAX_SIDEBAR_WIDTH}
+          aria-label="Drag right to expand sidebar"
+          title="Drag right to expand sidebar"
+          onMouseDown={handleStartDrag}
+          onTouchStart={handleStartDrag}
+          onDoubleClick={handleToggleCollapse}
+          onKeyDown={handleResizerKeyDown}
+          className={`hidden md:flex absolute top-0 -right-1.5 w-3 h-full cursor-col-resize z-40 select-none group/resizer items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+            isDragging ? 'cursor-col-resize' : ''
+          }`}
+        >
+          <div
+            className={`w-[2px] h-full transition-colors duration-150 ${
+              isDragging
+                ? 'bg-primary'
+                : 'bg-transparent group-hover/resizer:bg-primary/70 dark:group-hover/resizer:bg-primary/80'
+            }`}
+          />
+          <div
+            className={`absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 w-3.5 h-8 rounded-full bg-white dark:bg-[#1A1A1A] border border-slate-300 dark:border-[#333] shadow-xs flex items-center justify-center transition-all duration-150 pointer-events-none ${
+              isDragging
+                ? 'opacity-100 scale-105 border-primary ring-2 ring-primary/20'
+                : 'opacity-0 group-hover/resizer:opacity-100'
+            }`}
+          >
+            <GripVertical className="w-3 h-3 text-slate-400 group-hover/resizer:text-primary shrink-0" />
+          </div>
+        </div>
       </aside>
 
       {/* ========================================================================= */}
@@ -343,7 +527,13 @@ export function Sidebar({
       {/* Full-featured desktop navigation with brand header and workspace status   */}
       {/* ========================================================================= */}
       <aside
-        className={`${isCollapsed ? 'hidden' : 'hidden lg:flex w-64'} border-r border-slate-200 dark:border-[#1F1F1F] bg-white dark:bg-[#050505] flex-col justify-between shrink-0 h-screen sticky top-0 z-30 select-none shadow-2xs transition-all duration-200`}
+        style={{
+          width: !isCollapsed ? `${sidebarWidth}px` : undefined,
+          transition: isDragging ? 'none' : undefined,
+        }}
+        className={`${isCollapsed ? 'hidden' : 'hidden lg:flex w-64'} border-r border-slate-200 dark:border-[#1F1F1F] bg-white dark:bg-[#050505] flex-col justify-between shrink-0 h-screen sticky top-0 z-30 select-none shadow-2xs relative ${
+          isDragging ? '' : 'transition-all duration-200'
+        }`}
         aria-label="Desktop sidebar navigation"
       >
         <div className="flex flex-col min-h-0 flex-1">
@@ -455,6 +645,45 @@ export function Sidebar({
             >
               <LogOut className="w-4 h-4" />
             </button>
+          </div>
+        </div>
+
+        {/* Draggable Expandable Resizer Handle */}
+        <div
+          role="separator"
+          tabIndex={0}
+          aria-orientation="vertical"
+          aria-valuenow={sidebarWidth}
+          aria-valuemin={MIN_SIDEBAR_WIDTH}
+          aria-valuemax={MAX_SIDEBAR_WIDTH}
+          aria-label="Drag to resize sidebar width"
+          title="Drag to resize sidebar • Double-click to reset (256px)"
+          onMouseDown={handleStartDrag}
+          onTouchStart={handleStartDrag}
+          onDoubleClick={handleResetWidth}
+          onKeyDown={handleResizerKeyDown}
+          className={`hidden lg:flex absolute top-0 -right-1.5 w-3 h-full cursor-col-resize z-40 select-none group/resizer items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+            isDragging ? 'cursor-col-resize' : ''
+          }`}
+        >
+          {/* Subtle vertical indicator line */}
+          <div
+            className={`w-[2px] h-full transition-colors duration-150 ${
+              isDragging
+                ? 'bg-primary'
+                : 'bg-transparent group-hover/resizer:bg-primary/70 dark:group-hover/resizer:bg-primary/80'
+            }`}
+          />
+
+          {/* Floating grip pill handle on hover or drag */}
+          <div
+            className={`absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 w-3.5 h-8 rounded-full bg-white dark:bg-[#1A1A1A] border border-slate-300 dark:border-[#333] shadow-xs flex items-center justify-center transition-all duration-150 pointer-events-none ${
+              isDragging
+                ? 'opacity-100 scale-105 border-primary ring-2 ring-primary/20'
+                : 'opacity-0 group-hover/resizer:opacity-100'
+            }`}
+          >
+            <GripVertical className="w-3 h-3 text-slate-400 group-hover/resizer:text-primary shrink-0" />
           </div>
         </div>
       </aside>
