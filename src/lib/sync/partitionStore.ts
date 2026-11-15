@@ -28,8 +28,12 @@ import {
 } from '@/lib/cacheManager';
 
 export const PARTITION_PREFIX = 'deen_partition_orders_';
+export const PARQUET_PARTITION_PREFIX = 'deen_parquet_partition_';
 export const PARTITION_CATALOG_KEY = 'deen_partition_catalog_v1';
 export const CURRENT_PARTITION_VERSION = '1.0.0';
+
+// In-memory partition cache for ultra-fast fallback during SSR, tests, or before IndexedDB initializes
+const inMemoryPartitionCache = new Map<string, unknown>();
 
 // Adaptive TTLs:
 // Historical closed months (past months): 30 days
@@ -433,6 +437,7 @@ export async function savePartition(
   };
 
   const partitionKey = `${PARTITION_PREFIX}${monthKey}`;
+  inMemoryPartitionCache.set(partitionKey, orders);
 
   // Persist partition rows in IndexedDB
   await setIndexedDbItem(partitionKey, orders, ttlMs);
@@ -446,11 +451,102 @@ export async function savePartition(
 }
 
 /**
- * Retrieves order rows for a single month partition from IndexedDB.
+ * Saves a binary Parquet partition blob into IndexedDB with catalog tracking.
+ */
+export async function saveParquetPartitionBlob(
+  monthKey: string,
+  buffer: ArrayBuffer | Uint8Array,
+  metadata?: Partial<PartitionMetadata>
+): Promise<void> {
+  const ab = buffer instanceof ArrayBuffer ? buffer : buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+  const cacheKey = `${PARQUET_PARTITION_PREFIX}${monthKey}`;
+  inMemoryPartitionCache.set(cacheKey, ab);
+
+  if (typeof window !== 'undefined') {
+    try {
+      const isHist = isHistoricalMonth(monthKey);
+      const ttlMs = isHist ? TTL_HISTORICAL_MONTH_MS : TTL_CURRENT_MONTH_MS;
+      await setIndexedDbItem(cacheKey, ab, ttlMs);
+    } catch (err) {
+      console.warn('[PartitionStore] Failed to write Parquet blob to IndexedDB:', err);
+    }
+  }
+
+  // Update catalog
+  try {
+    const catalog = await getPartitionCatalog();
+    const existing = catalog.partitions[monthKey] as Partial<PartitionMetadata> | undefined;
+    const labels = formatMonthKeyLabels(monthKey);
+    catalog.partitions[monthKey] = {
+      monthKey,
+      label: labels.label,
+      shortLabel: labels.shortLabel,
+      year: labels.year,
+      month: labels.month,
+      orderCount: metadata?.orderCount ?? existing?.orderCount ?? 0,
+      rowCount: metadata?.rowCount ?? existing?.rowCount ?? 0,
+      minDate: metadata?.minDate ?? existing?.minDate ?? `${monthKey}-01`,
+      maxDate: metadata?.maxDate ?? existing?.maxDate ?? `${monthKey}-28`,
+      lastSyncedAt: Date.now(),
+      ttlMs: metadata?.ttlMs ?? existing?.ttlMs ?? TTL_CURRENT_MONTH_MS,
+      isHistorical: isHistoricalMonth(monthKey),
+      byteSizeEstimate: ab.byteLength,
+      version: CURRENT_PARTITION_VERSION,
+    };
+    await savePartitionCatalog(catalog);
+  } catch {}
+}
+
+/**
+ * Loads a binary Parquet partition blob from cache / IndexedDB.
+ */
+export async function loadParquetPartitionBlob(monthKey: string): Promise<ArrayBuffer | null> {
+  const cacheKey = `${PARQUET_PARTITION_PREFIX}${monthKey}`;
+  if (inMemoryPartitionCache.has(cacheKey)) {
+    return inMemoryPartitionCache.get(cacheKey) as ArrayBuffer;
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const blob = await getIndexedDbItem<ArrayBuffer>(cacheKey);
+      if (blob) {
+        inMemoryPartitionCache.set(cacheKey, blob);
+        return blob;
+      }
+    } catch {}
+  }
+
+  return null;
+}
+
+/**
+ * Retrieves order rows for a single month partition from IndexedDB,
+ * prioritizing high-performance Parquet Lakehouse blobs with graceful JSON fallback.
  */
 export async function loadPartition(monthKey: string): Promise<{ rows: RawOrderRow[]; metadata: PartitionMetadata | null } | null> {
+  // 1. Priority: Parquet Lakehouse partition blob
+  const parquetBlob = await loadParquetPartitionBlob(monthKey);
+  if (parquetBlob) {
+    try {
+      const { parseParquetOrders } = await import('@/lib/parquet/parquetClient');
+      const rows = await parseParquetOrders(parquetBlob);
+      const catalog = await getPartitionCatalog();
+      const metadata = catalog.partitions[monthKey] || null;
+      return { rows, metadata };
+    } catch (err) {
+      console.warn('[PartitionStore] Failed to parse Parquet partition, falling back to JSON:', err);
+    }
+  }
+
+  // 2. Fallback: JSON partition
   const partitionKey = `${PARTITION_PREFIX}${monthKey}`;
-  const rows = await getIndexedDbItem<RawOrderRow[]>(partitionKey);
+  let rows: RawOrderRow[] | null = null;
+  if (inMemoryPartitionCache.has(partitionKey)) {
+    rows = inMemoryPartitionCache.get(partitionKey) as RawOrderRow[];
+  } else if (typeof window !== 'undefined') {
+    rows = await getIndexedDbItem<RawOrderRow[]>(partitionKey);
+  }
+
   if (!rows || !Array.isArray(rows)) return null;
 
   const catalog = await getPartitionCatalog();

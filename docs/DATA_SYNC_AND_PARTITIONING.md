@@ -139,16 +139,49 @@ const mirpurOrders = filteredOrders.filter(r => r.fulfillmentBranch === 'Mirpur 
 const deliveredOrders = filteredOrders.filter(r => r['Delivery Status'] === 'Delivered');
 ```
 
+### Recipe 4: Apache Parquet Columnar Storage & Ingestion (`hyparquet`)
+For high-density monthly partitions and zero-memory analytical processing:
+```typescript
+import { ordersToParquetBuffer } from '@/lib/server/parquetWriter';
+import { parseParquetOrders } from '@/lib/parquet/parquetClient';
+import { saveParquetPartitionBlob, loadParquetPartitionBlob } from '@/lib/sync/partitionStore';
+
+// 1. Convert orders array into compressed Parquet Buffer (Server or CLI)
+const parquetBuffer = await ordersToParquetBuffer(rawOrders);
+
+// 2. Persist binary blob in IndexedDB partition store
+await saveParquetPartitionBlob('2026-10', parquetBuffer, {
+  orderCount: 1540,
+  rowCount: 1820,
+});
+
+// 3. Ingest with hyparquet (Snappy compressed, optional column projection)
+const cachedBlob = await loadParquetPartitionBlob('2026-10');
+if (cachedBlob) {
+  const orders = await parseParquetOrders(cachedBlob, {
+    columns: ['orderId', 'orderDate', 'sku', 'quantity', 'orderAmount', 'deliveryStatus'],
+  });
+}
+```
+
 ---
 
 ## 5. File Map
 
 | Path | Purpose |
 |---|---|
-| `src/lib/sync/partitionStore.ts` | Core partition store, IndexedDB catalog, and upsert merger logic |
+| `src/lib/parquet/parquetSchema.ts` | Canonical 25-column Parquet schema, integer invariants & record normalizers |
+| `src/lib/server/parquetWriter.ts` | Server-side Parquet writer using `parquetjs-lite` with Snappy compression |
+| `src/lib/parquet/parquetClient.ts` | Ultra-light client-side Parquet reader using `hyparquet` & projection pushdown |
+| `src/app/api/lakehouse/partition/route.ts` | HTTP API for monthly Parquet partition caching with byte-range and ETags |
+| `src/app/api/lakehouse/export/route.ts` | Direct analyst Parquet file attachment export endpoint |
+| `src/lib/sync/partitionStore.ts` | Core partition store, IndexedDB catalog, Parquet binary blobs, and upsert merger logic |
 | `src/lib/dateFilter.ts` | Dhaka timezone-aligned date scopes and fast array filtering |
-| `src/components/CloudSyncBar.tsx` | Cloud sync toolbar with partition diagnostics & cache bypass |
+| `src/components/CloudSyncBar.tsx` | Cloud sync toolbar with partition diagnostics, Parquet lakehouse badge & export |
+| `src/components/tabs/OrdersLedgerTab.tsx` | Everyday Orders Ledger with Excel and high-density `.parquet` exports |
+| `src/components/tabs/SkuPerformanceTab.tsx` | SKU Performance & Category Return Analysis with `.parquet` export |
 | `src/components/DateRangeSelector.tsx` | Date selector with 1-click month presets & comparison modal |
 | `src/app/page.tsx` | Root reconciliation state coordinator and live sync upsert handler |
+| `tests/parquet/` | Vitest suites covering schema, writer, client, API routes, and Lakehouse store |
 | `tests/sync/partitionStore.test.ts` | Vitest unit tests for primary key, month keys, and upsert logic |
 | `tests/sync/partitionIntegration.test.ts` | End-to-end integration tests for multi-month merging & filtering |

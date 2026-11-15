@@ -64,6 +64,8 @@ Sample Docs/
 *.xlsx
 *.xls
 *.csv
+data/lakehouse/partitions/*.parquet
+!data/lakehouse/partitions/.gitkeep
 
 # ==============================================================================
 # Generated Reports, Output Data & Temporary / Backup Files

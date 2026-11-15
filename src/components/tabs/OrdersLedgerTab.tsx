@@ -11,6 +11,7 @@ import {
   getExportCustomerName,
   getExportPhoneNumber,
 } from '@/lib/exportUtils';
+import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 
 interface OrdersLedgerTabProps {
   orders: ReconciledOrderRow[];
@@ -182,6 +183,7 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
   }, [orders, searchTerm, statusFilter, branchFilter, territoryFilter, aiTagFilter]);
 
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingParquet, setIsExportingParquet] = useState(false);
 
   const handleExportOrdersExcel = async () => {
     if (filteredOrders.length === 0) return;
@@ -247,6 +249,45 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
       console.error('Failed to export orders:', err);
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleExportOrdersParquet = async () => {
+    if (filteredOrders.length === 0) return;
+    try {
+      setIsExportingParquet(true);
+      const cleanScope = (dateScopeLabel || 'Custom_Period').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = `DEEN_Orders_Ledger_${cleanScope}_${new Date().toISOString().slice(0, 10)}.parquet`;
+
+      const res = await fetch('/api/lakehouse/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getClientAuthHeaders(),
+        },
+        body: JSON.stringify({
+          orders: filteredOrders,
+          filename,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Parquet export failed with status ${res.status}`);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export parquet:', err);
+    } finally {
+      setIsExportingParquet(false);
     }
   };
 
@@ -424,7 +465,7 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full xl:w-auto justify-between xl:justify-end text-xs text-slate-500 dark:text-slate-400 shrink-0">
+        <div className="flex items-center gap-2.5 w-full xl:w-auto justify-between xl:justify-end text-xs text-slate-500 dark:text-slate-400 shrink-0 flex-wrap">
           <span>
             Showing <strong className="text-slate-900 dark:text-white">{filteredOrders.length.toLocaleString()}</strong> records
           </span>
@@ -441,6 +482,30 @@ export function OrdersLedgerTab({ orders, initialStatusFilter, initialTerritoryF
             <option value="50">50 / page</option>
             <option value="100">100 / page</option>
           </select>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handleExportOrdersExcel}
+              disabled={isExporting || filteredOrders.length === 0}
+              className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-deepBlack-sidebar hover:bg-slate-50 dark:hover:bg-deepBlack-hover border border-slate-200 dark:border-deepBlack-border text-slate-700 dark:text-slate-200 font-bold flex items-center gap-1.5 transition-all shadow-2xs disabled:opacity-50 cursor-pointer text-xs"
+              title="Export filtered records to Excel (.xlsx)"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>{isExporting ? 'Exporting...' : 'Excel'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleExportOrdersParquet}
+              disabled={isExportingParquet || filteredOrders.length === 0}
+              className="px-2.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-bold flex items-center gap-1.5 transition-all shadow-2xs disabled:opacity-50 cursor-pointer text-xs"
+              title="Export filtered records to high-efficiency Apache Parquet format (.parquet)"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>{isExportingParquet ? 'Writing...' : '.parquet'}</span>
+            </button>
+          </div>
         </div>
       </div>
 

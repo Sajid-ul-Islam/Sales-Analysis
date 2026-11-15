@@ -5,6 +5,7 @@ import { SkuAnalytics, ReconciledOrderRow } from '@/types';
 import { getItemCogsInfo } from '@/lib/woocommerceClient';
 import { SkuHistoryModal } from '@/components/SkuHistoryModal';
 import { FilterChipBar, FilterChipItem } from '@/components/common';
+import { getClientAuthHeaders } from '@/lib/auth/clientAuth';
 import {
   Search,
   Download,
@@ -182,6 +183,56 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
     document.body.removeChild(link);
   };
 
+  const [isExportingParquet, setIsExportingParquet] = useState(false);
+
+  const handleExportParquet = async () => {
+    try {
+      setIsExportingParquet(true);
+      const ordersToExport = allOrderItems.length > 0 ? allOrderItems : skuList.map((s) => ({
+        orderId: `SKU-${s.sku}`,
+        sku: s.sku,
+        itemName: s.itemName,
+        category: s.category || 'Apparel',
+        itemQuantity: s.grossQty || 1,
+        itemPrice: s.unitPrice || 0,
+        orderTotal: s.deliveredRevenue || 0,
+        deliveryStatus: 'Delivered',
+        orderDate: new Date().toISOString().slice(0, 10),
+      }));
+
+      const filename = `DEEN_SKU_Analysis_${new Date().toISOString().slice(0, 10)}.parquet`;
+      const res = await fetch('/api/lakehouse/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getClientAuthHeaders(),
+        },
+        body: JSON.stringify({
+          orders: ordersToExport,
+          filename,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Export failed: HTTP ${res.status}`);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export parquet:', err);
+    } finally {
+      setIsExportingParquet(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Executive Header Banner */}
@@ -205,13 +256,27 @@ export function SkuPerformanceTab({ skuList, allOrderItems = [], onSelectOrder }
           </p>
         </div>
 
-        <button
-          onClick={handleExportCsv}
-          className="px-3.5 py-2 rounded-lg bg-white dark:bg-deepBlack-elevated border border-slate-200/80 dark:border-deepBlack-border hover:bg-slate-50 dark:hover:bg-deepBlack-hover text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors shrink-0"
-        >
-          <Download className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-          <span>Export SKU CSV</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            className="px-3.5 py-2 rounded-lg bg-white dark:bg-deepBlack-elevated border border-slate-200/80 dark:border-deepBlack-border hover:bg-slate-50 dark:hover:bg-deepBlack-hover text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+            <span>Export CSV</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportParquet}
+            disabled={isExportingParquet || (!allOrderItems.length && !skuList.length)}
+            className="px-3.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors disabled:opacity-50 cursor-pointer"
+            title="Export items to high-density Apache Parquet format (.parquet)"
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>{isExportingParquet ? 'Writing...' : 'Export .parquet'}</span>
+          </button>
+        </div>
       </div>
 
       {/* SKU Executive Summary Cards (Interactive Drilldowns) */}

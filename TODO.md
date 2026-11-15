@@ -1,6 +1,6 @@
 # Living Engineering Roadmap & Backlog: DEEN Commerce
 
-**Version:** 2.4.2  
+**Version:** 2.4.3  
 **Status:** Active Sprint & Product Backlog  
 **Last Updated:** November 2026  
 
@@ -37,6 +37,16 @@
 - [x] Default canvas background set to **Native Super White** (`#FFFFFF`) with zero hydration flash.
 - [x] Theme presets selector in `SettingsTab` (Modern Slate, Cool Metallic Zinc, Warm Paper Ivory, Deep Midnight Canvas).
 - [x] Google Gemini 2.5 Flash AI copilot integration (`@google/genai` 2.29.1).
+
+### v2.4.3 – Apache Parquet Lakehouse & Columnar Storage Engine
+- [x] Canonical 25-column Apache Parquet schema (`src/lib/parquet/parquetSchema.ts`) with Snappy compression and strict integer quantity enforcement.
+- [x] High-performance server-side Parquet writer (`src/lib/server/parquetWriter.ts`) with atomic partition generation.
+- [x] Zero-dependency client-side Parquet reader (`hyparquet`) (`src/lib/parquet/parquetClient.ts`) with column projection pushdown.
+- [x] Next.js API routes: `/api/lakehouse/partition` (byte-range streaming & HTTP 304 ETag) and `/api/lakehouse/export` (analyst file downloads).
+- [x] Binary IndexedDB Lakehouse Partition Store (`src/lib/sync/partitionStore.ts`) with in-memory ArrayBuffer cache.
+- [x] Interactive UI Parquet export buttons in `OrdersLedgerTab.tsx` and `SkuPerformanceTab.tsx`.
+- [x] `⚡ Parquet Lakehouse: ACTIVE (Snappy)` status badge and Method 4 Lakehouse download card in `CloudSyncBar.tsx`.
+- [x] 15 new Vitest unit and integration tests across 5 test suites (`tests/parquet/`).
 
 ### v2.4.2 – Pre-Dispatch Predictive RTO Warning & Gemini Risk Predictor
 - [x] Surface pre-dispatch predictive RTO warning badge (`⚠️ High Risk`) on Everyday Dispatched Orders ledger.
