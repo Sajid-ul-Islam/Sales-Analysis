@@ -1689,7 +1689,6 @@ export default function DashboardPage() {
               }}
               onRefreshLive={async (fetchedOrders?: RawOrderRow[], provenance?: DataProvenanceInfo) => {
                 if (fetchedOrders && fetchedOrders.length > 0) {
-                  setRawOrders(fetchedOrders);
                   handleLiveSyncData('orders', fetchedOrders, provenance);
                   return;
                 }

@@ -149,11 +149,11 @@ export function getSecretsConfig(): SecretsConfig {
       consumer_key:
         process.env.WOOCOMMERCE_CONSUMER_KEY ||
         process.env.WC_CONSUMER_KEY ||
-        '',
+        'ck_79d50d46f58a0edada87dba3c78245bba50a5d79',
       consumer_secret:
         process.env.WOOCOMMERCE_CONSUMER_SECRET ||
         process.env.WC_CONSUMER_SECRET ||
-        '',
+        'cs_a7b4b5ad639ebf749ad0a0207cebc61fdd0d1a01',
     },
     pathao: {
       base_url:
@@ -161,16 +161,16 @@ export function getSecretsConfig(): SecretsConfig {
         'https://api-hermes.pathao.com',
       client_id:
         process.env.PATHAO_CLIENT_ID ||
-        '',
+        'YRdGv5ybDz',
       client_secret:
         process.env.PATHAO_CLIENT_SECRET ||
-        '',
+        'k70qY3kxmqwPPluYtC5YAlNOc7ph3Un41knzIEnk',
       username:
         process.env.PATHAO_USERNAME ||
-        '',
+        'tajastoreofficial@gmail.com',
       password:
         process.env.PATHAO_PASSWORD ||
-        '',
+        'pathao#587$DEEN2026',
       webhook_secret:
         process.env.PATHAO_WEBHOOK_SECRET ||
         '',

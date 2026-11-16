@@ -1,6 +1,7 @@
 "use client";
 
 import { SuffixHygieneBadge, NoSearchResults } from '@/components/common';
+import { getDhakaTodayIso } from '@/lib/timezone';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
@@ -498,8 +499,7 @@ export function LiveOpsTab({
   // Sliding back to the latest order modification date caused the strip to show stale historical weeks
   // when old orders were completed today (their date_created is old but date_modified is today).
   const snapshotAnchorDate = useMemo(() => {
-    const now = new Date();
-    return formatDateToIsoDay(now);
+    return getDhakaTodayIso();
   }, []);
 
   // Process live operational data
@@ -697,6 +697,9 @@ export function LiveOpsTab({
             targetTab: newDiscCount > 0 ? 'tabCourierMismatch' : 'tabLiveOps'
           });
         }
+      } else if (!res.ok) {
+        const errMsg = data?.message || (res.status === 401 ? 'Authentication required. Check API token or credentials in Settings.' : `Sync request returned status ${res.status}.`);
+        if (isManual) setSyncStatusMsg(`Sync warning: ${errMsg}`);
       } else if (data && data.message) {
         if (isManual) setSyncStatusMsg(`Notice: ${data.message}`);
         if (data.wcConnected !== undefined) setWcConnected(data.wcConnected);

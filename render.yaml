@@ -12,3 +12,29 @@ services:
         value: 20
       - key: NEXT_TELEMETRY_DISABLED
         value: "1"
+      - key: TZ
+        value: Asia/Dhaka
+      - key: API_BEARER_TOKEN
+        value: 2d66a734e2c7fec920770a81fdcab9c8a292b487ac526134ba83e533b8382e60
+      - key: NEXT_PUBLIC_API_BEARER_TOKEN
+        value: 2d66a734e2c7fec920770a81fdcab9c8a292b487ac526134ba83e533b8382e60
+      - key: ADMIN_API_SECRET
+        value: 92efb4bbc6f8f3a08b837cf5948d89db09cb551b0317c4e346683b3e6c92ce2e
+      - key: INTERNAL_SYNC_SECRET
+        value: 84c07a77c6f53aa313756c9bae16083e99f9ed7055b9db888987c682d41d3ac6
+      - key: WOOCOMMERCE_STORE_URL
+        value: https://deencommerce.com
+      - key: WOOCOMMERCE_CONSUMER_KEY
+        value: ck_79d50d46f58a0edada87dba3c78245bba50a5d79
+      - key: WOOCOMMERCE_CONSUMER_SECRET
+        value: cs_a7b4b5ad639ebf749ad0a0207cebc61fdd0d1a01
+      - key: PATHAO_BASE_URL
+        value: https://api-hermes.pathao.com
+      - key: PATHAO_CLIENT_ID
+        value: YRdGv5ybDz
+      - key: PATHAO_CLIENT_SECRET
+        value: k70qY3kxmqwPPluYtC5YAlNOc7ph3Un41knzIEnk
+      - key: PATHAO_USERNAME
+        value: tajastoreofficial@gmail.com
+      - key: PATHAO_PASSWORD
+        value: pathao#587$DEEN2026
