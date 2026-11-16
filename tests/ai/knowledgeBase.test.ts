@@ -250,7 +250,8 @@ describe('Deterministic Analytics & Slicing Engine', () => {
     const mockLiveOrders: RawOrderRow[] = [
       {
         orderId: '2001',
-        status: 'completed',
+        status: 'shipped',
+        rawWcStatus: 'shipped',
         date_completed: `${todayIso}T10:30:00`,
         date_modified: `${todayIso}T10:30:00`,
         date_created: `${todayIso}T09:00:00`,

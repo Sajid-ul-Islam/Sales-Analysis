@@ -823,7 +823,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           'Order Notes': 'Customer requested size swap',
           'Order Source': 'Online',
         },
-        // Order 18090 is a genuine commercial order completed today
+        // Order 18090 is a genuine commercial order dispatched today (WC shipped status)
         {
           'Order ID': '18090',
           'Order Date': '2026-10-17T09:00:00Z',
@@ -834,7 +834,9 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           Quantity: 1,
           'Item Cost': 4500,
           'Order Amount': 4500,
-          'Delivery Status': 'completed',
+          'Delivery Status': 'shipped',
+          status: 'shipped',
+          rawWcStatus: 'shipped',
           'Order Source': 'Online',
         },
       ];
@@ -879,7 +881,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           'Order Notes': 'Exchange for #17839 - replacement pair dispatched',
           'Order Source': 'Online',
         },
-        // 2. Regular commercial sale dispatched today (#18086)
+        // 2. Regular commercial sale dispatched today (#18086) — WC shipped status
         {
           'Order ID': '18086',
           'Order Date': '2026-10-17T10:00:00Z',
@@ -891,7 +893,9 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           Quantity: 2,
           'Item Cost': 1200,
           'Order Amount': 2400,
-          'Delivery Status': 'completed',
+          'Delivery Status': 'shipped',
+          status: 'shipped',
+          rawWcStatus: 'shipped',
           'Order Source': 'Online',
         },
       ];
@@ -1416,15 +1420,14 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
         Phone: '01711223344',
       };
 
-      // NEW STRICT RULE (Nov 2026): Only orders where status *transitioned* today qualify.
-      // This order has empty date_completed, no Status Modified Date — only date_modified.
-      // date_modified alone is inadmissible (admin edits update it without status change).
-      expect(isOrderShippedToday(oldShippedOrder, '2026-11-04')).toBe(false);
-      expect(isOrderShippedOnDate(oldShippedOrder, '2026-11-04')).toBe(false);
-      expect(isTodayOrdersEligible(oldShippedOrder, '2026-11-04')).toBe(false);
+      // Orders marked custom status 'shipped' today have Date Modified = today and empty Date Completed.
+      // Under Rule (Nov 2026), they are recognized as shipped today.
+      expect(isOrderShippedToday(oldShippedOrder, '2026-11-04')).toBe(true);
+      expect(isOrderShippedOnDate(oldShippedOrder, '2026-11-04')).toBe(true);
+      expect(isTodayOrdersEligible(oldShippedOrder, '2026-11-04')).toBe(true);
     });
 
-    it('detects an order placed last month when marked completed today via Date Completed', () => {
+    it('excludes an order marked completed today from Today Shipped per Rule (Nov 2026)', () => {
       const oldCompletedOrder: RawOrderRow = {
         'Order ID': '16310',
         orderId: '16310',
@@ -1446,8 +1449,8 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
         Phone: '01811223344',
       };
 
-      expect(isOrderShippedToday(oldCompletedOrder, '2026-11-04')).toBe(true);
-      expect(isTodayOrdersEligible(oldCompletedOrder, '2026-11-04')).toBe(true);
+      expect(isOrderShippedToday(oldCompletedOrder, '2026-11-04')).toBe(false); // Rule 3: 'completed' excluded — only 'shipped'/'wc-shipped' qualify
+      expect(isTodayOrdersEligible(oldCompletedOrder, '2026-11-04')).toBe(false);
     });
 
     it('does NOT count an order completed last month as shipped today even if modified today for notes', () => {
@@ -1527,11 +1530,11 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
         customDate: targetDate,
       });
 
-      // 17001 qualifies (has Status Modified Date). 16280 is rejected (no date_completed, no Status Modified Date — strict rule).
-      expect(report.activeOrders).toHaveLength(1);
-      expect(report.shippedOrders.rawValue).toBe(1);
-      expect(report.shippedItems.rawValue).toBe(1);
-      expect(report.salesRevenue.rawValue).toBe(1500); // only 17001
+      // Both 17001 and 16280 qualify as shipped today (both have WC status 'shipped' and Date Modified = today)
+      expect(report.activeOrders).toHaveLength(2);
+      expect(report.shippedOrders.rawValue).toBe(2);
+      expect(report.shippedItems.rawValue).toBe(2);
+      expect(report.salesRevenue.rawValue).toBe(4000); // 1500 + 2500
     });
 
     it('detects returned marked orders in live terminal and everyday dispatch ledger', () => {
@@ -1595,8 +1598,9 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           'Order Date': `${targetDate} 10:00:00`,
           'Date Modified': `${targetDate} 11:00:00`,
           'Status Modified Date': `${targetDate} 11:00:00`,
-          'Delivery Status': 'completed',
-          status: 'completed',
+          'Delivery Status': 'shipped',
+          status: 'shipped',
+          rawWcStatus: 'shipped',
           'Created Via': 'checkout',
           SKU: '109-0102-085', // WC COGS = 450
           'Item Name': 'DEEN Catalog Item',
@@ -1610,8 +1614,9 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           'Order Date': `${targetDate} 10:30:00`,
           'Date Modified': `${targetDate} 11:30:00`,
           'Status Modified Date': `${targetDate} 11:30:00`,
-          'Delivery Status': 'completed',
-          status: 'completed',
+          'Delivery Status': 'shipped',
+          status: 'shipped',
+          rawWcStatus: 'shipped',
           'Created Via': 'checkout',
           SKU: '108-0101-010', // Clearance item: WC COGS = 565 vs Sale = 494
           'Item Name': 'DEEN Off-white Sweatshirt in French-Terry - M',
@@ -1824,9 +1829,8 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(report.allOrdersBreakdown.waitingCount).toBe(3);
       expect(report.allOrdersBreakdown.holdCount).toBe(2);
       expect(report.allOrdersBreakdown.queueCount).toBe(5);
-      // 7006 has 'Delivery Status': 'shipped' but no Status Modified Date or date_completed.
-      // Strict rule rejects date_modified-only orders as "Today Shipped".
-      expect(report.allOrdersBreakdown.todayShippedCount).toBe(0);
+      // 7006 has 'Delivery Status': 'shipped' and Date Modified = today, so it counts as Today Shipped
+      expect(report.allOrdersBreakdown.todayShippedCount).toBe(1);
     });
 
     it('enforces pipeline status filtering (ALL, PROCESSING, HOLD) in filterOrderWiseGroups', () => {

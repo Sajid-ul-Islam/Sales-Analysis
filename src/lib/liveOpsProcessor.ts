@@ -955,8 +955,27 @@ export function isOrderInQueue(order: RawOrderRow): boolean {
   return isOrderWaiting(order) || isOrderOnHold(order);
 }
 
+// Statuses that qualify as "dispatched today" in the Live Orders Today Shipped view.
+// Rule (Nov 2026): ONLY the custom WC 'shipped' status (courier handoff) qualifies.
+// 'completed' / 'wc-completed' / 'delivered' are excluded — those represent historical
+// WooCommerce order finalization, NOT today's courier dispatch event.
+const LIVE_TODAY_SHIPPED_STATUSES = new Set(['shipped', 'wc-shipped']);
+
 export function isOrderShippedOnDate(order: RawOrderRow, targetDateIso: string): boolean {
   if (!isOrderShipped(order)) return false;
+
+  // ── RULE: exclude 'completed'/'wc-completed'/'delivered' from Today Shipped ───────────
+  // Only WC custom status 'shipped' (courier handoff) is eligible for Today Shipped view.
+  // Returns are excluded from this gate so they can still appear on the return event date.
+  if (!isOrderReturn(order)) {
+    const oGate = order as Record<string, unknown>;
+    const rawWc = String(oGate.rawWcStatus || oGate.wc_status || oGate.wcStatus || '').toLowerCase().trim();
+    const delivStatus = String(order['Delivery Status'] || oGate.status || oGate.orderStatus || '').toLowerCase().trim();
+    // If we have a raw WC status, it must be in the allowed set
+    if (rawWc && !LIVE_TODAY_SHIPPED_STATUSES.has(rawWc)) return false;
+    // If no rawWcStatus but Delivery Status is explicitly 'completed'/'delivered', also exclude
+    if (!rawWc && (delivStatus === 'completed' || delivStatus === 'wc-completed' || delivStatus === 'delivered')) return false;
+  }
 
   // An original order tagged "Exchanged" (like #17839) was shipped on an earlier date and modified today.
   // It must never be counted as a new completed/shipped sale on targetDateIso!
@@ -1000,7 +1019,7 @@ export function isOrderShippedOnDate(order: RawOrderRow, targetDateIso: string):
   if (!isOrderReturn(order)) {
     // ── Path A: Delivered / shipped (non-return) ─────────────────────────────────────────
 
-    // 1. date_completed — most authoritative; set by WC at exact moment status → completed
+    // 1. date_completed — authoritative for orders finalized via WC completed transition
     const dateCompletedVal = oStrict['Date Completed'] || oStrict.date_completed || oStrict.dateCompleted;
     if (dateCompletedVal) {
       const completedDate = parseOrderDateValue(dateCompletedVal);
@@ -1009,7 +1028,7 @@ export function isOrderShippedOnDate(order: RawOrderRow, targetDateIso: string):
       }
     }
 
-    // 2. Status Modified Date (order_status_updated_at) — WC sets on status transitions, NOT admin edits
+    // 2. Status Modified Date (order_status_updated_at) — WC sets on status transitions
     const statusModifiedVal = oStrict['Status Modified Date'] || oStrict.status_modified_date || oStrict.order_status_updated_at || oStrict['Order status updated at'];
     if (statusModifiedVal) {
       const smd = parseOrderDateValue(statusModifiedVal);
@@ -1018,7 +1037,7 @@ export function isOrderShippedOnDate(order: RawOrderRow, targetDateIso: string):
       }
     }
 
-    // 3. Courier delivery confirmation timestamp (Pathao sets when parcel is delivered)
+    // 3. Courier dispatch / delivery confirmation timestamp (Pathao)
     const courierDateVal = oStrict.courierUpdatedAt || oStrict['Courier Updated At'];
     if (courierDateVal) {
       const cd = parseOrderDateValue(courierDateVal);
@@ -1027,8 +1046,25 @@ export function isOrderShippedOnDate(order: RawOrderRow, targetDateIso: string):
       }
     }
 
-    // 4. No authoritative status-transition date found — REJECT.
-    //    date_modified alone is inadmissible (admin opens the order → date_modified = today).
+    // 4. Date Modified: authoritative for custom WC 'shipped' status where Date Completed is empty ("")
+    // When an order transitions to 'shipped' in WooCommerce, Date Modified is set to the status change timestamp.
+    const dateModifiedVal = oStrict['Date Modified'] || oStrict.dateModified || oStrict.date_modified || oStrict.date_modified_gmt;
+    if (dateModifiedVal) {
+      const dmd = parseOrderDateValue(dateModifiedVal);
+      if (dmd && !isNaN(dmd.getTime())) {
+        return formatDateToIsoDay(dmd) === targetDateIso;
+      }
+    }
+
+    // 5. Date Created fallback (if created directly as shipped today)
+    const dateCreatedVal = order['Order Date'] || oStrict.orderDate || oStrict.date_created;
+    if (dateCreatedVal) {
+      const dcd = parseOrderDateValue(dateCreatedVal);
+      if (dcd && !isNaN(dcd.getTime())) {
+        return formatDateToIsoDay(dcd) === targetDateIso;
+      }
+    }
+
     return false;
   }
 
