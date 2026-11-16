@@ -464,7 +464,32 @@ export function LiveOpsTab({
     if (liveOrders.length === 0) return orders;
     if (orders.length === 0) return liveOrders;
     const liveOrderIds = new Set(liveOrders.map((o) => cleanOrderId(o['Order ID'] || o.orderId)));
-    const historicalWithoutLive = orders.filter((o) => !liveOrderIds.has(cleanOrderId(o['Order ID'] || o.orderId)));
+    const liveQueueIds = new Set(
+      liveOrders
+        .filter(isOrderInQueue)
+        .map((o) => cleanOrderId(o['Order ID'] || o.orderId))
+        .filter(Boolean)
+    );
+    const hasLiveQueue = liveQueueIds.size > 0;
+
+    const historicalWithoutLive = orders
+      .filter((o) => !liveOrderIds.has(cleanOrderId(o['Order ID'] || o.orderId)))
+      .map((o) => {
+        // If live synced orders are present and authoritative live queue orders are known,
+        // any older historical order that is NOT in liveQueueIds cannot be in the active fulfillment queue.
+        // It was dispatched or completed in real life; reconcile it so it doesn't linger as a ghost queue order.
+        if (hasLiveQueue && isOrderInQueue(o)) {
+          return {
+            ...o,
+            'Delivery Status': 'Shipped',
+            status: 'completed',
+            orderStatus: 'completed',
+            orderDeliveryStatus: 'Shipped',
+            rawWcStatus: 'completed',
+          };
+        }
+        return o;
+      });
     return [...liveOrders, ...historicalWithoutLive];
   }, [liveOrders, orders]);
 
@@ -599,7 +624,29 @@ export function LiveOpsTab({
         const resolvedOrders = (() => {
           if (prev.length === 0) return incoming;
           const newOrderIds = new Set(incoming.map((r) => cleanOrderId(r['Order ID'] || r.orderId)));
-          const older = prev.filter((r) => !newOrderIds.has(cleanOrderId(r['Order ID'] || r.orderId)));
+          const liveQueueIds = new Set(
+            incoming
+              .filter(isOrderInQueue)
+              .map((r) => cleanOrderId(r['Order ID'] || r.orderId))
+              .filter(Boolean)
+          );
+          const hasLiveQueue = liveQueueIds.size > 0;
+
+          const older = prev
+            .filter((r) => !newOrderIds.has(cleanOrderId(r['Order ID'] || r.orderId)))
+            .map((r) => {
+              if (hasLiveQueue && isOrderInQueue(r)) {
+                return {
+                  ...r,
+                  'Delivery Status': 'Shipped',
+                  status: 'completed',
+                  orderStatus: 'completed',
+                  orderDeliveryStatus: 'Shipped',
+                  rawWcStatus: 'completed',
+                };
+              }
+              return r;
+            });
           return [...incoming, ...older];
         })();
         setLiveOrders(resolvedOrders);
@@ -776,8 +823,9 @@ export function LiveOpsTab({
       }
 
       // Pipeline status filter for Queue view
-      if (selectedView === 'Queue' && pipelineFilter !== 'ALL') {
+      if (selectedView === 'Queue') {
         if (!isOrderOnline(o)) return false;
+        if (!isOrderInQueue(o)) return false;
         if (pipelineFilter === 'PROCESSING' && (!isOrderWaiting(o) || isOrderOnHold(o))) return false;
         if (pipelineFilter === 'HOLD' && !isOrderOnHold(o)) return false;
       }

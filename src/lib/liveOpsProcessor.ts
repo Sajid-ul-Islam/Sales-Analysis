@@ -761,6 +761,19 @@ export function getOrderAllStatuses(order: RawOrderRow): string[] {
  * Detects whether an order is in processing state awaiting fulfillment.
  */
 export function isOrderProcessing(order: RawOrderRow): boolean {
+  if (!order) return false;
+  const o = order as Record<string, unknown>;
+  const delivStatus = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
+  const rawWc = String(o.rawWcStatus || o.wc_status || o.wcStatus || '').toLowerCase().trim();
+
+  // If order is completed or cancelled in WooCommerce, not processing
+  if (SHIPPED_STATUSES.has(delivStatus) || SHIPPED_STATUSES.has(rawWc)) {
+    return false;
+  }
+  if (CANCELLED_STATUSES.has(delivStatus) || CANCELLED_STATUSES.has(rawWc)) {
+    return false;
+  }
+
   const statuses = getOrderAllStatuses(order);
   return statuses.some(
     (status) =>
@@ -774,8 +787,42 @@ export function isOrderProcessing(order: RawOrderRow): boolean {
 
 /**
  * Detects whether an order is on hold (e.g. awaiting confirmation, customer request, address check).
+ * Strictly excludes orders that have already been shipped, dispatched by courier, returned, or cancelled.
  */
 export function isOrderOnHold(order: RawOrderRow): boolean {
+  if (!order) return false;
+
+  // 1. Retail POS walk-ins are physical counter sales
+  if (isOrderOutlet(order)) return false;
+
+  // 2. Exchanges are isolated in dedicated Exchange Logistics tab
+  if (isOrderExchange(order)) return false;
+
+  // 3. Shipped, completed, returned, or cancelled orders cannot be on hold
+  if (isOrderShipped(order) || isOrderReturn(order)) return false;
+
+  const o = order as Record<string, unknown>;
+  const delivStatus = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
+  const rawWc = String(o.rawWcStatus || o.wc_status || o.wcStatus || '').toLowerCase().trim();
+  if (SHIPPED_STATUSES.has(delivStatus) || SHIPPED_STATUSES.has(rawWc)) {
+    return false;
+  }
+  if (CANCELLED_STATUSES.has(delivStatus) || CANCELLED_STATUSES.has(rawWc)) {
+    return false;
+  }
+
+  const cStatus = String(order['Courier Status'] || o.courierStatus || o.pathaoStatus || '').toLowerCase().trim();
+  if (
+    cStatus === 'delivered' ||
+    cStatus === 'in transit' ||
+    cStatus === 'dispatched' ||
+    cStatus === 'shipped' ||
+    cStatus.includes('transit') ||
+    cStatus.includes('delivered')
+  ) {
+    return false;
+  }
+
   const statuses = getOrderAllStatuses(order);
   return statuses.some(
     (status) =>
@@ -795,8 +842,36 @@ export function isOrderOnHold(order: RawOrderRow): boolean {
 /**
  * Detects whether an order is in waiting state:
  * includes processing, pending, awaiting payment/confirmation, or waiting for courier pickup.
+ * Strictly excludes orders that have already been shipped, returned, or cancelled.
  */
 export function isOrderWaiting(order: RawOrderRow): boolean {
+  if (!order) return false;
+
+  // 1. Retail POS walk-ins are physical counter sales
+  if (isOrderOutlet(order)) return false;
+
+  // 2. Exchanges are isolated in dedicated Exchange Logistics tab
+  if (isOrderExchange(order)) return false;
+
+  // 3. Returned orders are handled in Returns & Exchanges
+  if (isOrderReturn(order)) return false;
+
+  const o = order as Record<string, unknown>;
+  const delivStatus = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
+  const rawWc = String(o.rawWcStatus || o.wc_status || o.wcStatus || '').toLowerCase().trim();
+
+  // If order is marked shipped/completed, only keep if courier status is pending pickup
+  if (SHIPPED_STATUSES.has(delivStatus) || SHIPPED_STATUSES.has(rawWc) || isOrderShipped(order)) {
+    const cStatus = String(order['Courier Status'] || o.courierStatus || o.pathaoStatus || '').toLowerCase().trim();
+    if (cStatus !== 'pending pickup' && cStatus !== 'pickup_requested') {
+      return false;
+    }
+  }
+
+  if (CANCELLED_STATUSES.has(delivStatus) || CANCELLED_STATUSES.has(rawWc)) {
+    return false;
+  }
+
   if (isOrderProcessing(order)) return true;
   const statuses = getOrderAllStatuses(order);
   return statuses.some(
@@ -826,9 +901,11 @@ export function isOrderWaiting(order: RawOrderRow): boolean {
 /**
  * Detects whether an order is in the active fulfillment queue.
  * User Rule: Queue includes ALL waiting (processing, pending, waiting-for-pickup) and on-hold orders,
- * strictly excluding retail POS sales, exchange replacements, returns, delivered, and cancelled orders.
+ * strictly excluding retail POS sales, exchange replacements, returns, delivered, dispatched, and cancelled orders.
  */
 export function isOrderInQueue(order: RawOrderRow): boolean {
+  if (!order) return false;
+
   // 1. Retail POS walk-ins are physical counter sales, never online fulfillment queue
   if (isOrderOutlet(order)) return false;
 
@@ -838,24 +915,36 @@ export function isOrderInQueue(order: RawOrderRow): boolean {
   // 3. Returned orders are handled in Returns & Exchanges
   if (isOrderReturn(order)) return false;
 
-  // 4. If order is already delivered or in transit with courier, it's not in warehouse fulfillment queue
+  // 4. If order is already delivered, in transit, or dispatched with courier, it's not in warehouse fulfillment queue
   const o = order as Record<string, unknown>;
   const cStatus = String(order['Courier Status'] || o.courierStatus || o.pathaoStatus || '').toLowerCase().trim();
-  if (cStatus === 'delivered' || cStatus === 'in transit' || cStatus.includes('transit')) {
+  if (
+    cStatus === 'delivered' ||
+    cStatus === 'in transit' ||
+    cStatus === 'dispatched' ||
+    cStatus === 'shipped' ||
+    cStatus.includes('transit') ||
+    cStatus.includes('delivered')
+  ) {
     return false;
   }
 
   // 5. Cancelled / refunded orders are not in queue
+  const delivStatus = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
+  const rawWc = String(o.rawWcStatus || o.wc_status || o.wcStatus || '').toLowerCase().trim();
+  if (CANCELLED_STATUSES.has(delivStatus) || CANCELLED_STATUSES.has(rawWc)) {
+    return false;
+  }
+
   const statuses = getOrderAllStatuses(order);
   const isCancelled = statuses.some(
     (s) => CANCELLED_STATUSES.has(s) || s === 'cancelled' || s === 'failed' || s === 'trash' || s === 'refunded'
   );
   if (isCancelled) return false;
 
-  // 6. Completed / delivered store delivery status without courier pending pickup is not in queue
-  const delivStatus = String(order['Delivery Status'] || o.status || '').toLowerCase().trim();
+  // 6. Completed / shipped / delivered store delivery status without courier pending pickup is not in queue
   if (
-    (delivStatus === 'completed' || delivStatus === 'wc-completed' || delivStatus === 'delivered') &&
+    (SHIPPED_STATUSES.has(delivStatus) || SHIPPED_STATUSES.has(rawWc) || isOrderShipped(order)) &&
     cStatus !== 'pending pickup' &&
     cStatus !== 'pickup_requested'
   ) {

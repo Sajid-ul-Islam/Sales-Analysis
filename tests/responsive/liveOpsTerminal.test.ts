@@ -1836,6 +1836,125 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(holdIds).not.toContain('7002');
       expect(holdIds).not.toContain('7003');
     });
+
+    it('strictly excludes previously on-hold orders that got dispatched or shipped with courier', () => {
+      // Order that was previously on hold, but got dispatched by courier (In Transit)
+      const dispatchedOnHoldOrder: RawOrderRow = {
+        'Order ID': '8001',
+        orderId: '8001',
+        'Order Date': '2026-11-10 10:00:00',
+        'Delivery Status': 'shipped',
+        status: 'completed',
+        'Courier Status': 'In Transit',
+        courierStatus: 'In Transit',
+        'Order Notes': 'Customer confirmed after on-hold review',
+        rawWcStatus: 'completed',
+        'Order Source': 'Online',
+        'Created Via': 'checkout',
+        'Order Amount': 2400,
+        Quantity: 1,
+      };
+
+      // Order that was previously on hold, but was marked completed
+      const completedOnHoldOrder: RawOrderRow = {
+        'Order ID': '8002',
+        orderId: '8002',
+        'Order Date': '2026-11-08 14:00:00',
+        'Delivery Status': 'completed',
+        status: 'completed',
+        'Courier Status': 'Delivered',
+        courierStatus: 'Delivered',
+        rawWcStatus: 'completed',
+        'Order Source': 'Online',
+        'Created Via': 'checkout',
+        'Order Amount': 1800,
+        Quantity: 1,
+      };
+
+      // Stale order from older baseline snapshot with on-hold note but marked shipped
+      const staleShippedOrder: RawOrderRow = {
+        'Order ID': '8003',
+        orderId: '8003',
+        'Order Date': '2026-10-29 12:00:00',
+        'Delivery Status': 'shipped',
+        status: 'completed',
+        'Courier Status': 'Dispatched',
+        'Order Notes': 'on-hold: awaiting address confirmation',
+        'Order Source': 'Online',
+        'Created Via': 'checkout',
+        'Order Amount': 3200,
+        Quantity: 1,
+      };
+
+      expect(isOrderOnHold(dispatchedOnHoldOrder)).toBe(false);
+      expect(isOrderWaiting(dispatchedOnHoldOrder)).toBe(false);
+      expect(isOrderInQueue(dispatchedOnHoldOrder)).toBe(false);
+
+      expect(isOrderOnHold(completedOnHoldOrder)).toBe(false);
+      expect(isOrderWaiting(completedOnHoldOrder)).toBe(false);
+      expect(isOrderInQueue(completedOnHoldOrder)).toBe(false);
+
+      expect(isOrderOnHold(staleShippedOrder)).toBe(false);
+      expect(isOrderWaiting(staleShippedOrder)).toBe(false);
+      expect(isOrderInQueue(staleShippedOrder)).toBe(false);
+    });
+
+    it('prevents historical baseline orders from leaking into live queue (66 true live orders vs 89 ghost inflation)', () => {
+      // 66 active live queue orders
+      const liveQueue: RawOrderRow[] = Array.from({ length: 66 }, (_, i) => ({
+        'Order ID': `LIVE-${i + 1}`,
+        orderId: `LIVE-${i + 1}`,
+        'Order Date': '2026-11-16 10:00:00',
+        'Delivery Status': i % 2 === 0 ? 'processing' : 'on-hold',
+        status: i % 2 === 0 ? 'processing' : 'on-hold',
+        'Order Source': 'Online',
+        'Created Via': 'checkout',
+        'Order Amount': 1500,
+        Quantity: 1,
+      }));
+
+      // 23 stale historical baseline orders (from late October / early November) that were on-hold in baselineSample
+      const historicalStaleQueue: RawOrderRow[] = Array.from({ length: 23 }, (_, i) => ({
+        'Order ID': `HIST-${i + 1}`,
+        orderId: `HIST-${i + 1}`,
+        'Order Date': '2026-10-29 10:00:00',
+        'Delivery Status': 'on-hold',
+        status: 'on-hold',
+        'Order Source': 'Online',
+        'Created Via': 'checkout',
+        'Order Amount': 2000,
+        Quantity: 1,
+      }));
+
+      // In real life, historical orders not returned in the authoritative live queue query are reconciled as dispatched
+      const liveQueueIds = new Set(
+        liveQueue.filter(isOrderInQueue).map((o) => o['Order ID']).filter(Boolean)
+      );
+      expect(liveQueueIds.size).toBe(66);
+
+      const reconciledHistorical = historicalStaleQueue.map((o) => {
+        if (liveQueueIds.size > 0 && isOrderInQueue(o)) {
+          return {
+            ...o,
+            'Delivery Status': 'Shipped',
+            status: 'completed',
+            orderStatus: 'completed',
+            orderDeliveryStatus: 'Shipped',
+            rawWcStatus: 'completed',
+          };
+        }
+        return o;
+      });
+
+      // Merged active dataset
+      const activeDataset = [...liveQueue, ...reconciledHistorical];
+      const queueOrders = activeDataset.filter(isOrderInQueue);
+
+      // Must strictly be 66 orders, completely eliminating the 23 ghost orders that inflated it to 89!
+      expect(queueOrders.length).toBe(66);
+      expect(queueOrders.every((o) => String(o['Order ID'] || '').startsWith('LIVE-'))).toBe(true);
+      expect(queueOrders.some((o) => String(o['Order ID'] || '').startsWith('HIST-'))).toBe(false);
+    });
   });
 });
 

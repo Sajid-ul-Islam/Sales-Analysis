@@ -7,6 +7,7 @@ import { buildTimelineIndex, extractCustomerBilling, classifyCustomer } from '@/
 import { fetchDatasetFromBlob, isBlobConfigured } from '@/lib/blobStorage';
 import { getLiveWebhookUpdates, PathaoWebhookRecord } from '@/lib/pathaoWebhookEngine';
 import { getBaselineDataset } from '@/lib/baselineLoader';
+import { isOrderInQueue } from '@/lib/liveOpsProcessor';
 
 export {
   type StandardCourierStatus,
@@ -255,15 +256,18 @@ export async function syncLiveTerminalData(options: {
             return [];
           }),
           fetchWooCommerceOrders({
-            perPage: 50,
-            fetchAllPages: false,
-            maxPages: 2,
+            perPage: 100,
+            fetchAllPages: true,
+            maxPages: 3,
             status: ['processing', 'on-hold'],
             orderBy: 'date',
             order: 'desc',
-            timeoutMs: 15000,
+            timeoutMs: 25000,
             credentials: options.wcCredentials,
-          }).catch(() => []),
+          }).catch((err) => {
+            console.warn('[liveTerminalSync] WooCommerce fetch queue notice:', err);
+            return [];
+          }),
         ]);
 
         const mergedWcMap = new Map<string, typeof recentByDate[0]>();
@@ -288,7 +292,31 @@ export async function syncLiveTerminalData(options: {
           const liveRows = formatWooCommerceToOrderRows(fetched);
           if (Array.isArray(options.activeOrders) && options.activeOrders.length > 0) {
             const liveOrderIds = new Set(liveRows.map((r) => cleanOrderId(r['Order ID'] || r.orderId)));
-            const nonOverlapping = options.activeOrders.filter((r) => !liveOrderIds.has(cleanOrderId(r['Order ID'] || r.orderId)));
+            const liveQueueIds = new Set(
+              liveRows
+                .filter(isOrderInQueue)
+                .map((r) => cleanOrderId(r['Order ID'] || r.orderId))
+                .filter(Boolean)
+            );
+            const hasLiveQueue = liveQueueIds.size > 0;
+
+            const nonOverlapping = options.activeOrders
+              .filter((r) => !liveOrderIds.has(cleanOrderId(r['Order ID'] || r.orderId)))
+              .map((r) => {
+                // If live WooCommerce queue orders were fetched, any older un-refreshed order that was previously
+                // marked on-hold/processing but is NOT in liveQueueIds has already been dispatched/completed in real life.
+                if (hasLiveQueue && isOrderInQueue(r)) {
+                  return {
+                    ...r,
+                    'Delivery Status': 'Shipped',
+                    status: 'completed',
+                    orderStatus: 'completed',
+                    orderDeliveryStatus: 'Shipped',
+                    rawWcStatus: 'completed',
+                  };
+                }
+                return r;
+              });
             rawOrders = [...liveRows, ...nonOverlapping];
           } else {
             rawOrders = liveRows;
