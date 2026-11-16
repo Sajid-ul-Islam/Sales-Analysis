@@ -13,6 +13,8 @@ import {
   isOrderOutlet,
   isOrderProcessing,
   isOrderOnHold,
+  isOrderWaiting,
+  isOrderInQueue,
   isOrderShipped,
   extractExchangeInfo,
   ExchangeInfo,
@@ -354,8 +356,8 @@ export function filterOrderWiseGroups(
       if (!hasMatchingCategory) return false;
     }
 
-    // Courier filter
-    if (courierFilter !== 'ALL' && courierFilter !== 'EXCHANGES_ONLY') {
+    // Courier filter (applies to shipped dispatches; in Queue view, orders are waiting in fulfillment queue)
+    if (selectedView !== 'Queue' && courierFilter !== 'ALL' && courierFilter !== 'EXCHANGES_ONLY') {
       if (courierFilter === 'DISCREPANCY_ONLY') {
         if (!group.hasDiscrepancy) return false;
       } else if (
@@ -385,10 +387,18 @@ export function filterOrderWiseGroups(
       }
     }
 
-    // Pipeline status filter (for Today's Orders view)
+    // Pipeline status filter for Queue view
+    if (selectedView === 'Queue') {
+      if (!isOrderOnline(group.primaryRow)) return false;
+      if (!isOrderInQueue(group.primaryRow)) return false;
+      if (pipelineFilter === 'PROCESSING' && (!isOrderWaiting(group.primaryRow) || isOrderOnHold(group.primaryRow))) return false;
+      if (pipelineFilter === 'HOLD' && !isOrderOnHold(group.primaryRow)) return false;
+    }
+
+    // Pipeline status filter for Today's Orders view
     if ((selectedView === "Today's Orders" || selectedView === 'All Orders') && pipelineFilter !== 'ALL') {
       if (!isOrderOnline(group.primaryRow)) return false;
-      if (pipelineFilter === 'PROCESSING' && !isOrderProcessing(group.primaryRow)) return false;
+      if (pipelineFilter === 'PROCESSING' && !isOrderWaiting(group.primaryRow)) return false;
       if (pipelineFilter === 'HOLD' && !isOrderOnHold(group.primaryRow)) return false;
       if (pipelineFilter === 'SHIPPED_TODAY' && !isOrderShipped(group.primaryRow)) return false;
     }

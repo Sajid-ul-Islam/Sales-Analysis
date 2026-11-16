@@ -35,6 +35,8 @@ import {
   LiveOpsReport,
   isOrderProcessing,
   isOrderOnHold,
+  isOrderWaiting,
+  isOrderInQueue,
   isOrderShipped,
   isOrderExchange,
   isOrderOnline,
@@ -744,7 +746,8 @@ export function LiveOpsTab({
         if (!matchesCategory && !matchesSubCategory) return false;
       }
 
-      if (courierFilter !== 'ALL' && courierFilter !== 'EXCHANGES_ONLY') {
+      // Courier telemetry filter (skip in Queue view since orders are waiting in fulfillment queue)
+      if (selectedView !== 'Queue' && courierFilter !== 'ALL' && courierFilter !== 'EXCHANGES_ONLY') {
         if (courierFilter === 'DISCREPANCY_ONLY') {
           if (!o.hasDiscrepancy) return false;
         } else if (
@@ -772,9 +775,17 @@ export function LiveOpsTab({
         }
       }
 
+      // Pipeline status filter for Queue view
+      if (selectedView === 'Queue' && pipelineFilter !== 'ALL') {
+        if (!isOrderOnline(o)) return false;
+        if (pipelineFilter === 'PROCESSING' && (!isOrderWaiting(o) || isOrderOnHold(o))) return false;
+        if (pipelineFilter === 'HOLD' && !isOrderOnHold(o)) return false;
+      }
+
+      // Pipeline status filter for Today's Orders view
       if ((selectedView === "Today's Orders" || (selectedView as string) === 'All Orders') && pipelineFilter !== 'ALL') {
         if (!isOrderOnline(o)) return false;
-        if (pipelineFilter === 'PROCESSING' && !isOrderProcessing(o)) return false;
+        if (pipelineFilter === 'PROCESSING' && !isOrderWaiting(o)) return false;
         if (pipelineFilter === 'HOLD' && !isOrderOnHold(o)) return false;
         if (pipelineFilter === 'SHIPPED_TODAY' && !isOrderShipped(o)) return false;
       }
@@ -1412,6 +1423,8 @@ export function LiveOpsTab({
                 onClick={() => {
                   setSelectedHistoricalDate(null);
                   setSelectedView('Today Shipped');
+                  setCourierFilter('ALL');
+                  setPipelineFilter('ALL');
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
                   selectedView === 'Today Shipped' && !selectedHistoricalDate
@@ -1428,6 +1441,7 @@ export function LiveOpsTab({
                 onClick={() => {
                   setSelectedHistoricalDate(null);
                   setSelectedView("Today's Orders");
+                  setCourierFilter('ALL');
                   setPipelineFilter('ALL');
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
@@ -1449,17 +1463,20 @@ export function LiveOpsTab({
                 onClick={() => {
                   setSelectedHistoricalDate(null);
                   setSelectedView('Queue');
+                  setCourierFilter('ALL');
+                  setPipelineFilter('ALL');
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
                   selectedView === 'Queue' && !selectedHistoricalDate
                     ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
+                title="Fulfillment Queue = All waiting (processing, pending, waiting-for-pickup) and on-hold orders"
               >
                 <span>📋</span>
                 <span>Queue</span>
                 <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-[#262626] text-slate-700 dark:text-slate-300 font-semibold">
-                  {report.allOrdersBreakdown.processingCount + report.allOrdersBreakdown.holdCount}
+                  {report.allOrdersBreakdown.queueCount ?? (report.allOrdersBreakdown.processingCount + report.allOrdersBreakdown.holdCount)}
                 </span>
               </button>
             </div>
@@ -1593,6 +1610,8 @@ export function LiveOpsTab({
                 ? `Shipped Items (${report.refDayName.slice(0, 3)} ${report.referenceDate.slice(5)})`
                 : channelFilter === 'POS'
                 ? 'Outlet Units Sold - Today'
+                : selectedView === 'Queue'
+                ? 'Queue Items - Waiting & Hold'
                 : (selectedView === "Today's Orders" ? "Today's Items - Total" : 'Shipped Items - Today')}
             </span>
             <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs shrink-0">
@@ -1659,6 +1678,8 @@ export function LiveOpsTab({
                 ? `Sales Revenue (${report.refDayName.slice(0, 3)} ${report.referenceDate.slice(5)})`
                 : channelFilter === 'POS'
                 ? 'Outlet Sales Revenue - Today'
+                : selectedView === 'Queue'
+                ? 'Queue Value - Total'
                 : (selectedView === "Today's Orders" ? "Today's Revenue - Total" : 'Sales Revenue - Today')}
             </span>
             <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sky-600 dark:text-sky-400 font-bold text-sm shadow-2xs shrink-0">
@@ -1736,6 +1757,8 @@ export function LiveOpsTab({
                 ? `Shipped Orders (${report.refDayName.slice(0, 3)} ${report.referenceDate.slice(5)})`
                 : channelFilter === 'POS'
                 ? 'Outlet Transactions - Today'
+                : selectedView === 'Queue'
+                ? 'Queue Orders - Total'
                 : (selectedView === "Today's Orders" ? "Today's Orders - Total" : 'Shipped Orders - Today')}
             </span>
             <div className="w-8 h-8 rounded-xl bg-sky-50/80 dark:bg-[#121212] border border-sky-100 dark:border-[#222222] flex items-center justify-center text-sm shadow-2xs shrink-0">
@@ -1909,6 +1932,8 @@ export function LiveOpsTab({
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#1A1A1A] text-slate-600 dark:text-slate-400">
                   {channelFilter === 'POS'
                     ? (posBranchFilter === 'ALL' ? 'All Outlets' : `${posBranchFilter} Outlet`)
+                    : selectedView === 'Queue'
+                    ? "Fulfillment Queue (Waiting & Hold)"
                     : selectedView === "Today's Orders"
                     ? "Today's Active Orders"
                     : "Today Shipped"}
@@ -2699,7 +2724,15 @@ export function LiveOpsTab({
             <div className="flex items-center gap-3 flex-wrap">
               <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight font-headline flex items-center gap-2">
                 <span>📋</span>
-                <span>{channelFilter === 'POS' ? 'Outlet Sales Ledger' : 'Everyday Dispatched Orders Ledger'}</span>
+                <span>
+                  {channelFilter === 'POS'
+                    ? 'Outlet Sales Ledger'
+                    : selectedView === 'Queue'
+                    ? 'Fulfillment Queue Ledger (Waiting & Hold Orders)'
+                    : selectedView === "Today's Orders"
+                    ? "Today's Active Orders Ledger"
+                    : 'Everyday Dispatched Orders Ledger'}
+                </span>
                 <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
                   ({ledgerViewMode === 'ORDER_WISE' ? `${filteredOrderWiseGroups.length} unique orders` : `${filteredOrders.length} line items`})
                 </span>
@@ -2762,6 +2795,8 @@ export function LiveOpsTab({
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               {channelFilter === 'POS'
                 ? 'Physical retail outlet store sales with immediate customer handover across Mirpur, Wari, Cumilla, and Sylhet branches.'
+                : selectedView === 'Queue'
+                ? 'All waiting (processing, pending, waiting-for-pickup) and on-hold orders currently queued for warehouse fulfillment.'
                 : ledgerViewMode === 'ORDER_WISE'
                 ? 'Consolidated view grouping multi-item baskets into single authoritative rows with expandable product breakdowns.'
                 : 'Granular line-item record of each apparel product dispatched matching the active shift view with live Pathao delivery status.'}
@@ -2898,6 +2933,87 @@ export function LiveOpsTab({
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
                       posBranchFilter === pill.id
+                        ? 'bg-white/20 text-white'
+                        : 'bg-slate-200 dark:bg-[#202020] text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    {pill.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        ) : selectedView === 'Queue' ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mr-1">
+              Queue Status:
+            </span>
+            {[
+              { id: 'ALL' as const, label: '📋 All in Queue', count: report.allOrdersBreakdown.queueCount },
+              { id: 'PROCESSING' as const, label: '⏳ Waiting Only', count: report.allOrdersBreakdown.waitingCount || report.allOrdersBreakdown.processingCount },
+              { id: 'HOLD' as const, label: '⏸️ On Hold Only', count: report.allOrdersBreakdown.holdCount },
+            ].map((pill) => (
+              <button
+                key={pill.id}
+                type="button"
+                onClick={() => setPipelineFilter(pill.id)}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  pipelineFilter === pill.id
+                    ? pill.id === 'HOLD'
+                      ? 'bg-amber-600 text-white shadow-xs'
+                      : pill.id === 'PROCESSING'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-900 dark:bg-white text-white dark:text-black shadow-xs'
+                    : 'bg-slate-100 dark:bg-[#121212] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#1A1A1A] border border-transparent dark:border-[#1F1F1F]'
+                }`}
+              >
+                <span>{pill.label}</span>
+                {pill.count !== undefined && (
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                      pipelineFilter === pill.id
+                        ? 'bg-white/20 text-white'
+                        : 'bg-slate-200 dark:bg-[#202020] text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    {pill.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        ) : selectedView === "Today's Orders" ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mr-1">
+              Pipeline Status:
+            </span>
+            {[
+              { id: 'ALL' as const, label: '📦 All Active', count: report.allOrdersBreakdown.totalActiveCount },
+              { id: 'PROCESSING' as const, label: '⏳ Processing', count: report.allOrdersBreakdown.processingCount },
+              { id: 'HOLD' as const, label: '⏸️ On Hold', count: report.allOrdersBreakdown.holdCount },
+              { id: 'SHIPPED_TODAY' as const, label: '🚚 Shipped Today', count: report.allOrdersBreakdown.todayShippedCount },
+            ].map((pill) => (
+              <button
+                key={pill.id}
+                type="button"
+                onClick={() => setPipelineFilter(pill.id)}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  pipelineFilter === pill.id
+                    ? pill.id === 'HOLD'
+                      ? 'bg-amber-600 text-white shadow-xs'
+                      : pill.id === 'PROCESSING'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : pill.id === 'SHIPPED_TODAY'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-slate-900 dark:bg-white text-white dark:text-black shadow-xs'
+                    : 'bg-slate-100 dark:bg-[#121212] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#1A1A1A] border border-transparent dark:border-[#1F1F1F]'
+                }`}
+              >
+                <span>{pill.label}</span>
+                {pill.count !== undefined && (
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                      pipelineFilter === pill.id
                         ? 'bg-white/20 text-white'
                         : 'bg-slate-200 dark:bg-[#202020] text-slate-600 dark:text-slate-400'
                     }`}

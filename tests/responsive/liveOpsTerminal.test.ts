@@ -13,7 +13,13 @@ import {
   isOrderShippedOnDate,
   isOrderShippedToday,
   isTodayOrdersEligible,
+  isOrderInQueue,
+  isOrderWaiting,
+  isOrderOnHold,
+  isOrderProcessing,
+  getOrderAllStatuses,
 } from '@/lib/liveOpsProcessor';
+import { groupOrdersByOrderId, filterOrderWiseGroups } from '@/lib/orderGrouping';
 import { RawOrderRow } from '@/types';
 import { normalizePhone, normalizeEmail, normalizeName, normalizeCity } from '@/lib/customerRegistry';
 import * as XLSX from 'xlsx';
@@ -1598,6 +1604,237 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(report.salesRevenue.profitAmount).toBe(379);
       expect(report.salesRevenue.profitPercent).toBe(27.2);
       expect(report.salesRevenue.cogsCoveragePercent).toBe(100);
+    });
+  });
+
+  describe('Fulfillment Queue View & Status Filtering Specification', () => {
+    const mockQueueOrders: Partial<RawOrderRow>[] = [
+      // 1. Processing order (e.g. WooCommerce processing)
+      {
+        'Order ID': '7001',
+        orderId: '7001',
+        'Order Date': '2026-11-16 10:00:00',
+        'Customer Name': 'Processing Customer',
+        'Delivery Status': 'processing',
+        status: 'processing',
+        'Order Source': 'Online',
+        'Created Via': 'checkout',
+        'Order Amount': 2400,
+        Quantity: 2,
+      },
+      // 2. Pending order (waiting confirmation or payment)
+      {
+        'Order ID': '7002',
+        orderId: '7002',
+        'Order Date': '2026-11-16 10:30:00',
+        'Customer Name': 'Pending Customer',
+        'Delivery Status': 'pending',
+        status: 'wc-pending',
+        'Order Source': 'Online',
+        'Created Via': 'checkout',
+        'Order Amount': 1800,
+        Quantity: 1,
+      },
+      // 3. Waiting-for-pickup order (booked with Pathao but courier hasn't picked up yet)
+      {
+        'Order ID': '7003',
+        orderId: '7003',
+        'Order Date': '2026-11-16 11:00:00',
+        'Customer Name': 'Waiting Pickup Customer',
+        'Delivery Status': 'Pending Pickup',
+        'Courier Status': 'Pending Pickup',
+        status: 'processing',
+        'Order Source': 'Online',
+        'Created Via': 'checkout',
+        'Order Amount': 3200,
+        Quantity: 2,
+      },
+      // 4. On-hold order (awaiting customer confirmation)
+      {
+        'Order ID': '7004',
+        orderId: '7004',
+        'Order Date': '2026-11-16 09:00:00',
+        'Customer Name': 'Hold Customer',
+        'Delivery Status': 'on-hold',
+        status: 'wc-on-hold',
+        'Order Source': 'Online',
+        'Created Via': 'checkout',
+        'Order Amount': 1500,
+        Quantity: 1,
+      },
+      // 5. Another on-hold order with alternative naming
+      {
+        'Order ID': '7005',
+        orderId: '7005',
+        'Order Date': '2026-11-16 08:30:00',
+        'Customer Name': 'Customer Hold',
+        'Delivery Status': 'on hold',
+        status: 'customer-hold',
+        'Order Source': 'Online',
+        'Created Via': 'checkout',
+        'Order Amount': 2100,
+        Quantity: 1,
+      },
+      // 6. Shipped Today order (NOT in queue)
+      {
+        'Order ID': '7006',
+        orderId: '7006',
+        'Order Date': '2026-11-16 09:30:00',
+        'Date Modified': '2026-11-16 11:30:00',
+        'Customer Name': 'Shipped Customer',
+        'Delivery Status': 'shipped',
+        'Courier Status': 'In Transit',
+        status: 'completed',
+        'Order Source': 'Online',
+        'Created Via': 'checkout',
+        'Order Amount': 3000,
+        Quantity: 2,
+      },
+      // 7. Delivered order (NOT in queue)
+      {
+        'Order ID': '7007',
+        orderId: '7007',
+        'Order Date': '2026-11-15 10:00:00',
+        'Delivery Status': 'delivered',
+        'Courier Status': 'Delivered',
+        status: 'completed',
+        'Order Source': 'Online',
+        'Created Via': 'checkout',
+        'Order Amount': 1600,
+        Quantity: 1,
+      },
+      // 8. Cancelled order (NOT in queue)
+      {
+        'Order ID': '7008',
+        orderId: '7008',
+        'Order Date': '2026-11-16 08:00:00',
+        'Delivery Status': 'cancelled',
+        status: 'cancelled',
+        'Order Source': 'Online',
+        'Created Via': 'checkout',
+        'Order Amount': 1200,
+        Quantity: 1,
+      },
+      // 9. Returned parcel (NOT in queue)
+      {
+        'Order ID': '7009',
+        orderId: '7009',
+        'Order Date': '2026-11-14 10:00:00',
+        'Delivery Status': 'returned',
+        'Courier Status': 'Returned',
+        status: 'completed',
+        'Order Source': 'Online',
+        'Created Via': 'checkout',
+        'Order Amount': 2000,
+        Quantity: 1,
+      },
+      // 10. Retail POS walk-in sale (NOT in online fulfillment queue)
+      {
+        'Order ID': '7010',
+        orderId: '7010',
+        'Order Date': '2026-11-16 12:00:00',
+        'Customer Name': 'Walk-In Customer',
+        'Delivery Status': 'completed',
+        status: 'completed',
+        'Order Source': 'POS',
+        isPos: true,
+        'Created Via': 'pos',
+        'Order Amount': 3500,
+        Quantity: 2,
+      },
+    ];
+
+    it('accurately classifies waiting vs hold vs shipped orders via isOrderInQueue, isOrderWaiting, and isOrderOnHold', () => {
+      // Waiting orders: 7001 (processing), 7002 (pending), 7003 (waiting pickup)
+      expect(isOrderWaiting(mockQueueOrders[0] as RawOrderRow)).toBe(true);
+      expect(isOrderWaiting(mockQueueOrders[1] as RawOrderRow)).toBe(true);
+      expect(isOrderWaiting(mockQueueOrders[2] as RawOrderRow)).toBe(true);
+      expect(isOrderOnHold(mockQueueOrders[0] as RawOrderRow)).toBe(false);
+
+      // On-hold orders: 7004, 7005
+      expect(isOrderOnHold(mockQueueOrders[3] as RawOrderRow)).toBe(true);
+      expect(isOrderOnHold(mockQueueOrders[4] as RawOrderRow)).toBe(true);
+
+      // All waiting and hold orders are in the queue
+      expect(isOrderInQueue(mockQueueOrders[0] as RawOrderRow)).toBe(true);
+      expect(isOrderInQueue(mockQueueOrders[1] as RawOrderRow)).toBe(true);
+      expect(isOrderInQueue(mockQueueOrders[2] as RawOrderRow)).toBe(true);
+      expect(isOrderInQueue(mockQueueOrders[3] as RawOrderRow)).toBe(true);
+      expect(isOrderInQueue(mockQueueOrders[4] as RawOrderRow)).toBe(true);
+
+      // Excluded orders: shipped, delivered, cancelled, returned, POS
+      expect(isOrderInQueue(mockQueueOrders[5] as RawOrderRow)).toBe(false); // In transit
+      expect(isOrderInQueue(mockQueueOrders[6] as RawOrderRow)).toBe(false); // Delivered
+      expect(isOrderInQueue(mockQueueOrders[7] as RawOrderRow)).toBe(false); // Cancelled
+      expect(isOrderInQueue(mockQueueOrders[8] as RawOrderRow)).toBe(false); // Returned
+      expect(isOrderInQueue(mockQueueOrders[9] as RawOrderRow)).toBe(false); // POS walk-in
+    });
+
+    it('aggregates all waiting and hold orders under processLiveOpsData with view=Queue', () => {
+      const report = processLiveOpsData(mockQueueOrders as RawOrderRow[], {
+        view: 'Queue',
+        onlineOnly: true,
+        anchorDate: '2026-11-16',
+        customDate: '2026-11-16',
+      });
+
+      // Active orders in queue must be exactly the 5 waiting and hold orders
+      const queueIds = report.activeOrders.map((o) => o['Order ID']);
+      expect(queueIds).toContain('7001');
+      expect(queueIds).toContain('7002');
+      expect(queueIds).toContain('7003');
+      expect(queueIds).toContain('7004');
+      expect(queueIds).toContain('7005');
+      expect(queueIds.length).toBe(5);
+
+      // KPI card values reflect queue
+      expect(report.shippedOrders.value).toBe(5);
+      expect(report.shippedItems.value).toBe(7); // 2 + 1 + 2 + 1 + 1 = 7
+      expect(report.salesRevenue.rawValue).toBe(11000); // 2400 + 1800 + 3200 + 1500 + 2100 = 11000
+
+      // Breakdown counts: 3 waiting (7001, 7002, 7003) + 2 on-hold (7004, 7005) = 5 total in queue
+      expect(report.allOrdersBreakdown.waitingCount).toBe(3);
+      expect(report.allOrdersBreakdown.holdCount).toBe(2);
+      expect(report.allOrdersBreakdown.queueCount).toBe(5);
+      expect(report.allOrdersBreakdown.todayShippedCount).toBe(1); // 7006
+    });
+
+    it('enforces pipeline status filtering (ALL, PROCESSING, HOLD) in filterOrderWiseGroups', () => {
+      const groups = groupOrdersByOrderId(mockQueueOrders as RawOrderRow[]);
+
+      // 1. ALL in Queue: returns all 5 waiting + hold orders
+      const allQueueGroups = filterOrderWiseGroups(groups, {
+        selectedView: 'Queue',
+        pipelineFilter: 'ALL',
+      });
+      const allIds = allQueueGroups.map((g) => g.orderId);
+      expect(allIds).toEqual(expect.arrayContaining(['7001', '7002', '7003', '7004', '7005']));
+      expect(allIds).not.toContain('7006'); // Shipped excluded
+      expect(allIds).not.toContain('7010'); // POS excluded
+
+      // 2. PROCESSING / Waiting Only: returns only waiting orders (7001, 7002, 7003), excluding hold
+      const waitingGroups = filterOrderWiseGroups(groups, {
+        selectedView: 'Queue',
+        pipelineFilter: 'PROCESSING',
+      });
+      const waitingIds = waitingGroups.map((g) => g.orderId);
+      expect(waitingIds).toContain('7001');
+      expect(waitingIds).toContain('7002');
+      expect(waitingIds).toContain('7003');
+      expect(waitingIds).not.toContain('7004');
+      expect(waitingIds).not.toContain('7005');
+
+      // 3. HOLD Only: returns only on-hold orders (7004, 7005), excluding waiting
+      const holdGroups = filterOrderWiseGroups(groups, {
+        selectedView: 'Queue',
+        pipelineFilter: 'HOLD',
+      });
+      const holdIds = holdGroups.map((g) => g.orderId);
+      expect(holdIds).toContain('7004');
+      expect(holdIds).toContain('7005');
+      expect(holdIds).not.toContain('7001');
+      expect(holdIds).not.toContain('7002');
+      expect(holdIds).not.toContain('7003');
     });
   });
 });

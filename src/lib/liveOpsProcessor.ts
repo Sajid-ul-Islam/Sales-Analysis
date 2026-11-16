@@ -206,6 +206,10 @@ export interface AllOrdersBreakdown {
   processingAmount: number;
   holdCount: number;
   holdAmount: number;
+  waitingCount?: number;
+  waitingAmount?: number;
+  queueCount?: number;
+  queueAmount?: number;
   todayShippedCount: number;
   todayShippedAmount: number;
   totalActiveCount: number;
@@ -727,20 +731,139 @@ export function isOrderShipped(order: RawOrderRow): boolean {
   return false;
 }
 
+/**
+ * Collects all status strings found on an order row across WooCommerce and courier attributes.
+ */
+export function getOrderAllStatuses(order: RawOrderRow): string[] {
+  const o = order as Record<string, unknown>;
+  const rawList: unknown[] = [
+    o.rawWcStatus,
+    o['WooCommerce Status'],
+    o.wc_status,
+    o.wcStatus,
+    o.status,
+    o.orderStatus,
+    o['Order Status'],
+    o['Delivery Status'],
+    o.deliveryStatus,
+    o.orderDeliveryStatus,
+    o.wpDeliveryStatus,
+    o['Courier Status'],
+    o.courierStatus,
+    o.pathaoStatus,
+  ];
+  return rawList
+    .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+    .map((s) => s.trim().toLowerCase());
+}
+
+/**
+ * Detects whether an order is in processing state awaiting fulfillment.
+ */
 export function isOrderProcessing(order: RawOrderRow): boolean {
-  const o = order as Record<string, unknown>;
-  const status = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
-  return status === 'processing' || status === 'wc-processing' || status === 'process';
+  const statuses = getOrderAllStatuses(order);
+  return statuses.some(
+    (status) =>
+      status === 'processing' ||
+      status === 'wc-processing' ||
+      status === 'process' ||
+      status === 'in-process' ||
+      status === 'in process'
+  );
 }
 
+/**
+ * Detects whether an order is on hold (e.g. awaiting confirmation, customer request, address check).
+ */
 export function isOrderOnHold(order: RawOrderRow): boolean {
-  const o = order as Record<string, unknown>;
-  const status = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
-  return status === 'on-hold' || status === 'hold' || status === 'wc-on-hold';
+  const statuses = getOrderAllStatuses(order);
+  return statuses.some(
+    (status) =>
+      status === 'on-hold' ||
+      status === 'hold' ||
+      status === 'wc-on-hold' ||
+      status === 'on hold' ||
+      status === 'on_hold' ||
+      status === 'customer-hold' ||
+      status === 'paused' ||
+      status.includes('on-hold') ||
+      status.includes('on hold') ||
+      status.includes('on_hold')
+  );
 }
 
+/**
+ * Detects whether an order is in waiting state:
+ * includes processing, pending, awaiting payment/confirmation, or waiting for courier pickup.
+ */
+export function isOrderWaiting(order: RawOrderRow): boolean {
+  if (isOrderProcessing(order)) return true;
+  const statuses = getOrderAllStatuses(order);
+  return statuses.some(
+    (status) =>
+      status === 'pending' ||
+      status === 'wc-pending' ||
+      status === 'pending-payment' ||
+      status === 'pending payment' ||
+      status === 'awaiting-payment' ||
+      status === 'waiting' ||
+      status === 'waiting-for-pickup' ||
+      status === 'waiting_for_pickup' ||
+      status === 'waiting-for-dispatch' ||
+      status === 'waiting-for-packing' ||
+      status === 'awaiting-fulfillment' ||
+      status === 'awaiting_dispatch' ||
+      status === 'awaiting_pickup' ||
+      status === 'queued' ||
+      status === 'in-queue' ||
+      status === 'pending pickup' ||
+      status === 'pickup_requested' ||
+      status === 'order_created' ||
+      status === 'picking'
+  );
+}
+
+/**
+ * Detects whether an order is in the active fulfillment queue.
+ * User Rule: Queue includes ALL waiting (processing, pending, waiting-for-pickup) and on-hold orders,
+ * strictly excluding retail POS sales, exchange replacements, returns, delivered, and cancelled orders.
+ */
 export function isOrderInQueue(order: RawOrderRow): boolean {
-  return (isOrderProcessing(order) || isOrderOnHold(order)) && !isOrderExchange(order);
+  // 1. Retail POS walk-ins are physical counter sales, never online fulfillment queue
+  if (isOrderOutlet(order)) return false;
+
+  // 2. Exchanges are isolated in dedicated Exchange Logistics tab
+  if (isOrderExchange(order)) return false;
+
+  // 3. Returned orders are handled in Returns & Exchanges
+  if (isOrderReturn(order)) return false;
+
+  // 4. If order is already delivered or in transit with courier, it's not in warehouse fulfillment queue
+  const o = order as Record<string, unknown>;
+  const cStatus = String(order['Courier Status'] || o.courierStatus || o.pathaoStatus || '').toLowerCase().trim();
+  if (cStatus === 'delivered' || cStatus === 'in transit' || cStatus.includes('transit')) {
+    return false;
+  }
+
+  // 5. Cancelled / refunded orders are not in queue
+  const statuses = getOrderAllStatuses(order);
+  const isCancelled = statuses.some(
+    (s) => CANCELLED_STATUSES.has(s) || s === 'cancelled' || s === 'failed' || s === 'trash' || s === 'refunded'
+  );
+  if (isCancelled) return false;
+
+  // 6. Completed / delivered store delivery status without courier pending pickup is not in queue
+  const delivStatus = String(order['Delivery Status'] || o.status || '').toLowerCase().trim();
+  if (
+    (delivStatus === 'completed' || delivStatus === 'wc-completed' || delivStatus === 'delivered') &&
+    cStatus !== 'pending pickup' &&
+    cStatus !== 'pickup_requested'
+  ) {
+    return false;
+  }
+
+  // 7. Order must be waiting (processing/pending/waiting-for-pickup) OR on-hold
+  return isOrderWaiting(order) || isOrderOnHold(order);
 }
 
 export function isOrderShippedOnDate(order: RawOrderRow, targetDateIso: string): boolean {
@@ -846,8 +969,8 @@ export function isTodayOrdersEligible(
     return isOrderShippedOnDate(order, targetDateIso);
   }
 
-  // 2. Orders with processing status
-  if (status === 'processing' || status === 'wc-processing' || status === 'process') {
+  // 2. Orders with processing or waiting status (excluding on-hold)
+  if (isOrderWaiting(order) && !isOrderOnHold(order)) {
     return true;
   }
 
@@ -1292,6 +1415,8 @@ export function processLiveOpsData(
   let procAmt = 0;
   let holdCount = 0;
   let holdAmt = 0;
+  let waitingCount = 0;
+  let waitingAmt = 0;
   let todayShippedCount = 0;
   let todayShippedAmt = 0;
 
@@ -1302,27 +1427,42 @@ export function processLiveOpsData(
 
     const amt = getOrderRowAmount(o);
     const isEx = isOrderExchange(o);
-    if (isOrderProcessing(o) && !isEx) {
-      procCount++;
-      procAmt += amt;
-    } else if (isOrderOnHold(o) && !isEx) {
-      holdCount++;
-      holdAmt += amt;
-    } else if (isOrderShippedToday(o, refDateIso) && !isEx) {
+    if (!isEx && !isOrderOutlet(o)) {
+      if (isOrderOnHold(o)) {
+        holdCount++;
+        holdAmt += amt;
+      } else if (isOrderWaiting(o)) {
+        waitingCount++;
+        waitingAmt += amt;
+        if (isOrderProcessing(o)) {
+          procCount++;
+          procAmt += amt;
+        }
+      }
+    }
+    if (isOrderShippedToday(o, refDateIso) && !isEx) {
       todayShippedCount++;
       todayShippedAmt += amt;
     }
   }
 
+  // Ensure procCount accounts for all waiting queue orders if waitingCount > procCount
+  const effectiveProcCount = Math.max(procCount, waitingCount);
+  const effectiveProcAmt = Math.max(procAmt, waitingAmt);
+
   const allOrdersBreakdown: AllOrdersBreakdown = {
-    processingCount: procCount,
-    processingAmount: procAmt,
+    processingCount: effectiveProcCount,
+    processingAmount: effectiveProcAmt,
     holdCount: holdCount,
     holdAmount: holdAmt,
+    waitingCount: waitingCount,
+    waitingAmount: waitingAmt,
+    queueCount: waitingCount + holdCount,
+    queueAmount: waitingAmt + holdAmt,
     todayShippedCount: todayShippedCount,
     todayShippedAmount: todayShippedAmt,
-    totalActiveCount: procCount + holdCount + todayShippedCount,
-    totalActiveAmount: procAmt + holdAmt + todayShippedAmt,
+    totalActiveCount: effectiveProcCount + holdCount + todayShippedCount,
+    totalActiveAmount: effectiveProcAmt + holdAmt + todayShippedAmt,
   };
 
   // 3.5 Dedicated Exchange Detection & Accounting Isolation
