@@ -259,7 +259,7 @@ export async function syncLiveTerminalData(options: {
             perPage: 100,
             fetchAllPages: true,
             maxPages: 3,
-            status: ['processing', 'on-hold'],
+            status: ['processing', 'on-hold', 'waiting', 'pending', 'hold'],
             orderBy: 'date',
             order: 'desc',
             timeoutMs: 25000,

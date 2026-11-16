@@ -1955,6 +1955,41 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(queueOrders.every((o) => String(o['Order ID'] || '').startsWith('LIVE-'))).toBe(true);
       expect(queueOrders.some((o) => String(o['Order ID'] || '').startsWith('HIST-'))).toBe(false);
     });
+
+    it('accurately captures orders with custom WooCommerce status "waiting" into the fulfillment queue', () => {
+      const waitingOrders: RawOrderRow[] = [
+        {
+          'Order ID': '9001',
+          orderId: '9001',
+          'Order Date': '2026-11-16 11:00:00',
+          'Delivery Status': 'waiting',
+          status: 'waiting',
+          rawWcStatus: 'waiting',
+          'Order Source': 'Online',
+          'Created Via': 'checkout',
+          'Order Amount': 1800,
+          Quantity: 1,
+        },
+        {
+          'Order ID': '9002',
+          orderId: '9002',
+          'Order Date': '2026-11-05 14:00:00', // Older than 8 days
+          'Delivery Status': 'waiting',
+          status: 'waiting',
+          rawWcStatus: 'waiting',
+          'Order Source': 'Online',
+          'Created Via': 'checkout',
+          'Order Amount': 2400,
+          Quantity: 2,
+        },
+      ];
+
+      for (const ord of waitingOrders) {
+        expect(isOrderWaiting(ord)).toBe(true);
+        expect(isOrderOnHold(ord)).toBe(false);
+        expect(isOrderInQueue(ord)).toBe(true);
+      }
+    });
   });
 });
 
