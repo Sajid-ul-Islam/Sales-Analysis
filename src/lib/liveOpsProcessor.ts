@@ -981,7 +981,25 @@ export function isOrderShippedOnDate(order: RawOrderRow, targetDateIso: string):
     return false;
   }
 
-  // Primary check: getStatusModificationDate
+  // STRICT DATE GUARD: For non-return delivered orders, date_completed is the authoritative shipped date.
+  // An order shipped Nov 15 but admin-touched Nov 16 would have date_completed=Nov 15 and
+  // date_modified=Nov 16. Without this guard the downstream date_modified fallback could wrongly
+  // surface a previous-day order as "Today Shipped".
+  // IMPORTANT: Skip for return orders — a return's date_modified reflects when the return was processed
+  // (the relevant event date), not when the original parcel was dispatched.
+  if (!isOrderReturn(order)) {
+    const oRec = order as Record<string, unknown>;
+    const dateCompletedVal = oRec['Date Completed'] || oRec.date_completed || oRec.dateCompleted;
+    if (dateCompletedVal) {
+      const completedDate = parseOrderDateValue(dateCompletedVal);
+      if (completedDate && !isNaN(completedDate.getTime())) {
+        // date_completed is authoritative for delivered orders -- only return true when it matches
+        return formatDateToIsoDay(completedDate) === targetDateIso;
+      }
+    }
+  }
+
+  // date_completed absent/empty (custom WC 'shipped' status) or return order: fall through to date_modified / courier date
   const d = getStatusModificationDate(order);
   if (d && formatDateToIsoDay(d) === targetDateIso) {
     return true;
