@@ -981,46 +981,73 @@ export function isOrderShippedOnDate(order: RawOrderRow, targetDateIso: string):
     return false;
   }
 
-  // STRICT DATE GUARD: For non-return delivered orders, date_completed is the authoritative shipped date.
-  // An order shipped Nov 15 but admin-touched Nov 16 would have date_completed=Nov 15 and
-  // date_modified=Nov 16. Without this guard the downstream date_modified fallback could wrongly
-  // surface a previous-day order as "Today Shipped".
-  // IMPORTANT: Skip for return orders — a return's date_modified reflects when the return was processed
-  // (the relevant event date), not when the original parcel was dispatched.
+  // ── STRICT "SHIPPED TODAY" RULE ────────────────────────────────────────────────────────
+  // NEW BUSINESS RULE (Nov 2026): Only orders where the status *actually transitioned* to
+  // shipped/completed TODAY count as "Today Shipped". Admin edits that touch date_modified
+  // without changing status MUST NOT surface yesterday's orders.
+  //
+  // Source-of-truth priority for DELIVERED (non-return) orders:
+  //   1. date_completed          → WooCommerce sets this only on 'completed' status transition
+  //   2. Status Modified Date    → WC order_status_updated_at, set on any status change
+  //   3. courierUpdatedAt        → Pathao delivery confirmation timestamp
+  //   4. REJECT                  → date_modified alone is inadmissible (admin edits update it)
+  //
+  // For RETURN orders: return event date = date_modified / courier returned_at / date_completed.
+  // ─────────────────────────────────────────────────────────────────────────────────────────
+
+  const oStrict = order as Record<string, unknown>;
+
   if (!isOrderReturn(order)) {
-    const oRec = order as Record<string, unknown>;
-    const dateCompletedVal = oRec['Date Completed'] || oRec.date_completed || oRec.dateCompleted;
+    // ── Path A: Delivered / shipped (non-return) ─────────────────────────────────────────
+
+    // 1. date_completed — most authoritative; set by WC at exact moment status → completed
+    const dateCompletedVal = oStrict['Date Completed'] || oStrict.date_completed || oStrict.dateCompleted;
     if (dateCompletedVal) {
       const completedDate = parseOrderDateValue(dateCompletedVal);
       if (completedDate && !isNaN(completedDate.getTime())) {
-        // date_completed is authoritative for delivered orders -- only return true when it matches
         return formatDateToIsoDay(completedDate) === targetDateIso;
       }
     }
-  }
 
-  // date_completed absent/empty (custom WC 'shipped' status) or return order: fall through to date_modified / courier date
-  const d = getStatusModificationDate(order);
-  if (d && formatDateToIsoDay(d) === targetDateIso) {
-    return true;
-  }
-
-  // For returned orders, check both completion date (when parcel was dispatched)
-  // and modification / courier updated date (when return was received/marked)
-  if (isOrderReturn(order)) {
-    const o = order as Record<string, unknown>;
-    const compVal = o['Date Completed'] || o.date_completed || o.dateCompleted;
-    if (compVal) {
-      const cd = parseOrderDateValue(compVal);
-      if (cd && formatDateToIsoDay(cd) === targetDateIso) return true;
+    // 2. Status Modified Date (order_status_updated_at) — WC sets on status transitions, NOT admin edits
+    const statusModifiedVal = oStrict['Status Modified Date'] || oStrict.status_modified_date || oStrict.order_status_updated_at || oStrict['Order status updated at'];
+    if (statusModifiedVal) {
+      const smd = parseOrderDateValue(statusModifiedVal);
+      if (smd && !isNaN(smd.getTime())) {
+        return formatDateToIsoDay(smd) === targetDateIso;
+      }
     }
-    const modVal = o['Date Modified'] || o.dateModified || o.date_modified || o['Status Modified Date'] || o.status_modified_date || o.courierUpdatedAt || o['Courier Updated At'];
-    if (modVal) {
-      const md = parseOrderDateValue(modVal);
-      if (md && formatDateToIsoDay(md) === targetDateIso) return true;
+
+    // 3. Courier delivery confirmation timestamp (Pathao sets when parcel is delivered)
+    const courierDateVal = oStrict.courierUpdatedAt || oStrict['Courier Updated At'];
+    if (courierDateVal) {
+      const cd = parseOrderDateValue(courierDateVal);
+      if (cd && !isNaN(cd.getTime())) {
+        return formatDateToIsoDay(cd) === targetDateIso;
+      }
     }
+
+    // 4. No authoritative status-transition date found — REJECT.
+    //    date_modified alone is inadmissible (admin opens the order → date_modified = today).
+    return false;
   }
 
+  // ── Path B: Return orders ──────────────────────────────────────────────────────────────
+  // The return EVENT date is when the parcel came back: date_modified / Status Modified Date /
+  // courierUpdatedAt. We also accept date_completed (original dispatch date) so the order
+  // appears on BOTH the original ship date AND the return date.
+  const retModVal = oStrict['Date Modified'] || oStrict.dateModified || oStrict.date_modified ||
+    oStrict['Status Modified Date'] || oStrict.status_modified_date ||
+    oStrict.courierUpdatedAt || oStrict['Courier Updated At'];
+  if (retModVal) {
+    const md = parseOrderDateValue(retModVal);
+    if (md && formatDateToIsoDay(md) === targetDateIso) return true;
+  }
+  const retCompVal = oStrict['Date Completed'] || oStrict.date_completed || oStrict.dateCompleted;
+  if (retCompVal) {
+    const cd = parseOrderDateValue(retCompVal);
+    if (cd && formatDateToIsoDay(cd) === targetDateIso) return true;
+  }
   return false;
 }
 

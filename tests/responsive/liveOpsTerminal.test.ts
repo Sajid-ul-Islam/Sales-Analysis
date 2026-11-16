@@ -166,6 +166,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
         {
           'Order ID': '9001',
           'Date Modified': '2026-10-17T10:00:00Z',
+          'Status Modified Date': '2026-10-17T10:00:00Z',
           'Delivery Status': 'shipped',
           Quantity: 2,
           'Order Amount': 3500,
@@ -189,6 +190,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
         {
           'Order ID': '9002',
           'Date Modified': '2026-10-16T11:00:00Z',
+          'Status Modified Date': '2026-10-16T11:00:00Z',
           'Delivery Status': 'shipped',
           Quantity: 10,
           'Order Amount': 15000,
@@ -216,6 +218,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           'Order ID': '2001',
           'Order Date': '2026-10-15T10:00:00Z',
           'Date Modified': '2026-10-15T11:00:00Z',
+          'Status Modified Date': '2026-10-15T11:00:00Z',
           'Customer Name': 'Tanvir Ahmed',
           Phone: '01711000001',
           'Item Name': 'DEEN Slim Fit Jeans',
@@ -229,6 +232,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           'Order ID': '2002',
           'Order Date': '2026-10-15T10:30:00Z',
           'Date Modified': '2026-10-15T11:30:00Z',
+          'Status Modified Date': '2026-10-15T11:30:00Z',
           'Customer Name': 'Rahim Uddin',
           Phone: '01711000002',
           'Item Name': 'ZARA Quilted Jacket',
@@ -270,6 +274,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           'Delivery Status': 'shipped',
           'Courier Status': 'Delivered',
           courierStatus: 'Delivered',
+          courierUpdatedAt: '2026-10-15T12:00:00Z',
           'Consignment ID': 'RD101010DEMO',
           hasDiscrepancy: false,
         },
@@ -320,6 +325,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           'Order ID': '4003',
           'Order Date': '2026-10-15T10:00:00Z',
           'Date Modified': '2026-10-15T11:00:00Z',
+          'Status Modified Date': '2026-10-15T11:00:00Z',
           'Customer Name': 'Salim',
           Phone: '01711000030',
           'Item Name': 'ZARA Bomber Jacket',
@@ -414,6 +420,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           'Order ID': '6001',
           'Order Date': '2026-10-15T09:00:00Z',
           'Date Modified': '2026-10-15T10:00:00Z',
+          'Status Modified Date': '2026-10-15T10:00:00Z',
           'Customer Name': 'Shipped Today Customer',
           Phone: '01711223344',
           'Item Name': 'DEEN Slim Fit Jeans',
@@ -507,6 +514,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
         {
           'Order ID': '7001',
           'Date Modified': '2026-10-15T10:00:00Z',
+          'Status Modified Date': '2026-10-15T10:00:00Z',
           'Delivery Status': 'shipped',
           Quantity: 3,
           'Order Amount': 6000,
@@ -515,6 +523,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
         {
           'Order ID': '7002',
           'Date Modified': '2026-10-14T10:00:00Z',
+          'Status Modified Date': '2026-10-14T10:00:00Z',
           'Delivery Status': 'completed',
           Quantity: 2,
           'Order Amount': 4000,
@@ -523,6 +532,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
         {
           'Order ID': '7003',
           'Date Modified': '2026-10-13T10:00:00Z',
+          'Status Modified Date': '2026-10-13T10:00:00Z',
           'Delivery Status': 'delivered',
           Quantity: 1,
           'Order Amount': 2000,
@@ -618,6 +628,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
         {
           'Order ID': '5002',
           'Order Date': '2026-10-15T11:00:00Z',
+          'Status Modified Date': '2026-10-15T11:00:00Z',
           'Item Name': 'DEEN Silk Panjabi',
           SKU: 'DN-SILK-01',
           Quantity: 2,
@@ -629,6 +640,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
         {
           'Order ID': '5003',
           'Order Date': '2026-10-15T11:30:00Z',
+          'Status Modified Date': '2026-10-15T11:30:00Z',
           'Item Name': 'DEEN Twill Chino Pant',
           SKU: 'DN-CHINO-02',
           Quantity: 2,
@@ -664,6 +676,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       {
         'Order ID': '101',
         'Date Modified': '2026-10-14T10:00:00Z',
+        'Status Modified Date': '2026-10-14T10:00:00Z',
         'Item Name': 'Vintage Denim Jacket',
         Quantity: 1,
         'Item Cost': 3500,
@@ -674,6 +687,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       {
         'Order ID': '102',
         'Date Modified': '2026-10-14T11:00:00Z',
+        'Status Modified Date': '2026-10-14T11:00:00Z',
         'Item Name': 'Mens Twill Five Pocket Pant',
         Quantity: 2,
         'Item Cost': 1500,
@@ -685,6 +699,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       {
         'Order ID': '103',
         'Date Modified': '2026-10-15T12:00:00Z',
+        'Status Modified Date': '2026-10-15T12:00:00Z',
         'Item Name': 'DEEN Slim Jeans',
         Quantity: 4,
         'Item Cost': 2500,
@@ -997,6 +1012,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
         'Order ID': '18100',
         'Order Date': '2026-10-17T10:00:00Z',
         'Date Modified': '2026-10-17T11:00:00Z',
+        'Status Modified Date': '2026-10-17T11:00:00Z',
         'Customer Name': 'Ecom Online Customer',
         Phone: '01711223344',
         'Delivery Status': 'shipped',
@@ -1212,6 +1228,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           'Order ID': '1010',
           'Order Date': '2026-10-15T12:00:00Z',
           'Date Modified': '2026-10-15T12:00:00Z',
+          'Status Modified Date': '2026-10-15T12:00:00Z',
           'Customer Name': 'Kazi Farhan',
           Phone: '+8801819223344', // Different alias format
           Email: '',
@@ -1226,6 +1243,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           'Order ID': '1011',
           'Order Date': '2026-10-15T14:00:00Z',
           'Date Modified': '2026-10-15T14:00:00Z',
+          'Status Modified Date': '2026-10-15T14:00:00Z',
           'Customer Name': 'Asif Iqbal',
           Phone: '01999887766', // Different phone
           Email: 'asif@deen.com', // Matching email
@@ -1240,6 +1258,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           'Order ID': '1012',
           'Order Date': '2026-10-15T16:00:00Z',
           'Date Modified': '2026-10-15T16:00:00Z',
+          'Status Modified Date': '2026-10-15T16:00:00Z',
           'Customer Name': 'Shakib Khan',
           Phone: '01511223344',
           Email: 'shakib@newbuyer.com',
@@ -1254,6 +1273,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           'Order ID': '1013',
           'Order Date': '2026-10-15T17:00:00Z',
           'Date Modified': '2026-10-15T17:00:00Z',
+          'Status Modified Date': '2026-10-15T17:00:00Z',
           'Customer Name': 'Walk-in Customer',
           Phone: '01700000000',
           City: 'Mirpur',
@@ -1287,6 +1307,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           'Order ID': '5001',
           'Order Date': '2026-10-15T10:00:00Z',
           'Date Modified': '2026-10-15T10:00:00Z',
+          'Status Modified Date': '2026-10-15T10:00:00Z',
           'Customer Name': 'Tariq Islam',
           Phone: '01755112233',
           'Item Name': 'DEEN Twill Pant - 32',
@@ -1299,6 +1320,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           'Order ID': '5001', // Same order ID
           'Order Date': '2026-10-15T10:00:00Z',
           'Date Modified': '2026-10-15T10:00:00Z',
+          'Status Modified Date': '2026-10-15T10:00:00Z',
           'Customer Name': 'Tariq Islam',
           Phone: '01755112233',
           'Item Name': 'DEEN Twill Pant - 34',
@@ -1394,10 +1416,12 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
         Phone: '01711223344',
       };
 
-      // In Dhaka (+06:00), target date is 2026-11-04
-      expect(isOrderShippedToday(oldShippedOrder, '2026-11-04')).toBe(true);
-      expect(isOrderShippedOnDate(oldShippedOrder, '2026-11-04')).toBe(true);
-      expect(isTodayOrdersEligible(oldShippedOrder, '2026-11-04')).toBe(true);
+      // NEW STRICT RULE (Nov 2026): Only orders where status *transitioned* today qualify.
+      // This order has empty date_completed, no Status Modified Date — only date_modified.
+      // date_modified alone is inadmissible (admin edits update it without status change).
+      expect(isOrderShippedToday(oldShippedOrder, '2026-11-04')).toBe(false);
+      expect(isOrderShippedOnDate(oldShippedOrder, '2026-11-04')).toBe(false);
+      expect(isTodayOrdersEligible(oldShippedOrder, '2026-11-04')).toBe(false);
     });
 
     it('detects an order placed last month when marked completed today via Date Completed', () => {
@@ -1471,6 +1495,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           orderId: '17001',
           'Order Date': `${targetDate} 10:00:00`,
           'Date Modified': `${targetDate} 11:00:00`,
+          'Status Modified Date': `${targetDate} 11:00:00`,
           'Delivery Status': 'shipped',
           status: 'shipped',
           'Item Cost': 1500,
@@ -1502,10 +1527,11 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
         customDate: targetDate,
       });
 
-      expect(report.activeOrders).toHaveLength(2);
-      expect(report.shippedOrders.rawValue).toBe(2);
-      expect(report.shippedItems.rawValue).toBe(2);
-      expect(report.salesRevenue.rawValue).toBe(4000); // 1500 + 2500
+      // 17001 qualifies (has Status Modified Date). 16280 is rejected (no date_completed, no Status Modified Date — strict rule).
+      expect(report.activeOrders).toHaveLength(1);
+      expect(report.shippedOrders.rawValue).toBe(1);
+      expect(report.shippedItems.rawValue).toBe(1);
+      expect(report.salesRevenue.rawValue).toBe(1500); // only 17001
     });
 
     it('detects returned marked orders in live terminal and everyday dispatch ledger', () => {
@@ -1568,6 +1594,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           orderId: '18001',
           'Order Date': `${targetDate} 10:00:00`,
           'Date Modified': `${targetDate} 11:00:00`,
+          'Status Modified Date': `${targetDate} 11:00:00`,
           'Delivery Status': 'completed',
           status: 'completed',
           'Created Via': 'checkout',
@@ -1582,6 +1609,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           orderId: '18002',
           'Order Date': `${targetDate} 10:30:00`,
           'Date Modified': `${targetDate} 11:30:00`,
+          'Status Modified Date': `${targetDate} 11:30:00`,
           'Delivery Status': 'completed',
           status: 'completed',
           'Created Via': 'checkout',
@@ -1796,7 +1824,9 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(report.allOrdersBreakdown.waitingCount).toBe(3);
       expect(report.allOrdersBreakdown.holdCount).toBe(2);
       expect(report.allOrdersBreakdown.queueCount).toBe(5);
-      expect(report.allOrdersBreakdown.todayShippedCount).toBe(1); // 7006
+      // 7006 has 'Delivery Status': 'shipped' but no Status Modified Date or date_completed.
+      // Strict rule rejects date_modified-only orders as "Today Shipped".
+      expect(report.allOrdersBreakdown.todayShippedCount).toBe(0);
     });
 
     it('enforces pipeline status filtering (ALL, PROCESSING, HOLD) in filterOrderWiseGroups', () => {

@@ -251,6 +251,7 @@ describe('Deterministic Analytics & Slicing Engine', () => {
       {
         orderId: '2001',
         status: 'completed',
+        date_completed: `${todayIso}T10:30:00`,
         date_modified: `${todayIso}T10:30:00`,
         date_created: `${todayIso}T09:00:00`,
         itemCost: 1200,
