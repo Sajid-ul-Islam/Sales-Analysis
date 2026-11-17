@@ -1392,6 +1392,18 @@ export async function batchUpdateWooCommerceOrderTracking(
   };
 }
 
+const WC_STATUS_SYNONYMS: Record<string, string> = {
+  hold: 'on-hold',
+  'wc-pending': 'pending',
+  'wc-processing': 'processing',
+  'wc-on-hold': 'on-hold',
+  'wc-completed': 'completed',
+  'wc-cancelled': 'cancelled',
+  'wc-refunded': 'refunded',
+  'wc-failed': 'failed',
+  'wc-trash': 'trash',
+};
+
 /**
  * Fetches real-time orders from WooCommerce REST API v3 with smart pagination, ordering, and date windowing.
  */
@@ -1420,10 +1432,26 @@ export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Prom
     }
 
     if (options.status && options.status !== 'any') {
-      const statusParam = Array.isArray(options.status)
-        ? options.status.join(',')
-        : String(options.status);
-      url.searchParams.set('status', statusParam);
+      const rawStatuses = Array.isArray(options.status)
+        ? options.status
+        : String(options.status).split(',');
+
+      const cleanedStatuses = Array.from(
+        new Set(
+          rawStatuses
+            .map((s) => s.trim().toLowerCase())
+            .map((s) => WC_STATUS_SYNONYMS[s] || s)
+            .filter((s) => {
+              // Strip known non-REST statuses (e.g. 'waiting', 'hold') to prevent WooCommerce HTTP 400
+              if (!s || s === 'waiting' || s === 'hold') return false;
+              return true;
+            })
+        )
+      );
+
+      if (cleanedStatuses.length > 0) {
+        url.searchParams.set('status', cleanedStatuses.join(','));
+      }
     } else if (options.status === 'any') {
       url.searchParams.set('status', 'any');
     }
