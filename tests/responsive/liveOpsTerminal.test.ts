@@ -380,6 +380,22 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
           'Order Source': 'POS',
           isPos: true,
         },
+        // 7. Waiting Order (strictly in fulfillment queue with WooCommerce status 'waiting')
+        {
+          'Order ID': '4007',
+          'Order Date': '2026-10-14T21:00:00Z',
+          'Customer Name': 'Waiting Customer',
+          Phone: '01711000070',
+          'Item Name': 'DEEN Jacket',
+          SKU: 'JKT-01',
+          Quantity: 1,
+          'Item Cost': 3000,
+          'Order Amount': 3000,
+          'Delivery Status': 'waiting',
+          status: 'waiting',
+          rawWcStatus: 'waiting',
+          'Order Source': 'Online',
+        },
       ];
 
       const report = processLiveOpsData(mockCheckoutOrders as RawOrderRow[], {
@@ -402,14 +418,15 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(report.allOrdersBreakdown.todayShippedCount).toBe(1);
       expect(report.allOrdersBreakdown.totalActiveCount).toBe(3);
 
-      // Verify Queue view includes both processing and hold orders
+      // Verify Queue view strictly includes waiting and hold orders
       const queueReport = processLiveOpsData(mockCheckoutOrders as RawOrderRow[], {
         view: 'Queue',
         onlineOnly: true,
       });
       const queueIds = queueReport.activeOrders.map((o) => o['Order ID']);
-      expect(queueIds).toContain('4001'); // Processing in queue
+      expect(queueIds).toContain('4007'); // Waiting in queue (WooCommerce status 'waiting')
       expect(queueIds).toContain('4002'); // Hold in queue
+      expect(queueIds).not.toContain('4001'); // Processing NOT in queue (belongs in Today's Orders)
       expect(queueIds).not.toContain('4003'); // Shipped not in queue
     });
 
@@ -1642,41 +1659,43 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
 
   describe('Fulfillment Queue View & Status Filtering Specification', () => {
     const mockQueueOrders: Partial<RawOrderRow>[] = [
-      // 1. Processing order (e.g. WooCommerce processing)
+      // 1. Waiting order with WooCommerce status 'waiting'
       {
         'Order ID': '7001',
         orderId: '7001',
         'Order Date': '2026-11-16 10:00:00',
-        'Customer Name': 'Processing Customer',
-        'Delivery Status': 'processing',
-        status: 'processing',
+        'Customer Name': 'Waiting Customer 1',
+        'Delivery Status': 'waiting',
+        status: 'waiting',
+        rawWcStatus: 'waiting',
         'Order Source': 'Online',
         'Created Via': 'checkout',
         'Order Amount': 2400,
         Quantity: 2,
       },
-      // 2. Pending order (waiting confirmation or payment)
+      // 2. Waiting order with WooCommerce status 'wc-waiting'
       {
         'Order ID': '7002',
         orderId: '7002',
         'Order Date': '2026-11-16 10:30:00',
-        'Customer Name': 'Pending Customer',
-        'Delivery Status': 'pending',
-        status: 'wc-pending',
+        'Customer Name': 'Waiting Customer 2',
+        'Delivery Status': 'wc-waiting',
+        status: 'wc-waiting',
+        rawWcStatus: 'wc-waiting',
         'Order Source': 'Online',
         'Created Via': 'checkout',
         'Order Amount': 1800,
         Quantity: 1,
       },
-      // 3. Waiting-for-pickup order (booked with Pathao but courier hasn't picked up yet)
+      // 3. Waiting order with WooCommerce status 'waiting'
       {
         'Order ID': '7003',
         orderId: '7003',
         'Order Date': '2026-11-16 11:00:00',
-        'Customer Name': 'Waiting Pickup Customer',
-        'Delivery Status': 'Pending Pickup',
-        'Courier Status': 'Pending Pickup',
-        status: 'processing',
+        'Customer Name': 'Waiting Customer 3',
+        'Delivery Status': 'waiting',
+        status: 'waiting',
+        rawWcStatus: 'waiting',
         'Order Source': 'Online',
         'Created Via': 'checkout',
         'Order Amount': 3200,
@@ -1778,11 +1797,23 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
     ];
 
     it('accurately classifies waiting vs hold vs shipped orders via isOrderInQueue, isOrderWaiting, and isOrderOnHold', () => {
-      // Waiting orders: 7001 (processing), 7002 (pending), 7003 (waiting pickup)
+      // Waiting orders: 7001 (waiting), 7002 (wc-waiting), 7003 (waiting)
       expect(isOrderWaiting(mockQueueOrders[0] as RawOrderRow)).toBe(true);
       expect(isOrderWaiting(mockQueueOrders[1] as RawOrderRow)).toBe(true);
       expect(isOrderWaiting(mockQueueOrders[2] as RawOrderRow)).toBe(true);
       expect(isOrderOnHold(mockQueueOrders[0] as RawOrderRow)).toBe(false);
+
+      // User Rule: Processing orders are NOT waiting and NOT in queue (belong in Today's Orders)
+      const processingOrder = {
+        'Order ID': '7020',
+        'Delivery Status': 'processing',
+        status: 'processing',
+        rawWcStatus: 'processing',
+        'Order Source': 'Online',
+        'Created Via': 'checkout',
+      } as unknown as RawOrderRow;
+      expect(isOrderWaiting(processingOrder)).toBe(false);
+      expect(isOrderInQueue(processingOrder)).toBe(false);
 
       // On-hold orders: 7004, 7005
       expect(isOrderOnHold(mockQueueOrders[3] as RawOrderRow)).toBe(true);
@@ -1957,8 +1988,9 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
         'Order ID': `LIVE-${i + 1}`,
         orderId: `LIVE-${i + 1}`,
         'Order Date': '2026-11-16 10:00:00',
-        'Delivery Status': i % 2 === 0 ? 'processing' : 'on-hold',
-        status: i % 2 === 0 ? 'processing' : 'on-hold',
+        'Delivery Status': i % 2 === 0 ? 'waiting' : 'on-hold',
+        status: i % 2 === 0 ? 'waiting' : 'on-hold',
+        rawWcStatus: i % 2 === 0 ? 'waiting' : 'on-hold',
         'Order Source': 'Online',
         'Created Via': 'checkout',
         'Order Amount': 1500,

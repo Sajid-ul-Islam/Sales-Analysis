@@ -841,7 +841,8 @@ export function isOrderOnHold(order: RawOrderRow): boolean {
 
 /**
  * Detects whether an order is in waiting state:
- * includes processing, pending, awaiting payment/confirmation, or waiting for courier pickup.
+ * User Rule (Nov 2026): In Queue, Waiting is STRICTLY and ONLY orders where the WooCommerce status
+ * is 'waiting' or 'wc-waiting'. It is NOT processing, NOT pending, and NOT waiting-for-pickup.
  * Strictly excludes orders that have already been shipped, returned, or cancelled.
  */
 export function isOrderWaiting(order: RawOrderRow): boolean {
@@ -869,30 +870,24 @@ export function isOrderWaiting(order: RawOrderRow): boolean {
     return false;
   }
 
-  if (isOrderProcessing(order)) return true;
+  const cStatus = String(order['Courier Status'] || o.courierStatus || o.pathaoStatus || '').toLowerCase().trim();
+  if (
+    cStatus === 'delivered' ||
+    cStatus === 'in transit' ||
+    cStatus === 'dispatched' ||
+    cStatus === 'shipped' ||
+    cStatus.includes('transit') ||
+    cStatus.includes('delivered')
+  ) {
+    return false;
+  }
+
+  // User Rule: In WooCommerce, status is strictly 'waiting' or 'wc-waiting'
+  if (rawWc === 'waiting' || rawWc === 'wc-waiting') return true;
+  if (delivStatus === 'waiting' || delivStatus === 'wc-waiting') return true;
+
   const statuses = getOrderAllStatuses(order);
-  return statuses.some(
-    (status) =>
-      status === 'pending' ||
-      status === 'wc-pending' ||
-      status === 'pending-payment' ||
-      status === 'pending payment' ||
-      status === 'awaiting-payment' ||
-      status === 'waiting' ||
-      status === 'waiting-for-pickup' ||
-      status === 'waiting_for_pickup' ||
-      status === 'waiting-for-dispatch' ||
-      status === 'waiting-for-packing' ||
-      status === 'awaiting-fulfillment' ||
-      status === 'awaiting_dispatch' ||
-      status === 'awaiting_pickup' ||
-      status === 'queued' ||
-      status === 'in-queue' ||
-      status === 'pending pickup' ||
-      status === 'pickup_requested' ||
-      status === 'order_created' ||
-      status === 'picking'
-  );
+  return statuses.some((status) => status === 'waiting' || status === 'wc-waiting');
 }
 
 /**
@@ -1146,8 +1141,8 @@ export function isTodayOrdersEligible(
     return isOrderShippedOnDate(order, targetDateIso);
   }
 
-  // 3. All other orders whose status is processing / waiting (awaiting fulfillment, excluding on-hold)
-  if (isOrderWaiting(order) && !isOrderOnHold(order)) {
+  // 3. All other orders whose status is processing (User Rule: Today's Orders = placed that exact day + all other orders whose status is processing)
+  if (isOrderProcessing(order) && !isOrderOnHold(order)) {
     return true;
   }
 
@@ -1612,10 +1607,10 @@ export function processLiveOpsData(
       } else if (isOrderWaiting(o)) {
         waitingCount++;
         waitingAmt += amt;
-        if (isOrderProcessing(o)) {
-          procCount++;
-          procAmt += amt;
-        }
+      }
+      if (isOrderProcessing(o)) {
+        procCount++;
+        procAmt += amt;
       }
     }
     if (isOrderShippedToday(o, refDateIso) && !isEx) {
@@ -1624,13 +1619,9 @@ export function processLiveOpsData(
     }
   }
 
-  // Ensure procCount accounts for all waiting queue orders if waitingCount > procCount
-  const effectiveProcCount = Math.max(procCount, waitingCount);
-  const effectiveProcAmt = Math.max(procAmt, waitingAmt);
-
   const allOrdersBreakdown: AllOrdersBreakdown = {
-    processingCount: effectiveProcCount,
-    processingAmount: effectiveProcAmt,
+    processingCount: procCount,
+    processingAmount: procAmt,
     holdCount: holdCount,
     holdAmount: holdAmt,
     waitingCount: waitingCount,
@@ -1639,8 +1630,8 @@ export function processLiveOpsData(
     queueAmount: waitingAmt + holdAmt,
     todayShippedCount: todayShippedCount,
     todayShippedAmount: todayShippedAmt,
-    totalActiveCount: effectiveProcCount + holdCount + todayShippedCount,
-    totalActiveAmount: effectiveProcAmt + holdAmt + todayShippedAmt,
+    totalActiveCount: procCount + holdCount + todayShippedCount,
+    totalActiveAmount: procAmt + holdAmt + todayShippedAmt,
   };
 
   // 3.5 Dedicated Exchange Detection & Accounting Isolation

@@ -391,14 +391,14 @@ export function filterOrderWiseGroups(
     if (selectedView === 'Queue') {
       if (!isOrderOnline(group.primaryRow)) return false;
       if (!isOrderInQueue(group.primaryRow)) return false;
-      if (pipelineFilter === 'PROCESSING' && (!isOrderWaiting(group.primaryRow) || isOrderOnHold(group.primaryRow))) return false;
+      if (pipelineFilter === 'PROCESSING' && !isOrderWaiting(group.primaryRow)) return false;
       if (pipelineFilter === 'HOLD' && !isOrderOnHold(group.primaryRow)) return false;
     }
 
     // Pipeline status filter for Today's Orders view
     if ((selectedView === "Today's Orders" || selectedView === 'All Orders') && pipelineFilter !== 'ALL') {
       if (!isOrderOnline(group.primaryRow)) return false;
-      if (pipelineFilter === 'PROCESSING' && !isOrderWaiting(group.primaryRow)) return false;
+      if (pipelineFilter === 'PROCESSING' && !isOrderProcessing(group.primaryRow)) return false;
       if (pipelineFilter === 'HOLD' && !isOrderOnHold(group.primaryRow)) return false;
       if (pipelineFilter === 'SHIPPED_TODAY' && !isOrderShipped(group.primaryRow)) return false;
     }

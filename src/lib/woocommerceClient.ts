@@ -965,7 +965,7 @@ export function extractPathaoPluginOrderInfo(order: WcOrder, meta: WcMetaItem[])
 }
 
 export interface WordPressStatusMarks {
-  wpDeliveryStatus: 'Delivered' | 'Paid Return' | 'Not Paid Return' | 'Exchange' | 'Partial' | 'Cancelled' | 'Shipped' | 'Processing' | 'On Hold' | null;
+  wpDeliveryStatus: 'Delivered' | 'Paid Return' | 'Not Paid Return' | 'Exchange' | 'Partial' | 'Cancelled' | 'Shipped' | 'Processing' | 'On Hold' | 'Waiting' | null;
   isReturnFromWp: boolean;
   isPartialFromWp: boolean;
   isExchangeFromWp: boolean;
@@ -1157,6 +1157,8 @@ export function detectWordPressStatusMarks(order: WcOrder, meta: WcMetaItem[] = 
     wpDeliveryStatus = 'Processing';
   } else if (cleanStatus === 'on-hold' || cleanStatus === 'hold') {
     wpDeliveryStatus = 'On Hold';
+  } else if (cleanStatus === 'waiting' || cleanStatus === 'wc-waiting') {
+    wpDeliveryStatus = 'Waiting';
   }
 
   return {

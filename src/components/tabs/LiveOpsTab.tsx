@@ -829,14 +829,14 @@ export function LiveOpsTab({
       if (selectedView === 'Queue') {
         if (!isOrderOnline(o)) return false;
         if (!isOrderInQueue(o)) return false;
-        if (pipelineFilter === 'PROCESSING' && (!isOrderWaiting(o) || isOrderOnHold(o))) return false;
+        if (pipelineFilter === 'PROCESSING' && !isOrderWaiting(o)) return false;
         if (pipelineFilter === 'HOLD' && !isOrderOnHold(o)) return false;
       }
 
       // Pipeline status filter for Today's Orders view
       if ((selectedView === "Today's Orders" || (selectedView as string) === 'All Orders') && pipelineFilter !== 'ALL') {
         if (!isOrderOnline(o)) return false;
-        if (pipelineFilter === 'PROCESSING' && !isOrderWaiting(o)) return false;
+        if (pipelineFilter === 'PROCESSING' && !isOrderProcessing(o)) return false;
         if (pipelineFilter === 'HOLD' && !isOrderOnHold(o)) return false;
         if (pipelineFilter === 'SHIPPED_TODAY' && !isOrderShipped(o)) return false;
       }
@@ -3001,7 +3001,7 @@ export function LiveOpsTab({
             </span>
             {[
               { id: 'ALL' as const, label: '📋 All in Queue', count: report.allOrdersBreakdown.queueCount },
-              { id: 'PROCESSING' as const, label: '⏳ Waiting Only', count: report.allOrdersBreakdown.waitingCount || report.allOrdersBreakdown.processingCount },
+              { id: 'PROCESSING' as const, label: '⏳ Waiting Only', count: report.allOrdersBreakdown.waitingCount },
               { id: 'HOLD' as const, label: '⏸️ On Hold Only', count: report.allOrdersBreakdown.holdCount },
             ].map((pill) => (
               <button
@@ -3438,6 +3438,8 @@ export function LiveOpsTab({
                                   ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                                   : group.wcStatus === 'on-hold'
                                   ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800'
+                                  : group.wcStatus === 'waiting'
+                                  ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800'
                                   : group.wcStatus === 'cancelled'
                                   ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
                                   : 'bg-slate-100 dark:bg-[#1A1A1A] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2A2A2A]'
@@ -3950,6 +3952,8 @@ export function LiveOpsTab({
                                 ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                                 : rawWc === 'on-hold'
                                 ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800'
+                                : rawWc === 'waiting'
+                                ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800'
                                 : 'bg-slate-100 dark:bg-[#1A1A1A] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2A2A2A]'
                             }`}
                           >
