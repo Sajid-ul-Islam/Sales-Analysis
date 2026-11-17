@@ -1500,7 +1500,7 @@ export function LiveOpsTab({
                     ? 'bg-white dark:bg-[#222222] text-slate-900 dark:text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
-                title="Today's Orders = Shipped today + all orders with Processing status"
+                title="Today's Orders = All orders placed today + all other orders with Processing status"
               >
                 <span>📦</span>
                 <span>Today&apos;s Orders</span>

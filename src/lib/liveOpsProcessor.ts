@@ -1093,7 +1093,7 @@ export function isOrderShippedToday(order: RawOrderRow, targetDateIso: string): 
 
 /**
  * Validates if an order belongs to "Today's Orders" view.
- * User Rule: Today's Orders = (All Today's Shipped/Returned) + (All orders with Processing status)
+ * User Rule (Nov 2026): Today's Orders = All orders placed that exact day + all other orders whose status is Processing.
  * Non-checkout exchange orders are tracked separately in Exchange Logistics.
  */
 export function isTodayOrdersEligible(
@@ -1134,12 +1134,26 @@ export function isTodayOrdersEligible(
     if (!isOrderReturn(order)) return false;
   }
 
-  // 1. Shipped or Returned today (status completed/shipped/returned and date matches target date)
+  // 1. All orders placed on that exact day (targetDateIso)
+  const orderDateVal =
+    order['Order Date'] ||
+    o.orderDate ||
+    o['Date Created'] ||
+    o.date_created ||
+    o.dateCreated;
+  if (orderDateVal) {
+    const od = parseOrderDateValue(orderDateVal);
+    if (od && !isNaN(od.getTime()) && formatDateToIsoDay(od) === targetDateIso) {
+      return true;
+    }
+  }
+
+  // 2. Orders shipped or returned on that exact day (e.g. historical backlog dispatched today)
   if (SHIPPED_STATUSES.has(status) || isOrderReturn(order)) {
     return isOrderShippedOnDate(order, targetDateIso);
   }
 
-  // 2. Orders with processing or waiting status (excluding on-hold)
+  // 3. All other orders whose status is processing / waiting (awaiting fulfillment, excluding on-hold)
   if (isOrderWaiting(order) && !isOrderOnHold(order)) {
     return true;
   }
@@ -1546,7 +1560,7 @@ export function processLiveOpsData(
     // Comparison for last day is ref day
     prevOrders = source.filter((o) => isOrderOnline(o) && isOrderShippedOnDate(o, refDateIso));
   } else if (view === "Today's Orders" || view === 'Today Orders' || view === 'All Orders') {
-    // User Rule: Today's Orders = those orders shipped today, and those orders whose status is Processing
+    // User Rule: Today's Orders = all orders placed that exact day + all other orders whose status is Processing
     activeOrders = source.filter((o) => isTodayOrdersEligible(o, refDateIso, { channelFilter, posBranchFilter }));
     prevOrders = source.filter((o) => {
       const d = getStatusModificationDate(o);

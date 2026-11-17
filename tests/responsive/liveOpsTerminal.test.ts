@@ -413,7 +413,7 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(queueIds).not.toContain('4003'); // Shipped not in queue
     });
 
-    it('enforces Today\'s Orders = orders shipped today + orders with status Processing', () => {
+    it('enforces Today\'s Orders = all orders placed that exact day + all other orders with status Processing', () => {
       const todayIso = '2026-10-15';
       const mockTodayOrders: Partial<RawOrderRow>[] = [
         {
@@ -489,20 +489,20 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
 
       expect(report.selectedView).toBe("Today's Orders");
       const activeIds = report.activeOrders.map((o) => o['Order ID']);
-      // Must contain Shipped Today (6001) and Processing (6002)
+      // Must contain Shipped Today (6001), Processing (6002), and On-Hold placed today (6003)
       expect(activeIds).toContain('6001');
       expect(activeIds).toContain('6002');
-      // Must exclude on-hold (6003 in queue), yesterday shipped (6004), and cancelled (6005)
-      expect(activeIds).not.toContain('6003');
+      expect(activeIds).toContain('6003');
+      // Must exclude yesterday shipped (6004) and cancelled (6005)
       expect(activeIds).not.toContain('6004');
       expect(activeIds).not.toContain('6005');
 
-      // Total orders count = 2 (shipped today + processing)
-      expect(report.totalUniqueOrders).toBe(2);
-      // Total items count = 2 (jeans) + 1 (pant) = 3
-      expect(report.totalDispatchedItems).toBe(3);
-      // Revenue = 5000 + 2000 = 7000
-      expect(report.salesRevenue.rawValue).toBe(7000);
+      // Total orders count = 3 (6001, 6002, 6003)
+      expect(report.totalUniqueOrders).toBe(3);
+      // Total items count = 2 (jeans) + 1 (pant) + 1 (jacket) = 4
+      expect(report.totalDispatchedItems).toBe(4);
+      // Revenue = 5000 + 2000 + 6000 = 13000
+      expect(report.salesRevenue.rawValue).toBe(13000);
       expect(report.todaysOrdersBreakdown.processingCount).toBe(1);
       expect(report.todaysOrdersBreakdown.holdCount).toBe(1);
       expect(report.todaysOrdersBreakdown.todayShippedCount).toBe(1);
