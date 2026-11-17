@@ -1931,6 +1931,24 @@ describe('Live Operations & Shipped Orders Engine (DEEN-OPS Specification)', () 
       expect(isOrderOnHold(staleShippedOrder)).toBe(false);
       expect(isOrderWaiting(staleShippedOrder)).toBe(false);
       expect(isOrderInQueue(staleShippedOrder)).toBe(false);
+
+      // Order with WC shipped status but courier still pending pickup must strictly NOT be in queue
+      const shippedPendingPickupOrder: RawOrderRow = {
+        'Order ID': '8004',
+        orderId: '8004',
+        'Order Date': '2026-11-16 11:00:00',
+        'Delivery Status': 'shipped',
+        status: 'shipped',
+        rawWcStatus: 'shipped',
+        'Courier Status': 'Pending Pickup',
+        'Order Source': 'Online',
+        'Created Via': 'checkout',
+        'Order Amount': 2500,
+        Quantity: 1,
+      };
+      expect(isOrderWaiting(shippedPendingPickupOrder)).toBe(false);
+      expect(isOrderOnHold(shippedPendingPickupOrder)).toBe(false);
+      expect(isOrderInQueue(shippedPendingPickupOrder)).toBe(false);
     });
 
     it('prevents historical baseline orders from leaking into live queue (66 true live orders vs 89 ghost inflation)', () => {

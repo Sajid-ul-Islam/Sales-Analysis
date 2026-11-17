@@ -860,12 +860,9 @@ export function isOrderWaiting(order: RawOrderRow): boolean {
   const delivStatus = String(order['Delivery Status'] || o.status || o.orderStatus || '').toLowerCase().trim();
   const rawWc = String(o.rawWcStatus || o.wc_status || o.wcStatus || '').toLowerCase().trim();
 
-  // If order is marked shipped/completed, only keep if courier status is pending pickup
+  // Shipped, completed, or delivered orders are fulfilled and cannot be waiting in queue
   if (SHIPPED_STATUSES.has(delivStatus) || SHIPPED_STATUSES.has(rawWc) || isOrderShipped(order)) {
-    const cStatus = String(order['Courier Status'] || o.courierStatus || o.pathaoStatus || '').toLowerCase().trim();
-    if (cStatus !== 'pending pickup' && cStatus !== 'pickup_requested') {
-      return false;
-    }
+    return false;
   }
 
   if (CANCELLED_STATUSES.has(delivStatus) || CANCELLED_STATUSES.has(rawWc)) {
@@ -942,12 +939,8 @@ export function isOrderInQueue(order: RawOrderRow): boolean {
   );
   if (isCancelled) return false;
 
-  // 6. Completed / shipped / delivered store delivery status without courier pending pickup is not in queue
-  if (
-    (SHIPPED_STATUSES.has(delivStatus) || SHIPPED_STATUSES.has(rawWc) || isOrderShipped(order)) &&
-    cStatus !== 'pending pickup' &&
-    cStatus !== 'pickup_requested'
-  ) {
+  // 6. Completed, shipped, or delivered store delivery status is strictly NOT in queue
+  if (SHIPPED_STATUSES.has(delivStatus) || SHIPPED_STATUSES.has(rawWc) || isOrderShipped(order)) {
     return false;
   }
 
@@ -1539,7 +1532,11 @@ export function processLiveOpsData(
 
   // User Rule: Outlet retail orders are physical in-store retail walk-in purchases already handed to customers.
   // Neither queue, nor courier shipping pipeline apply to outlet orders.
-  if (channelFilter === 'POS') {
+  if (view === 'Queue') {
+    // Fulfillment queue strictly contains only online waiting and on-hold orders
+    activeOrders = channelFilter === 'POS' ? [] : source.filter(isOrderInQueue);
+    prevOrders = [];
+  } else if (channelFilter === 'POS') {
     activeOrders = source.filter(
       (o) =>
         isOrderOutlet(o) &&
@@ -1552,9 +1549,6 @@ export function processLiveOpsData(
         isPosOrderOnDate(o, prevDateIso) &&
         (posBranchFilter === 'ALL' || detectFulfillmentBranch(o).branchCode === posBranchFilter)
     );
-  } else if (view === 'Queue') {
-    activeOrders = source.filter(isOrderInQueue);
-    prevOrders = [];
   } else if (view === 'Last Day Shipped') {
     activeOrders = source.filter((o) => isOrderOnline(o) && isOrderShippedOnDate(o, prevDateIso));
     // Comparison for last day is ref day
