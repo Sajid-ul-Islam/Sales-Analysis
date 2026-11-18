@@ -115,8 +115,48 @@ Dynamically adjusts the canvas background and CSS variables.
 
 ---
 
+### 3.6 `get_kpi_overview`
+Returns the active sales revenue, shipped orders, items, customer mix, and top categories.
+- **Input Parameters:**
+  ```json
+  {
+    "view": "All Orders",
+    "channel": "ALL"
+  }
+  ```
+- **Valid Views:** `"Today Shipped"`, `"Today's Orders"`, `"All Orders"`, `"Queue"`.
+- **Valid Channels:** `"ALL"`, `"ONLINE"`, `"POS"`.
+
+---
+
+### 3.7 `get_monthly_statement`
+Retrieves the authoritative financial closing statement for a given month.
+- **Input Parameters:**
+  ```json
+  {
+    "month": "2026-10"
+  }
+  ```
+
+---
+
 ## 4. Security, Rate Limits & Guardrails
 
 1. **Read-Only Safeguards**: WebMCP tools cannot delete historical orders or bypass the integer quantity knapsack constraint.
 2. **Rate Limiting**: External MCP calls are restricted to 120 queries/minute per API session.
 3. **Execution Timeouts**: AlaSQL queries exceeding 2,000ms are aborted to prevent UI thread starvation.
+4. **Bearer Token Authentication**: When `MCP_SECRET` is set in environment, all `/api/mcp` requests require `Authorization: Bearer <MCP_SECRET>`.
+
+---
+
+## 5. Live Endpoint & Client Integration
+
+### 5.1 Endpoint URL
+- Production: `https://deen-sales.onrender.com/api/mcp`
+- Local Development: `http://localhost:3000/api/mcp`
+
+### 5.2 Connecting via Claude Code / Antigravity
+```bash
+claude mcp add --transport http deen-sales https://deen-sales.onrender.com/api/mcp --header "Authorization: Bearer <MCP_SECRET>"
+```
+

@@ -189,6 +189,27 @@ Provides zero-dependency fallback datasets when offline, in development, or runn
 
 ---
 
+### 2.6 `/api/mcp` (WebMCP Gateway)
+Next.js App Router Model Context Protocol (MCP) streamable HTTP server endpoint exposing agentic tools and resources.
+
+- **Method:** `GET` / `POST` / `OPTIONS`
+- **Authentication:** Bearer token via `Authorization: Bearer <MCP_SECRET>`
+- **Exposed Tools:**
+  - `query_reconciled_orders`: Safe AlaSQL query engine over loaded order rows.
+  - `run_knapsack_reconciliation`: Deterministic 0/1 knapsack integer reconciliation solver.
+  - `evaluate_customer_phone`: Customer courier delivery success rate and RTO risk.
+  - `get_kpi_overview`: Operational revenue, shipped orders, items, and mix.
+  - `get_monthly_statement`: Authoritative closed-month financial statements.
+  - `trigger_excel_export`: Master export workbook metadata and summary.
+  - `set_theme_background`: Dynamic background and CSS variable adjuster.
+- **Exposed Resources:**
+  - `orders://live`
+  - `metrics://kpi_summary`
+  - `statements://month/{month}`
+  - `theme://current`
+
+---
+
 ## 3. Pathao Hermes Courier API Reference
 
 ### 3.1 Authentication (OAuth2 Client Credentials)
