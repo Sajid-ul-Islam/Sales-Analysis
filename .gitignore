@@ -111,6 +111,7 @@ desktop.ini
 .agents/*
 !.agents/rules/
 !.agents/skills/
+!.agents/mcp_config.json
 scratch/
 ORIGINAL_REQUEST.md
 TEST_INFRA.md
