@@ -16,7 +16,6 @@
   "dependencies": {
     "@google/genai": "^2.29.1",
     "@modelcontextprotocol/sdk": "^1.32.2",
-    "@vercel/blob": "^2.8.2",
     "alasql": "^4.21.0",
     "clsx": "^2.1.1",
     "hyparquet": "^1.33.0",

@@ -3,8 +3,6 @@ import { NextRequest } from 'next/server';
 
 // Route handlers
 import { GET as getSampleData, POST as postSampleData } from '@/app/api/sample-data/route';
-import { GET as getBlobStatus } from '@/app/api/blob/status/route';
-import { GET as getBlobDataset, POST as postBlobDataset } from '@/app/api/blob/dataset/route';
 import { POST as postSyncWooCommerce } from '@/app/api/sync/woocommerce/route';
 import { POST as postSyncPathao } from '@/app/api/sync/pathao/route';
 import { POST as postSyncLiveTerminal } from '@/app/api/sync/live-terminal/route';
@@ -35,27 +33,6 @@ describe('Strict Route Authentication & RBAC Coverage', () => {
     it('blocks anonymous calls to POST /api/sample-data', async () => {
       const req = new NextRequest('http://localhost:3000/api/sample-data', { method: 'POST', body: '{}' });
       const res = await postSampleData(req);
-      expect(res.status).toBe(401);
-    });
-
-    it('blocks anonymous calls to GET /api/blob/status', async () => {
-      const req = new NextRequest('http://localhost:3000/api/blob/status');
-      const res = await getBlobStatus(req);
-      expect(res.status).toBe(401);
-    });
-
-    it('blocks anonymous calls to GET /api/blob/dataset', async () => {
-      const req = new NextRequest('http://localhost:3000/api/blob/dataset');
-      const res = await getBlobDataset(req);
-      expect(res.status).toBe(401);
-    });
-
-    it('blocks anonymous calls to POST /api/blob/dataset', async () => {
-      const req = new NextRequest('http://localhost:3000/api/blob/dataset', {
-        method: 'POST',
-        body: JSON.stringify({ orders: [] })
-      });
-      const res = await postBlobDataset(req);
       expect(res.status).toBe(401);
     });
 
@@ -192,14 +169,13 @@ describe('Strict Route Authentication & RBAC Coverage', () => {
   describe('Authenticated Operator Access', () => {
     it('grants access when valid operator bearer token is provided', async () => {
       process.env.API_BEARER_TOKEN = 'test_valid_operator_token';
-      const req = new NextRequest('http://localhost:3000/api/blob/status', {
+      const req = new NextRequest('http://localhost:3000/api/sync/status', {
         headers: { authorization: 'Bearer test_valid_operator_token' }
       });
-      const res = await getBlobStatus(req);
-      // Status is 200 (even if blob not configured, it doesn't 401)
+      const res = await getSyncStatus(req);
       expect(res.status).toBe(200);
       const data = await res.json();
-      expect(data.configured).toBe(false);
+      expect(data.woocommerce).toBeDefined();
     });
   });
 });

@@ -4,7 +4,6 @@ import { batchFetchPathaoOrders, batchFetchPathaoOrdersByOrderIds, fetchRecentPa
 import { getSecretsWithOverrides } from '@/lib/secrets';
 import { createDataProvenance, DataProvenanceInfo } from '@/lib/dataAudit';
 import { buildTimelineIndex, extractCustomerBilling, classifyCustomer } from '@/lib/customerRegistry';
-import { fetchDatasetFromBlob, isBlobConfigured } from '@/lib/blobStorage';
 import { getLiveWebhookUpdates, PathaoWebhookRecord } from '@/lib/pathaoWebhookEngine';
 import { getBaselineDataset } from '@/lib/baselineLoader';
 import { isOrderInQueue } from '@/lib/liveOpsProcessor';
@@ -328,25 +327,11 @@ export async function syncLiveTerminalData(options: {
     }
   }
 
-  let blobDataset: DatasetSnapshot | null = null;
-
-  // Fallback to active orders passed from client, Vercel Blob cloud snapshot, or bundled baseline dataset
+  // Fallback to active orders passed from client or bundled baseline dataset
   if (rawOrders.length === 0) {
     if (Array.isArray(options.activeOrders) && options.activeOrders.length > 0) {
       rawOrders = options.activeOrders;
-    } else if (isBlobConfigured()) {
-      try {
-        const blobRes = await fetchDatasetFromBlob();
-        if (blobRes.success && blobRes.dataset && Array.isArray(blobRes.dataset.orders) && blobRes.dataset.orders.length > 0) {
-          rawOrders = blobRes.dataset.orders;
-          blobDataset = blobRes.dataset;
-        }
-      } catch (blobErr) {
-        console.warn('[liveTerminalSync] Notice: Vercel Blob fallback fetch skipped:', blobErr);
-      }
-    }
-
-    if (rawOrders.length === 0) {
+    } else {
       const baselineData = getBaselineDataset();
       if (baselineData && Array.isArray((baselineData as { orders?: RawOrderRow[] }).orders)) {
         rawOrders = (baselineData as { orders: RawOrderRow[] }).orders;
@@ -459,13 +444,11 @@ export async function syncLiveTerminalData(options: {
     }
   }
 
-  // Fallback: Populate courier data from Vercel Blob or bundled baseline data (pathaoDelivery) if unmapped
+  // Fallback: Populate courier data from bundled baseline data (pathaoDelivery) if unmapped
   const baselineFallback = getBaselineDataset();
-  const fallbackDelivery = (blobDataset?.pathaoDelivery && blobDataset.pathaoDelivery.length > 0)
-    ? (blobDataset.pathaoDelivery as Record<string, unknown>[])
-    : (baselineFallback && Array.isArray((baselineFallback as { pathaoDelivery?: Record<string, unknown>[] }).pathaoDelivery))
-      ? (baselineFallback as { pathaoDelivery: Record<string, unknown>[] }).pathaoDelivery
-      : [];
+  const fallbackDelivery = (baselineFallback && Array.isArray((baselineFallback as { pathaoDelivery?: Record<string, unknown>[] }).pathaoDelivery))
+    ? (baselineFallback as { pathaoDelivery: Record<string, unknown>[] }).pathaoDelivery
+    : [];
 
   if (fallbackDelivery.length > 0) {
     for (const po of fallbackDelivery) {
@@ -690,9 +673,7 @@ export async function syncLiveTerminalData(options: {
 
   const provenanceSource = wcConnected || pathaoConnected
     ? 'live_api'
-    : blobDataset
-      ? 'vercel_blob'
-      : 'baseline_bundled';
+    : 'baseline_bundled';
 
   const provenance = createDataProvenance(
     provenanceSource,

@@ -1,22 +1,25 @@
 import { NextResponse } from 'next/server';
-import { fetchDatasetFromBlob, uploadDatasetToBlob, isBlobConfigured } from '@/lib/blobStorage';
+import fs from 'fs';
+import path from 'path';
 import { batchFetchPathaoOrders, formatPathaoToReturnRows } from '@/lib/pathaoClient';
 import { fetchWooCommerceOrders, formatWooCommerceToOrderRows } from '@/lib/woocommerceClient';
 import { validateApiRequest } from '@/lib/auth/apiAuth';
 import { getBaselineDataset } from '@/lib/baselineLoader';
 import { DatasetSnapshot, RawOrderRow } from '@/types';
 import { getDhakaDaysAgoIso, getDhakaTodayIso } from '@/lib/timezone';
+import { clearSampleDataMemoryCache } from '@/app/api/sample-data/route';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // 60s max execution time for Vercel Cron
 
 /**
- * DEEN Commerce — Automated Incremental Cron Sync
+ * DEEN Commerce — Automated Incremental Cron Sync (Option C)
  * Runs on a schedule (e.g. daily at 2 AM) to:
- * 1. Fetch recent WooCommerce orders (last 3-7 days).
- * 2. Identify in-flight / unfinalized Pathao consignments.
- * 3. Query Pathao gently (max 25-30 consignments with concurrency control).
- * 4. Merge updates with historical records and persist to Vercel Blob.
+ * 1. Load active baseline dataset from disk / memory.
+ * 2. Fetch recent WooCommerce orders (last 3-7 days).
+ * 3. Identify in-flight / unfinalized Pathao consignments and refresh their delivery status.
+ * 4. Merge updates non-destructively by primary key.
+ * 5. Persist the refreshed dataset directly to src/data/baselineSample.json.
  */
 export async function GET(req: Request) {
   // 1. Mandatory Admin / Cron Authentication Check
@@ -29,36 +32,17 @@ export async function GET(req: Request) {
   const startTime = Date.now();
 
   try {
-    // 2. Load Base Dataset (Prefer Vercel Blob, fallback to bundled baseline)
-    let baseDataset: DatasetSnapshot = {
-      orders: [],
-      pathaoDelivery: [],
-      returns: [],
-      partials: [],
-      exchanges: [],
-      sourceName: 'Cron Automated Snapshot',
+    // 2. Load Base Dataset directly from unified baseline
+    const b = (getBaselineDataset() || {}) as Record<string, unknown>;
+    const baseDataset: DatasetSnapshot = {
+      orders: (b.orders as RawOrderRow[]) || [],
+      pathaoDelivery: (b.pathaoDelivery as RawOrderRow[]) || [],
+      returns: (b.returns as RawOrderRow[]) || [],
+      partials: (b.partials as RawOrderRow[]) || [],
+      exchanges: (b.exchanges as RawOrderRow[]) || [],
+      sourceName: (b.sourceName as string) || 'Unified Baseline (Cron Base)',
     };
-
-    if (isBlobConfigured()) {
-      const blobRes = await fetchDatasetFromBlob();
-      if (blobRes.success && blobRes.dataset) {
-        baseDataset = blobRes.dataset;
-        log.push(`Loaded base from Vercel Blob: ${baseDataset.orders?.length || 0} orders`);
-      }
-    }
-
-    if (!baseDataset.orders || baseDataset.orders.length === 0) {
-      const b = (getBaselineDataset() || {}) as Record<string, unknown>;
-      baseDataset = {
-        orders: (b.orders as RawOrderRow[]) || [],
-        pathaoDelivery: (b.pathaoDelivery as RawOrderRow[]) || [],
-        returns: (b.returns as RawOrderRow[]) || [],
-        partials: (b.partials as RawOrderRow[]) || [],
-        exchanges: (b.exchanges as RawOrderRow[]) || [],
-        sourceName: 'Bundled Baseline (Cron Base)',
-      };
-      log.push(`Loaded base from bundled baseline: ${baseDataset.orders.length} orders`);
-    }
+    log.push(`Loaded base from baseline dataset: ${baseDataset.orders.length} orders, ${baseDataset.returns?.length || 0} returns`);
 
     // 3. Step A: Incremental WooCommerce Sync
     const url = new URL(req.url);
@@ -81,10 +65,10 @@ export async function GET(req: Request) {
         const formattedRows = formatWooCommerceToOrderRows(rawWc);
         newWcOrdersCount = formattedRows.length;
 
-        // Deduplicate & merge: new order items replace older entries matching the order ID
+        // Deduplicate & non-destructively merge: incoming orders update matching orderId
         const orderMap = new Map<string, RawOrderRow[]>();
         for (const o of baseDataset.orders || []) {
-          const id = String(o['Order ID'] || o.orderId || '');
+          const id = String(o['Order ID'] || o.orderId || o.orderNumber || '');
           if (!orderMap.has(id)) orderMap.set(id, []);
           orderMap.get(id)!.push(o);
         }
@@ -92,7 +76,7 @@ export async function GET(req: Request) {
         // Overlay recent WooCommerce orders
         const newOrderMap = new Map<string, RawOrderRow[]>();
         for (const o of formattedRows) {
-          const id = String(o['Order ID'] || o.orderId || '');
+          const id = String(o['Order ID'] || o.orderId || o.orderNumber || '');
           if (!newOrderMap.has(id)) newOrderMap.set(id, []);
           newOrderMap.get(id)!.push(o);
         }
@@ -102,7 +86,7 @@ export async function GET(req: Request) {
         });
 
         baseDataset.orders = Array.from(orderMap.values()).flat();
-        log.push(`Merged ${newWcOrdersCount} recent WooCommerce order items`);
+        log.push(`Merged ${newWcOrdersCount} recent WooCommerce order items (Total: ${baseDataset.orders.length})`);
       }
     } catch (wcErr: unknown) {
       const msg = wcErr instanceof Error ? wcErr.message : String(wcErr);
@@ -164,29 +148,22 @@ export async function GET(req: Request) {
       log.push(`Pathao sync skipped/notice: ${msg}`);
     }
 
-    // 5. Step C: Save Merged Snapshot to Vercel Blob
-    let blobSaved = false;
+    // 5. Step C: Option C - Persist Merged Snapshot directly to baselineSample.json
+    let baselineSaved = false;
     baseDataset.syncedAt = new Date().toISOString();
+    (baseDataset as any).updatedAt = new Date().toISOString();
     baseDataset.sourceName = `Cron Automated Snapshot (${getDhakaTodayIso()})`;
 
-    if (isBlobConfigured()) {
-      const upload = await uploadDatasetToBlob(baseDataset, { createTimestampArchive: false });
-      blobSaved = upload.success;
-      log.push(`Saved merged dataset to Vercel Blob: ${upload.message}`);
-    } else {
-      log.push('Vercel Blob not configured; attempting local file persistence fallback');
-      try {
-        const fs = await import('fs');
-        const path = await import('path');
-        const localPath = path.join(process.cwd(), 'src', 'data', 'baselineSample.json');
-        if (fs.existsSync(path.dirname(localPath))) {
-          fs.writeFileSync(localPath, JSON.stringify(baseDataset, null, 2), 'utf-8');
-          log.push(`Saved updated dataset to local filesystem: ${localPath}`);
-        }
-      } catch {
-        // Read-only serverless environment is expected and non-fatal
-        log.push('Local filesystem write skipped (serverless environment)');
+    try {
+      const localPath = path.join(process.cwd(), 'src', 'data', 'baselineSample.json');
+      if (fs.existsSync(path.dirname(localPath))) {
+        fs.writeFileSync(localPath, JSON.stringify(baseDataset, null, 2), 'utf-8');
+        clearSampleDataMemoryCache();
+        baselineSaved = true;
+        log.push(`Saved refreshed dataset directly to local baseline: ${localPath}`);
       }
+    } catch (fsErr) {
+      log.push(`Local filesystem write skipped (serverless environment): ${fsErr instanceof Error ? fsErr.message : String(fsErr)}`);
     }
 
     const durationMs = Date.now() - startTime;
@@ -197,7 +174,7 @@ export async function GET(req: Request) {
       updatedPathaoCount,
       totalOrdersInStore: baseDataset.orders?.length || 0,
       totalReturnsInStore: baseDataset.returns?.length || 0,
-      blobSaved,
+      baselineSaved,
       log,
       message: `Cron completed in ${(durationMs / 1000).toFixed(1)}s: ${newWcOrdersCount} new WooCommerce rows, ${updatedPathaoCount} Pathao parcels refreshed.`,
     });

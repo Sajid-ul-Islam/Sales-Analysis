@@ -6,9 +6,10 @@ import { sanitizeOrdersResponse } from '@/lib/auth/dataMasking';
 import { validateApiRequest } from '@/lib/auth/apiAuth';
 import { createDataProvenance } from '@/lib/dataAudit';
 import { getBaselineDataset } from '@/lib/baselineLoader';
-import { fetchDatasetFromBlob, isBlobConfigured } from '@/lib/blobStorage';
 import { DatasetSnapshot, RawOrderRow } from '@/types';
 import { sampleDatasetSnapshot } from '@/lib/orderSampling';
+import { jsonWithEdgeCache, isClientFresh, createNotModifiedResponse } from '@/lib/edgeCache';
+import { fetchWooCommerceOrders, formatWooCommerceToOrderRows, testWooCommerceConnection } from '@/lib/woocommerceClient';
 
 function findFirstExistingFile(candidatePaths: string[]): string | null {
   try {
@@ -37,14 +38,16 @@ function parseExcelFile(filePath: string): RawOrderRow[] {
   }
 }
 
-import { jsonWithEdgeCache, isClientFresh, createNotModifiedResponse } from '@/lib/edgeCache';
-
-// Cached baseline fallback payload to avoid repeating 5,200+ PII sanitization loops per request
+// In-memory cache for fast unprivileged responses
 interface CachedFallback {
   payload: Record<string, unknown>;
   etag: string;
 }
 let cachedMaskedFallback: CachedFallback | null = null;
+
+export function clearSampleDataMemoryCache(): void {
+  cachedMaskedFallback = null;
+}
 
 // ISR (Incremental Static Regeneration): Cache static baseline sample data for 1 hour
 export const revalidate = 3600;
@@ -54,73 +57,135 @@ export async function GET(req: Request) {
     const auth = validateApiRequest(req, { requiredRole: 'readonly', allowDemo: true });
     const isPrivileged = auth.authenticated && (auth.role === 'admin' || auth.role === 'operator');
 
-    // 1. TIER 1 CLOUD CHECK: Vercel Blob Storage (Method 3)
-    // If BLOB_READ_WRITE_TOKEN is configured and a cloud dataset snapshot exists, serve it with 0ms delay!
-    if (isBlobConfigured()) {
+    const url = new URL(req.url);
+    const isForceSync = url.searchParams.get('force') === 'true' ||
+      url.searchParams.get('refresh') === 'true' ||
+      req.headers.get('x-force-sync') === 'true';
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // OPTION B: FORCED LIVE SYNC (Fallback to live WooCommerce REST API)
+    // ─────────────────────────────────────────────────────────────────────────────
+    if (isForceSync) {
       try {
-        const blobResult = await fetchDatasetFromBlob();
-        if (blobResult.success && blobResult.dataset && (blobResult.dataset.orders?.length || 0) > 0) {
-          const ds = blobResult.dataset;
-          const uploadedAtIso = blobResult.uploadedAt || 'v1';
-          const sampleKey = auth.sampleRate ? String(auth.sampleRate) : '1';
-          const etag = `W/"blob-${uploadedAtIso}-${sampleKey}-${isPrivileged ? 'priv' : 'mask'}"`;
+        const testConn = await testWooCommerceConnection();
+        if (testConn.success) {
+          console.log('[API /api/sample-data] Forced live sync triggered: Querying live WooCommerce API...');
+          const rawWcOrders = await fetchWooCommerceOrders({
+            perPage: 100,
+            status: 'any',
+            orderBy: 'date',
+            order: 'desc',
+            fetchAllPages: true,
+            maxPages: 6,
+          });
 
-          // Instant HTTP 304 if client browser already has the latest cloud blob snapshot
-          if (isClientFresh(req, etag)) {
-            return createNotModifiedResponse(etag, 'STATIC_DATASET');
-          }
+          if (rawWcOrders && rawWcOrders.length > 0) {
+            const freshRows = formatWooCommerceToOrderRows(rawWcOrders);
+            const baseline = getBaselineDataset();
 
-          let sanitizedOrders = isPrivileged ? ds.orders : sanitizeOrdersResponse(ds.orders || []);
-          let sanitizedReturns = isPrivileged ? ds.returns : sanitizeOrdersResponse(ds.returns || []);
-          let sanitizedPartials = isPrivileged ? ds.partials : sanitizeOrdersResponse(ds.partials || []);
-          let sanitizedExchanges = isPrivileged ? ds.exchanges : sanitizeOrdersResponse(ds.exchanges || []);
-          let sanitizedPathao = isPrivileged ? ds.pathaoDelivery : sanitizeOrdersResponse(ds.pathaoDelivery || []);
+            // Non-destructively upsert fresh rows into master baseline
+            const orderMap = new Map<string, RawOrderRow[]>();
+            for (const r of baseline.orders || []) {
+              const oid = String(r['Order ID'] || r.orderId || r.orderNumber || '');
+              if (!oid) continue;
+              if (!orderMap.has(oid)) orderMap.set(oid, []);
+              orderMap.get(oid)!.push(r);
+            }
 
-          if (auth.sampleRate && auth.sampleRate < 1) {
-            const sampled = sampleDatasetSnapshot({
+            const freshMap = new Map<string, RawOrderRow[]>();
+            for (const r of freshRows) {
+              const oid = String(r['Order ID'] || r.orderId || r.orderNumber || '');
+              if (!oid) continue;
+              if (!freshMap.has(oid)) freshMap.set(oid, []);
+              freshMap.get(oid)!.push(r);
+            }
+
+            // Fresh incoming orders overwrite existing matching IDs
+            for (const [oid, rows] of freshMap.entries()) {
+              orderMap.set(oid, rows);
+            }
+
+            const mergedOrders: RawOrderRow[] = [];
+            for (const rows of orderMap.values()) {
+              mergedOrders.push(...rows);
+            }
+
+            // Update in-memory baseline
+            baseline.orders = mergedOrders;
+            baseline.syncedAt = new Date().toISOString();
+            (baseline as any).updatedAt = new Date().toISOString();
+            baseline.sourceName = `⚡ Live WooCommerce Master (${mergedOrders.length.toLocaleString()} items · Refreshed ${new Date().toLocaleDateString('en-GB')})`;
+
+            // Option C Auto-Refresh: Write back to src/data/baselineSample.json if writable
+            try {
+              const localPath = path.join(process.cwd(), 'src', 'data', 'baselineSample.json');
+              if (fs.existsSync(path.dirname(localPath))) {
+                fs.writeFileSync(localPath, JSON.stringify(baseline, null, 2), 'utf8');
+                console.log(`[API /api/sample-data] Option C: Persisted ${mergedOrders.length} orders directly to ${localPath}`);
+              }
+            } catch (fsErr) {
+              console.warn('[API /api/sample-data] Notice: Local disk write skipped (serverless environment):', fsErr);
+            }
+
+            // Clear in-memory cache
+            clearSampleDataMemoryCache();
+
+            let sanitizedOrders = isPrivileged ? mergedOrders : sanitizeOrdersResponse(mergedOrders);
+            let sanitizedReturns = isPrivileged ? (baseline.returns || []) : sanitizeOrdersResponse(baseline.returns || []);
+            let sanitizedPartials = isPrivileged ? (baseline.partials || []) : sanitizeOrdersResponse(baseline.partials || []);
+            let sanitizedExchanges = isPrivileged ? (baseline.exchanges || []) : sanitizeOrdersResponse(baseline.exchanges || []);
+            let sanitizedPathao = isPrivileged ? (baseline.pathaoDelivery || []) : sanitizeOrdersResponse(baseline.pathaoDelivery || []);
+
+            if (auth.sampleRate && auth.sampleRate < 1) {
+              const sampled = sampleDatasetSnapshot({
+                orders: sanitizedOrders,
+                returns: sanitizedReturns,
+                partials: sanitizedPartials,
+                exchanges: sanitizedExchanges,
+                pathaoDelivery: sanitizedPathao,
+              }, auth.sampleRate);
+              sanitizedOrders = sampled.orders;
+              sanitizedReturns = sampled.returns;
+              sanitizedPartials = sampled.partials;
+              sanitizedExchanges = sampled.exchanges;
+              sanitizedPathao = sampled.pathaoDelivery || [];
+            }
+
+            const provenance = createDataProvenance('live_api', rawWcOrders.length, !isPrivileged);
+            const livePayload = {
+              success: true,
+              source: 'live_woocommerce_forced',
+              ordersPath: 'WooCommerce REST API (Live Force Sync)',
+              returnsPath: 'baselineSample.json (Historical)',
+              partialsPath: 'baselineSample.json (Historical)',
+              exchangesPath: 'baselineSample.json (Historical)',
+              pathaoDeliveryPath: 'baselineSample.json (Historical)',
+              ordersCount: sanitizedOrders.length,
+              returnsCount: sanitizedReturns.length,
+              partialsCount: sanitizedPartials.length,
+              exchangesCount: sanitizedExchanges.length,
+              pathaoDeliveryCount: sanitizedPathao.length,
+              provenance,
               orders: sanitizedOrders,
               returns: sanitizedReturns,
               partials: sanitizedPartials,
               exchanges: sanitizedExchanges,
               pathaoDelivery: sanitizedPathao,
-            }, auth.sampleRate);
-            sanitizedOrders = sampled.orders;
-            sanitizedReturns = sampled.returns;
-            sanitizedPartials = sampled.partials;
-            sanitizedExchanges = sampled.exchanges;
-            sanitizedPathao = sampled.pathaoDelivery || [];
+            };
+
+            const sampleKey = auth.sampleRate ? String(auth.sampleRate) : '1';
+            const liveEtag = `W/"live-${Date.now()}-${sampleKey}-${isPrivileged ? 'priv' : 'mask'}"`;
+            return jsonWithEdgeCache(livePayload, 'STATIC_DATASET', { req, etag: liveEtag, isPrivate: false });
           }
-
-          const provenance = createDataProvenance('vercel_blob', sanitizedOrders.length, !isPrivileged);
-
-          const payload = {
-            success: true,
-            source: 'vercel_blob',
-            ordersPath: 'deen_dataset_latest.json (Vercel Blob)',
-            returnsPath: 'deen_dataset_latest.json (Vercel Blob)',
-            partialsPath: 'deen_dataset_latest.json (Vercel Blob)',
-            exchangesPath: 'deen_dataset_latest.json (Vercel Blob)',
-            pathaoDeliveryPath: 'deen_dataset_latest.json (Vercel Blob)',
-            ordersCount: sanitizedOrders.length,
-            returnsCount: sanitizedReturns.length,
-            partialsCount: sanitizedPartials.length,
-            exchangesCount: sanitizedExchanges.length,
-            pathaoDeliveryCount: sanitizedPathao.length,
-            provenance,
-            orders: sanitizedOrders,
-            returns: sanitizedReturns,
-            partials: sanitizedPartials,
-            exchanges: sanitizedExchanges,
-            pathaoDelivery: sanitizedPathao,
-          };
-          return jsonWithEdgeCache(payload, 'STATIC_DATASET', { req, etag, isPrivate: false });
         }
-      } catch (blobErr) {
-        console.warn('[API /api/sample-data] Non-fatal notice querying Vercel Blob:', blobErr);
+      } catch (liveErr) {
+        console.warn('[API /api/sample-data] Forced live sync error, falling back to local baseline:', liveErr);
       }
     }
 
-    // 2. TIER 2 LOCAL CHECK: Local Excel Spreadsheets on disk (Method 1 Local Dev)
+    // ─────────────────────────────────────────────────────────────────────────────
+    // OPTION C: LOCAL UNIFIED BASELINE (0ms High-Performance Master Ledger)
+    // ─────────────────────────────────────────────────────────────────────────────
     // Fast path: if unprivileged fallback was already parsed & sanitized in this compute instance, serve immediately
     if (!isPrivileged && (!auth.sampleRate || auth.sampleRate === 1) && cachedMaskedFallback) {
       if (isClientFresh(req, cachedMaskedFallback.etag)) {
@@ -138,13 +203,12 @@ export async function GET(req: Request) {
     const orderCandidates = [
       path.join(cwd, 'Sample Docs', 'DEEN Multi-Month Master Orders (Sept-Oct-Nov).xlsx'),
       path.join(cwd, 'DEEN Multi-Month Master Orders (Sept-Oct-Nov).xlsx'),
+      path.join(cwd, 'Sample Docs', 'November 2026 Checkout Orders List.xlsx'),
+      path.join(cwd, 'Sample Docs', 'Nov', 'November 2026 Checkout Orders List.xlsx'),
       path.join(cwd, 'Sample Docs', 'October 2026 Checkout Orders List.xlsx'),
       path.join(cwd, 'October 2026 Checkout Orders List.xlsx'),
       path.join(cwd, 'Sample Docs', '7-30 Sept.xlsx'),
       path.join(cwd, '7-30 Sept.xlsx'),
-      path.join(cwd, 'Sample Docs', 'Merged - 27 Aug - 30 Sept.xlsx'),
-      path.join(cwd, 'Merged - 27 Aug - 30 Sept.xlsx'),
-      path.join(cwd, 'Sample Docs', 'September Online Orders - 1-30 Sept.xlsx')
     ];
 
     const returnCandidates = [
@@ -182,9 +246,7 @@ export async function GET(req: Request) {
     let exchanges = exchangesPath ? parseExcelFile(exchangesPath) : [];
     let pathaoDelivery = pathaoPath ? parseExcelFile(pathaoPath) : [];
 
-    // 3. TIER 3 ZERO-500 FALLBACK: Bundled Static JSON in Repository (Method 1 Production)
-    // If individual files are absent on disk (e.g. Vercel serverless environment where Sample Docs is gitignored),
-    // fallback directly to the bundled, precompiled baseline dataset to guarantee 100% data availability.
+    // TIER 3 FALLBACK: Unified Precompiled Baseline JSON in Repository (Option C Primary)
     const fallback = (getBaselineDataset() || {}) as {
       orders?: RawOrderRow[];
       returns?: RawOrderRow[];
@@ -281,7 +343,7 @@ export async function GET(req: Request) {
 }
 
 /**
- * Method 1 Save Endpoint:
+ * Save Endpoint:
  * Allows persisting the active working dataset directly to src/data/baselineSample.json when running locally.
  */
 export async function POST(req: Request) {
@@ -294,7 +356,7 @@ export async function POST(req: Request) {
     const body: Partial<DatasetSnapshot> = await req.json().catch(() => ({}));
     const targetPath = path.join(process.cwd(), 'src', 'data', 'baselineSample.json');
 
-    // Test if file is writable (e.g. running locally in Node vs Vercel serverless)
+    // Test if file is writable (e.g. running locally in Node vs read-only environment)
     let isWritable = false;
     try {
       if (typeof fs !== 'undefined' && fs.existsSync && fs.existsSync(path.dirname(targetPath))) {
@@ -309,7 +371,7 @@ export async function POST(req: Request) {
       return NextResponse.json({
         success: false,
         isReadOnly: true,
-        message: 'The server filesystem is read-only in this environment (e.g. Vercel Serverless). Please use Vercel Blob (Method 3) or download the JSON locally.',
+        message: 'The server filesystem is read-only in this environment. Please download the dataset JSON locally or sync via Cloud Sync.',
       });
     }
 
@@ -324,6 +386,7 @@ export async function POST(req: Request) {
     };
 
     fs.writeFileSync(targetPath, JSON.stringify(payload, null, 2), 'utf8');
+    clearSampleDataMemoryCache();
 
     return NextResponse.json({
       success: true,

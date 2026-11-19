@@ -97,10 +97,8 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
     } catch {}
   }, []);
 
-  // Vercel Blob & Storage State (Method 1, 2, 3, 4)
-  const [blobStatus, setBlobStatus] = useState<{ configured: boolean; latestBlob?: { pathname?: string; uploadedAt?: string; size?: number; [key: string]: unknown } } | null>(null);
-  const [savingToBlob, setSavingToBlob] = useState(false);
-  const [loadingFromBlob, setLoadingFromBlob] = useState(false);
+  // Dataset Storage & Force Live Sync State
+  const [forcingLiveBaseline, setForcingLiveBaseline] = useState(false);
   const [savingToLocal, setSavingToLocal] = useState(false);
   const [downloadingParquet, setDownloadingParquet] = useState(false);
 
@@ -142,18 +140,6 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
     };
   };
 
-  const checkBlobStatus = React.useCallback(async () => {
-    try {
-      const res = await fetch('/api/blob/status', {
-        headers: getClientAuthHeaders(),
-      });
-      const data = await res.json();
-      setBlobStatus(data.status ? { configured: data.configured, latestBlob: data.status.latestBlob } : { configured: Boolean(data.configured) });
-    } catch {
-      setBlobStatus({ configured: false });
-    }
-  }, []);
-
   const checkStatus = React.useCallback(async () => {
     setLoadingStatus(true);
     try {
@@ -186,10 +172,9 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
 
   useEffect(() => {
     checkStatus();
-    checkBlobStatus();
     setCacheStats(getSyncCacheStats());
     refreshPartitionStats();
-  }, [checkStatus, checkBlobStatus, refreshPartitionStats]);
+  }, [checkStatus, refreshPartitionStats]);
 
   // Quick Preset Handlers
   const handleApplyPreset = (preset: string) => {
@@ -291,59 +276,33 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
     }
   };
 
-  // Method 3: Upload current working dataset to Vercel Blob
-  const handleSaveToVercelBlob = async () => {
-    setSavingToBlob(true);
-    setMessage('Uploading dataset snapshot to Vercel Blob...');
+  // Option B: Fallback to live WooCommerce API when forced sync is triggered
+  const handleForceLiveBaselineSync = async () => {
+    setForcingLiveBaseline(true);
+    setMessage('Connecting to WooCommerce REST API for Forced Live Sync (Option B)...');
     try {
-      const ds = activeDataset || { orders: activeOrders || [] };
-      const res = await fetch('/api/blob/dataset', {
-        method: 'POST',
-        headers: getClientAuthHeaders(),
-        body: JSON.stringify(ds),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setMessage(`☁️ ${data.message}`);
-        checkBlobStatus();
-      } else {
-        setMessage(data.message || data.error || 'Failed to upload to Vercel Blob');
-      }
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      setMessage(`Vercel Blob upload error: ${errMsg}`);
-    } finally {
-      setSavingToBlob(false);
-    }
-  };
-
-  // Method 3: Load latest cloud snapshot from Vercel Blob
-  const handleLoadFromVercelBlob = async () => {
-    setLoadingFromBlob(true);
-    setMessage('Fetching latest dataset from Vercel Blob...');
-    try {
-      const res = await fetch('/api/blob/dataset', {
+      const res = await fetch('/api/sample-data?force=true', {
         headers: getClientAuthHeaders(),
       });
       const data = await res.json();
-      if (data.success && data.dataset) {
+      if (data.success && data.orders) {
         if (onLoadFullDataset) {
-          onLoadFullDataset(data.dataset, data.provenance);
-        } else if (data.dataset.orders) {
-          onDataSynced('orders', data.dataset.orders, data.provenance);
-          if (data.dataset.returns) {
-            onDataSynced('returns', data.dataset.returns, data.provenance);
+          onLoadFullDataset(data, data.provenance);
+        } else if (data.orders) {
+          onDataSynced('orders', data.orders, data.provenance);
+          if (data.returns) {
+            onDataSynced('returns', data.returns, data.provenance);
           }
         }
-        setMessage(`⚡ Loaded ${(data.dataset.orders || []).length.toLocaleString()} orders & ${(data.dataset.returns || []).length.toLocaleString()} returns from Vercel Blob.`);
+        setMessage(`⚡ Forced Sync Complete: Loaded ${(data.orders || []).length.toLocaleString()} orders from WooCommerce & updated baselineSample.json!`);
       } else {
-        setMessage(data.message || 'No dataset found in Vercel Blob.');
+        setMessage(data.message || data.error || 'Forced sync returned 0 orders.');
       }
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      setMessage(`Vercel Blob load error: ${errMsg}`);
+      setMessage(`Forced live sync error: ${errMsg}`);
     } finally {
-      setLoadingFromBlob(false);
+      setForcingLiveBaseline(false);
     }
   };
 
@@ -1037,54 +996,70 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
               <div className="flex items-center gap-2">
                 <Database className="w-4 h-4 text-primary" />
                 <h4 className="text-xs font-bold text-slate-900 dark:text-white font-headline">
-                  Dataset Storage & Persistence Hub (Methods 1, 2, 3, 4)
+                  Dataset Storage & Persistence Hub (Methods 1, 2, 3)
                 </h4>
               </div>
               <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium hidden sm:inline">
-                Store fetched datasets so you never have to refetch repeatedly
+                Option C: Local unified baseline with instant 0ms reload · Option B: Live WooCommerce forced fallback
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Method 1: Bundled Baseline JSON & Export */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {/* Method 1: Bundled Baseline JSON & Export (Option C + Option B) */}
               <div className="p-3 rounded-xl border border-slate-200 dark:border-deepBlack-border bg-slate-50/70 dark:bg-deepBlack-sidebar/70 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                       <Download className="w-3.5 h-3.5 text-primary" />
-                      Method 1: Static JSON
+                      Method 1: Static Baseline (Option C)
                     </span>
                     <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-950/60 text-primary">
                       Zero Cost
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
-                    Download active dataset as JSON or save to <code className="text-slate-700 dark:text-slate-300 font-mono">baselineSample.json</code>. Bundled into Vercel build for 0ms startup.
+                    Option C auto-persists to <code className="text-slate-700 dark:text-slate-300 font-mono">baselineSample.json</code>. Click <strong className="text-primary font-semibold">Force Live Sync</strong> to trigger Option B (direct WooCommerce REST API query).
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleDownloadDatasetJson}
+                      className="flex-1 px-2.5 py-1.5 rounded-lg bg-white dark:bg-deepBlack-card hover:bg-slate-100 dark:hover:bg-deepBlack-hover text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-deepBlack-border text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95"
+                      title="Download active dataset as standardized JSON file"
+                    >
+                      <Download className="w-3 h-3 text-primary" />
+                      <span>Download JSON</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveToLocalDisk}
+                      disabled={savingToLocal}
+                      className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-deepBlack-card hover:bg-slate-100 dark:hover:bg-deepBlack-hover text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-deepBlack-border text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95 disabled:opacity-50"
+                      title="Write directly to src/data/baselineSample.json in local development"
+                    >
+                      {savingToLocal ? (
+                        <RefreshCw className="w-3 h-3 animate-spin text-primary" />
+                      ) : (
+                        <FileSpreadsheet className="w-3 h-3 text-slate-600 dark:text-slate-400" />
+                      )}
+                      <span>Save Baseline</span>
+                    </button>
+                  </div>
                   <button
                     type="button"
-                    onClick={handleDownloadDatasetJson}
-                    className="flex-1 px-2.5 py-1.5 rounded-lg bg-white dark:bg-deepBlack-card hover:bg-slate-100 dark:hover:bg-deepBlack-hover text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-deepBlack-border text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95"
-                    title="Download active dataset as standardized JSON file"
+                    onClick={handleForceLiveBaselineSync}
+                    disabled={forcingLiveBaseline}
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-white disabled:opacity-50 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                    title="Query live WooCommerce REST API directly (Option B) and auto-update baselineSample.json (Option C)"
                   >
-                    <Download className="w-3 h-3 text-primary" />
-                    <span>Download JSON</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveToLocalDisk}
-                    disabled={savingToLocal}
-                    className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-deepBlack-card hover:bg-slate-100 dark:hover:bg-deepBlack-hover text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-deepBlack-border text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95 disabled:opacity-50"
-                    title="Write directly to src/data/baselineSample.json in local development"
-                  >
-                    {savingToLocal ? (
-                      <RefreshCw className="w-3 h-3 animate-spin text-primary" />
+                    {forcingLiveBaseline ? (
+                      <RefreshCw className="w-3 h-3 animate-spin text-white" />
                     ) : (
-                      <FileSpreadsheet className="w-3 h-3 text-slate-600 dark:text-slate-400" />
+                      <Zap className="w-3 h-3 text-white" />
                     )}
-                    <span>Save Baseline</span>
+                    <span>⚡ Force Live Sync (Option B)</span>
                   </button>
                 </div>
               </div>
@@ -1131,72 +1106,13 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
                 </div>
               </div>
 
-              {/* Method 3: Vercel Blob Cloud Storage */}
-              <div className="p-3 rounded-xl border border-slate-200 dark:border-deepBlack-border bg-slate-50/70 dark:bg-deepBlack-sidebar/70 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                      <Cloud className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                      Method 3: Vercel Blob
-                    </span>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${
-                      blobStatus?.configured
-                        ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
-                        : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
-                    }`}>
-                      {blobStatus?.configured ? (
-                        <>
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          Auto-Sync Active
-                        </>
-                      ) : (
-                        'Token Needed'
-                      )}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
-                    Serverless cloud object storage. Uploads & live syncs auto-save to Vercel Blob in the background so all remote team members share the latest cloud data instantly without re-uploading.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleSaveToVercelBlob}
-                    disabled={savingToBlob || !blobStatus?.configured}
-                    className="flex-1 px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95"
-                    title={blobStatus?.configured ? "Upload current dataset to Vercel Blob" : "Configure BLOB_READ_WRITE_TOKEN in Vercel Environment Variables"}
-                  >
-                    {savingToBlob ? (
-                      <RefreshCw className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <UploadCloud className="w-3 h-3" />
-                    )}
-                    <span>Sync to Blob</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleLoadFromVercelBlob}
-                    disabled={loadingFromBlob || !blobStatus?.configured}
-                    className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-deepBlack-card hover:bg-slate-100 dark:hover:bg-deepBlack-hover text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 disabled:opacity-50 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95"
-                    title={blobStatus?.configured ? "Fetch latest dataset snapshot from Vercel Blob" : "Configure BLOB_READ_WRITE_TOKEN in Vercel Environment Variables"}
-                  >
-                    {loadingFromBlob ? (
-                      <RefreshCw className="w-3 h-3 animate-spin text-indigo-600 dark:text-indigo-400" />
-                    ) : (
-                      <Cloud className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
-                    )}
-                    <span>Load</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Method 4: Apache Parquet Lakehouse */}
+              {/* Method 3: Apache Parquet Lakehouse */}
               <div className="p-3 rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/50 dark:bg-emerald-950/20 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                       <Zap className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                      Method 4: Parquet Lakehouse
+                      Method 3: Parquet Lakehouse
                     </span>
                     <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
                       90% Smaller

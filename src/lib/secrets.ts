@@ -47,9 +47,6 @@ export interface SecretsConfig {
     bucket_name?: string;
     namespace?: string;
   };
-  blob?: {
-    token: string;
-  };
 }
 
 /**
@@ -217,9 +214,6 @@ export function getSecretsConfig(): SecretsConfig {
     gcs: {
       bucket_name: process.env.GCS_BUCKET_NAME || 'deen-bi-cache',
       namespace: process.env.PERSISTENT_CACHE_NAMESPACE || 'shared',
-    },
-    blob: {
-      token: process.env.BLOB_READ_WRITE_TOKEN || '',
     },
   };
 

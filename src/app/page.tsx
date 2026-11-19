@@ -1227,7 +1227,7 @@ export default function DashboardPage() {
     setRawPartials(dataset.partials || []);
     setRawExchanges(dataset.exchanges || []);
     setRawPathaoDelivery(dataset.pathaoDelivery || []);
-    const sourceLabel = dataset.sourceName || '☁️ Vercel Blob Dataset';
+    const sourceLabel = dataset.sourceName || '⚡ Live Cloud Ledger';
     setDataSourceName(sourceLabel);
     const filtered = filterOrdersByDateScope(dataset.orders || [], dateScope, customDateRange);
     computeReconciliation(

@@ -26,21 +26,18 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 1.1 Edge Circuit Breaker: Block oversized request bodies
-  // Automated sync/AI routes capped at 500 KB to eliminate Fast Origin Transfer spikes.
-  // Manual admin cloud dataset uploads (/api/blob/dataset) capped at Vercel function ceiling (4.5 MB).
+  // 1.1 Edge Circuit Breaker: Block oversized request bodies (Max 4.5 MB).
   if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
     const contentLength = req.headers.get('content-length');
     if (contentLength) {
       const bytes = parseInt(contentLength, 10);
-      const isManualBlobUpload = pathname === '/api/blob/dataset';
-      const maxAllowedBytes = isManualBlobUpload ? 4.5 * 1024 * 1024 : 500 * 1024;
+      const maxAllowedBytes = 4.5 * 1024 * 1024;
 
       if (bytes > maxAllowedBytes) {
         return NextResponse.json(
           {
             success: false,
-            error: `Payload Too Large: Fast Origin Transfer circuit breaker engaged (Max ${isManualBlobUpload ? '4.5 MB' : '500 KB'}).`,
+            error: 'Payload Too Large: Fast Origin Transfer circuit breaker engaged (Max 4.5 MB).',
           },
           { status: 413 }
         );
