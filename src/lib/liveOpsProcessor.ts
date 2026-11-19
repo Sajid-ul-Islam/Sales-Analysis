@@ -1142,7 +1142,31 @@ export function isTodayOrdersEligible(
   }
 
   // 3. All other orders whose status is processing (User Rule: Today's Orders = placed that exact day + all other orders whose status is processing)
+  // GUARD: Only include processing orders created within the last 30 days relative to targetDateIso.
+  // This prevents stale October/older orders (still in 'processing') from leaking into Today's view.
   if (isOrderProcessing(order) && !isOrderOnHold(order)) {
+    const orderDateVal2 =
+      order['Order Date'] ||
+      o.orderDate ||
+      o['Date Created'] ||
+      o.date_created ||
+      o.dateCreated;
+    if (orderDateVal2) {
+      const od2 = parseOrderDateValue(orderDateVal2);
+      if (od2 && !isNaN(od2.getTime())) {
+        // Calculate days between order creation and targetDateIso
+        const targetMs = new Date(targetDateIso + 'T12:00:00').getTime();
+        const orderMs = od2.getTime();
+        const daysDiff = Math.floor((targetMs - orderMs) / 86400000);
+        // Only show processing orders created within the last 30 days
+        if (daysDiff >= 0 && daysDiff <= 30) {
+          return true;
+        }
+        // Order is too old (>30 days stale in processing) — exclude from Today's view
+        return false;
+      }
+    }
+    // No date available — still show it (safe default for new live orders with no date yet)
     return true;
   }
 
