@@ -1404,6 +1404,7 @@ const WC_STATUS_SYNONYMS: Record<string, string> = {
   'wc-refunded': 'refunded',
   'wc-failed': 'failed',
   'wc-trash': 'trash',
+  'wc-waiting': 'waiting',
 };
 
 /**
@@ -1444,8 +1445,8 @@ export async function fetchWooCommerceOrders(options: WcFetchOptions = {}): Prom
             .map((s) => s.trim().toLowerCase())
             .map((s) => WC_STATUS_SYNONYMS[s] || s)
             .filter((s) => {
-              // Strip known non-REST statuses (e.g. 'waiting', 'hold') to prevent WooCommerce HTTP 400
-              if (!s || s === 'waiting' || s === 'hold') return false;
+              // Strip empty or non-REST aliases ('hold' is already synonymized to 'on-hold')
+              if (!s || s === 'hold') return false;
               return true;
             })
         )

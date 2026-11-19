@@ -284,6 +284,10 @@ export function CloudSyncBar({ onDataSynced, activeOrders, provenance, activeDat
       const res = await fetch('/api/sample-data?force=true', {
         headers: getClientAuthHeaders(),
       });
+      const newEtag = res.headers.get('ETag');
+      if (newEtag && typeof window !== 'undefined') {
+        try { localStorage.setItem('deen_dataset_etag', newEtag); } catch {}
+      }
       const data = await res.json();
       if (data.success && data.orders) {
         if (onLoadFullDataset) {

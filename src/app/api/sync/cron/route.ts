@@ -7,7 +7,7 @@ import { validateApiRequest } from '@/lib/auth/apiAuth';
 import { getBaselineDataset } from '@/lib/baselineLoader';
 import { DatasetSnapshot, RawOrderRow } from '@/types';
 import { getDhakaDaysAgoIso, getDhakaTodayIso } from '@/lib/timezone';
-import { clearSampleDataMemoryCache } from '@/app/api/sample-data/route';
+import { clearSampleDataMemoryCache } from '@/lib/sync/sampleDataCache';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // 60s max execution time for Vercel Cron

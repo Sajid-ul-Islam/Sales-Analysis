@@ -38,16 +38,7 @@ function parseExcelFile(filePath: string): RawOrderRow[] {
   }
 }
 
-// In-memory cache for fast unprivileged responses
-interface CachedFallback {
-  payload: Record<string, unknown>;
-  etag: string;
-}
-let cachedMaskedFallback: CachedFallback | null = null;
-
-export function clearSampleDataMemoryCache(): void {
-  cachedMaskedFallback = null;
-}
+import { getCachedMaskedFallback, setCachedMaskedFallback, clearSampleDataMemoryCache } from '@/lib/sync/sampleDataCache';
 
 // ISR (Incremental Static Regeneration): Cache static baseline sample data for 1 hour
 export const revalidate = 3600;
@@ -70,14 +61,60 @@ export async function GET(req: Request) {
         const testConn = await testWooCommerceConnection();
         if (testConn.success) {
           console.log('[API /api/sample-data] Forced live sync triggered: Querying live WooCommerce API...');
-          const rawWcOrders = await fetchWooCommerceOrders({
-            perPage: 100,
-            status: 'any',
-            orderBy: 'date',
-            order: 'desc',
-            fetchAllPages: true,
-            maxPages: 6,
-          });
+          // Multi-stream sync: recent by date, recent by modified, and all active queue orders (including 'waiting')
+          const [recentByDate, recentByModified, queueOrders] = await Promise.all([
+            fetchWooCommerceOrders({
+              perPage: 100,
+              status: 'any',
+              orderBy: 'date',
+              order: 'desc',
+              fetchAllPages: true,
+              maxPages: 6,
+              timeoutMs: 25000,
+            }).catch((err) => {
+              console.warn('[API /api/sample-data] WC fetch by date notice:', err);
+              return [];
+            }),
+            fetchWooCommerceOrders({
+              perPage: 100,
+              status: 'any',
+              orderBy: 'modified',
+              order: 'desc',
+              fetchAllPages: true,
+              maxPages: 4,
+              timeoutMs: 25000,
+            }).catch((err) => {
+              console.warn('[API /api/sample-data] WC fetch by modified notice:', err);
+              return [];
+            }),
+            fetchWooCommerceOrders({
+              perPage: 100,
+              status: ['processing', 'waiting', 'on-hold', 'pending'],
+              orderBy: 'date',
+              order: 'desc',
+              fetchAllPages: true,
+              maxPages: 4,
+              timeoutMs: 25000,
+            }).catch((err) => {
+              console.warn('[API /api/sample-data] WC fetch queue notice:', err);
+              return [];
+            }),
+          ]);
+
+          const combinedMap = new Map<string, any>();
+          for (const ord of queueOrders) {
+            const id = String(ord.id || ord.number || '').trim();
+            if (id) combinedMap.set(id, ord);
+          }
+          for (const ord of recentByModified) {
+            const id = String(ord.id || ord.number || '').trim();
+            if (id) combinedMap.set(id, ord);
+          }
+          for (const ord of recentByDate) {
+            const id = String(ord.id || ord.number || '').trim();
+            if (id) combinedMap.set(id, ord);
+          }
+          const rawWcOrders = Array.from(combinedMap.values());
 
           if (rawWcOrders && rawWcOrders.length > 0) {
             const freshRows = formatWooCommerceToOrderRows(rawWcOrders);
@@ -187,13 +224,14 @@ export async function GET(req: Request) {
     // OPTION C: LOCAL UNIFIED BASELINE (0ms High-Performance Master Ledger)
     // ─────────────────────────────────────────────────────────────────────────────
     // Fast path: if unprivileged fallback was already parsed & sanitized in this compute instance, serve immediately
-    if (!isPrivileged && (!auth.sampleRate || auth.sampleRate === 1) && cachedMaskedFallback) {
-      if (isClientFresh(req, cachedMaskedFallback.etag)) {
-        return createNotModifiedResponse(cachedMaskedFallback.etag, 'STATIC_DATASET');
+    const cachedFallback = getCachedMaskedFallback();
+    if (!isPrivileged && (!auth.sampleRate || auth.sampleRate === 1) && cachedFallback) {
+      if (isClientFresh(req, cachedFallback.etag)) {
+        return createNotModifiedResponse(cachedFallback.etag, 'STATIC_DATASET');
       }
-      return jsonWithEdgeCache(cachedMaskedFallback.payload, 'STATIC_DATASET', {
+      return jsonWithEdgeCache(cachedFallback.payload, 'STATIC_DATASET', {
         req,
-        etag: cachedMaskedFallback.etag,
+        etag: cachedFallback.etag,
         isPrivate: false,
       });
     }
@@ -325,10 +363,10 @@ export async function GET(req: Request) {
     const fallbackEtag = `W/"baseline-${sanitizedOrders.length}-${sampleKey}-${isPrivileged ? 'priv' : 'mask'}"`;
 
     if (!isPrivileged && (!auth.sampleRate || auth.sampleRate === 1)) {
-      cachedMaskedFallback = {
+      setCachedMaskedFallback({
         payload: fallbackPayload,
         etag: fallbackEtag,
-      };
+      });
     }
 
     return jsonWithEdgeCache(fallbackPayload, 'STATIC_DATASET', { req, etag: fallbackEtag, isPrivate: false });

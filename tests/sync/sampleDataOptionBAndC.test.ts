@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
-import { GET as getSampleData, POST as postSampleData, clearSampleDataMemoryCache } from '@/app/api/sample-data/route';
+import { GET as getSampleData, POST as postSampleData } from '@/app/api/sample-data/route';
+import { clearSampleDataMemoryCache } from '@/lib/sync/sampleDataCache';
 import * as wcClient from '@/lib/woocommerceClient';
 
 describe('Option C Unified Baseline & Option B Forced Live Sync Fallback (/api/sample-data)', () => {

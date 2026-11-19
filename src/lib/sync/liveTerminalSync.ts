@@ -257,8 +257,8 @@ export async function syncLiveTerminalData(options: {
           fetchWooCommerceOrders({
             perPage: 100,
             fetchAllPages: true,
-            maxPages: 3,
-            status: ['processing', 'on-hold', 'pending'],
+            maxPages: 4,
+            status: ['processing', 'waiting', 'on-hold', 'pending'],
             orderBy: 'date',
             order: 'desc',
             timeoutMs: 25000,

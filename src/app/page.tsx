@@ -551,6 +551,54 @@ export default function DashboardPage() {
         setStatusMessage(`⚡ Restored from Local Cache: ${filtered.filteredOrders.length.toLocaleString()} orders (${filtered.label})${pathaoInfo}, ${cached.returns.length} returns, ${cached.partials.length} partials.`);
         setIsProcessing(false);
         setInitialLoading(false);
+
+        // SWR: Concurrently verify freshness with server baseline in background
+        const storedEtag = typeof window !== 'undefined' ? localStorage.getItem('deen_dataset_etag') : null;
+        fetch('/api/sample-data', {
+          headers: getClientAuthHeaders(storedEtag ? { 'If-None-Match': storedEtag } : undefined),
+        })
+          .then(async (bgRes) => {
+            if (bgRes.status === 200) {
+              const bgData = await bgRes.json().catch(() => null);
+              if (bgData && bgData.success && bgData.ordersCount > 0) {
+                const newEtag = bgRes.headers.get('ETag');
+                if (newEtag && typeof window !== 'undefined') {
+                  try { localStorage.setItem('deen_dataset_etag', newEtag); } catch {}
+                }
+                const dynamicTitle = getDynamicDatasetTitle(bgData.orders || [], 'UPLOAD', '📁 Verified Master Ledger');
+                const rawSnapshot: DatasetSnapshot = {
+                  orders: bgData.orders || [],
+                  pathaoDelivery: bgData.pathaoDelivery || [],
+                  returns: bgData.returns || [],
+                  partials: bgData.partials || [],
+                  exchanges: bgData.exchanges || [],
+                  sourceName: dynamicTitle
+                };
+                const snapshot = applySampling(rawSnapshot);
+                setUploadedDataset(snapshot);
+                setCacheItem(DEEN_CACHE_KEYS.ACTIVE_DATASET, snapshot, { ttlMs: 7 * 24 * 3600 * 1000, tag: 'dataset' });
+                setRawOrders(snapshot.orders || []);
+                saveOrdersToPartitions(snapshot.orders || []).catch(() => {});
+                setRawPathaoDelivery(snapshot.pathaoDelivery || []);
+                setRawReturns(snapshot.returns || []);
+                setRawPartials(snapshot.partials || []);
+                setRawExchanges(snapshot.exchanges || []);
+                setDataSourceName(dynamicTitle);
+                const reFiltered = filterOrdersByDateScope(snapshot.orders || [], dateScope, customDateRange);
+                computeReconciliation(
+                  reFiltered.filteredOrders,
+                  snapshot.returns || [],
+                  snapshot.partials || [],
+                  excludeAugust,
+                  excludePOS,
+                  snapshot.exchanges || [],
+                  snapshot.pathaoDelivery || []
+                );
+                setStatusMessage(`⚡ Updated with Latest Server Baseline: ${reFiltered.filteredOrders.length.toLocaleString()} orders.`);
+              }
+            }
+          })
+          .catch(() => {});
         return;
       }
 
@@ -580,16 +628,9 @@ export default function DashboardPage() {
       } catch (err) {
         console.warn('Notice reading partition store on mount:', err);
       }
-
-      // 1c. Fresh startup with no cached data: DO NOT auto-download mockup/sample data!
-      // Keep UI clean, ready for live sync from WooCommerce/Pathao or manual file upload.
-      setIsProcessing(false);
-      setInitialLoading(false);
-      setStatusMessage('⚡ Ready for Real Data: Sync live orders from WooCommerce & Pathao in Cloud Sync, or upload reports.');
-      return;
     }
 
-    // 2. Fetch baseline from local API (only when forceBypassCache is explicitly requested by user)
+    // 2. Fetch baseline from local API (Option C Master Baseline)
     try {
       const storedEtag = typeof window !== 'undefined' ? localStorage.getItem('deen_dataset_etag') : null;
       const res = await fetch('/api/sample-data', {
